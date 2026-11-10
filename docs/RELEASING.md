@@ -22,3 +22,5 @@ Keep the source revision, APK, source archive, checksum manifest, signature fing
 Complete [RELEASE_AND_COMPLIANCE.md](../RELEASE_AND_COMPLIANCE.md) before distribution. Publish only the intended public artifacts. Do not publish private keys, signing credentials, environment files, or developer workspace snapshots.
 
 The APK build workflow does not itself publish an application or produce a store listing. Store-specific formats and signing arrangements require their own validated distribution workflow.
+
+The manually triggered `Upload verified release assets` workflow can transfer verified public artifacts into an existing draft release. Its manifest supplies each filename, byte count, SHA-256, and either a temporary approved download URL or base64 content. It checks the expected source commit and every artifact before upload, rejects conflicting assets, and leaves final publication to the maintainer. It does not accept signing keystores or private certificate keys.

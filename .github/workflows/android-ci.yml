@@ -2,6 +2,7 @@ name: Android CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -30,8 +31,9 @@ jobs:
     timeout-minutes: 180
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      DROIDE_TERMINAL_ENGINE: ${{ runner.temp }}/droide-terminal-engine
     steps:
+      - name: Set terminal engine output
+        run: echo "DROIDE_TERMINAL_ENGINE=$RUNNER_TEMP/droide-terminal-engine" >> "$GITHUB_ENV"
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
