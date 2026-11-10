@@ -414,7 +414,7 @@ dependencies {
     androidTestImplementation("com.google.code.findbugs:jsr305:3.0.2")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
-    implementation("org.jsoup:jsoup:1.18.1")
+    implementation("org.jsoup:jsoup:1.24.1")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
 }
