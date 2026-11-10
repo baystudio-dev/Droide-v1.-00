@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "classes": [
+    "com.baystudio.droide.CompletedExitProcessTest",
+    "com.baystudio.droide.core.ExitProcessStopFanoutTest",
+    "com.baystudio.droide.core.ProviderStreamCompletionTest",
+    "com.baystudio.droide.core.ProviderStreamFailureTest",
+    "com.baystudio.droide.core.SafeWholeTreeArchiveSecurityTest",
+    "com.baystudio.droide.core.EditorStateStoreConflictTest",
+    "com.baystudio.droide.core.FileRepositoryCommittedWriteTest",
+    "com.baystudio.droide.core.ChatMediaStoreTest",
+    "com.baystudio.droide.core.OwnedChatIngressTest",
+    "com.baystudio.droide.core.OwnedChatTransportTest",
+    "com.baystudio.droide.core.TypedChatCompactorTest",
+    "com.baystudio.droide.core.ProviderWholePipelineCapacityTest",
+    "com.baystudio.droide.core.ProviderRetainedStreamBudgetTest"
+  ]
+}

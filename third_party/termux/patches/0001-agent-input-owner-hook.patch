@@ -1,0 +1,523 @@
+--- a/com/termux/terminal/TerminalSession.java
++++ b/com/termux/terminal/TerminalSession.java
+@@ -2,18 +2,11 @@
+ 
+ import android.annotation.SuppressLint;
+ import android.os.Handler;
++import android.os.Looper;
+ import android.os.Message;
+-import android.system.ErrnoException;
+-import android.system.Os;
+-import android.system.OsConstants;
+ 
+ import java.io.File;
+-import java.io.FileDescriptor;
+-import java.io.FileInputStream;
+-import java.io.FileOutputStream;
+ import java.io.IOException;
+-import java.io.InputStream;
+-import java.lang.reflect.Field;
+ import java.nio.charset.StandardCharsets;
+ import java.util.UUID;
+ 
+@@ -30,8 +23,48 @@
+  */
+ public final class TerminalSession extends TerminalOutput {
+ 
+-    private static final int MSG_NEW_INPUT = 1;
+-    private static final int MSG_PROCESS_EXITED = 4;
++    /** Non-blocking owner hook for terminal input; implementations must copy reused input bytes. */
++    public interface InputHandler {
++        void write(byte[] data, int offset, int count);
++        /** Runs after mandatory writer cleanup; never signals or restarts the shell. */
++        default void onPtyWriteFailure(int reason) {}
++    }
++
++    /** Installed once before publishing a PTY to human or Agent input. */
++    private volatile InputHandler mInputHandler;
++
++    static final int MSG_NEW_INPUT = 1;
++    static final int MSG_PROCESS_EXITED = 4;
++    static final int MSG_READER_FINISHED = 5;
++    static final int MSG_DRAIN_TIMEOUT = 6;
++    static final int MSG_WRITER_FINISHED = 7;
++    static final long EXIT_DRAIN_TIMEOUT_MILLIS = 5000;
++    private volatile boolean mStopReader;
++    private volatile boolean mStopWriter;
++    private volatile long mReaderDeadlineNanos;
++    private volatile boolean mWriterFinished;
++    private volatile int mInputWriteFailureReason;
++    private volatile int mProcessExitFailureReason;
++    private volatile TerminalProcessOwner mOwner;
++    private boolean mInitializationClaimed;
++    private boolean mProcessExited;
++    private boolean mReaderFinished;
++    private boolean mCompletionStarted;
++    private volatile boolean mCompletionDelivered;
++    private volatile boolean mOutputIncomplete;
++    private boolean mReaderFailureNoticeSent;
++
++    /** False means the completion receipt must not be treated as a complete diagnostic tail. */
++    public boolean isOutputComplete() { return mCompletionDelivered && !mOutputIncomplete; }
++
++    /** Zero is no observed failure, not proof that the child consumed queued input. */
++    public int getInputWriteFailureReason() { return mInputWriteFailureReason; }
++    /** 0 exited; 1 no child; 2 ownership lost; 3 quarantined; 4 group cleanup unconfirmed. */
++    public int getProcessExitFailureReason() { return mProcessExitFailureReason; }
++
++    private synchronized void recordInputFailure(int reason) {
++        if (mInputWriteFailureReason == 0) mInputWriteFailureReason = reason;
++    }
+ 
+     public final String mHandle = UUID.randomUUID().toString();
+ 
+@@ -44,7 +77,7 @@
+     final ByteQueue mProcessToTerminalIOQueue = new ByteQueue(4096);
+     /**
+      * A queue written to from the main thread due to user interaction, and read by another thread which forwards by
+-     * writing to the {@link #mTerminalFileDescriptor}.
++     * writing through the native-owned PTY handle.
+      */
+     final ByteQueue mTerminalToProcessIOQueue = new ByteQueue(4096);
+     /** Buffer to write translate code points into utf8 before writing to mTerminalToProcessIOQueue */
+@@ -54,16 +87,14 @@
+     TerminalSessionClient mClient;
+ 
+     /** The pid of the shell process. 0 if not started and -1 if finished running. */
+-    int mShellPid;
++    volatile int mShellPid;
++    /** Immutable successful-spawn receipt; never use this historical PID to signal a process. */
++    private int mSpawnedPid;
++
++    public int getSpawnedPid() { return mSpawnedPid; }
+ 
+     /** The exit status of the shell process. Only valid if ${@link #mShellPid} is -1. */
+     int mShellExitStatus;
+-
+-    /**
+-     * The file descriptor referencing the master half of a pseudo-terminal pair, resulting from calling
+-     * {@link JNI#createSubprocess(String, String, String[], String[], int[], int, int)}.
+-     */
+-    private int mTerminalFileDescriptor;
+ 
+     /** Set by the application for user identification of session, not by terminal. */
+     public String mSessionName;
+@@ -104,8 +135,10 @@
+         if (mEmulator == null) {
+             initializeEmulator(columns, rows);
+         } else {
+-            JNI.setPtyWindowSize(mTerminalFileDescriptor, rows, columns);
+             mEmulator.resize(columns, rows);
++            TerminalProcessOwner owner = mOwner;
++            if (owner != null && owner.handle() > 0)
++                JNI.resizeOwnedPty(owner.handle(), mEmulator.mRows, mEmulator.mColumns);
+         }
+     }
+ 
+@@ -121,61 +154,175 @@
+      * @param rows    The number of rows in the terminal window.
+      */
+     public void initializeEmulator(int columns, int rows) {
++        synchronized (this) {
++            if (mInitializationClaimed) throw new IllegalStateException("Terminal startup already claimed");
++            mInitializationClaimed = true;
++        }
+         mEmulator = new TerminalEmulator(this, columns, rows, mTranscriptRows, mClient);
+-
+-        int[] processId = new int[1];
+-        mTerminalFileDescriptor = JNI.createSubprocess(mShellPath, mCwd, mArgs, mEnv, processId, rows, columns);
+-        mShellPid = processId[0];
+-
+-        final FileDescriptor terminalFileDescriptorWrapped = wrapFileDescriptor(mTerminalFileDescriptor, mClient);
+-
+-        new Thread("TermSessionInputReader[pid=" + mShellPid + "]") {
+-            @Override
+-            public void run() {
+-                try (InputStream termIn = new FileInputStream(terminalFileDescriptorWrapped)) {
+-                    final byte[] buffer = new byte[4096];
+-                    while (true) {
+-                        int read = termIn.read(buffer);
+-                        if (read == -1) return;
+-                        if (!mProcessToTerminalIOQueue.write(buffer, 0, read)) return;
+-                        mMainThreadHandler.sendEmptyMessage(MSG_NEW_INPUT);
++        final TerminalProcessOwner owner = new TerminalProcessOwner(new NativeBackend(mEmulator.mRows, mEmulator.mColumns));
++        mOwner = owner;
++        // Allocate every worker, buffer, receipt and adapter before reserving or spawning a child.
++        final byte[] readBuffer = new byte[TerminalPtyIo.MAX_CHUNK];
++        final byte[] writeBuffer = new byte[TerminalPtyIo.MAX_CHUNK];
++        final TerminalPtyIo.WriteReceipt writeReceipt = new TerminalPtyIo.WriteReceipt();
++        final WriterBackend writerBackend = new WriterBackend(owner);
++        final ReaderStopCondition readerStop = new ReaderStopCondition();
++        final ReaderBackend readerBackend = new ReaderBackend(owner, readerStop);
++        final TerminalPtyIo.ReadReceipt readReceipt = new TerminalPtyIo.ReadReceipt();
++        final Thread waiter = new Thread("TermSessionWaiter") {
++            @Override public void run() {
++                long result = ((long) JNI.QUARANTINED) << 32;
++                try {
++                    owner.awaitProcess();
++                    result = owner.waitForProcess();
++                } finally {
++                    // Publish stop/deadline before any main-Looper delivery or I/O-ready wait.
++                    mStopWriter = true;
++                    mReaderDeadlineNanos = System.nanoTime() + TerminalPtyIo.CHUNK_TIMEOUT_NANOS;
++                    mTerminalToProcessIOQueue.close();
++                    mProcessExitFailureReason = JNI.tag(result);
++                    synchronized (TerminalSession.this) {
++                        mShellPid = -1;
++                        mShellExitStatus = (JNI.tag(result) == JNI.EXITED || JNI.tag(result) == JNI.EXITED_CLEANUP_UNCONFIRMED)
++                            ? JNI.value(result) : 0;
+                     }
+-                } catch (Exception e) {
+-                    // Ignore, just shutting down.
++                    try { owner.cancelIo(JNI.WRITE); }
++                    finally { owner.releaseWaiter(); }
++                    mMainThreadHandler.sendEmptyMessage(MSG_PROCESS_EXITED);
+                 }
+             }
+-        }.start();
+-
+-        new Thread("TermSessionOutputWriter[pid=" + mShellPid + "]") {
+-            @Override
+-            public void run() {
+-                final byte[] buffer = new byte[4096];
+-                try (FileOutputStream termOut = new FileOutputStream(terminalFileDescriptorWrapped)) {
+-                    while (true) {
+-                        int bytesToWrite = mTerminalToProcessIOQueue.read(buffer, true);
+-                        if (bytesToWrite == -1) return;
+-                        termOut.write(buffer, 0, bytesToWrite);
++        };
++        final Thread reader = new Thread("TermSessionInputReader") {
++            @Override public void run() {
++                boolean failed = false;
++                try {
++                    if (!owner.awaitIo()) return;
++                    TerminalPtyIo.readUntilClosed(readerBackend, readBuffer, readReceipt);
++                    failed = readReceipt.incomplete;
++                } catch (Throwable failure) {
++                    // Includes JNI copy exceptions after consumption: never replay those bytes.
++                    failed = true;
++                } finally {
++                    if (failed) mOutputIncomplete = true;
++                    try { owner.releaseLane(JNI.READ); }
++                    finally { mMainThreadHandler.sendMessage(mMainThreadHandler.obtainMessage(MSG_READER_FINISHED, failed ? 1 : 0, 0)); }
++                }
++            }
++        };
++        final Thread writer = new Thread("TermSessionOutputWriter") {
++            @Override public void run() {
++                int staged = 0;
++                try {
++                    if (!owner.awaitIo()) return;
++                    while (!mStopWriter) {
++                        staged = mTerminalToProcessIOQueue.read(writeBuffer, true);
++                        if (staged < 0) { staged = 0; break; }
++                        TerminalPtyIo.writeChunk(writerBackend, writeBuffer, staged, writeReceipt);
++                        if (writeReceipt.failure != 0) { recordInputFailure(writeReceipt.failure); break; }
++                        staged = 0;
+                     }
+-                } catch (IOException e) {
+-                    // Ignore.
++                } catch (Throwable failure) {
++                    recordInputFailure(TerminalPtyIo.FAILURE_EXCEPTION);
++                } finally {
++                    mStopWriter = true;
++                    mTerminalToProcessIOQueue.close();
++                    if (staged > writeReceipt.confirmed || mTerminalToProcessIOQueue.pendingBytes() > 0)
++                        recordInputFailure(TerminalPtyIo.FAILURE_CANCELLED);
++                    // A completion cannot be loss-free until an admitted write has settled here.
++                    try { owner.releaseLane(JNI.WRITE); }
++                    finally { mWriterFinished = true; }
++                    mMainThreadHandler.sendEmptyMessage(MSG_WRITER_FINISHED);
++                    InputHandler input = mInputHandler;
++                    if (input != null && mInputWriteFailureReason != 0) {
++                        try { input.onPtyWriteFailure(mInputWriteFailureReason); }
++                        catch (Throwable ignored) { /* Failure receipt and lane release already committed. */ }
++                    }
+                 }
+             }
+-        }.start();
+-
+-        new Thread("TermSessionWaiter[pid=" + mShellPid + "]") {
+-            @Override
+-            public void run() {
+-                int processExitCode = JNI.waitFor(mShellPid);
+-                mMainThreadHandler.sendMessage(mMainThreadHandler.obtainMessage(MSG_PROCESS_EXITED, processExitCode));
+-            }
+-        }.start();
+-
+-    }
+-
+-    /** Write data to the shell process. */
++        };
++        if (mStopWriter) owner.stop();
++        owner.start(waiter::start, reader::start, writer::start);
++    }
++
++    private final class NativeBackend implements TerminalProcessOwner.Backend {
++        private final int rows, columns;
++        NativeBackend(int rows, int columns) { this.rows = rows; this.columns = columns; }
++        public int apiVersion() { return JNI.ownedProcessApiVersion(); }
++        public long reserve() { return JNI.reserveOwnedProcess(); }
++        public int spawn(long owner) {
++            int pid = JNI.createOwnedSubprocess(owner, mShellPath, mCwd, mArgs, mEnv, rows, columns);
++            // Before the helper's process handoff; a fast waiter can never be overwritten later.
++            mShellPid = pid;
++            mSpawnedPid = pid;
++            return pid;
++        }
++        public long waitFor(long owner) { return JNI.waitForOwnedProcess(owner); }
++        public int stop(long owner) { return JNI.requestOwnedStop(owner, JNI.ANCHORED_SESSION_GROUP); }
++        public void cancelIo(long owner, int lanes) { JNI.cancelOwnedPtyIo(owner, lanes); }
++        public void release(long owner) { JNI.releaseOwnedProcess(owner); }
++        public void releaseLane(long owner, int lane) { JNI.releaseOwnedPtyLane(owner, lane); }
++    }
++
++    private final class WriterBackend implements TerminalPtyIo.Backend {
++        private final TerminalProcessOwner owner;
++        WriterBackend(TerminalProcessOwner owner) { this.owner = owner; }
++        public long write(byte[] bytes, int offset, int count) { return JNI.writeOwnedPtyOnce(owner.handle(), bytes, offset, count); }
++        public long poll(int millis) { return JNI.pollOwnedPtyOnce(owner.handle(), JNI.WRITE, millis); }
++        public long nanoTime() { return System.nanoTime(); }
++        public boolean cancelled() { return mStopWriter || owner.isStopped(); }
++        public void backoff(int millis) throws InterruptedException { Thread.sleep(millis); }
++    }
++
++    private final class ReaderBackend implements TerminalPtyIo.ReaderBackend {
++        private final TerminalProcessOwner owner;
++        private final ReaderStopCondition stop;
++        ReaderBackend(TerminalProcessOwner owner, ReaderStopCondition stop) { this.owner = owner; this.stop = stop; }
++        public long read(byte[] bytes) { return JNI.readOwnedPtyOnce(owner.handle(), bytes, 0, bytes.length); }
++        public long poll(int millis) { return JNI.pollOwnedPtyOnce(owner.handle(), JNI.READ, millis); }
++        public boolean stopped() { return stop.shouldStop(); }
++        public boolean enqueue(byte[] bytes, int count) { return mProcessToTerminalIOQueue.writeUntil(bytes, 0, count, stop); }
++        public void queued() { mMainThreadHandler.sendEmptyMessage(MSG_NEW_INPUT); }
++        public void backoff(int millis) throws InterruptedException { Thread.sleep(millis); }
++    }
++
++    private final class ReaderStopCondition implements ByteQueue.StopCondition {
++        public boolean shouldStop() {
++            long deadline = mReaderDeadlineNanos;
++            return mStopReader || (deadline != 0 && System.nanoTime() - deadline >= 0);
++        }
++    }
++
++    /**
++     * Install a non-blocking input owner once for a terminal session.
++     * The handler must copy the requested range before returning because code-point input reuses a buffer.
++     * Droide installs this for both human and Agent sessions; unset retains upstream behavior.
++     */
++    public synchronized void setInputHandler(InputHandler handler) {
++        if (handler == null) throw new IllegalArgumentException("Input handler must not be null");
++        if (mInputHandler != null) throw new IllegalStateException("Input handler is already installed");
++        mInputHandler = handler;
++    }
++
++    /** Write data to the shell process through the optional non-blocking input owner. */
+     @Override
+     public void write(byte[] data, int offset, int count) {
+-        if (mShellPid > 0) mTerminalToProcessIOQueue.write(data, offset, count);
++        InputHandler handler = mInputHandler;
++        if (handler != null) {
++            handler.write(data, offset, count);
++        } else {
++            writeToPty(data, offset, count);
++        }
++    }
++
++    /**
++     * Forward already-owned input to the original blocking queue from the sole input worker.
++     * Sessions with an input owner must never use this path on Android's main thread.
++     */
++    public boolean writeToPty(byte[] data, int offset, int count) {
++        if (mInputHandler != null && Looper.myLooper() == Looper.getMainLooper()) {
++            throw new IllegalStateException("Owned PTY input must be forwarded off the main thread");
++        }
++        return mShellPid > 0 && mTerminalToProcessIOQueue.write(data, offset, count);
+     }
+ 
+     /** Write the Unicode code point to the terminal encoded in UTF-8. */
+@@ -230,28 +377,26 @@
+         notifyScreenUpdate();
+     }
+ 
+-    /** Finish this terminal session by sending SIGKILL to the shell. */
++    /** Request termination only through this library's generation-checked ownership. */
+     public void finishIfRunning() {
+-        if (isRunning()) {
+-            try {
+-                Os.kill(mShellPid, OsConstants.SIGKILL);
+-            } catch (ErrnoException e) {
+-                mClient.logWarn(LOG_TAG, "Failed sending SIGKILL: " + e.getMessage());
+-            }
+-        }
+-    }
+-
+-    /** Cleanup resources when the process exits. */
++        mStopWriter = true;
++        mTerminalToProcessIOQueue.close();
++        TerminalProcessOwner owner = mOwner;
++        if (owner != null) {
++            int outcome = owner.stop();
++            if (outcome >= 2) mClient.logWarn(LOG_TAG, "Native PTY stop cleanup is unconfirmed (reason " + outcome + ")");
++        }
++    }
++
++    /** UI cleanup retires admissions; workers own their native lane releases. Never close an fd here. */
+     void cleanupResources(int exitStatus) {
+-        synchronized (this) {
+-            mShellPid = -1;
+-            mShellExitStatus = exitStatus;
+-        }
+-
+-        // Stop the reader and writer threads, and close the I/O streams
++        synchronized (this) { mShellPid = -1; mShellExitStatus = exitStatus; }
++        mStopReader = true;
++        mStopWriter = true;
+         mTerminalToProcessIOQueue.close();
+         mProcessToTerminalIOQueue.close();
+-        JNI.close(mTerminalFileDescriptor);
++        TerminalProcessOwner owner = mOwner;
++        if (owner != null) owner.cancelIo(JNI.READ | JNI.WRITE);
+     }
+ 
+     @Override
+@@ -313,60 +458,94 @@
+         return null;
+     }
+ 
+-    private static FileDescriptor wrapFileDescriptor(int fileDescriptor, TerminalSessionClient client) {
+-        FileDescriptor result = new FileDescriptor();
+-        try {
+-            Field descriptorField;
+-            try {
+-                descriptorField = FileDescriptor.class.getDeclaredField("descriptor");
+-            } catch (NoSuchFieldException e) {
+-                // For desktop java:
+-                descriptorField = FileDescriptor.class.getDeclaredField("fd");
+-            }
+-            descriptorField.setAccessible(true);
+-            descriptorField.set(result, fileDescriptor);
+-        } catch (NoSuchFieldException | IllegalAccessException | IllegalArgumentException e) {
+-            client.logStackTraceWithMessage(LOG_TAG, "Error accessing FileDescriptor#descriptor private field", e);
+-            System.exit(1);
+-        }
+-        return result;
+-    }
+-
+     @SuppressLint("HandlerLeak")
+     class MainThreadHandler extends Handler {
+ 
+         final byte[] mReceiveBuffer = new byte[4 * 1024];
++        int mReceiveOffset;
++        int mReceiveLength;
+ 
+         @Override
+         public void handleMessage(Message msg) {
+-            int bytesRead = mProcessToTerminalIOQueue.read(mReceiveBuffer, false);
+-            if (bytesRead > 0) {
+-                mEmulator.append(mReceiveBuffer, bytesRead);
++            if (mCompletionStarted) return;
++            if (msg.what == MSG_PROCESS_EXITED) {
++                mProcessExited = true;
++                synchronized (TerminalSession.this) {
++                    // Numeric PID is diagnostic only; native wait receipt may report ownership loss.
++                    mShellPid = -1;
++                }
++                mTerminalToProcessIOQueue.close();
++                sendEmptyMessageDelayed(MSG_DRAIN_TIMEOUT, EXIT_DRAIN_TIMEOUT_MILLIS);
++            } else if (msg.what == MSG_WRITER_FINISHED) {
++                mWriterFinished = true;
++            } else if (msg.what == MSG_READER_FINISHED) {
++                mReaderFinished = true;
++                if (msg.arg1 != 0) mOutputIncomplete = true;
++                if (msg.arg1 != 0) mClient.logError(LOG_TAG, "PTY reader failed; output is incomplete and the child may still be running");
++                mProcessToTerminalIOQueue.closeForDrain();
++            } else if (msg.what == MSG_DRAIN_TIMEOUT && mProcessExited) {
++                // Bounded fallback for inherited/open PTYs or an enormous pending expansion.
++                // This is an explicit incomplete-output receipt, never a successful full drain.
++                mOutputIncomplete = true;
++                if (!mWriterFinished) recordInputFailure(TerminalPtyIo.FAILURE_UNCONFIRMED);
++                mStopReader = true;
++                mProcessToTerminalIOQueue.close();
++                if (mEmulator != null) mEmulator.cancelPendingInputWork();
++                finishCompletion();
++                return;
++            }
++
++            boolean queueEmpty = false;
++            if (mReceiveOffset == mReceiveLength) {
++                mReceiveLength = Math.max(0, mProcessToTerminalIOQueue.read(mReceiveBuffer, false));
++                mReceiveOffset = 0;
++                queueEmpty = mReceiveLength == 0;
++            }
++            if (mEmulator != null && (mReceiveOffset < mReceiveLength || mEmulator.hasPendingInputWork())) {
++                mReceiveOffset += mEmulator.appendBounded(mReceiveBuffer, mReceiveOffset,
++                    mReceiveLength - mReceiveOffset, TerminalEmulator.INPUT_WORK_BUDGET);
+                 notifyScreenUpdate();
+             }
+-
+-            if (msg.what == MSG_PROCESS_EXITED) {
+-                int exitCode = (Integer) msg.obj;
+-                cleanupResources(exitCode);
+-
+-                String exitDescription = "\r\n[Process completed";
+-                if (exitCode > 0) {
+-                    // Non-zero process exit.
+-                    exitDescription += " (code " + exitCode + ")";
+-                } else if (exitCode < 0) {
+-                    // Negated signal.
+-                    exitDescription += " (signal " + (-exitCode) + ")";
+-                }
++            boolean pending = mReceiveOffset < mReceiveLength || (mEmulator != null && mEmulator.hasPendingInputWork());
++            if (mReaderFinished && mOutputIncomplete && !mProcessExited && queueEmpty && !pending
++                && !mReaderFailureNoticeSent && mEmulator != null) {
++                mReaderFailureNoticeSent = true;
++                mEmulator.finishInput();
++                byte[] notice = "\r\n[PTY reader failed; output incomplete; process may still be running]\r\n".getBytes(StandardCharsets.UTF_8);
++                mEmulator.append(notice, notice.length);
++                notifyScreenUpdate();
++            }
++            if (mProcessExited && mReaderFinished && mWriterFinished && queueEmpty && !pending) {
++                finishCompletion();
++            } else if (pending || !queueEmpty) {
++                // At most one self-scheduled continuation; yield to UI, stop and timeout messages.
++                removeMessages(MSG_NEW_INPUT);
++                sendEmptyMessage(MSG_NEW_INPUT);
++            }
++        }
++
++        private void finishCompletion() {
++            if (mCompletionStarted) return;
++            mCompletionStarted = true;
++            removeMessages(MSG_NEW_INPUT);
++            removeMessages(MSG_DRAIN_TIMEOUT);
++            cleanupResources(mShellExitStatus);
++            if (mEmulator != null) {
++                if (mEmulator.finishInput()) mOutputIncomplete = true;
++                String exitDescription = mProcessExitFailureReason == 0 || mProcessExitFailureReason == 4
++                    ? "\r\n[Process completed" : "\r\n[Process cleanup unconfirmed (reason " + mProcessExitFailureReason + ")";
++                if (mShellExitStatus > 0) exitDescription += " (code " + mShellExitStatus + ")";
++                else if (mShellExitStatus < 0) exitDescription += " (signal " + (-mShellExitStatus) + ")";
++                if (mOutputIncomplete) exitDescription += "; output incomplete";
++                if (mInputWriteFailureReason != 0) exitDescription += "; input incomplete/unconfirmed (reason " + mInputWriteFailureReason + ")";
++                if (mProcessExitFailureReason == 4) exitDescription += "; anchored group cleanup unconfirmed";
+                 exitDescription += " - press Enter]";
+-
+-                byte[] bytesToWrite = exitDescription.getBytes(StandardCharsets.UTF_8);
+-                mEmulator.append(bytesToWrite, bytesToWrite.length);
++                byte[] bytes = exitDescription.getBytes(StandardCharsets.UTF_8);
++                mEmulator.append(bytes, bytes.length);
+                 notifyScreenUpdate();
+-
+-                mClient.onSessionFinished(TerminalSession.this);
+-            }
+-        }
+-
+-    }
+-
++            }
++            mCompletionDelivered = true;
++            mClient.onSessionFinished(TerminalSession.this);
++        }
++    }
+ }

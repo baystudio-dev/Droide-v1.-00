@@ -1,0 +1,120 @@
+{
+  "source_candidate_text_gaps": [],
+  "source_candidate_text_gap_count": 0,
+  "source_association_or_attribution_caveats": [
+    {
+      "id": "cargo:ring@0.16.20",
+      "status": "official_text_collected",
+      "caveats": [
+        "Original LICENSE warns it may be out of sync with per-file terms. Root ISC/OpenSSL/SSLeay/Google/fiat terms and explicitly named third-party legal directories were inspected; no unbounded per-file copyright crawl or native payload inspection was performed."
+      ]
+    },
+    {
+      "id": "cargo:valuable@0.1.0",
+      "status": "official_text_collected",
+      "caveats": [
+        "Published package has no VCS revision or root license file. Official v0.1.0 tag e89de8805f524aefafdbcc1fcd1b20ecfd0d22b6 has matching package identity/license and provides the retained Valuable Contributors MIT notice; this is an exact-version source association, not registry-byte reproducibility."
+      ]
+    },
+    {
+      "id": "cargo:webpki-roots@0.22.4",
+      "status": "official_text_collected",
+      "caveats": [
+        "Exact LICENSE is an MPL-2.0 notice, not the full terms; full SPDX MPL-2.0 text is added explicitly. Actual inclusion requires source-availability fulfillment, recorded separately."
+      ]
+    },
+    {
+      "id": "cargo:winapi-i686-pc-windows-gnu@0.4.0",
+      "status": "declared_standard_terms_with_original_headers",
+      "caveats": [
+        "No component-local LICENSE files or published VCS revision in exact docs.rs listing. Exact-version source headers explicitly state Apache-2.0 OR MIT and identify 2016 / 2016-2018 winapi-rs developers. Those original headers are retained with clearly labeled SPDX standard terms. Bundled native import-library contents were not acquired or inspected; no inference of WASM inclusion."
+      ]
+    },
+    {
+      "id": "cargo:winapi-x86_64-pc-windows-gnu@0.4.0",
+      "status": "declared_standard_terms_with_original_headers",
+      "caveats": [
+        "No component-local LICENSE files or published VCS revision in exact docs.rs listing. Exact-version source headers explicitly state Apache-2.0 OR MIT and identify 2016 / 2016-2018 winapi-rs developers. Those original headers are retained with clearly labeled SPDX standard terms. Bundled native import-library contents were not acquired or inspected; no inference of WASM inclusion."
+      ]
+    },
+    {
+      "id": "cargo:windows_aarch64_msvc@0.36.1",
+      "status": "same_commit_project_notices_with_exact_component_declaration",
+      "caveats": [
+        "No target-crate-local license file in docs.rs listing. Supplemental project notices are copied verbatim from windows-sys 0.36.1 at the exact same published repository commit 9deec0ee3b51a9a540f6dfe984ee34e2409ed355, with Microsoft authorship declared by both manifests. They are labeled same-commit project notices, not target-package-original files."
+      ]
+    },
+    {
+      "id": "cargo:windows_i686_gnu@0.36.1",
+      "status": "same_commit_project_notices_with_exact_component_declaration",
+      "caveats": [
+        "No target-crate-local license file in docs.rs listing. Supplemental project notices are copied verbatim from windows-sys 0.36.1 at the exact same published repository commit 9deec0ee3b51a9a540f6dfe984ee34e2409ed355, with Microsoft authorship declared by both manifests. They are labeled same-commit project notices, not target-package-original files."
+      ]
+    },
+    {
+      "id": "cargo:windows_i686_msvc@0.36.1",
+      "status": "same_commit_project_notices_with_exact_component_declaration",
+      "caveats": [
+        "No target-crate-local license file in docs.rs listing. Supplemental project notices are copied verbatim from windows-sys 0.36.1 at the exact same published repository commit 9deec0ee3b51a9a540f6dfe984ee34e2409ed355, with Microsoft authorship declared by both manifests. They are labeled same-commit project notices, not target-package-original files."
+      ]
+    },
+    {
+      "id": "cargo:windows_x86_64_gnu@0.36.1",
+      "status": "same_commit_project_notices_with_exact_component_declaration",
+      "caveats": [
+        "No target-crate-local license file in docs.rs listing. Supplemental project notices are copied verbatim from windows-sys 0.36.1 at the exact same published repository commit 9deec0ee3b51a9a540f6dfe984ee34e2409ed355, with Microsoft authorship declared by both manifests. They are labeled same-commit project notices, not target-package-original files."
+      ]
+    },
+    {
+      "id": "cargo:windows_x86_64_msvc@0.36.1",
+      "status": "same_commit_project_notices_with_exact_component_declaration",
+      "caveats": [
+        "No target-crate-local license file in docs.rs listing. Supplemental project notices are copied verbatim from windows-sys 0.36.1 at the exact same published repository commit 9deec0ee3b51a9a540f6dfe984ee34e2409ed355, with Microsoft authorship declared by both manifests. They are labeled same-commit project notices, not target-package-original files."
+      ]
+    },
+    {
+      "id": "npm:@wasm-tool/rollup-plugin-rust@2.4.5",
+      "status": "publisher_spdx_standard_terms_no_original_notice_found",
+      "caveats": [
+        "No LICENSE/NOTICE/COPYING filename was found in the complete exact gitHead tree; no upstream copyright notice was found in the README or the inspected emitted-template sources. The exact publisher declares SPDX MIT. Standard SPDX MIT text is supplemental and labeled; template placeholders are unfilled. Declared author metadata is retained as author metadata, not asserted copyright ownership. This is not an unknown/custom-license inference or an original publisher LICENSE."
+      ]
+    },
+    {
+      "id": "npm:typescript@5.3.3",
+      "status": "official_text_collected",
+      "caveats": [
+        "npm metadata has no gitHead. Official v5.3.3 source tag is the source-version association; no archive-byte or build attestation is inferred."
+      ]
+    }
+  ],
+  "future_original_payload_admission_gates": [
+    {
+      "id": "actual_payload_inventory_and_notices",
+      "scope": "all candidates",
+      "required": "After separately approved original acquisition, preserve original archive notices verbatim and reconcile actual included WASM/JS, native or other nested code against this overinclusive source-candidate bundle. Resolve newly observed terms/attribution before publication.",
+      "satisfied_by_this_bundle": false
+    },
+    {
+      "id": "ring_per_file_terms",
+      "scope": "cargo:ring@0.16.20 if actually included",
+      "required": "Resolve the upstream LICENSE summary warning against actual included source/header origins and retained original notices; source-level summary collection is not complete linked-code attribution.",
+      "satisfied_by_this_bundle": false
+    },
+    {
+      "id": "mpl_source_availability",
+      "scope": "cargo:webpki-roots@0.22.4 if actually included",
+      "required": "Maintain accessible exact covered source or another compliant source-availability path, include full terms and the source-availability notice; original lock checksum identifies the version but is not fulfillment proof. No automatic source archive download is authorized.",
+      "source_url": "https://docs.rs/crate/webpki-roots/0.22.4/source/",
+      "registry_checksum": "f1c760f0d366a6c24a02ed7816e23e691f5d92291f94d15e836006fd11b04daf",
+      "satisfied_by_this_bundle": false
+    },
+    {
+      "id": "generator_and_source_version_binding",
+      "scope": "generated JavaScript / embedded WASM",
+      "required": "Reconcile actual generated glue and included helper/template origins. Source locks/configs and npm gitHead are associations, not proof of the tools or features used to produce the published archive.",
+      "satisfied_by_this_bundle": false
+    }
+  ],
+  "payload_admission_satisfied": false,
+  "no_unknown_license_was_replaced_with_MIT": true
+}

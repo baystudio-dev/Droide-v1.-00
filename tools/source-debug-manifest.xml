@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="com.baystudio.droide.SOURCE_DEBUG_STATUS"
+            android:value="BUILT_DEVICE_UNVALIDATED" />
+    </application>
+</manifest>

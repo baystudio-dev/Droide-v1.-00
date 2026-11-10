@@ -1,0 +1,37 @@
+{
+  "schema": "toml-ring-terms-clarification-v1",
+  "component_id": "cargo:ring@0.16.20",
+  "disposition": "conservative_include_for_obligations",
+  "known_term_families": [
+    "Brian Smith ISC-style",
+    "OpenSSL",
+    "original SSLeay",
+    "Google ISC",
+    "fiat-crypto MIT"
+  ],
+  "retained_exact_texts": [
+    {
+      "path": "evidence/ring/LICENSE.txt",
+      "sha256": "76b39f9b371688eac9d8323f96ee80b3aef5ecbc2217f25377bd4e4a615296a9",
+      "bytes": 10125
+    },
+    {
+      "path": "evidence/ring/fiat-LICENSE.txt",
+      "sha256": "0c125a4dab5ab869473e6491db22f6c0a7f8a4de58588d03bb2b16c0c8ebd7de",
+      "bytes": 1161
+    }
+  ],
+  "published_root_listing": {
+    "path": "evidence/ring/root.html",
+    "sha256": "a57c96c882c014b2a0bfccae975ea8b1e0ddd8cefe38a7cdeb979fcf93c82930",
+    "bytes": 15762
+  },
+  "inherited_caveats_preserved": [
+    "Original LICENSE warns it may be out of sync with per-file terms. Root ISC/OpenSSL/SSLeay/Google/fiat terms and explicitly named third-party legal directories were inspected; no unbounded per-file copyright crawl or native payload inspection was performed."
+  ],
+  "interpretation": "The opening recommendation to compare per-file terms is advisory. It is not a separate license condition requiring an unlimited header crawl or an unspecified human approval. Both exact legal texts preserve every concrete term family identified by the bounded source evidence.",
+  "concrete_missing_term_or_header_identified": null,
+  "mandatory_conditions_remain": "Retain applicable original copyright, permission, acknowledgment, terms and disclaimers; OpenSSL and original SSLeay are conjunctive. Observe advertising, naming and endorsement conditions for relevant uses. Do not strip additional original archive notices.",
+  "failure_condition": "Any concrete newly observed conflicting or additional license/notice in the approved original payload must be reconciled and retained before publication.",
+  "does_not_assert": "Exhaustive per-file audit, actual linkage, original archive identity or source-to-binary attestation."
+}

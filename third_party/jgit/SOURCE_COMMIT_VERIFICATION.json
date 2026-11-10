@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "commit": "9d12b89dd9e7c17eb958d923dde4001995c47a5c",
+  "status": "verified",
+  "files": {
+    "org/eclipse/jgit/internal/storage/file/GC.java": {
+      "sha256": "f06d03490b8200d889d53a5c6370511b4437fc5007149e7e148087fb0eb545aa",
+      "git_blob_sha1": "3cc43ebb049ff870f98b0570c4c9779616771ae2",
+      "commit_source_url": "https://eclipse.googlesource.com/jgit/jgit/+/9d12b89dd9e7c17eb958d923dde4001995c47a5c/org.eclipse.jgit/src/org/eclipse/jgit/internal/storage/file/GC.java?format=TEXT",
+      "saved_commit_source": "upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/internal/storage/file/GC.java",
+      "http_status": 200,
+      "gitiles_response_sha256": "9d37cea339498aea6e413cb21eba89c5c985de30cd9ef20a0d95f6da465d7a4e"
+    },
+    "org/eclipse/jgit/internal/storage/file/WindowCache.java": {
+      "sha256": "5d771d63be01a91aeecf3afd68ffb2fc7714f179aba72f5b9c6cf66792c03e41",
+      "git_blob_sha1": "fd80faf4ed139563485b8002eefd5c8f1ccc47c6",
+      "commit_source_url": "https://eclipse.googlesource.com/jgit/jgit/+/9d12b89dd9e7c17eb958d923dde4001995c47a5c/org.eclipse.jgit/src/org/eclipse/jgit/internal/storage/file/WindowCache.java?format=TEXT",
+      "saved_commit_source": "upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/internal/storage/file/WindowCache.java",
+      "http_status": 200,
+      "gitiles_response_sha256": "b5e7c910e799381f001d067cbff8dc2e56117095093c55509bb670cc0e693fe8"
+    },
+    "org/eclipse/jgit/storage/file/WindowCacheStats.java": {
+      "sha256": "0a4fd87520f25c1b323e3303b95817b0eeba924c04448b661cb2ac8c7b57198d",
+      "git_blob_sha1": "7cb86183027b73a6a6b32bce5debdd339b843661",
+      "commit_source_url": "https://eclipse.googlesource.com/jgit/jgit/+/9d12b89dd9e7c17eb958d923dde4001995c47a5c/org.eclipse.jgit/src/org/eclipse/jgit/storage/file/WindowCacheStats.java?format=TEXT",
+      "saved_commit_source": "upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/storage/file/WindowCacheStats.java",
+      "http_status": 200,
+      "gitiles_response_sha256": "7aac08a85e436006dbaf4dd99a7455c63fb02c7bf1a91cf589a3d97d69728186"
+    },
+    "org/eclipse/jgit/transport/HttpAuthMethod.java": {
+      "sha256": "cc43ebac6369c205e5526e66f4d61f34eead8b73d9e8858e7b4247f61c7655af",
+      "git_blob_sha1": "c2d8c1b73f1b7f92f2502436645eecd054ce9508",
+      "commit_source_url": "https://eclipse.googlesource.com/jgit/jgit/+/9d12b89dd9e7c17eb958d923dde4001995c47a5c/org.eclipse.jgit/src/org/eclipse/jgit/transport/HttpAuthMethod.java?format=TEXT",
+      "saved_commit_source": "upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/transport/HttpAuthMethod.java",
+      "http_status": 200,
+      "gitiles_response_sha256": "07338bc4d85591cb9e9283f08dde81911000e51595fbfe82cb83c6cf0a6abec1"
+    }
+  }
+}

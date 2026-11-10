@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-16",
+  "description": "The two retired binary inputs are retained outside all Android asset source roots. Original paths in the archived inventory refer to the pre-retirement source tree, not the current Android package. This does not authorize deletion or migration of existing device data.",
+  "preservedEvidence": [
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/legal/runtime_legal_inventory.json",
+      "bytes": 88466,
+      "originalPath": "app/src/main/assets/legal/runtime_legal_inventory.json",
+      "sha256": "79338391c33de1a55141ff17eb7ac0fac576926036f6c0ad1df6592fe8cacc7c"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/legal/open_source_licenses.json",
+      "bytes": 23600,
+      "originalPath": "app/src/main/assets/legal/open_source_licenses.json",
+      "sha256": "8164c94c08a8ef8d130eedcc2b86dafd82582ff6adbaee9e865dd62a54064e27"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/legal/THIRD_PARTY_NOTICES.md",
+      "bytes": 6829,
+      "originalPath": "app/src/main/assets/legal/THIRD_PARTY_NOTICES.md",
+      "sha256": "c7cd90c4131eacf05cf477199f6a8761977a69922b4d98772f63430900e4ba90"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/legal/DISTRIBUTION_COMPLIANCE.md",
+      "bytes": 4659,
+      "originalPath": "app/src/main/assets/legal/DISTRIBUTION_COMPLIANCE.md",
+      "sha256": "9736c3358a5f3cc313ccf50a9d8a118c1d32d6fd93156f7f61b91faca3a05285"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/legal/COPYLEFT_SOURCE_OFFER.md",
+      "bytes": 1861,
+      "originalPath": "app/src/main/assets/legal/COPYLEFT_SOURCE_OFFER.md",
+      "sha256": "87d09c392c825b6db3c15152a6dddf7817a7e47f5efa56602801d86ef83bacb5"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/legal/licenses/Runtime-Aggregates-NOTICE.md",
+      "bytes": 941,
+      "originalPath": "app/src/main/assets/legal/licenses/Runtime-Aggregates-NOTICE.md",
+      "sha256": "59c9a5305c6ec335b2fd4f2e76ce4eb538686839a1c338a08116a2ef1c0ee72c"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/app/src/main/assets/workstation/rootfs-repack-manifest.json",
+      "bytes": 862,
+      "originalPath": "app/src/main/assets/workstation/rootfs-repack-manifest.json",
+      "sha256": "e7d2e28389baee06c3f95831a34857fabbee8a1a099be4d23eb1741424babe8a"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/tools/generate_runtime_legal_inventory.py",
+      "bytes": 10017,
+      "originalPath": "tools/generate_runtime_legal_inventory.py",
+      "sha256": "eb8317c4a754d97cb975ecb12f89a467492736dd497d6b7c2d79816a51476a6b"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/tools/verify_bundled_runtime.py",
+      "bytes": 3492,
+      "originalPath": "tools/verify_bundled_runtime.py",
+      "sha256": "888830991faf35b41a1b99da1fbbc6e3707710be0d9cbaeb1abb1e879c215bad"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/pre-retirement/tools/verify_runtime_licenses.py",
+      "bytes": 3096,
+      "originalPath": "tools/verify_runtime_licenses.py",
+      "sha256": "31ef707f6a425b7c04da56814465fc860a4bbf06087a5cce95e69424bb12d398"
+    }
+  ],
+  "retainedSourceRoot": "third_party/native-engines/qemu",
+  "retiredAssets": [
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/assets/alpine-minirootfs-3.24.2-aarch64.tar.xz",
+      "bytes": 3203364,
+      "originalPath": "app/src/main/assets/workstation/alpine-minirootfs-3.24.2-aarch64.tar.xz",
+      "sha256": "66c582602205a7f90657c5cb01c8d7d1bfd0a2fc8eb03bd9de288f2c9ef2b935"
+    },
+    {
+      "archivePath": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/assets/qemu-offline-alpine-v3.24-arm64.tar",
+      "bytes": 38912000,
+      "originalPath": "app/src/main/assets/workstation/qemu-offline-alpine-v3.24-arm64.tar",
+      "sha256": "406fbb16607902b7e39bc8b8c90bca3dda1c36772166b4f0d0777bb9b5d5b0f6"
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceOffer": "app/src/main/assets/legal/COPYLEFT_SOURCE_OFFER.md",
+  "status": "historical-source-provenance-only"
+}

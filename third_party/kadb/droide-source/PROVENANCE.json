@@ -1,0 +1,13 @@
+{
+  "kind": "semantic reconstruction; Android-only source derivative, not original recovered linkage",
+  "upstream_name": "Kadb",
+  "upstream_version": "2.1.4",
+  "source_archive": "third_party/kadb/sources/kadb-android-2.1.4-sources.jar",
+  "source_archive_sha256": "6da1cfbcd60ee069730dd8e4485ea39b277caf7f2f4593b72616e02d3220b3b8",
+  "original_runtime_jar": "third_party/maven/com/baystudio/compat/kadb-android-compat/2.1.4/kadb-android-compat-2.1.4.jar",
+  "original_runtime_jar_sha256": "9ae515c6406b5d7e7463415468ac702651cc4664c5c4fa097e016a7e74e36dbc",
+  "integration": "app main sourceSets: ../third_party/kadb/droide-source/src/main/kotlin; upstream Kadb compat JAR excluded from app dependencies to avoid duplicate classes",
+  "normalization": "Remove expect declarations, retain and de-actualize Android implementations, move default software=null argument to Android defaultDeviceName implementation",
+  "native_changes": false,
+  "binary_rebuild": false
+}

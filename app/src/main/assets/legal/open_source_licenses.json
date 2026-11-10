@@ -1,0 +1,554 @@
+{
+  "schemaVersion": 1,
+  "closureStatus": "DIRECT_RUNTIME_AND_RESOLVED_RELEASE_RUNTIME_COMPLETE",
+  "closureNote": "Every directly declared app runtime dependency maps exactly once in this catalog. Every Gradle module in releaseRuntimeClasspath is separately enumerated in legal/resolved_runtime_licenses.json and verified fail-closed. Native/rootfs aggregate licensing is tracked in legal/runtime_legal_inventory.json.",
+  "entries": [
+    {
+      "id": "androidx-compose",
+      "name": "AndroidX & Jetpack Compose",
+      "version": "BOM 2024.09.00 / direct pins",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright The Android Open Source Project contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://developer.android.com/jetpack/androidx",
+      "notice": "Covers the directly declared AndroidX Core, Activity Compose, DataStore, Compose UI, Material 3, Material Icons and DocumentFile modules. Exact transitive versions must come from the resolved lock graph.",
+      "dependencyKeys": [
+        "androidx.core:core-ktx:1.13.1",
+        "androidx.activity:activity-compose:1.9.2",
+        "androidx.datastore:datastore-preferences:1.1.1",
+        "androidx.compose:compose-bom:2024.09.00",
+        "androidx.compose.ui:ui",
+        "androidx.compose.material3:material3",
+        "androidx.compose.material:material-icons-extended",
+        "androidx.documentfile:documentfile:1.1.0"
+      ]
+    },
+    {
+      "id": "kotlinx-coroutines",
+      "name": "Kotlinx Coroutines",
+      "version": "1.11.0",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright JetBrains s.r.o. and Kotlin contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/Kotlin/kotlinx.coroutines",
+      "notice": "Direct Android coroutine runtime plus the pinned core JVM artifact used by locally repackaged dependencies.",
+      "dependencyKeys": [
+        "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
+      ]
+    },
+    {
+      "id": "kotlinx-serialization",
+      "name": "Kotlinx Serialization",
+      "version": "1.7.2",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright JetBrains s.r.o. and Kotlin contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/Kotlin/kotlinx.serialization",
+      "notice": "JSON serialization runtime used by Droide.",
+      "dependencyKeys": [
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.2"
+      ]
+    },
+    {
+      "id": "sora-editor",
+      "name": "Sora Editor",
+      "version": "0.24.6",
+      "licenseName": "GNU Lesser General Public License v2.1 or later",
+      "spdx": "LGPL-2.1-or-later",
+      "copyright": "Copyright Rosemoe and contributors",
+      "licenseTextAsset": "legal/licenses/LGPL-2.1.txt",
+      "source": "https://github.com/Rosemoe/sora-editor",
+      "notice": "Droide directly uses the editor and language-textmate AARs. Upstream grants LGPL version 2.1 or, at the recipient’s option, any later version. Binary redistribution must preserve LGPL notices/source/relinkability obligations.",
+      "dependencyKeys": [
+        "io.github.rosemoe:editor:0.24.6",
+        "io.github.rosemoe:language-textmate:0.24.6"
+      ]
+    },
+    {
+      "id": "okhttp",
+      "name": "OkHttp",
+      "version": "4.12.0",
+      "licenseName": "Apache License 2.0; Mozilla Public License 2.0 (Public Suffix List)",
+      "spdx": "Apache-2.0 AND MPL-2.0",
+      "copyright": "Copyright Square, Inc. and contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://square.github.io/okhttp/",
+      "notice": "HTTP client used by agent/provider networking.",
+      "dependencyKeys": [
+        "com.squareup.okhttp3:okhttp:4.12.0"
+      ],
+      "noticeTextAssets": [
+        "legal/licenses/OkHttp-Public-Suffix-NOTICE.txt",
+        "legal/licenses/MPL-2.0.txt"
+      ]
+    },
+    {
+      "id": "okio",
+      "name": "Okio JVM",
+      "version": "3.17.0",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright Square, Inc. and contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://square.github.io/okio/",
+      "notice": "Directly declared and also used by compatibility artifacts.",
+      "dependencyKeys": [
+        "com.squareup.okio:okio-jvm:3.17.0"
+      ]
+    },
+    {
+      "id": "kadb-compat",
+      "name": "Kadb compatibility artifacts",
+      "version": "2.1.4",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Preserve upstream Kadb attribution and locally repackaged provenance",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "third_party/kadb/README.md",
+      "notice": "Locally repackaged compatibility coordinates. Upstream notices and source references must remain preserved.",
+      "dependencyKeys": [
+        "com.baystudio.compat:kadb-mdns-android-compat:2.1.4"
+      ]
+    },
+    {
+      "id": "spake2-boringssl-compat",
+      "name": "Droide SPAKE2 BoringSSL compatibility",
+      "version": "1.0.0",
+      "licenseName": "BSD 3-Clause License",
+      "spdx": "BSD-3-Clause",
+      "copyright": "See bundled NOTICE and provenance under third_party/kadb/spake2-boringssl-compat",
+      "licenseTextAsset": "legal/licenses/SPAKE2-Compatibility-BSD-3-Clause.txt",
+      "source": "third_party/kadb/spake2-boringssl-compat/",
+      "notice": "Independently implemented compatibility layer. Physical-device interoperability and independent cryptographic review remain release blockers.",
+      "dependencyKeys": [
+        "com.baystudio.compat:spake2-boringssl-compat:1.0.0"
+      ],
+      "noticeTextAssets": [
+        "legal/licenses/SPAKE2-Compatibility-NOTICE.txt",
+        "legal/licenses/Pepe-Tiebosch-BSD-3-Clause.txt"
+      ]
+    },
+    {
+      "id": "hidden-api-bypass",
+      "name": "HiddenApiBypass",
+      "version": "6.1",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright LSPosed contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/LSPosed/AndroidHiddenApiBypass",
+      "notice": "Direct Android 16/QPR1 compatibility dependency for the embedded Termux terminal; also used transitively by the locally pinned Kadb compatibility artifact.",
+      "dependencyKeys": [
+        "org.lsposed.hiddenapibypass:hiddenapibypass:6.1"
+      ]
+    },
+    {
+      "id": "bouncycastle",
+      "name": "Bouncy Castle provider / PKIX / util",
+      "version": "1.84",
+      "licenseName": "Bouncy Castle Licence (MIT-style)",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2000 - 2023 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)",
+      "licenseTextAsset": "legal/licenses/Bouncy-Castle-Upstream-LICENSE.txt",
+      "source": "https://www.bouncycastle.org/about/license/",
+      "notice": "Provider and PKIX are directly declared support dependencies for the reconstructed Kadb Android source; util remains transitive through PKIX. Preserve the upstream Bouncy Castle copyright notice. The displayed upstream notice matches the pinned provider license and official license page; the pre-existing Bouncy-Castle-LICENSE.txt is retained unchanged.",
+      "dependencyKeys": [
+        "org.bouncycastle:bcprov-jdk18on:1.84",
+        "org.bouncycastle:bcpkix-jdk18on:1.84"
+      ]
+    },
+    {
+      "id": "termux-terminal",
+      "name": "Termux terminal emulator / view",
+      "version": "0.118.0",
+      "licenseName": "Apache License 2.0 (termux-app terminal-view / terminal-emulator exception)",
+      "spdx": "Apache-2.0",
+      "copyright": "Terminal Emulator for Android / Termux contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "third_party/termux/UPSTREAM_PROVENANCE.json",
+      "notice": "The pinned original terminal source and AARs retain the upstream Apache-2.0 Terminal Emulator exception. Droide builds a Java-only overlay for owned PTY I/O, resizing and bounded terminal storage. Modified sources and source hashes are retained under third_party/termux; tools/terminal-engine-v2.json records the exact source/compiler inputs and expected class hashes. Current JNI is compiled separately and checked against the packaged DEX declarations and ELF libraries.",
+      "dependencyKeys": [
+        "local:terminal-engine.aar",
+        "local:terminal-view-v0.118.0.aar"
+      ],
+      "noticeTextAssets": [
+        "legal/licenses/Termux-upstream-LICENSE.md"
+      ]
+    },
+    {
+      "id": "xz-java",
+      "name": "XZ for Java",
+      "version": "1.12",
+      "licenseName": "Zero-Clause BSD",
+      "spdx": "0BSD",
+      "copyright": "Copyright Lasse Collin and XZ for Java contributors",
+      "licenseTextAsset": "legal/licenses/0BSD.txt",
+      "source": "third_party/xz/PROVENANCE.json",
+      "notice": "Local JAR is hash-pinned and its matching source JAR/provenance are included under third_party/xz/.",
+      "dependencyKeys": [
+        "local:xz-1.12.jar"
+      ]
+    },
+    {
+      "id": "jgit",
+      "name": "Eclipse JGit (Droide Android compatibility derivative)",
+      "version": "6.10.1.202505221210-r-droide-reconstruction1",
+      "licenseName": "Eclipse Distribution License 1.0 (BSD-3-Clause) and bundled MIT",
+      "spdx": "BSD-3-Clause AND MIT",
+      "copyright": "Copyright Eclipse JGit contributors; SHA-1 UbcCheck copyright (c) 2017 Marc Stevens and Dan Shumow",
+      "licenseTextAsset": "legal/licenses/JGit-Android-Compatibility-NOTICE.txt",
+      "source": "third_party/jgit/README.md",
+      "notice": "Android-specific reconstruction of pinned upstream JGit 6.10.1.202505221210-r, commit 9d12b89dd9e7c17eb958d923dde4001995c47a5c. Four minimal platform adaptations retain Git GC and Basic/Digest authentication; desktop JMX and Kerberos/GSS are unsupported. Original licenses, complete UbcCheck MIT notice, sources and measured reproducible build receipt are retained under third_party/jgit/. The packaged JGit-UPSTREAM-ABOUT.html is an exact upstream copy.",
+      "dependencyKeys": [
+        "com.baystudio.compat:jgit-android-compat:6.10.1.202505221210-r-droide-reconstruction1"
+      ],
+      "noticeTextAssets": [
+        "legal/licenses/JGit-Android-Derivative-NOTICE.txt",
+        "legal/licenses/JGit-UPSTREAM-ABOUT.html"
+      ]
+    },
+    {
+      "id": "jsoup",
+      "name": "jsoup",
+      "version": "1.18.1",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright Jonathan Hedley and jsoup contributors",
+      "licenseTextAsset": "legal/licenses/jsoup-MIT.txt",
+      "source": "https://jsoup.org/",
+      "notice": "HTML parser used by webfetch.",
+      "dependencyKeys": [
+        "org.jsoup:jsoup:1.18.1"
+      ]
+    },
+    {
+      "id": "coil",
+      "name": "Coil Compose",
+      "version": "2.7.0",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright Coil contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/coil-kt/coil",
+      "notice": "Local image preview library.",
+      "dependencyKeys": [
+        "io.coil-kt:coil-compose:2.7.0"
+      ]
+    },
+    {
+      "id": "lobe-icons",
+      "name": "LobeHub lobe-icons",
+      "version": "asset attribution",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2023 LobeHub",
+      "licenseTextAsset": "legal/licenses/LobeHub-lobe-icons-MIT.txt",
+      "source": "https://github.com/lobehub/lobe-icons",
+      "notice": "Reference source for compact provider/model identification marks. Trademark rights remain separate.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "simple-icons",
+      "name": "Simple Icons",
+      "version": "asset attribution",
+      "licenseName": "CC0 1.0 Universal",
+      "spdx": "CC0-1.0",
+      "copyright": "Simple Icons contributors; trademarks remain with their owners",
+      "licenseTextAsset": "legal/licenses/CC0-1.0.txt",
+      "source": "https://simpleicons.org/",
+      "notice": "Reference source for selected offline identity marks. Trademark rights are not granted by CC0.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "font-awesome-icons",
+      "name": "Font Awesome Free icons",
+      "version": "asset attribution",
+      "licenseName": "Creative Commons Attribution 4.0",
+      "spdx": "CC-BY-4.0",
+      "copyright": "Copyright Fonticons, Inc.",
+      "licenseTextAsset": "legal/licenses/CC-BY-4.0.txt",
+      "source": "https://fontawesome.com/license/free",
+      "notice": "Selected brand glyphs were normalized for offline identification. Attribution is preserved in Third-Party Notices.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "opencode-mark",
+      "name": "OpenCode identity mark",
+      "version": "identity/reference asset",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2025 opencode",
+      "licenseTextAsset": "legal/licenses/OpenCode-MIT.txt",
+      "source": "https://github.com/anomalyco/opencode",
+      "notice": "Project mark adapted for offline identity. Trademark/brand rights remain separate; also see Brand Asset Terms.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "ollama-mark",
+      "name": "Ollama identity mark",
+      "version": "identity/reference asset",
+      "licenseName": "MIT License (project repository)",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) Ollama",
+      "licenseTextAsset": "legal/licenses/Ollama-MIT.txt",
+      "source": "https://github.com/ollama/ollama/blob/main/docs/ollama-logo.svg",
+      "notice": "Project source license and attribution. Trademark rights remain separate; also see Brand Asset Terms.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "codex-mark",
+      "name": "Codex identity mark",
+      "version": "identity/reference asset",
+      "licenseName": "Apache License 2.0 (project repository)",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright OpenAI and contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/openai/codex",
+      "notice": "Official project asset used to identify Codex; source license does not convey rights to OpenAI branding.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "spake2-reference",
+      "name": "SPAKE2 BSD reference attribution",
+      "version": "identity/reference asset",
+      "licenseName": "BSD 3-Clause License",
+      "spdx": "BSD-3-Clause",
+      "copyright": "Copyright (c) 2026 Pepe Tiebosch (byme.dev)",
+      "licenseTextAsset": "legal/licenses/Pepe-Tiebosch-BSD-3-Clause.txt",
+      "source": "third_party/kadb/spake2-boringssl-compat/UPSTREAM_LICENSES/Jellepepe-flutter_adb-BSD-3-Clause.txt",
+      "notice": "Reference reviewed during independent compatibility work, not a bundled runtime dependency.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "proot-runtime",
+      "name": "PRoot runtime and loaders",
+      "version": "OpenMinis fork 8cf13e99 with outer-seccomp compatibility patch",
+      "licenseName": "GNU General Public License v2",
+      "spdx": "GPL-2.0-only",
+      "copyright": "Copyright STMicroelectronics and PRoot/OpenMinis contributors",
+      "licenseTextAsset": "legal/licenses/GPL-2.0.txt",
+      "source": "third_party/native-engines/proot/proot-openminis-8cf13e99-source.tar.gz",
+      "notice": "Bundled runtime, reviewed Termux loaders, original source archives, the outer-seccomp compatibility patch and offline build instructions are hash-bound in the runtime legal inventory. See third_party/native-engines/proot/README_DROIDE.md and build_droide_proot.py for the complete corresponding-source build.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "talloc-runtime",
+      "name": "talloc",
+      "version": "2.4.2",
+      "licenseName": "GNU Lesser General Public License v3 or later",
+      "spdx": "LGPL-3.0-or-later",
+      "copyright": "Copyright Samba Team and contributors",
+      "licenseTextAsset": "legal/licenses/LGPL-3.0.txt",
+      "source": "third_party/native-engines/proot/talloc-2.4.2-source.tar.gz",
+      "notice": "talloc is compiled into the PRoot runtime; matching source is preserved with the native-engine provenance.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "ubuntu-base-runtime-aggregate",
+      "name": "Ubuntu Base runtime",
+      "version": "24.04.5 arm64",
+      "licenseName": "Aggregate of independently licensed packages",
+      "spdx": "NOASSERTION",
+      "copyright": "Copyright respective Ubuntu/Debian package authors and Canonical contributors",
+      "licenseTextAsset": "legal/licenses/Runtime-Aggregates-NOTICE.md",
+      "source": "legal/runtime_legal_inventory.json",
+      "notice": "The bundled Ubuntu Base archive contains 91 installed packages; exact binary/source package versions and source locators are recorded in the runtime inventory. Ubuntu trademark rights remain separate.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "models-dev-logos",
+      "name": "models.dev provider identity assets",
+      "version": "pinned source assets 2026-10-01",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2025 models.dev",
+      "licenseTextAsset": "legal/licenses/Models-dev-MIT.txt",
+      "source": "https://github.com/anomalyco/models.dev",
+      "notice": "Offline provider identity marks. Commit, original paths and asset hashes: third_party/models-dev-logos/manifest.json. Trademark rights remain with their owners.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "lobe-provider-logos",
+      "name": "LobeHub provider identity assets",
+      "version": "pinned source assets 2026-10-01",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2023 LobeHub",
+      "licenseTextAsset": "legal/licenses/LobeHub-Provider-MIT.txt",
+      "source": "https://github.com/lobehub/lobe-icons",
+      "notice": "Offline provider identity marks. Commit, original paths and asset hashes: third_party/models-dev-logos/manifest.json. Trademark rights remain with their owners.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "kotlin-runtime",
+      "name": "Kotlin runtime libraries",
+      "version": "resolved release graph",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright JetBrains s.r.o. and Kotlin contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/JetBrains/kotlin",
+      "notice": "Resolved Kotlin standard library and Android runtime artifacts are enumerated in legal/resolved_runtime_licenses.json.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "google-runtime-support",
+      "name": "Google runtime support libraries",
+      "version": "resolved release graph",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright respective Google project contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "legal/resolved_runtime_licenses.json",
+      "notice": "Covers resolved Gson, Accompanist, Error Prone annotations, Guava listenablefuture and JSpecify artifacts.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "commons-codec",
+      "name": "Apache Commons Codec",
+      "version": "1.19.0",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright The Apache Software Foundation",
+      "licenseTextAsset": "legal/licenses/Apache-Commons-Codec-LICENSE.txt",
+      "source": "https://commons.apache.org/proper/commons-codec/",
+      "notice": "Resolved transitive dependency of JGit.",
+      "dependencyKeys": [],
+      "noticeTextAssets": [
+        "legal/licenses/Apache-Commons-Codec-NOTICE.txt"
+      ]
+    },
+    {
+      "id": "javaewah",
+      "name": "JavaEWAH",
+      "version": "1.2.3",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright JavaEWAH contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/lemire/javaewah",
+      "notice": "Resolved transitive dependency of JGit.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "eclipse-jdt-annotations",
+      "name": "Eclipse JDT annotations",
+      "version": "2.4.100",
+      "licenseName": "Eclipse Public License 2.0",
+      "spdx": "EPL-2.0",
+      "copyright": "Copyright Eclipse JDT contributors",
+      "licenseTextAsset": "legal/licenses/EPL-2.0.txt",
+      "source": "https://github.com/eclipse-jdt/eclipse.jdt.core",
+      "notice": "Resolved release runtime dependency. EPL source availability obligations remain with this component.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "jruby-regexp-runtime",
+      "name": "Joni and JCodings",
+      "version": "Joni 2.2.7 / JCodings 1.0.64",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "JRuby project contributors",
+      "licenseTextAsset": "legal/licenses/joni-license.txt",
+      "source": "https://github.com/jruby/joni",
+      "notice": "Resolved transitive runtime libraries used by Sora TextMate support.",
+      "dependencyKeys": [],
+      "noticeTextAssets": [
+        "legal/licenses/jcodings-license.txt"
+      ]
+    },
+    {
+      "id": "slf4j",
+      "name": "SLF4J API",
+      "version": "1.7.36",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright QOS.ch and contributors",
+      "licenseTextAsset": "legal/licenses/slf4j-license.txt",
+      "source": "https://www.slf4j.org/license.html",
+      "notice": "Resolved transitive dependency of JGit.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "snakeyaml-engine",
+      "name": "SnakeYAML Engine",
+      "version": "3.0.1",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright SnakeYAML contributors",
+      "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
+      "source": "https://github.com/snakeyaml/snakeyaml-engine",
+      "notice": "Resolved release runtime dependency.",
+      "dependencyKeys": [
+        "org.snakeyaml:snakeyaml-engine:3.0.1"
+      ]
+    },
+    {
+      "id": "material-document-file-icons",
+      "name": "Material Icon Theme PDF and Word file artwork",
+      "version": "13025adc5ad10a5cc649528a2c1edec93069f1b9",
+      "licenseName": "MIT License",
+      "spdx": "MIT",
+      "copyright": "Copyright (c) 2025 Material Extensions",
+      "licenseTextAsset": "legal/licenses/Material-Icon-Theme-MIT.txt",
+      "source": "https://github.com/material-extensions/vscode-material-icon-theme/tree/13025adc5ad10a5cc649528a2c1edec93069f1b9",
+      "notice": "PDF and Word file-type artwork converted from the pinned upstream SVGs to Android VectorDrawable without changing paths; PDF color is unchanged, and Word blue is adjusted for dark/light visibility. Provenance: third_party/material-document-icons/manifest.json. These are upstream file-type representations, not official Adobe or Microsoft assets. Trademarks remain with their owners; no endorsement or trademark rights are implied.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "taplo-wasm-0.8.0",
+      "name": "Taplo original WASM libraries (optional managed download)",
+      "version": "@taplo/lsp 0.8.0 / @taplo/core 0.2.0",
+      "licenseName": "MIT plus conservative third-party source-candidate obligations",
+      "spdx": "LicenseRef-Taplo-Conservative-Notices",
+      "copyright": "Copyright (c) 2020 Ferenc Tamás; see retained third-party notices for all supplied attributions",
+      "licenseTextAsset": "legal/licenses/Taplo-WASM-0.8.0-THIRD-PARTY-NOTICES.txt",
+      "source": "https://github.com/tamasfe/taplo/tree/48e4c083e6a98891e3d6b2b65450970a3779e8cb",
+      "notice": "244 conservatively included source candidates, not a linked SBOM. Full additional terms and exact public MPL source obtain notice: legal/licenses/Taplo-WASM-0.8.0-NOTICE-FULFILLMENT.txt. Original payload and device acceptance remain unrun in the source checkpoint; an actual installation requires original data, notice availability, runtime health and owned cleanup. Independent Node 22.23.3 uses the existing Node 22 license entry."
+    },
+    {
+      "id": "graphql-original-library-5.7.0",
+      "name": "GraphQL local-schema public libraries",
+      "version": "graphql-language-service 5.7.0; graphql 16.13.2; nullthrows 1.1.1; debounce-promise 3.1.2; vscode-languageserver-types 3.17.1",
+      "licenseName": "MIT (five source packages); complete original Node distribution notices separately retained",
+      "spdx": "MIT",
+      "copyright": "See each exact upstream notice in the attached source-notice bundle.",
+      "licenseTextAsset": "legal/licenses/GraphQL-5.7.0-NOTICES.txt",
+      "source": "https://github.com/graphql/graphiql/tree/bffd89e964c5c37b061d200491f7aa3b4ce1086c/packages/graphql-language-service",
+      "notice": "Optional exact managed original-library route, not bundled execution. Complete original npm files and private Node 22.23.3 tree/notices are required before activation. Source notices are reviewed; original distribution layout/import/notice/ABI/native/device acceptance remains unrun.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "elp-original-2026-10-14",
+      "name": "Erlang Language Platform (optional original artifact)",
+      "version": "2026.10.14-otp27.3",
+      "licenseName": "MIT OR Apache License 2.0",
+      "spdx": "MIT OR Apache-2.0",
+      "copyright": "Copyright Meta Platforms, Inc. and affiliates; original source license holders retained verbatim",
+      "licenseTextAsset": "legal/licenses/ELP-2026.10.14-NOTICES.txt",
+      "source": "https://github.com/WhatsApp/erlang-language-platform/tree/b36ba37346a8e6122fd309420cb67886ccc5871c",
+      "notice": "Exact source MIT/Apache texts retained. Original native-image and transitive notice closure remains unverified; no full binary compliance claim. Selected OTP/Rebar/optional CPython provenance unverified.",
+      "dependencyKeys": []
+    },
+    {
+      "id": "apache-commons-compress",
+      "name": "Apache Commons Compress",
+      "version": "1.28.0",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Copyright The Apache Software Foundation",
+      "licenseTextAsset": "legal/licenses/Apache-Commons-Compress-LICENSE.txt",
+      "source": "https://commons.apache.org/proper/commons-compress/",
+      "notice": "Streaming TAR/PAX encoder. Bundled upstream LICENSE and NOTICE are preserved; required Codec 1.19.0, IO 2.20.0 and Lang 3.18.0 are listed in the resolved runtime inventory. Optional native codecs are not included.",
+      "dependencyKeys": [
+        "org.apache.commons:commons-compress:1.28.0"
+      ],
+      "noticeTextAssets": [
+        "legal/licenses/Apache-Commons-Compress-NOTICE.txt"
+      ]
+    }
+  ]
+}

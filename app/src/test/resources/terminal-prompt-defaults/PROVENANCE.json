@@ -1,0 +1,18 @@
+{
+  "archive": "app/src/main/assets/workstation/ubuntu-base-24.04.5-base-arm64.tar.xz",
+  "archive_sha256": "33f099c82ff503ddae6ff669bb274165d70a7602de84cfd34cb0e30ce4b766ce",
+  "fixtures": [
+    {
+      "archive_member": "root/.bashrc",
+      "fixture": "packaged-root.bashrc",
+      "bytes": 3106,
+      "sha256": "34fbc467b8c624d92abcdf3edcf35ee46032618a6f23b210efab0e6824978126"
+    },
+    {
+      "archive_member": "etc/skel/.bashrc",
+      "fixture": "packaged-skel.bashrc",
+      "bytes": 3771,
+      "sha256": "342099da4dd28c394d3f8782d90d7465cb2eaa611193f8f378d6918261cb9bb8"
+    }
+  ]
+}

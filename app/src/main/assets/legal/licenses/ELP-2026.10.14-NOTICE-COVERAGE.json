@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "family": "lsp.elp",
+  "version": "2026.10.14-otp27.3",
+  "release": "2026-10-14",
+  "repository": "WhatsApp/erlang-language-platform",
+  "sourceCommit": "b36ba37346a8e6122fd309420cb67886ccc5871c",
+  "asset": "elp-linux-aarch64-unknown-linux-gnu-otp-27.3.tar.gz",
+  "artifactBytes": 39214062,
+  "artifactSha256": "282f5f26105c6bc64e17745a38ba5718300c51072d34afbb2a03163dbc4abc71",
+  "originalArchiveOpened": false,
+  "transitiveNativeNoticesAccepted": false,
+  "embeddedServicesAccepted": false,
+  "targetAcceptance": false,
+  "licenses": {
+    "LICENSE-MIT": {
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+      "gitBlob": "b93be90515ccd0b9daedaa589e42bf5929693f1f"
+    },
+    "LICENSE-APACHE": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "gitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    }
+  },
+  "coverage": "Exact source root licenses retained verbatim; unopened native-image and transitive notice closure unverified. No concrete missing required notice has been identified from textual source alone; distribution review remains open."
+}

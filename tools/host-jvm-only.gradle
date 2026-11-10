@@ -1,0 +1,106 @@
+// Host tests compile real application sources; packaging and device tasks are rejected.
+def allowedRoots = [
+    ':app:testDebugUnitTest'
+] as Set
+def arguments = gradle.startParameter.taskNames
+def requested = []
+def exactJGitSelections = [
+    'org.eclipse.jgit.transport.JGitAndroidAuthCompatibilityTest',
+    'org.eclipse.jgit.transport.DroideTransportConfigTest'
+] as Set
+def exactTerminalSelections = [
+    'com.termux.terminal.TerminalOwnedProcessTest',
+    'com.termux.terminal.TerminalSourceSafetyTest',
+    'com.termux.terminal.TerminalSourceSafetyTest.inputWriterAcknowledgementIsRequiredBeforeCleanCompletion',
+    'com.termux.terminal.TerminalSourceSafetyTest.absentWriterAcknowledgementProducesUnconfirmedInputAtDeadline'
+] as Set
+def isExactSelection = { value ->
+    exactJGitSelections.contains(value) || exactTerminalSelections.contains(value) ||
+        value ==~ /com\.baystudio\.droide\.(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*[A-Za-z_$][A-Za-z0-9_$]*(?:[- ][A-Za-z0-9_$]+)*/
+}
+for (int i = 0; i < arguments.size(); i++) {
+    def argument = arguments[i]
+    if (allowedRoots.contains(argument)) {
+        requested.add(argument)
+    } else if (argument == '--tests' && !requested.empty && i + 1 < arguments.size() &&
+            isExactSelection(arguments[i + 1])) {
+        i++
+    } else {
+        throw new GradleException("Forbidden host JVM task or option: ${argument}; allowed task paths are ${allowedRoots}")
+    }
+}
+if (requested.empty) {
+    throw new GradleException('Host JVM mode requires an explicit focused test task path')
+}
+if (!gradle.startParameter.excludedTaskNames.empty) {
+    throw new GradleException('Host JVM mode forbids task exclusions; correctness dependencies must remain intact')
+}
+if (gradle.startParameter.configurationCacheRequested) {
+    throw new GradleException('Host JVM task-graph guard requires --no-configuration-cache')
+}
+if (gradle.startParameter.buildCacheEnabled) {
+    throw new GradleException('Host JVM verification requires --no-build-cache')
+}
+if (gradle.startParameter.projectProperties['android.builder.sdkDownload'] != 'false') {
+    throw new GradleException('Host JVM mode requires -Pandroid.builder.sdkDownload=false; provision only approved SDK packages separately')
+}
+if (!fileTree('src') { include '**/shaders/**' }.files.empty) {
+    throw new GradleException('Host JVM mode needs review because shader inputs are present')
+}
+def allowedNames = [
+    'preBuild', 'preDebugBuild', 'verifyJGitAndroidCompat', 'compileTermuxHostTestJar', 'checkKotlinGradlePluginConfigurationErrors',
+    'generateDebugBuildConfig', 'checkDebugAarMetadata',
+    'processDebugNavigationResources', 'compileDebugNavigationResources',
+    'generateDebugResValues', 'mapDebugSourceSetPaths', 'generateDebugResources',
+    'mergeDebugResources', 'packageDebugResources', 'parseDebugLocalResources',
+    'createDebugCompatibleScreenManifests', 'extractDeepLinksDebug',
+    'processDebugMainManifest', 'processDebugManifest', 'processDebugManifestForPackage',
+    'processDebugResources', 'compileDebugKotlin', 'javaPreCompileDebug',
+    'compileDebugJavaWithJavac', 'bundleDebugClassesToRuntimeJar',
+    'bundleDebugClassesToCompileJar', 'compileDebugUnitTestKotlin',
+    'preDebugUnitTestBuild', 'javaPreCompileDebugUnitTest',
+    'compileDebugUnitTestJavaWithJavac', 'mergeDebugShaders', 'compileDebugShaders',
+    'generateDebugAssets', 'mergeDebugAssets', 'packageDebugUnitTestForUnitTest',
+    'processDebugUnitTestManifest', 'generateDebugUnitTestConfig',
+    'processDebugJavaRes', 'processDebugUnitTestJavaRes',
+    'testDebugUnitTest'
+] as Set
+
+tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+    maxParallelForks = 1
+    outputs.upToDateWhen { false }
+    def runtime = providers.gradleProperty('DROIDE_HOST_TEST_RUNTIME_DIR').orNull
+    if (runtime != null) {
+        // Robolectric sandboxes and ordinary JVM tests cannot share a loaded JNI library.
+        forkEvery = 1
+        def directory = new File(runtime)
+        if (!directory.isAbsolute() || !new File(directory, 'receipt.json').isFile()) {
+            throw new GradleException('Provision the host test runtime before selecting its directory')
+        }
+        systemProperty 'robolectric.offline', 'true'
+        systemProperty 'robolectric.dependency.dir', new File(directory, 'robolectric').absolutePath
+        jvmArgs '-Djava.library.path=' + new File(directory, 'native').absolutePath
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def unexpected = graph.allTasks.findAll {
+        it.project.path != ':app' || !allowedNames.contains(it.name)
+    }
+    if (!unexpected.empty) {
+        throw new GradleException('Forbidden or unreviewed host JVM tasks: ' + unexpected*.path.join(', '))
+    }
+    graph.allTasks.findAll { it instanceof org.gradle.api.tasks.testing.Test }.each { test ->
+        if (!requested.contains(test.path)) {
+            throw new GradleException('Unrequested test task in host JVM graph: ' + test.path)
+        }
+        def selections = test.filter.includePatterns + test.filter.commandLineIncludePatterns
+        if (selections.empty || selections.any { !isExactSelection(it) }) {
+            throw new GradleException('Fully qualified Droide selectors or an exact admitted JGit/terminal source test class, without wildcards, are required for ' + test.path)
+        }
+        if (test.ignoreFailures || !test.filter.failOnNoMatchingTests) {
+            throw new GradleException('Host JVM tests must fail normally, including an empty selection: ' + test.path)
+        }
+    }
+    logger.lifecycle('Reviewed host JVM graph: ' + graph.allTasks*.path.join(', '))
+}

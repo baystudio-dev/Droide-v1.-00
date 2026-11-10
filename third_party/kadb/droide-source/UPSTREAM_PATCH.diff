@@ -1,0 +1,908 @@
+--- a/src/main/kotlin/com/flyfishxu/kadb/Kadb.android.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/Kadb.android.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb
+ 
+ import android.content.Context
+@@ -64,7 +65,7 @@
+     return mode
+ }
+ 
+-actual fun Kadb.readMode(file: File): Int {
++internal fun Kadb.readMode(file: File): Int {
+     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+         Files.getAttribute(file.toPath(), "unix:mode") as? Int ?: throw RuntimeException(
+             "Unable to read file mode"
+--- a/src/main/kotlin/com/flyfishxu/kadb/Kadb.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/Kadb.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb
+ 
+ import com.flyfishxu.kadb.cert.CertUtils.loadKeyPair
+@@ -32,7 +33,9 @@
+ ) : AutoCloseable {
+ 
+     private var options: KadbOptions = KadbOptions()
+-    private var connection: Pair<AdbConnection, TransportChannel>? = null
++    @Volatile private var connection: Pair<AdbConnection, TransportChannel>? = null
++    private val connectionLock = Any()
++    private val control = KadbConnectionControl()
+ 
+     private constructor(
+         host: String,
+@@ -45,6 +48,16 @@
+     }
+ 
+     fun connectionCheck(): Boolean = connection?.second?.isOpen == true
++
++    fun isTlsConnection(): Boolean = connection?.second?.let { it.isOpen && it.encrypted } == true
++
++    /** Terminal cancellation reaches sockets before connection publication. */
++    fun cancel() {
++        val previous = connection
++        control.cancel()
++        connection = null
++        previous?.first?.close()
++    }
+ 
+     fun open(destination: String): AdbStream {
+         return openStream(destination).second
+@@ -196,10 +209,7 @@
+ 
+     fun unroot() = restartAdb("unroot:")
+ 
+-    override fun close() {
+-        connection?.first?.close()
+-        connection = null
+-    }
++    override fun close() = cancel()
+ 
+     /**
+      * Reset current transport only.
+@@ -210,11 +220,18 @@
+         connection = null
+     }
+ 
+-    private fun connection(): AdbConnection {
++    private fun connection(): AdbConnection = synchronized(connectionLock) {
++        control.checkActive()
+         val current = connection
+-        return if (current == null || !current.second.isOpen) {
+-            newConnection().also { connection = it }.first
+-        } else current.first
++        if (current == null || !current.second.isOpen) {
++            val next = newConnection()
++            try { control.checkActive() } catch (error: Throwable) { next.first.close(); throw error }
++            connection = next
++            next.first
++        } else {
++            check(!options.requireTls || current.second.encrypted) { "ADB TLS connection required" }
++            current.first
++        }
+     }
+ 
+     private fun newConnection(): Pair<AdbConnection, TransportChannel> {
+@@ -225,7 +242,8 @@
+                 hostKeySet = loadKeySet(),
+                 options = options,
+                 connectTimeoutMs = connectTimeout,
+-                ioTimeoutMs = socketTimeout
++                ioTimeoutMs = socketTimeout,
++                control = control,
+             )
+         }
+     }
+@@ -245,6 +263,7 @@
+             if (!retryOnStaleTransport) {
+                 throw t
+             }
++            control.checkActive()
+             openStream(destination, retryOnStaleTransport = false)
+         }
+     }
+@@ -452,9 +471,14 @@
+         private const val DEFAULT_TERM_TYPE = "xterm-256color"
+ 
+         suspend fun pair(host: String, port: Int, pairingCode: String, name: String = defaultDeviceName()) =
+-            withContext(Dispatchers.Default) {
+-                PairingConnectionCtx(host, port, pairingCode.toByteArray(), loadKeyPair(), name).use { it.start() }
+-            }
++            withContext(Dispatchers.Default) { pairWithResult(host, port, pairingCode, name); Unit }
++
++        fun pairWithResult(
++            host: String, port: Int, pairingCode: String, name: String = defaultDeviceName(),
++            control: KadbConnectionControl = KadbConnectionControl(),
++            connectTimeout: Int = 8_000, socketTimeout: Int = 3_000,
++        ): PairingResult = PairingConnectionCtx(host, port, pairingCode.toByteArray(), loadKeyPair(), name,
++            control, connectTimeout, socketTimeout).use { it.start(); it.result() }
+ 
+         fun create(
+             host: String,
+@@ -534,4 +558,3 @@
+     }
+ }
+ 
+-internal expect fun Kadb.readMode(file: File): Int
+--- /dev/null
++++ b/src/main/kotlin/com/flyfishxu/kadb/KadbConnectionControl.kt
+@@ -0,0 +1,36 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
++package com.flyfishxu.kadb
++
++import java.io.Closeable
++import java.io.IOException
++
++/** Droide derivative: closes raw I/O without waiting for a protocol writer or connection lock. */
++class KadbConnectionControl {
++    private val lock = Any()
++    private var cancelled = false
++    private val owned = mutableSetOf<Closeable>()
++
++    fun checkActive() = synchronized(lock) {
++        if (cancelled) throw IOException("ADB connection cancelled")
++    }
++
++    fun own(resource: Closeable): Closeable {
++        val accepted = synchronized(lock) {
++            if (cancelled) false else { owned.add(resource); true }
++        }
++        if (!accepted) {
++            runCatching { resource.close() }
++            throw IOException("ADB connection cancelled")
++        }
++        return Closeable { synchronized(lock) { owned.remove(resource) }; Unit }
++    }
++
++    fun cancel() {
++        val resources = synchronized(lock) {
++            if (cancelled) return
++            cancelled = true
++            owned.toList().also { owned.clear() }
++        }
++        resources.forEach { runCatching { it.close() } }
++    }
++}
+--- a/src/main/kotlin/com/flyfishxu/kadb/KadbOptions.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/KadbOptions.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb
+ 
+ /**
+@@ -7,7 +8,9 @@
+     /**
+      * Controls whether the host advertises the `delayed_ack` feature in CNXN.
+      */
+-    val delayedAckMode: DelayedAckMode = DelayedAckMode.AOSP_DEFAULT
++    val delayedAckMode: DelayedAckMode = DelayedAckMode.AOSP_DEFAULT,
++    /** Reject legacy AUTH/plain CNXN when connecting a Wireless Debugging TLS endpoint. */
++    val requireTls: Boolean = false
+ )
+ 
+ /**
+--- /dev/null
++++ b/src/main/kotlin/com/flyfishxu/kadb/PairingResult.kt
+@@ -0,0 +1,15 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
++package com.flyfishxu.kadb
++
++/** Identity received inside the authenticated pairing exchange, never from mDNS or a host address. */
++data class PairingResult(val deviceGuid: String)
++
++internal fun decodePairedDeviceGuid(type: Byte, data: ByteArray): String {
++    require(type.toInt() == 1) { "Pairing peer did not return a device GUID" }
++    val end = data.indexOf(0)
++    require(end in 1..255 && data.drop(end).all { it == 0.toByte() }) { "Invalid paired device GUID" }
++    require(data.take(end).all { it.toInt() in 33..126 }) { "Invalid paired device GUID" }
++    val guid = data.copyOf(end).toString(Charsets.US_ASCII)
++    require(guid.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,254}"))) { "Invalid paired device GUID" }
++    return guid
++}
+--- a/src/main/kotlin/com/flyfishxu/kadb/cert/platform/DefaultDeviceName.android.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/cert/platform/DefaultDeviceName.android.kt
+@@ -1,8 +1,9 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.cert.platform
+ 
+ import android.os.Build
+ 
+-actual fun defaultDeviceName(software: String?): String {
++fun defaultDeviceName(software: String? = null): String {
+     software
+         ?.trim()
+         ?.takeIf { it.isNotEmpty() }
+--- a/src/main/kotlin/com/flyfishxu/kadb/cert/platform/DefaultDeviceName.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/cert/platform/DefaultDeviceName.kt
+@@ -1,6 +1,6 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.cert.platform
+ 
+-expect fun defaultDeviceName(software: String? = null): String
+ 
+ internal fun formatDefaultDeviceName(loginName: String?, hostName: String?): String {
+     fun normalize(component: String?): String {
+--- a/src/main/kotlin/com/flyfishxu/kadb/core/AdbConnection.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/core/AdbConnection.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.core
+ 
+ import com.flyfishxu.kadb.cert.AdbKeyPair
+@@ -5,6 +6,7 @@
+ import com.flyfishxu.kadb.cert.HostKeySet
+ import com.flyfishxu.kadb.cert.platform.defaultDeviceName
+ import com.flyfishxu.kadb.KadbOptions
++import com.flyfishxu.kadb.KadbConnectionControl
+ import com.flyfishxu.kadb.pair.SslUtils
+ import com.flyfishxu.kadb.queue.AdbMessageQueue
+ import com.flyfishxu.kadb.stream.AdbStream
+@@ -87,12 +89,10 @@
+     }
+ 
+     override fun close() {
+-        try {
+-            messageQueue.close()
+-            adbWriter.close()
+-            closeable?.close()
+-        } catch (_: Throwable) {
+-        }
++        // Close raw I/O before queue/writer cleanup; each cleanup remains independent.
++        runCatching { closeable?.close() }
++        runCatching { messageQueue.close() }
++        runCatching { adbWriter.close() }
+     }
+ 
+     companion object {
+@@ -102,13 +102,15 @@
+             hostKeySet: HostKeySet,
+             options: KadbOptions = KadbOptions(),
+             connectTimeoutMs: Int = 10_000,
+-            ioTimeoutMs: Int = 0
++            ioTimeoutMs: Int = 0,
++            control: KadbConnectionControl = KadbConnectionControl(),
+         ): Pair<AdbConnection, TransportChannel> {
+             val connectTimeout = connectTimeoutMs.toLong()
+             val ioTimeout = ioTimeoutMs.toLong()
+             var authKeyIndex = 0
+-
+-            var channel: TransportChannel = TransportFactory.connect(host, port, connectTimeout)
++            val security = AdbHandshakeSecurity(options.requireTls)
++
++            var channel: TransportChannel = TransportFactory.connect(host, port, connectTimeout, control)
+             var reader = AdbReader(channel.asOkioSource(ioTimeout))
+             var writer = AdbWriter(channel.asOkioSink(ioTimeout))
+ 
+@@ -126,6 +128,8 @@
+                 }
+ 
+                 while (true) {
++                    control.checkActive()
++                    security.before(message.command)
+                     when (message.command) {
+                         AdbProtocol.CMD_STLS -> {
+                             // AOSP host always sends STLS with the fixed protocol value A_STLS_VERSION.
+@@ -136,6 +140,8 @@
+                             val tlsChannel = TlsNioChannel(channel, engine)
+                             try {
+                                 tlsChannel.handshake(ioTimeout, TimeUnit.MILLISECONDS)
++                                control.checkActive()
++                                security.handshakeCompleted()
+                             } catch (t: Throwable) {
+                                 throw TlsErrorMapper.map(t)
+                             }
+@@ -206,6 +212,7 @@
+                     outboundMaxPayloadSize
+                 )
+ 
++                control.checkActive()
+                 return connection to channel
+             } catch (t: Throwable) {
+                 try {
+@@ -230,7 +237,8 @@
+             keyPair: AdbKeyPair,
+             options: KadbOptions = KadbOptions(),
+             connectTimeoutMs: Int = 10_000,
+-            ioTimeoutMs: Int = 0
++            ioTimeoutMs: Int = 0,
++            control: KadbConnectionControl = KadbConnectionControl(),
+         ): Pair<AdbConnection, TransportChannel> {
+             return connect(
+                 host = host,
+@@ -238,7 +246,8 @@
+                 hostKeySet = HostKeySet.single(keyPair),
+                 options = options,
+                 connectTimeoutMs = connectTimeoutMs,
+-                ioTimeoutMs = ioTimeoutMs
++                ioTimeoutMs = ioTimeoutMs,
++                control = control,
+             )
+         }
+ 
+--- /dev/null
++++ b/src/main/kotlin/com/flyfishxu/kadb/core/AdbHandshakeSecurity.kt
+@@ -0,0 +1,23 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
++package com.flyfishxu.kadb.core
++
++import java.io.IOException
++
++/** Droide derivative: an advertised service type is not proof that encryption was negotiated. */
++internal class AdbHandshakeSecurity(private val required: Boolean) {
++    var encrypted: Boolean = false
++        private set
++    private var started = false
++
++    fun before(command: Int) {
++        if (command == AdbProtocol.CMD_STLS) {
++            if (started) throw IOException("Repeated ADB TLS upgrade")
++            started = true
++        } else if (required && !encrypted &&
++            (command == AdbProtocol.CMD_AUTH || command == AdbProtocol.CMD_CNXN)) {
++            throw IOException("Wireless Debugging requires an encrypted TLS connection")
++        }
++    }
++
++    fun handshakeCompleted() { check(started); encrypted = true }
++}
+--- a/src/main/kotlin/com/flyfishxu/kadb/core/HostFeaturePolicy.android.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/core/HostFeaturePolicy.android.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.core
+ 
+-internal actual fun aospDefaultDelayedAckEnabled(): Boolean = false
++internal fun aospDefaultDelayedAckEnabled(): Boolean = false
+--- a/src/main/kotlin/com/flyfishxu/kadb/core/HostFeaturePolicy.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/core/HostFeaturePolicy.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.core
+ 
+ import com.flyfishxu.kadb.DelayedAckMode
+@@ -8,4 +9,3 @@
+     DelayedAckMode.DISABLED -> false
+ }
+ 
+-internal expect fun aospDefaultDelayedAckEnabled(): Boolean
+--- a/src/main/kotlin/com/flyfishxu/kadb/pair/PairingAuthCtx.android.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/pair/PairingAuthCtx.android.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.pair
+ 
+ import com.flyfish233.crypto.spake2.Spake2Context
+@@ -33,16 +34,16 @@
+ private val GCM_IV_LENGTH: Int  // in bytes
+     get() = 12
+ 
+-internal actual class PairingAuthCtx(
++internal class PairingAuthCtx(
+     private val mSpake2Ctx: Spake2Context, password: ByteArray
+ ) : Destroyable {
+-    actual val msg: ByteArray = mSpake2Ctx.generateMessage(password)
++    val msg: ByteArray = mSpake2Ctx.generateMessage(password)
+     private val mSecretKey = ByteArray(HKDF_KEY_LENGTH)
+     private var mDecIv: Long = 0
+     private var mEncIv: Long = 0
+     private var mIsDestroyed = false
+ 
+-    actual fun initCipher(theirMsg: ByteArray?): Boolean {
++    fun initCipher(theirMsg: ByteArray?): Boolean {
+         if (mIsDestroyed) return false
+         // AOSP returns false when peer SPAKE2 processing fails.
+         // https://android.googlesource.com/platform/packages/modules/adb/+/1cf2f017d312f73b3dc53bda85ef2610e35a80e9/pairing_auth/pairing_auth.cpp#154
+@@ -53,23 +54,23 @@
+         return true
+     }
+ 
+-    actual fun encrypt(input: ByteArray): ByteArray? {
++    fun encrypt(input: ByteArray): ByteArray? {
+         return encryptDecrypt(
+             true, input, ByteBuffer.allocate(GCM_IV_LENGTH).order(ByteOrder.LITTLE_ENDIAN).putLong(mEncIv++).array()
+         )
+     }
+ 
+-    actual fun decrypt(input: ByteArray): ByteArray? {
++    fun decrypt(input: ByteArray): ByteArray? {
+         return encryptDecrypt(
+             false, input, ByteBuffer.allocate(GCM_IV_LENGTH).order(ByteOrder.LITTLE_ENDIAN).putLong(mDecIv++).array()
+         )
+     }
+ 
+-    actual override fun isDestroyed(): Boolean {
++    override fun isDestroyed(): Boolean {
+         return mIsDestroyed
+     }
+ 
+-    actual override fun destroy() {
++    override fun destroy() {
+         mIsDestroyed = true
+         Arrays.fill(mSecretKey, 0.toByte())
+         mSpake2Ctx.destroy()
+@@ -90,11 +91,11 @@
+         return out
+     }
+ 
+-    actual companion object
++    companion object
+ 
+ }
+ 
+-internal actual fun PairingAuthCtx.Companion.createAlice(password: ByteArray): PairingAuthCtx? {
++internal fun PairingAuthCtx.Companion.createAlice(password: ByteArray): PairingAuthCtx? {
+     val spake25519 = Spake2Context(Spake2Role.Alice, CLIENT_NAME, SERVER_NAME)
+     return try {
+         PairingAuthCtx(spake25519, password)
+--- a/src/main/kotlin/com/flyfishxu/kadb/pair/PairingAuthCtx.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/pair/PairingAuthCtx.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -20,17 +21,6 @@
+ import java.nio.charset.IllegalCharsetNameException
+ import javax.security.auth.Destroyable
+ 
+-internal expect class PairingAuthCtx : Destroyable {
+-    val msg: ByteArray
+-    fun initCipher(theirMsg: ByteArray?): Boolean
+-    fun encrypt(input: ByteArray): ByteArray?
+-    fun decrypt(input: ByteArray): ByteArray?
+-    override fun isDestroyed(): Boolean
+-    override fun destroy()
+-
+-    companion object
+-}
+-
+ internal fun getBytes(text: String, charsetName: String): ByteArray {
+     return try {
+         text.toByteArray(charset(charsetName))
+@@ -39,4 +29,4 @@
+     }
+ }
+ 
+-internal expect fun PairingAuthCtx.Companion.createAlice(password: ByteArray): PairingAuthCtx?
++
+--- a/src/main/kotlin/com/flyfishxu/kadb/pair/PairingConnectionCtx.android.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/pair/PairingConnectionCtx.android.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.pair
+ 
+ import android.annotation.SuppressLint
+@@ -6,7 +7,7 @@
+ import java.security.NoSuchAlgorithmException
+ 
+ @SuppressLint("PrivateApi")
+-internal actual fun PairingConnectionCtx.getConscryptClass(): Class<*> {
++internal fun PairingConnectionCtx.getConscryptClass(): Class<*> {
+     return if (SslUtils.customConscrypt) {
+         Class.forName("org.conscrypt.Conscrypt")
+     } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+--- a/src/main/kotlin/com/flyfishxu/kadb/pair/PairingConnectionCtx.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/pair/PairingConnectionCtx.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -15,6 +16,11 @@
+  */
+ 
+ package com.flyfishxu.kadb.pair
++
++import com.flyfishxu.kadb.KadbConnectionControl
++import com.flyfishxu.kadb.PairingResult
++import com.flyfishxu.kadb.decodePairedDeviceGuid
++import java.net.InetSocketAddress
+ 
+ import com.flyfishxu.kadb.cert.AdbKeyPair
+ import com.flyfishxu.kadb.cert.AndroidPubkey.encodeWithName
+@@ -37,7 +43,9 @@
+ private const val EXPORT_KEY_SIZE = 64
+ 
+ internal class PairingConnectionCtx(
+-    host: String, private val mPort: Int, pwd: ByteArray, keyPair: AdbKeyPair, deviceName: String
++    host: String, private val mPort: Int, pwd: ByteArray, keyPair: AdbKeyPair, deviceName: String,
++    private val control: KadbConnectionControl,
++    private val connectTimeout: Int, private val socketTimeout: Int,
+ ) : Closeable {
+     private val mHost: String = Objects.requireNonNull(host)
+     private val mPwd: ByteArray = Objects.requireNonNull(pwd)
+@@ -52,6 +60,14 @@
+     private var mOutputStream: DataOutputStream? = null
+     private var mPairingAuthCtx: PairingAuthCtx? = null
+     private var mState = State.Ready
++    private var rawSocket: Socket? = null
++    private var registration: Closeable? = null
++    private var pairedGuid: String? = null
++
++    fun result(): PairingResult {
++        control.checkActive()
++        return PairingResult(checkNotNull(pairedGuid) { "Pairing has not completed" })
++    }
+ 
+     @Throws(IOException::class)
+     fun start() {
+@@ -63,6 +79,7 @@
+         // Start worker
+         setupTlsConnection()
+         while (true) {
++            control.checkActive()
+             mState = when (mState) {
+                 State.ExchangingMsgs -> {
+                     if (!doExchangeMsgs()) {
+@@ -94,17 +111,22 @@
+ 
+     @Throws(IOException::class)
+     private fun setupTlsConnection() {
+-        val socket: Socket = if (mRole == Role.Server) {
+-            val sslServerSocket = mSslContext.serverSocketFactory.createServerSocket(mPort) as SSLServerSocket
+-            sslServerSocket.accept()
+-        } else { // role == Role.Client
+-            Socket(mHost, mPort)
+-        }
++        val socket = Socket()
++        rawSocket = socket
++        registration = control.own(socket)
++        // System DNS itself may not be interruptible; never connect after cancellation returns.
++        val address = InetSocketAddress(mHost, mPort)
++        control.checkActive()
++        socket.connect(address, connectTimeout.coerceIn(1, 8_000))
++        socket.soTimeout = socketTimeout.coerceIn(1, 8_000)
+         socket.tcpNoDelay = true
+ 
+         // We use custom SSLContext to allow any SSL certificates
+         val sslSocket = mSslContext.socketFactory.createSocket(socket, mHost, mPort, true) as SSLSocket
++        sslSocket.soTimeout = socketTimeout.coerceIn(1, 8_000)
++        control.checkActive()
+         sslSocket.startHandshake()
++        control.checkActive()
+         mInputStream = DataInputStream(sslSocket.inputStream)
+         mOutputStream = DataOutputStream(sslSocket.outputStream)
+ 
+@@ -222,11 +244,15 @@
+         if (decryptedMsg.size != PeerInfo.MAX_PEER_INFO_SIZE) {
+             return false
+         }
+-        PeerInfo.readFrom(ByteBuffer.wrap(decryptedMsg))
++        val peer = PeerInfo.readFrom(ByteBuffer.wrap(decryptedMsg))
++        pairedGuid = decodePairedDeviceGuid(peer.type, peer.data)
++        control.checkActive()
+         return true
+     }
+ 
+     override fun close() {
++        runCatching { rawSocket?.close() }
++        registration?.close()
+         Arrays.fill(mPwd, 0.toByte())
+         try {
+             mInputStream?.close()
+@@ -249,8 +275,8 @@
+         Client, Server
+     }
+ 
+-    private class PeerInfo(private val type: Byte, data: ByteArray) {
+-        private val data = ByteArray(MAX_PEER_INFO_SIZE - 1)
++    private class PeerInfo(val type: Byte, data: ByteArray) {
++        val data = ByteArray(MAX_PEER_INFO_SIZE - 1)
+ 
+         init {
+             System.arraycopy(data, 0, this.data, 0, data.size.coerceAtMost(MAX_PEER_INFO_SIZE - 1))
+@@ -317,4 +343,3 @@
+     }
+ }
+ 
+-internal expect fun PairingConnectionCtx.getConscryptClass(): Class<*>
+--- a/src/main/kotlin/com/flyfishxu/kadb/queue/AdbMessageQueue.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/queue/AdbMessageQueue.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2021 mobile.dev inc.
+  *
+@@ -30,7 +31,7 @@
+ 
+     override fun getCommand(message: AdbMessage) = message.command
+ 
+-    override fun close() = adbReader.close()
++    override fun close() { shutdownQueue(); adbReader.close() }
+ 
+     override fun isCloseCommand(message: AdbMessage) = message.command == AdbProtocol.CMD_CLSE
+ }
+--- a/src/main/kotlin/com/flyfishxu/kadb/queue/MessageQueue.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/queue/MessageQueue.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.queue
+ 
+ import com.flyfishxu.kadb.exception.AdbStreamClosed
+@@ -9,6 +10,7 @@
+ 
+ internal abstract class MessageQueue<V> {
+ 
++    private var terminalFailure: Throwable? = null
+     private val readLock = ReentrantLock()
+     private val queueLock = ReentrantLock()
+     private val queueCond = queueLock.newCondition()
+@@ -20,15 +22,31 @@
+     fun take(localId: Int, command: Int): V {
+         while (true) {
+             queueLock.lock {
++                terminalFailure?.let { throw it }
+                 poll(localId, command)?.let { return it }
+                 readLock.tryLock({
+                     queueLock.unlock()
+-                    read()
+-                    queueLock.lock()
+-                    queueCond.signalAll()
++                    try {
++                        read()
++                    } catch (error: Throwable) {
++                        queueLock.lock()
++                        terminalFailure = error
++                        queueCond.signalAll()
++                        throw error
++                    } finally {
++                        if (!queueLock.isHeldByCurrentThread) queueLock.lock()
++                        queueCond.signalAll()
++                    }
+                 }) { queueCond.await() }
+             }
+         }
++    }
++
++    protected fun shutdownQueue() = queueLock.lock {
++        terminalFailure = java.io.IOException("ADB connection closed")
++        queues.clear()
++        openStreams.clear()
++        queueCond.signalAll()
+     }
+ 
+     fun startListening(localId: Int) {
+--- a/src/main/kotlin/com/flyfishxu/kadb/shell/AdbShellStream.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/shell/AdbShellStream.kt
+@@ -1,7 +1,9 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ package com.flyfishxu.kadb.shell
+ 
+ import com.flyfishxu.kadb.stream.AdbStream
+ import java.io.IOException
++import okio.BufferedSource
+ import kotlin.Throws
+ 
+ class AdbShellStream(
+@@ -32,19 +34,11 @@
+     }
+ 
+     @Throws(IOException::class)
+-    fun read(): AdbShellPacket {
+-        stream.source.apply {
+-            val id = checkId(readByte().toInt())
+-            val length = checkLength(id, readIntLe())
+-            val payload = readByteArray(length.toLong())
+-            return when (id) {
+-                AdbShellPacketV2.ID_STDOUT -> AdbShellPacket.StdOut(payload)
+-                AdbShellPacketV2.ID_STDERR -> AdbShellPacket.StdError(payload)
+-                AdbShellPacketV2.ID_EXIT -> AdbShellPacket.Exit(payload)
+-                else -> throw IllegalArgumentException("Invalid shell packet id: $id")
+-            }
+-        }
+-    }
++    fun read(): AdbShellPacket = read(Int.MAX_VALUE)
++
++    @Throws(IOException::class)
++    fun read(maxOutputPayloadBytes: Int): AdbShellPacket =
++        readShellPacket(stream.source, maxOutputPayloadBytes)
+ 
+     @Throws(IOException::class)
+     fun write(string: String) {
+@@ -87,18 +81,25 @@
+         stream.close()
+     }
+ 
+-    private fun checkId(id: Int): Int {
+-        // In shell v2, device-to-host data frames use stdout/stderr/exit ids.
+-        // https://android.googlesource.com/platform/packages/modules/adb/+/1cf2f017d312f73b3dc53bda85ef2610e35a80e9/shell_protocol.h
+-        check(id == AdbShellPacketV2.ID_STDOUT || id == AdbShellPacketV2.ID_STDERR || id == AdbShellPacketV2.ID_EXIT) {
+-            "Invalid shell packet id: $id"
+-        }
+-        return id
++}
++
++/** Validate the complete header before allocating/buffering a peer-declared payload. */
++internal fun readShellPacket(source: BufferedSource, maxOutputPayloadBytes: Int): AdbShellPacket {
++    require(maxOutputPayloadBytes >= 0)
++    val id = source.readByte().toInt()
++    check(id == AdbShellPacketV2.ID_STDOUT || id == AdbShellPacketV2.ID_STDERR || id == AdbShellPacketV2.ID_EXIT) {
++        "Invalid shell packet id: $id"
+     }
+-
+-    private fun checkLength(id: Int, length: Int): Int {
+-        check(length >= 0) { "Shell packet length must be >= 0: $length" }
+-        check(id != AdbShellPacketV2.ID_EXIT || length == 1) { "Shell exit packet does not have payload length == 1: $length" }
+-        return length
++    val length = source.readIntLe()
++    check(length >= 0) { "Shell packet length must be >= 0: $length" }
++    check(id != AdbShellPacketV2.ID_EXIT || length == 1) { "Shell exit packet must have length 1" }
++    check(id == AdbShellPacketV2.ID_EXIT || length <= maxOutputPayloadBytes) {
++        "Shell packet exceeds remaining output limit"
++    }
++    val payload = source.readByteArray(length.toLong())
++    return when (id) {
++        AdbShellPacketV2.ID_STDOUT -> AdbShellPacket.StdOut(payload)
++        AdbShellPacketV2.ID_STDERR -> AdbShellPacket.StdError(payload)
++        else -> AdbShellPacket.Exit(payload)
+     }
+ }
+--- a/src/main/kotlin/com/flyfishxu/kadb/transport/PlainBlockingChannel.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/transport/PlainBlockingChannel.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -15,6 +16,8 @@
+ 
+ package com.flyfishxu.kadb.transport
+ 
++import com.flyfishxu.kadb.KadbConnectionControl
++import java.io.Closeable
+ import java.net.InetSocketAddress
+ import java.net.Socket
+ import java.nio.ByteBuffer
+@@ -22,17 +25,30 @@
+ import kotlin.math.min
+ 
+ internal class PlainBlockingChannel private constructor(
+-    private val socket: Socket
++    private val socket: Socket,
++    private val registration: Closeable,
+ ) : TransportChannel {
+ 
+     companion object {
+-        fun connect(host: String, port: Int, connectTimeoutMs: Long): PlainBlockingChannel {
+-            val socket = Socket()
++        fun connect(host: String, port: Int, connectTimeoutMs: Long, control: KadbConnectionControl,
++            socketFactory: () -> Socket = { Socket() },
++            resolve: (String, Int) -> InetSocketAddress = { name, service -> InetSocketAddress(name, service) },
++        ): PlainBlockingChannel {
++            val socket = socketFactory()
++            val registration = control.own(socket)
++            try {
+             socket.keepAlive = true
+             socket.tcpNoDelay = true
+-            val timeout = connectTimeoutMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+-            socket.connect(InetSocketAddress(host, port), timeout)
+-            return PlainBlockingChannel(socket)
++            val timeout = connectTimeoutMs.coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
++            // DNS may block in the platform resolver; cancellation fences the subsequent TCP connect.
++            val address = resolve(host, port)
++            control.checkActive()
++            socket.connect(address, timeout)
++            control.checkActive()
++            return PlainBlockingChannel(socket, registration)
++            } catch (error: Throwable) {
++                runCatching { socket.close() }; registration.close(); throw error
++            }
+         }
+     }
+ 
+@@ -99,6 +115,6 @@
+         get() = socket.isConnected && !socket.isClosed
+ 
+     override fun close() {
+-        socket.close()
++        try { socket.close() } finally { registration.close() }
+     }
+ }
+--- a/src/main/kotlin/com/flyfishxu/kadb/transport/TlsNioChannel.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/transport/TlsNioChannel.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -27,6 +28,7 @@
+     private val engine: SSLEngine
+ ) : TransportChannel {
+ 
++    @Volatile private var handshakeComplete = false
+     private var netIn: ByteBuffer = ByteBuffer.allocate(engine.session.packetBufferSize)
+     private var netOut: ByteBuffer = ByteBuffer.allocate(engine.session.packetBufferSize)
+     private var appIn: ByteBuffer = ByteBuffer.allocate(engine.session.applicationBufferSize)
+@@ -96,7 +98,7 @@
+                 }
+ 
+                 SSLEngineResult.HandshakeStatus.FINISHED,
+-                SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING -> break@loop
++                SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING -> { handshakeComplete = true; break@loop }
+ 
+                 else -> {
+                     if (status.name == "NEED_UNWRAP_AGAIN") {
+@@ -201,28 +203,13 @@
+ 
+     override val remoteAddress get() = net.remoteAddress
+ 
++    override val encrypted get() = handshakeComplete
++
+     override val isOpen get() = net.isOpen
+ 
+-    override fun close() {
+-        try {
+-            engine.closeOutbound()
+-            netOut.clear()
+-            val result = try {
+-                engine.wrap(EMPTY.duplicate(), netOut)
+-            } catch (_: Throwable) {
+-                null
+-            }
+-            if (result != null && result.status == SSLEngineResult.Status.OK && netOut.position() > 0) {
+-                netOut.flip()
+-                runCatching {
+-                    runBlocking { net.writeExactly(netOut, 1_000, TimeUnit.MILLISECONDS) }
+-                }
+-            }
+-        } catch (_: Throwable) {
+-        } finally {
+-            net.close()
+-        }
+-    }
++    // Abort the raw transport first. close_notify can otherwise block behind an unbounded writer.
++    override fun close() { net.close() }
++
+ 
+     private fun enlarge(buffer: ByteBuffer, minimum: Int): ByteBuffer {
+         val capacity = maxOf(buffer.capacity() * 2, minimum)
+--- a/src/main/kotlin/com/flyfishxu/kadb/transport/TransportChannel.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/transport/TransportChannel.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -29,5 +30,6 @@
+     suspend fun shutdownOutput()
+     val localAddress: InetSocketAddress
+     val remoteAddress: InetSocketAddress
++    val encrypted: Boolean get() = false
+     val isOpen: Boolean
+ }
+--- a/src/main/kotlin/com/flyfishxu/kadb/transport/TransportFactory.android.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/transport/TransportFactory.android.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -15,8 +16,10 @@
+ 
+ package com.flyfishxu.kadb.transport
+ 
+-internal actual object TransportFactory {
+-    actual suspend fun connect(host: String, port: Int, connectTimeoutMs: Long): TransportChannel {
+-        return PlainBlockingChannel.connect(host, port, connectTimeoutMs)
++import com.flyfishxu.kadb.KadbConnectionControl
++
++internal object TransportFactory {
++    suspend fun connect(host: String, port: Int, connectTimeoutMs: Long, control: KadbConnectionControl): TransportChannel {
++        return PlainBlockingChannel.connect(host, port, connectTimeoutMs, control)
+     }
+ }
+--- a/src/main/kotlin/com/flyfishxu/kadb/transport/TransportFactory.kt
++++ b/src/main/kotlin/com/flyfishxu/kadb/transport/TransportFactory.kt
+@@ -1,3 +1,4 @@
++// Droide Android-only derivative changed 2026-10-15: cancellation, TLS/GUID and source integration.
+ /*
+  * Copyright (c) 2024 Flyfish-Xu
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -15,6 +16,3 @@
+ 
+ package com.flyfishxu.kadb.transport
+ 
+-internal expect object TransportFactory {
+-    suspend fun connect(host: String, port: Int, connectTimeoutMs: Long): TransportChannel
+-}

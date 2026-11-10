@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "artifacts": [
+    {
+      "name": "android-all-instrumented-15-robolectric-12650502-i7.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/robolectric/android-all-instrumented/15-robolectric-12650502-i7/android-all-instrumented-15-robolectric-12650502-i7.jar",
+      "bytes": 199527464,
+      "sha512": "87bdd0341838f5f630e1ff412ab29cb2f06e0f8cb7751f14679d11b4ee6084873001f8f6a8581ae6e139fa7c9a654b632412827430f984ebecc3c2588674f7e7"
+    }
+  ]
+}

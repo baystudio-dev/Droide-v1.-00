@@ -1,0 +1,16 @@
+{
+  "android_api": 36,
+  "android_jar_sha256": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a",
+  "jdk": {
+    "files": {
+      "bin/java": "f5aed21d3a0b0f4b05d3a3f9fe71263916d5bc0d47b53aa52a3340b90f0b4805",
+      "bin/javac": "50d09f424b513525af1f0b05cd948ed7890a8d60fef7f7797e20892705b0067d",
+      "lib/modules": "6a1b657bd845397ab30fe2d4d78d80c4fdc05107182843669fc928655c227241",
+      "release": "973f28729da43962dfba2e39b2a27ab736122f3a1bf829e06abfbde2a731c711"
+    },
+    "official_metadata": "https://api.adoptium.net/v3/assets/version/17.0.20.1%2B1?architecture=x64&heap_size=normal&image_type=jdk&jvm_impl=hotspot&os=linux&vendor=eclipse",
+    "version": "Temurin 17.0.20.1+1"
+  },
+  "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "slf4j_version": "1.7.36"
+}

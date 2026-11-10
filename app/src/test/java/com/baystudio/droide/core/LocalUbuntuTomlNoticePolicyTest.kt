@@ -1,0 +1,11 @@
+package com.baystudio.droide.core
+import kotlinx.serialization.json.*
+import org.junit.Assert.*
+import org.junit.Test
+class LocalUbuntuTomlNoticePolicyTest {
+    private fun denied(block:()->Unit){try{block();fail("Expected rejection")}catch(_:IllegalArgumentException){}catch(_:IllegalStateException){}}
+    private fun source(text:String)=buildJsonObject{put("url",LocalUbuntuTomlNoticePolicy.SOURCE_ROOT+"src/lib.rs");put("source_path","src/lib.rs");put("content",buildJsonObject{put("bytes",text.toByteArray().size);put("sha256",LocalUbuntuTomlPolicy.sha256(text.toByteArray()))})}
+    @Test fun sourceHashIgnoresVolatileChromeButPreservesExactText(){val text="// authored & exact\nlet a = 1 < 2;\n";val entry=source(text);val body="<div id=source-code><pre><code>// authored &amp; exact\n<span>let a = 1 &lt; 2;</span>\n</code></pre></div>";val a=LocalUbuntuTomlNoticePolicy.checkResponse(entry,false,("<p>old navigation</p>"+body).toByteArray());val b=LocalUbuntuTomlNoticePolicy.checkResponse(entry,false,("<p>new navigation</p>"+body).toByteArray());assertEquals(a["contentSha256"],b["contentSha256"]);assertNotEquals(a["responseSha256"],b["responseSha256"]);denied{LocalUbuntuTomlNoticePolicy.checkResponse(entry,false,body.replace("1 &lt; 2","2 &lt; 2").toByteArray())}}
+    @Test fun exactDirectoryMustBeComplete(){val entry=buildJsonObject{put("url",LocalUbuntuTomlNoticePolicy.SOURCE_ROOT);put("source_path","");put("entries",JsonArray(listOf(JsonPrimitive("src/"),JsonPrimitive("LICENSE"))))};LocalUbuntuTomlNoticePolicy.checkResponse(entry,true,"<a href='./src/'>src</a><a href='./LICENSE'>LICENSE</a>".toByteArray());denied{LocalUbuntuTomlNoticePolicy.checkResponse(entry,true,"<a href='./src/'>src</a>".toByteArray())};denied{LocalUbuntuTomlNoticePolicy.checkResponse(entry,true,"<a href='./src/'>src</a><a href='./LICENSE'>LICENSE</a><a href='./extra'>extra</a>".toByteArray())}}
+    @Test fun changedOriginAndOversizedResponsesFail(){val e=source("x");denied{LocalUbuntuTomlNoticePolicy.checkResponse(JsonObject(e+("url" to JsonPrimitive("https://example.org/src/lib.rs"))),false,"x".toByteArray())};denied{LocalUbuntuTomlNoticePolicy.checkResponse(e,false,ByteArray(LocalUbuntuTomlNoticePolicy.MAX_RESPONSE+1))}}
+}

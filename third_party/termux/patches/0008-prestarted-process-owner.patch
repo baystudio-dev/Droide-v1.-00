@@ -1,0 +1,105 @@
+--- /dev/null
++++ b/com/termux/terminal/TerminalProcessOwner.java
+@@ -0,0 +1,102 @@
++package com.termux.terminal;
++
++/** Android-independent startup ownership. Tests inject a backend and deterministic starters. */
++final class TerminalProcessOwner {
++    interface Backend {
++        int apiVersion();
++        long reserve();
++        int spawn(long owner);
++        long waitFor(long owner);
++        int stop(long owner);
++        void cancelIo(long owner, int lanes);
++        void release(long owner);
++        void releaseLane(long owner, int lane);
++    }
++    interface Worker { void start(); }
++    private final Backend backend;
++    private volatile long handle;
++    private volatile boolean stopped;
++    private boolean processPublished, ioPublished, ioReady, startClaimed;
++
++    TerminalProcessOwner(Backend backend) { this.backend = backend; }
++    long handle() { return handle; }
++    boolean isStopped() { return stopped; }
++
++    /** All Worker/Thread objects must already exist. No child before all three starts succeed. */
++    int start(Worker waiter, Worker reader, Worker writer) {
++        synchronized (this) {
++            if (startClaimed) throw new IllegalStateException("Owner startup already claimed");
++            startClaimed = true;
++        }
++        if (backend.apiVersion() != 2) throw new IllegalStateException("Unsupported native PTY owner ABI");
++        final long reserved = backend.reserve();
++        boolean waiterStarted = false, readerStarted = false, writerStarted = false, ready = false;
++        // The cleanup region begins immediately after reserve, before any field publication/start.
++        try {
++            handle = reserved;
++            if (reserved <= 0) throw new IllegalStateException("Cannot reserve native PTY owner");
++            if (stopped) backend.stop(reserved);
++            waiter.start(); waiterStarted = true;
++            reader.start(); readerStarted = true;
++            writer.start(); writerStarted = true;
++            final int pid;
++            try {
++                if (stopped) { backend.stop(reserved); pid = 0; }
++                else pid = backend.spawn(reserved);
++            } finally { publishProcess(); }
++            ready = pid > 0;
++            return pid;
++        } finally {
++            // Wake accepted workers even when a preceding start or native spawn throws Error.
++            try {
++                if (!ready && reserved > 0) {
++                    stopped = true;
++                    try { backend.cancelIo(reserved, 3); }
++                    finally { backend.stop(reserved); }
++                }
++            } finally {
++                publishProcess();
++                publishIo(ready);
++                try {
++                    if (!readerStarted && reserved > 0) backend.releaseLane(reserved, 1);
++                } finally {
++                    try {
++                        if (!writerStarted && reserved > 0) backend.releaseLane(reserved, 2);
++                    } finally {
++                        // Native release turns unclaimed RESERVED into NO_CHILD, atomically.
++                        if (!waiterStarted && reserved > 0) backend.release(reserved);
++                    }
++                }
++            }
++        }
++    }
++
++    private synchronized void publishProcess() {
++        if (!processPublished) { processPublished = true; notifyAll(); }
++    }
++    private synchronized void publishIo(boolean ready) {
++        if (!ioPublished) { ioReady = ready; ioPublished = true; notifyAll(); }
++    }
++    synchronized void awaitProcess() {
++        while (!processPublished) {
++            try { wait(); } catch (InterruptedException ignored) { /* Ownership cannot be abandoned. */ }
++        }
++    }
++    synchronized boolean awaitIo() {
++        while (!ioPublished) {
++            try { wait(); } catch (InterruptedException ignored) { /* Finally must retire this hold. */ }
++        }
++        return ioReady;
++    }
++    long waitForProcess() { return backend.waitFor(handle); }
++    void releaseWaiter() { awaitIo(); backend.release(handle); }
++    void releaseLane(int lane) { backend.releaseLane(handle, lane); }
++    void cancelIo(int lanes) { long owner = handle; if (owner > 0) backend.cancelIo(owner, lanes); }
++    int stop() {
++        stopped = true;
++        long owner = handle;
++        if (owner <= 0) return 1;
++        // Native stop atomically denies later WRITE borrows before signaling.
++        return backend.stop(owner);
++    }
++}

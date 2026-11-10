@@ -1,0 +1,35 @@
+{
+  "vscodeRevision": "c44c5332b31c31eca0519ff6e7c5ebb9da0711e6",
+  "files": [
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/ini/package.json",
+      "file": "manifest.txt",
+      "bytes": 1660,
+      "sha256": "9a893ee6024d3416b77dc9c3c00240288830940ea129444196b3176c417394bd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/ini/ini.language-configuration.json",
+      "file": "ini-configuration.txt",
+      "bytes": 411,
+      "sha256": "97e22c7d0bcceae80ad970d014dd0412d9fdc44d451ad6918fe5058b17db7973"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/ini/properties.language-configuration.json",
+      "file": "properties-configuration.txt",
+      "bytes": 357,
+      "sha256": "004b952449d92603da2bc342de8dd47e821d4c0b41dc83421f5b7de92df009a7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/ini/syntaxes/ini.tmLanguage.json",
+      "file": "grammar.txt",
+      "bytes": 2376,
+      "sha256": "a46613bd993739695cb62be04d23c5d779754bce9fda8a6ead61ecd4616f95fd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/textmate/ini.tmbundle/2af0cbb0704940f967152616f2f1ff0aae6287a6/README.mdown",
+      "file": "grammar-license.txt",
+      "bytes": 1153,
+      "sha256": "b4853208b2e79cceea4c7c5c3a3b70359452991daed3e2c841ef115b3fee730d"
+    }
+  ]
+}

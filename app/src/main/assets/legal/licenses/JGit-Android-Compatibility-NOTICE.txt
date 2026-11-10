@@ -1,0 +1,84 @@
+Droide Android JGit compatibility derivative
+
+# Droide Android JGit reconstruction
+
+This is a modified Android-specific derivative of Eclipse JGit 6.10.1.202505221210-r, upstream commit 9d12b89dd9e7c17eb958d923dde4001995c47a5c. It is not published or endorsed by Eclipse. The new coordinate is com.baystudio.compat:jgit-android-compat:6.10.1.202505221210-r-droide-reconstruction1; it does not identify the lost historical derivative.
+
+Changes: Android real-process PID for unchanged GC locking; no desktop JMX registration/annotation (statistics preserved); no SPNEGO/Kerberos GSS implementation (Basic/Digest preserved). Monitoring and GSSManagerFactory public optional APIs are absent. This is not a full desktop JGit ABI-compatible replacement.
+
+All upstream source copyright headers, about.html (Eclipse Distribution License 1.0/BSD-3-Clause and bundled MIT notice), translations and unrelated entries are preserved. UPSTREAM_ABOUT.html is the complete upstream notice. The original signed JAR is retained unchanged under upstream/. Derivative signatures and obsolete manifest digests are removed; the original manifest is preserved solely as attribution in META-INF/droide-jgit/UPSTREAM.MF.
+
+Reconstruction sources and patch were prepared on 2026-10-15. No artifact, runtime certification or lost-checkpoint equivalence is implied by source preparation. Future build provenance is REBUILD.json and must be verified against actual inputs/output.
+
+Upstream Eclipse Distribution License 1.0
+Copyright (c) 2007, Eclipse Foundation, Inc. and its licensors.
+
+This program and the accompanying materials are made available
+under the terms of the Eclipse Distribution License v1.0 which
+accompanies this distribution, is reproduced below, and is
+available at http://www.eclipse.org/org/documents/edl-v10.php
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or
+without modification, are permitted provided that the following
+conditions are met:
+
+- Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above
+  copyright notice, this list of conditions and the following
+  disclaimer in the documentation and/or other materials provided
+  with the distribution.
+
+- Neither the name of the Eclipse Foundation, Inc. nor the
+  names of its contributors may be used to endorse or promote
+  products derived from this software without specific prior
+  written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+SHA-1 UbcCheck - MIT (bundled upstream)
+
+Copyright (c) 2017:
+
+Marc Stevens
+Cryptology Group
+Centrum Wiskunde & Informatica
+P.O. Box 94079, 1090 GB Amsterdam, Netherlands
+marc@marc-stevens.nl
+
+
+Dan Shumow
+Microsoft Research
+danshu@microsoft.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

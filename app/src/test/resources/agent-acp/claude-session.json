@@ -1,0 +1,157 @@
+{
+  "sessionId": "metadata_fixture_session",
+  "modes": {
+    "currentModeId": "default",
+    "availableModes": [
+      {
+        "id": "default",
+        "name": "Manual",
+        "description": "Always ask before making changes"
+      },
+      {
+        "id": "acceptEdits",
+        "name": "Accept edits",
+        "description": "Automatically accept all file edits"
+      },
+      {
+        "id": "plan",
+        "name": "Plan",
+        "description": "Create a plan before making changes"
+      },
+      {
+        "id": "auto",
+        "name": "Auto",
+        "description": "Claude handles permission decisions"
+      },
+      {
+        "id": "bypassPermissions",
+        "name": "Bypass permissions",
+        "description": "Accepts all permissions"
+      }
+    ]
+  },
+  "configOptions": [
+    {
+      "id": "mode",
+      "name": "Mode",
+      "description": "Session permission mode",
+      "category": "mode",
+      "type": "select",
+      "currentValue": "default",
+      "options": [
+        {
+          "value": "default",
+          "name": "Manual",
+          "description": "Always ask before making changes"
+        },
+        {
+          "value": "acceptEdits",
+          "name": "Accept edits",
+          "description": "Automatically accept all file edits"
+        },
+        {
+          "value": "plan",
+          "name": "Plan",
+          "description": "Create a plan before making changes"
+        },
+        {
+          "value": "auto",
+          "name": "Auto",
+          "description": "Claude handles permission decisions"
+        },
+        {
+          "value": "bypassPermissions",
+          "name": "Bypass permissions",
+          "description": "Accepts all permissions"
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "name": "Model",
+      "description": "AI model to use",
+      "category": "model",
+      "type": "select",
+      "currentValue": "default",
+      "options": [
+        {
+          "value": "default",
+          "name": "Default (recommended)",
+          "description": "Opus"
+        },
+        {
+          "value": "opus",
+          "name": "Opus 5.5",
+          "description": "Opus 5.5 \u00b7 Best for everyday, complex tasks \u00b7 $4/$20 per Mtok"
+        },
+        {
+          "value": "claude-fable-5-1",
+          "name": "Fable 5.1",
+          "description": "Fable 5.1 \u00b7 Most capable for your hardest and longest-running tasks \u00b7 $10/$50 per Mtok"
+        },
+        {
+          "value": "sonnet",
+          "name": "Sonnet 5.5",
+          "description": "Sonnet 5.5 \u00b7 Efficient for routine tasks \u00b7 $2/$10 per Mtok"
+        },
+        {
+          "value": "haiku",
+          "name": "Haiku 4.5",
+          "description": "Haiku 4.5 \u00b7 Fastest for quick answers \u00b7 $1/$5 per Mtok"
+        }
+      ]
+    },
+    {
+      "id": "effort",
+      "name": "Effort",
+      "description": "Available effort levels for this model",
+      "category": "thought_level",
+      "type": "select",
+      "currentValue": "default",
+      "options": [
+        {
+          "value": "default",
+          "name": "Default"
+        },
+        {
+          "value": "low",
+          "name": "Low"
+        },
+        {
+          "value": "medium",
+          "name": "Medium"
+        },
+        {
+          "value": "high",
+          "name": "High"
+        },
+        {
+          "value": "xhigh",
+          "name": "Xhigh"
+        },
+        {
+          "value": "max",
+          "name": "Max"
+        }
+      ]
+    },
+    {
+      "id": "fast",
+      "name": "Fast mode",
+      "description": "Faster responses on supported models",
+      "category": "model_config",
+      "type": "select",
+      "currentValue": "off",
+      "options": [
+        {
+          "value": "on",
+          "name": "On"
+        },
+        {
+          "value": "off",
+          "name": "Off"
+        }
+      ]
+    }
+  ]
+}

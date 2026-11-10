@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "retrievedOn": "2026-11-10",
+  "assets": [
+    {
+      "key": "brand:deepseek",
+      "family": "plugin.deepseek-harness",
+      "resource": "app/src/main/res/drawable/provider_deepseek.xml",
+      "source": "third_party/models-dev-logos/svg/deepseek.svg",
+      "note": "Reuse the existing DeepSeek whale vector; no new artwork.",
+      "sha256": "13fc9ff76f23388d5cd7fa1959956d4dd33e797f84d335e5fe0f1cb9c2d0fe6e",
+      "bytes": 2137
+    },
+    {
+      "key": "brand:antigravity",
+      "family": "plugin.antigravity",
+      "resource": "app/src/main/res/drawable-nodpi/extension_brand_antigravity.png",
+      "source": "https://antigravity.google/assets/image/antigravity-logo.png",
+      "sourcePage": "https://antigravity.google/",
+      "note": "Official transparent product mark linked by the site icon metadata. PNG copied byte-for-byte; no recoloring or cropping.",
+      "sha256": "193ba1805de11c23cd0c7a1df92aa0a886708e57350f6f7766100afe5befed73",
+      "bytes": 32382
+    },
+    {
+      "key": "brand:muse-code",
+      "family": "plugin.muse-code",
+      "resource": "app/src/main/res/drawable/provider_meta.xml",
+      "source": "third_party/models-dev-logos/svg/meta.svg",
+      "sourcePage": "https://dev.meta.ai/docs/muse-code",
+      "note": "Reuse Meta brand mark, as used by the official Muse Code documentation header and favicon. This is the publisher identity; no separate Muse-specific symbol is claimed.",
+      "sha256": "9dcaa879a0243a96bd1bff52fb0a159fb21ff1ae4d9e64ff382eac216e8fa9ef",
+      "bytes": 1406
+    },
+    {
+      "key": "brand:kimi-code",
+      "family": "plugin.kimi-code",
+      "resource": "app/src/main/res/drawable-nodpi/extension_brand_kimi_code.png",
+      "source": "https://raw.githubusercontent.com/MoonshotAI/kimi-code/1eb3c537eb2ae83b044e34356932edf492f83a3e/apps/vscode/webview-ui/public/kimi-logo.png",
+      "revision": "1eb3c537eb2ae83b044e34356932edf492f83a3e",
+      "license": "MIT; Moonshot AI 2026. Trademark rights remain with the owner.",
+      "licenseFile": "app/src/main/assets/legal/licenses/MoonshotAI-kimi-code-MIT.txt",
+      "note": "Official Kimi logo from the Kimi Code VS Code webview; PNG copied byte-for-byte. Preserve its blue dot and dark tile without tinting.",
+      "sha256": "dbd00e2ad61ea8832ef0b024662a4a8a5d1b66f0599d5d42e1c9688b9d4cfdf6",
+      "bytes": 11486
+    }
+  ]
+}

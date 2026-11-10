@@ -1,0 +1,17 @@
+* -text
+*.jar binary
+*.aar binary
+*.so binary
+*.png binary
+*.jpg binary
+*.webp binary
+*.zip binary
+*.xz binary
+
+# Preserve pinned dependency and asset bytes on every checkout.
+/third_party/** -text -whitespace
+/app/src/main/assets/** -text
+/app/src/main/assets/legal/** -whitespace
+/app/src/main/assets/lsp/**/notices/** -whitespace
+/app/src/test/resources/** -whitespace
+*.pdf binary

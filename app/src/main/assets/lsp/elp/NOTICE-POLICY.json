@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "policy": "elp-original-otp27.3-v1",
+  "supplements": [
+    "DROIDE-NOTICES/ELP-LICENSE-MIT.txt",
+    "DROIDE-NOTICES/ELP-LICENSE-APACHE.txt",
+    "DROIDE-NOTICES/origin.json"
+  ],
+  "sourceLicenseExpression": "MIT OR Apache-2.0",
+  "originalArchiveNoticesInspected": false,
+  "nativeImageTransitiveClosureAccepted": false,
+  "reason": "Exact original payload, transitive notices, embedded parser/eqWAlizer and target acceptance remain separate authorized gates.",
+  "distributionReviewGap": "Unopened original native-image dependency notice closure is unverified; source supplements do not establish full binary compliance. No concrete absent required notice has been identified from textual source alone."
+}

@@ -1,0 +1,275 @@
+--- a/com/termux/terminal/TerminalEmulator.java
++++ b/com/termux/terminal/TerminalEmulator.java
+@@ -309,8 +309,13 @@
+     }
+ 
+     public TerminalEmulator(TerminalOutput session, int columns, int rows, Integer transcriptRows, TerminalSessionClient client) {
++        int requestedColumns = columns, requestedRows = rows;
++        columns = TerminalMemoryBudget.columns(columns);
++        rows = TerminalMemoryBudget.rows(columns, rows);
++        mGeometryLimited = columns != requestedColumns || rows != requestedRows;
++        TerminalMemoryBudget.register(this);
+         mSession = session;
+-        mScreen = mMainBuffer = new TerminalBuffer(columns, getTerminalTranscriptRows(transcriptRows), rows);
++        mScreen = mMainBuffer = new TerminalBuffer(columns, Math.max(rows, getTerminalTranscriptRows(transcriptRows)), rows);
+         mAltBuffer = new TerminalBuffer(columns, rows, rows);
+         mClient = client;
+         mRows = rows;
+@@ -365,6 +370,10 @@
+     }
+ 
+     public void resize(int columns, int rows) {
++        int requestedColumns = columns, requestedRows = rows;
++        columns = TerminalMemoryBudget.columns(columns);
++        rows = TerminalMemoryBudget.rows(columns, rows);
++        mGeometryLimited |= columns != requestedColumns || rows != requestedRows;
+         if (mRows == rows && mColumns == columns) {
+             return;
+         } else if (columns < 2 || rows < 2) {
+@@ -394,7 +403,7 @@
+     private void resizeScreen() {
+         final int[] cursor = {mCursorCol, mCursorRow};
+         int newTotalRows = (mScreen == mAltBuffer) ? mRows : mMainBuffer.mTotalRows;
+-        mScreen.resize(mColumns, mRows, newTotalRows, cursor, getStyle(), isAlternateBufferActive());
++        mScreen.resize(mColumns, mRows, Math.max(mRows, newTotalRows), cursor, getStyle(), isAlternateBufferActive());
+         mCursorCol = cursor[0];
+         mCursorRow = cursor[1];
+     }
+@@ -475,9 +484,89 @@
+      * @param buffer a byte array containing the bytes to be processed
+      * @param length the number of bytes in the array to process
+      */
++    /** Maximum decoded bytes or expanded REP/SU operations in one owner dispatch. */
++    public static final int INPUT_WORK_BUDGET = 256;
++    // Applies only to one compressed REP/SU escape, never to ordinary byte output.
++    // Larger expansions are explicitly rejected and surfaced in capture diagnostics.
++    public static final int MAX_EXPANDED_OPERATIONS_PER_SEQUENCE = 1000000;
++    private boolean mExpansionRejected;
++    private boolean mGeometryLimited;
++    private int mPendingRepeats;
++    private int mPendingScrolls;
++    private int mRepeatedCodePoint;
++    private boolean mNumericArgumentSaturated;
++
++    /**
++     * Compatibility API for small, trusted messages. Streaming owners must use appendBounded and
++     * preserve the unconsumed suffix. Refuse a synchronous expansion instead of blocking the Looper.
++     */
+     public void append(byte[] buffer, int length) {
+-        for (int i = 0; i < length; i++)
+-            processByte(buffer[i]);
++        int consumed = appendBounded(buffer, 0, length, INPUT_WORK_BUDGET);
++        if (consumed != length || hasPendingInputWork())
++            throw new IllegalStateException("Terminal input needs continuation; use appendBounded");
++    }
++
++    /**
++     * Performs at most workBudget parser-byte/expanded-operation steps and returns consumed bytes.
++     * REP/SU state is retained before the next input byte, preserving exact order with no output cap.
++     * A single screen operation remains bounded by the admitted viewport and per-cell text budgets.
++     */
++    public int appendBounded(byte[] buffer, int offset, int length, int workBudget) {
++        if (offset < 0 || length < 0 || offset > buffer.length - length || workBudget < 1
++            || workBudget > INPUT_WORK_BUDGET) throw new IllegalArgumentException("Invalid input slice");
++        int consumed = 0;
++        for (int work = 0; work < workBudget; work++) {
++            if (mPendingRepeats > 0) {
++                mPendingRepeats--;
++                emitCodePoint(mRepeatedCodePoint);
++            } else if (mPendingScrolls > 0) {
++                mPendingScrolls--;
++                scrollDownOneLine();
++            } else if (consumed < length) {
++                processByte(buffer[offset + consumed++]);
++            } else break;
++        }
++        return consumed;
++    }
++
++    private int admittedExpansion(int count) {
++        if (count <= MAX_EXPANDED_OPERATIONS_PER_SEQUENCE) return count;
++        if (!mExpansionRejected) mClient.logWarn(LOG_TAG, "Terminal REP/SU expansion over 1000000 operations rejected");
++        mExpansionRejected = true;
++        return 0;
++    }
++
++    public String getOutputLimitNotice() {
++        String notice = "";
++        if (mMainBuffer.wasHistoryEvictedForMemory() || mAltBuffer.wasHistoryEvictedForMemory())
++            notice += "[Older terminal history omitted by the mobile memory budget]\n";
++        if (mExpansionRejected) notice += "[Terminal REP/SU expansion over 1000000 operations rejected]\n";
++        if (mNumericArgumentSaturated) notice += "[Terminal numeric parameter exceeded 2147483647 and was saturated]\n";
++        if (mGeometryLimited) notice += "[Terminal geometry limited by the mobile viewport budget]\n";
++        return notice;
++    }
++
++    public boolean hasPendingInputWork() { return mPendingRepeats > 0 || mPendingScrolls > 0; }
++    public int getPendingRepeatCount() { return mPendingRepeats; }
++    public int getPendingScrollCount() { return mPendingScrolls; }
++    public boolean hasSaturatedNumericArgument() { return mNumericArgumentSaturated; }
++
++    /** Explicit cancellation/disposal only; ordinary chunk boundaries never discard parser work. */
++    public void cancelPendingInputWork() { mPendingRepeats = mPendingScrolls = 0; }
++
++    /** End a closed/broken stream before writing an in-band diagnostic; OSC/DCS must not swallow it. */
++    public boolean finishInput() {
++        boolean incomplete = hasPendingInputWork() || mUtf8ToFollow != 0 || mEscapeState != ESC_NONE;
++        cancelPendingInputWork();
++        mUtf8Index = mUtf8ToFollow = 0;
++        mEscapeState = ESC_NONE;
++        mContinueSequence = false;
++        mOSCOrDeviceControlArgs.setLength(0);
++        return incomplete;
++    }
++
++    private static int saturatingAdd(int left, int right) {
++        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, (long) left + right));
+     }
+ 
+     private void processByte(byte byteToProcess) {
+@@ -661,14 +750,14 @@
+                                 // is treated as the width or height of that page.
+                                 // If the destination area is partially off the page, then DECCRA clips the off-page data.
+                                 // DECCRA does not change the active cursor position."
+-                                int topSource = Math.min(getArg(0, 1, true) - 1 + effectiveTopMargin, mRows);
+-                                int leftSource = Math.min(getArg(1, 1, true) - 1 + effectiveLeftMargin, mColumns);
++                                int topSource = Math.min(saturatingAdd(getArg(0, 1, true) - 1, effectiveTopMargin), mRows);
++                                int leftSource = Math.min(saturatingAdd(getArg(1, 1, true) - 1, effectiveLeftMargin), mColumns);
+                                 // Inclusive, so do not subtract one:
+-                                int bottomSource = Math.min(Math.max(getArg(2, mRows, true) + effectiveTopMargin, topSource), mRows);
+-                                int rightSource = Math.min(Math.max(getArg(3, mColumns, true) + effectiveLeftMargin, leftSource), mColumns);
++                                int bottomSource = Math.min(Math.max(saturatingAdd(getArg(2, mRows, true), effectiveTopMargin), topSource), mRows);
++                                int rightSource = Math.min(Math.max(saturatingAdd(getArg(3, mColumns, true), effectiveLeftMargin), leftSource), mColumns);
+                                 // int sourcePage = getArg(4, 1, true);
+-                                int destionationTop = Math.min(getArg(5, 1, true) - 1 + effectiveTopMargin, mRows);
+-                                int destinationLeft = Math.min(getArg(6, 1, true) - 1 + effectiveLeftMargin, mColumns);
++                                int destionationTop = Math.min(saturatingAdd(getArg(5, 1, true) - 1, effectiveTopMargin), mRows);
++                                int destinationLeft = Math.min(saturatingAdd(getArg(6, 1, true) - 1, effectiveLeftMargin), mColumns);
+                                 // int destinationPage = getArg(7, 1, true);
+                                 int heightToCopy = Math.min(mRows - destionationTop, bottomSource - topSource);
+                                 int widthToCopy = Math.min(mColumns - destinationLeft, rightSource - leftSource);
+@@ -691,10 +780,10 @@
+                                 if ((fillChar >= 32 && fillChar <= 126) || (fillChar >= 160 && fillChar <= 255)) {
+                                     // "If the value of Pt, Pl, Pb, or Pr exceeds the width or height of the active page, the value
+                                     // is treated as the width or height of that page."
+-                                    int top = Math.min(getArg(argIndex++, 1, true) + effectiveTopMargin, effectiveBottomMargin + 1);
+-                                    int left = Math.min(getArg(argIndex++, 1, true) + effectiveLeftMargin, effectiveRightMargin + 1);
+-                                    int bottom = Math.min(getArg(argIndex++, mRows, true) + effectiveTopMargin, effectiveBottomMargin);
+-                                    int right = Math.min(getArg(argIndex, mColumns, true) + effectiveLeftMargin, effectiveRightMargin);
++                                    int top = Math.min(saturatingAdd(getArg(argIndex++, 1, true), effectiveTopMargin), effectiveBottomMargin + 1);
++                                    int left = Math.min(saturatingAdd(getArg(argIndex++, 1, true), effectiveLeftMargin), effectiveRightMargin + 1);
++                                    int bottom = Math.min(saturatingAdd(getArg(argIndex++, mRows, true), effectiveTopMargin), effectiveBottomMargin);
++                                    int right = Math.min(saturatingAdd(getArg(argIndex, mColumns, true), effectiveLeftMargin), effectiveRightMargin);
+                                     long style = getStyle();
+                                     for (int row = top - 1; row < bottom; row++)
+                                         for (int col = left - 1; col < right; col++)
+@@ -707,11 +796,12 @@
+                             case 't': // "${CSI}${TOP}${LEFT}${BOTTOM}${RIGHT}${ATTRIBUTES}$t"
+                                 // Reverse attributes in rectangular area (DECRARA - http://www.vt100.net/docs/vt510-rm/DECRARA).
+                                 boolean reverse = b == 't';
+-                                // FIXME: "coordinates of the rectangular area are affected by the setting of origin mode (DECOM)".
+-                                int top = Math.min(getArg(0, 1, true) - 1, effectiveBottomMargin) + effectiveTopMargin;
+-                                int left = Math.min(getArg(1, 1, true) - 1, effectiveRightMargin) + effectiveLeftMargin;
+-                                int bottom = Math.min(getArg(2, mRows, true) + 1, effectiveBottomMargin - 1) + effectiveTopMargin;
+-                                int right = Math.min(getArg(3, mColumns, true) + 1, effectiveRightMargin - 1) + effectiveLeftMargin;
++                                // Convert one-based inclusive coordinates to absolute [start,end),
++                                // then clip. Adding the origin after clipping could exceed the screen.
++                                int top = Math.min(saturatingAdd(getArg(0, 1, true) - 1, effectiveTopMargin), effectiveBottomMargin);
++                                int left = Math.min(saturatingAdd(getArg(1, 1, true) - 1, effectiveLeftMargin), effectiveRightMargin);
++                                int bottom = Math.min(saturatingAdd(getArg(2, mRows, true), effectiveTopMargin), effectiveBottomMargin);
++                                int right = Math.min(saturatingAdd(getArg(3, mColumns, true), effectiveLeftMargin), effectiveRightMargin);
+                                 if (mArgIndex >= 4) {
+                                     if (mArgIndex >= mArgs.length) mArgIndex = mArgs.length - 1;
+                                     for (int i = 4; i <= mArgIndex; i++) {
+@@ -1457,17 +1547,17 @@
+                 setCursorRow(Math.max(0, mCursorRow - getArg0(1)));
+                 break;
+             case 'B': // "CSI${n}B" - Cursor down (CUD) ${n} rows.
+-                setCursorRow(Math.min(mRows - 1, mCursorRow + getArg0(1)));
++                setCursorRow(Math.min(mRows - 1, saturatingAdd(mCursorRow, getArg0(1))));
+                 break;
+             case 'C': // "CSI${n}C" - Cursor forward (CUF).
+             case 'a': // "CSI${n}a" - Horizontal position relative (HPR). From ISO-6428/ECMA-48.
+-                setCursorCol(Math.min(mRightMargin - 1, mCursorCol + getArg0(1)));
++                setCursorCol(Math.min(mRightMargin - 1, saturatingAdd(mCursorCol, getArg0(1))));
+                 break;
+             case 'D': // "CSI${n}D" - Cursor backward (CUB) ${n} columns.
+                 setCursorCol(Math.max(mLeftMargin, mCursorCol - getArg0(1)));
+                 break;
+             case 'E': // "CSI{n}E - Cursor Next Line (CNL). From ISO-6428/ECMA-48.
+-                setCursorPosition(0, mCursorRow + getArg0(1));
++                setCursorPosition(0, saturatingAdd(mCursorRow, getArg0(1)));
+                 break;
+             case 'F': // "CSI{n}F - Cursor Previous Line (CPL). From ISO-6428/ECMA-48.
+                 setCursorPosition(0, mCursorRow - getArg0(1));
+@@ -1558,9 +1648,7 @@
+             }
+             break;
+             case 'S': { // "${CSI}${N}S" - scroll up ${N} lines (default = 1) (SU).
+-                final int linesToScroll = getArg0(1);
+-                for (int i = 0; i < linesToScroll; i++)
+-                    scrollDownOneLine();
++                mPendingScrolls = admittedExpansion(getArg0(1));
+                 break;
+             }
+             case 'T':
+@@ -1606,8 +1694,8 @@
+                 break;
+             case 'b': // Repeat the preceding graphic character Ps times (REP).
+                 if (mLastEmittedCodePoint == -1) break;
+-                final int numRepeat = getArg0(1);
+-                for (int i = 0; i < numRepeat; i++) emitCodePoint(mLastEmittedCodePoint);
++                mRepeatedCodePoint = mLastEmittedCodePoint;
++                mPendingRepeats = admittedExpansion(getArg0(1));
+                 break;
+             case 'c': // Primary Device Attributes (http://www.vt100.net/docs/vt510-rm/DA1) if argument is missing or zero.
+                 // The important part that may still be used by some (tmux stores this value but does not currently use it)
+@@ -1619,7 +1707,7 @@
+                 setCursorRow(Math.min(Math.max(1, getArg0(1)), mRows) - 1);
+                 break;
+             case 'e': // Vertical Position Relative (VPR). From ISO-6429 (ECMA-48).
+-                setCursorPosition(mCursorCol, mCursorRow + getArg0(1));
++                setCursorPosition(mCursorCol, saturatingAdd(mCursorRow, getArg0(1)));
+                 break;
+             // case 'f': "${CSI}${ROW};${COLUMN}f" - Horizontal and Vertical Position (HVP). Grouped with case 'H'.
+             case 'g': // Clear tab stop
+@@ -2070,13 +2158,13 @@
+         int effectiveBottomMargin = originMode ? mBottomMargin : mRows;
+         int effectiveLeftMargin = originMode ? mLeftMargin : 0;
+         int effectiveRightMargin = originMode ? mRightMargin : mColumns;
+-        int newRow = Math.max(effectiveTopMargin, Math.min(effectiveTopMargin + y, effectiveBottomMargin - 1));
+-        int newCol = Math.max(effectiveLeftMargin, Math.min(effectiveLeftMargin + x, effectiveRightMargin - 1));
++        int newRow = Math.max(effectiveTopMargin, Math.min(saturatingAdd(effectiveTopMargin, y), effectiveBottomMargin - 1));
++        int newCol = Math.max(effectiveLeftMargin, Math.min(saturatingAdd(effectiveLeftMargin, x), effectiveRightMargin - 1));
+         setCursorRowCol(newRow, newCol);
+     }
+ 
+     private void scrollDownOneLine() {
+-        mScrollCounter++;
++        if (mScrollCounter < Integer.MAX_VALUE) mScrollCounter++;
+         if (mLeftMargin != 0 || mRightMargin != mColumns) {
+             // Horizontal margin: Do not put anything into scroll history, just non-margin part of screen up.
+             mScreen.blockCopy(mLeftMargin, mTopMargin + 1, mRightMargin - mLeftMargin, mBottomMargin - mTopMargin - 1, mLeftMargin, mTopMargin);
+@@ -2095,7 +2183,13 @@
+                 int thisDigit = b - '0';
+                 int value;
+                 if (oldValue >= 0) {
+-                    value = oldValue * 10 + thisDigit;
++                    if (oldValue > (Integer.MAX_VALUE - thisDigit) / 10) {
++                        value = Integer.MAX_VALUE;
++                        if (!mNumericArgumentSaturated) {
++                            mNumericArgumentSaturated = true;
++                            mClient.logWarn(LOG_TAG, "Terminal numeric parameter exceeded 2147483647; saturated");
++                        }
++                    } else value = oldValue * 10 + thisDigit;
+                 } else {
+                     value = thisDigit;
+                 }
+@@ -2366,6 +2460,7 @@
+ 
+     /** Reset terminal state so user can interact with it regardless of present state. */
+     public void reset() {
++        cancelPendingInputWork();
+         setCursorStyle();
+         mArgIndex = 0;
+         mContinueSequence = false;

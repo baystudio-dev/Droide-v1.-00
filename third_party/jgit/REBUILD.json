@@ -1,0 +1,99 @@
+{
+  "artifacts": {
+    "third_party/maven/com/baystudio/compat/jgit-android-compat/6.10.1.202505221210-r-droide-reconstruction1/jgit-android-compat-6.10.1.202505221210-r-droide-reconstruction1.jar": "34ddf32173ff109392e7b123aae599426cd846aee02bb28d6fff550bd141ed3b",
+    "third_party/maven/com/baystudio/compat/jgit-android-compat/6.10.1.202505221210-r-droide-reconstruction1/jgit-android-compat-6.10.1.202505221210-r-droide-reconstruction1.pom": "01ffcf4b7352e84b98feb94d9cd2593db5bfe3564c51030aa5d73b0c135a06cb"
+  },
+  "classes": {
+    "org/eclipse/jgit/internal/storage/file/GC$PidLock.class": "e38e313e3067105fbffdef3ed63c7a02349af4f748f355e2cbde982f0eaefb42",
+    "org/eclipse/jgit/internal/storage/file/GC$RepoStatistics.class": "7fe628606757344f06a0996c3388b15537409f871e74765e745a909c1c430944",
+    "org/eclipse/jgit/internal/storage/file/GC.class": "d35fdc4ca5f1abb62cfac68f0b4d4ac0aca9ab067beb9aadc86a899ec82da384",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$CleanupQueue.class": "4dd3d3ba0d0349cad7da00fc0a43a3ee266b6e8ecdecb2877a7055ea15d5fa55",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$Entry.class": "bbd83f8da39e322c134a4e57d52f1cfbfab48fd419625f24642a1d481c481e8c",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$Lock.class": "61159ab6c8b9451cdd75b5c27696d493adfbcae4eab0399cde9115c1bdb29034",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$PageRef.class": "9cbab24b767f8b7146f11ff63bd93309a2c33295abc0b10eb7c5e987daccc280",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$SoftCleanupQueue.class": "001a8a728b68fc1a63f94509dfa0e9a1c10ccdd76bfb0778b4640f1d62c874fd",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$SoftRef.class": "5267927e7fcec775d8060324cfa0de470e404ad5c2de65e43d33b4e382e25ae1",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$StatsRecorder.class": "cc9852c69c3977d027f5626db382fd7a07848efa3b350f8a39eea04db0a5e0a2",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$StatsRecorderImpl.class": "a0e166bf715e669293d91567ebe1dd5c12c362854e690bfea56e6b02e589d5a1",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$StrongCleanupQueue.class": "08825ee86b6b61aff143d7c83e0cee49b153074488999aaa584df477a715a68d",
+    "org/eclipse/jgit/internal/storage/file/WindowCache$StrongRef.class": "c33749b929827e8596858b3b0c4508d34688570c65c03b81d16d73de941d0211",
+    "org/eclipse/jgit/internal/storage/file/WindowCache.class": "4a66e48bf3b95c90ec1fe528df2da536eaac2631687af270808410c7b7bc00ae",
+    "org/eclipse/jgit/storage/file/WindowCacheStats.class": "dd9acd7c9fd05b782de4a048cd292d2be71f345a2a32ef2a237dbf7a891d5c5c",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Basic.class": "e8ee85f951262cde7edab03811f84c6039b4d916feaf6a64fb850dfe63b6f9e7",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Digest.class": "877f8c0ba73c997a597f92750b4c65286e28e573579133c0b838b0789337e7c2",
+    "org/eclipse/jgit/transport/HttpAuthMethod$None.class": "69b9f43a689b0bf6d872c2a15423129391499178ec630b164c5ad0fdc44702b5",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Type$1.class": "4f8c26d3154b9c9dcbe13e39c9bf722f9265dec5e2bd23c6d7990cd9126e821a",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Type$2.class": "ff4410454dd5504eb693e43e6279146a779f000887b452e7340f2c9c0f0bff00",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Type$3.class": "04c27c34fc8614dee442bafa52baf31d99dd5b06624fcf966aeae97cd0f3b535",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Type$4.class": "83b0bc9f85a742dc4942dbbb0047de0e421fe0487d25c6bf793a60e0c933bbfc",
+    "org/eclipse/jgit/transport/HttpAuthMethod$Type.class": "80ba973b3e77251cd006dac84e7493ffb446e8ece766aab9bfb7f69ce275d910",
+    "org/eclipse/jgit/transport/HttpAuthMethod.class": "fc2b08c4c21cb700c7612f4294bc38effc5e2ab2014218efaabaa12d7799fd98"
+  },
+  "compiler_options": [
+    "--release",
+    "11",
+    "-proc:none",
+    "-implicit:none",
+    "-encoding",
+    "UTF-8",
+    "-g:source,lines"
+  ],
+  "coordinate": "com.baystudio.compat:jgit-android-compat:6.10.1.202505221210-r-droide-reconstruction1",
+  "inputs": {
+    "third_party/jgit/NOTICE.md": "db0a9448e80fa029ad1534f609e1b8a2db09bd0fa4cc2a8f3e9425bb7297a530",
+    "third_party/jgit/README.md": "ba6e4be815423c19897cc1e06e57500a05ff2e42c403a2d28729e0c4de4d697c",
+    "third_party/jgit/SOURCE_COMMIT_VERIFICATION.json": "26602fea843da15e1166ad9a949b1951e842145db632c89ae0f9ad27cd5c0f84",
+    "third_party/jgit/TOOLCHAIN_PINS.json": "bffae5c59c674b93e6bbb20f1a3a44a484c6a7b44f269ae7333fcb66aa1bcaa1",
+    "third_party/jgit/UPSTREAM_ABOUT.html": "657a3c8185dd5ab1e9997f675ad3bcc79ca87249da08b12d4138212d2ae74262",
+    "third_party/jgit/jgit-android-compat.pom": "01ffcf4b7352e84b98feb94d9cd2593db5bfe3564c51030aa5d73b0c135a06cb",
+    "third_party/jgit/patches/0001-android-platform-compatibility.patch": "2726a10a50d22996b706d3a8e3d37b76f3da9887b8560a65bf0c8787eb59357a",
+    "third_party/jgit/src/org/eclipse/jgit/internal/storage/file/GC.java": "1dfc35090cc5fced0dabf08f6f9e1a8d4b5720ddb77c0e9e3108d3d17b8fc7d9",
+    "third_party/jgit/src/org/eclipse/jgit/internal/storage/file/WindowCache.java": "d1363789f9055861a893368c4062cc17a5349f6d0a43dadaf7e0d36585fe6816",
+    "third_party/jgit/src/org/eclipse/jgit/storage/file/WindowCacheStats.java": "6725bdb90f724dfdc119e752d446225a30c906abf1b4a0356eb3f9be033e0b98",
+    "third_party/jgit/src/org/eclipse/jgit/transport/HttpAuthMethod.java": "06949a30b220f2e259e3652b8a4cea67e8b8fe81f30d871e0a9d0a5c4ce19942",
+    "third_party/jgit/upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/internal/storage/file/GC.java": "f06d03490b8200d889d53a5c6370511b4437fc5007149e7e148087fb0eb545aa",
+    "third_party/jgit/upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/internal/storage/file/WindowCache.java": "5d771d63be01a91aeecf3afd68ffb2fc7714f179aba72f5b9c6cf66792c03e41",
+    "third_party/jgit/upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/storage/file/WindowCacheStats.java": "0a4fd87520f25c1b323e3303b95817b0eeba924c04448b661cb2ac8c7b57198d",
+    "third_party/jgit/upstream/commit-9d12b89dd9e7c17eb958d923dde4001995c47a5c/org/eclipse/jgit/transport/HttpAuthMethod.java": "cc43ebac6369c205e5526e66f4d61f34eead8b73d9e8858e7b4247f61c7655af",
+    "third_party/jgit/upstream/org.eclipse.jgit-6.10.1.202505221210-r-sources.jar": "0e784465d1c6d03629327b35800ac2e80288f85e601538aa90fb28c2fdef5310",
+    "third_party/jgit/upstream/org.eclipse.jgit-6.10.1.202505221210-r.jar": "8f0135ca45d00c4da8e7ba2e96d44e1ade452bf279d79ca4eb54921e8f27952c",
+    "tools/build_jgit_android_compat.py": "1c2d4b239561d953d4559d1ee4a5d1b416b019c2b10741d1b22b13541e799491",
+    "tools/verify_jgit_android_compat.py": "611ca16c394f27b8495813ce6cf3408d2c90827b9fa81b1fab214f65bbe1e235"
+  },
+  "inventory": {
+    "added_entries": [
+      "META-INF/droide-jgit/NOTICE.md",
+      "META-INF/droide-jgit/PROVENANCE.json",
+      "META-INF/droide-jgit/UPSTREAM.MF"
+    ],
+    "removed_entries": [
+      "META-INF/ECLIPSE_.RSA",
+      "META-INF/ECLIPSE_.SF",
+      "org/eclipse/jgit/transport/HttpAuthMethod$Negotiate.class",
+      "org/eclipse/jgit/util/GSSManagerFactory$DefaultGSSManagerFactory.class",
+      "org/eclipse/jgit/util/GSSManagerFactory$SunGSSManagerFactory.class",
+      "org/eclipse/jgit/util/GSSManagerFactory.class",
+      "org/eclipse/jgit/util/Monitoring.class"
+    ],
+    "replacement_classes": 24,
+    "unchanged_file_entries": 1612
+  },
+  "runtime_validated": false,
+  "schema": 1,
+  "toolchain": {
+    "android_api": 36,
+    "android_jar_sha256": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a",
+    "jdk": {
+      "files": {
+        "bin/java": "f5aed21d3a0b0f4b05d3a3f9fe71263916d5bc0d47b53aa52a3340b90f0b4805",
+        "bin/javac": "50d09f424b513525af1f0b05cd948ed7890a8d60fef7f7797e20892705b0067d",
+        "lib/modules": "6a1b657bd845397ab30fe2d4d78d80c4fdc05107182843669fc928655c227241",
+        "release": "973f28729da43962dfba2e39b2a27ab736122f3a1bf829e06abfbde2a731c711"
+      },
+      "official_metadata": "https://api.adoptium.net/v3/assets/version/17.0.20.1%2B1?architecture=x64&heap_size=normal&image_type=jdk&jvm_impl=hotspot&os=linux&vendor=eclipse",
+      "version": "Temurin 17.0.20.1+1"
+    },
+    "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+    "slf4j_version": "1.7.36"
+  }
+}

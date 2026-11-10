@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "status": "SOURCE_NOTICES_REVIEWED_DISTRIBUTION_ACCEPTANCE_UNRUN",
+  "wholeOriginalTreeRequired": true,
+  "nodeRequired": [
+    "LICENSE",
+    "README.md",
+    "include/node/config.gypi"
+  ],
+  "binaryReproducibilityAttestation": false,
+  "records": [
+    {
+      "name": "graphql-language-service",
+      "originalRelative": "node_modules/graphql-language-service/LICENSE",
+      "sourcePath": "service/LICENSE",
+      "sourceSha256": "4b18fbe55c4e8f9169cb702be138f4d858a2dad920c39857204ffdc9c1c9fdc4",
+      "license": "MIT"
+    },
+    {
+      "name": "graphql",
+      "originalRelative": "node_modules/graphql/LICENSE",
+      "sourcePath": "graphql/LICENSE",
+      "sourceSha256": "35a11da7e877009ddc57405844209908cfc567adda0ec1daf410368c9f5b0d01",
+      "license": "MIT"
+    },
+    {
+      "name": "nullthrows",
+      "originalRelative": "node_modules/nullthrows/LICENSE",
+      "sourcePath": "dependencies/nullthrows/LICENSE",
+      "sourceSha256": "dd5f97aa25431e25fea6654f12f4ce167dc19b3148ab515cc271aa8efe6eb0be",
+      "license": "MIT"
+    },
+    {
+      "name": "debounce-promise",
+      "originalRelative": "node_modules/debounce-promise/LICENSE",
+      "sourcePath": "dependencies/debounce-promise/LICENSE",
+      "sourceSha256": "175d6b664a4a61077e466c0d02c14ce53e96358faf24c49435a09a6e61f9ee35",
+      "license": "MIT"
+    },
+    {
+      "name": "vscode-languageserver-types",
+      "originalRelative": "node_modules/vscode-languageserver-types/License.txt",
+      "sourcePath": "dependencies/vscode-languageserver-types/License.txt",
+      "sourceSha256": "05b6af84f5acd7186f031cf389c722350d2780608d24e6c237cf2d2d85d139bd",
+      "license": "MIT"
+    }
+  ],
+  "notesAsset": "legal/licenses/GraphQL-5.7.0-NOTICES.txt"
+}

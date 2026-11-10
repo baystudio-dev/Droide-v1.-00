@@ -1,0 +1,481 @@
+{
+  "schema": "toml-mpl-public-source-availability-v1",
+  "component_id": "cargo:webpki-roots@0.22.4",
+  "status": "COMPLETE_VERSIONED_PUBLIC_SOURCE_VERIFIED",
+  "task_date_utc": "2026-10-19",
+  "root_url": "https://docs.rs/crate/webpki-roots/0.22.4/source/",
+  "repository_commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+  "repository_tree": {
+    "path": "evidence/webpki-roots/git-tree.json",
+    "sha256": "5a05ab579dbf975c0424eb9420b428cbbba76aa58f35f143a5de97c738b2ccd1",
+    "bytes": 3034
+  },
+  "registry_checksum": "f1c760f0d366a6c24a02ed7816e23e691f5d92291f94d15e836006fd11b04daf",
+  "files": [
+    {
+      "source_path": ".cargo_vcs_info.json",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/.cargo_vcs_info.json",
+      "content": {
+        "path": "evidence/webpki-roots/files/.cargo_vcs_info.json.txt",
+        "sha256": "33420bb96bf3c433d1c2d64a4ab7f38a5b8d49b51f29df37453e6a53675fb9ce",
+        "bytes": 94
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/.cargo_vcs_info.json.html",
+        "sha256": "e568f9dba2affc4bd42df483ab5949beb6be1bbb6b1230fba143dad33093b752",
+        "bytes": 19924
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/.cargo_vcs_info.json.html.receipt.json",
+        "sha256": "13ecbb92538132549094846eb36f53cd60594f168e32d94d03bd3af013e037a4",
+        "bytes": 1790
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "packaging_metadata_only": true
+    },
+    {
+      "source_path": ".github/workflows/build.yml",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/.github/workflows/build.yml",
+      "content": {
+        "path": "evidence/webpki-roots/files/.github__workflows__build.yml.txt",
+        "sha256": "e0b68a490fd6bcac73ed78fa4c3f7d3b42dbbc24488f39025146a1ed3ab8025c",
+        "bytes": 648
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/.github__workflows__build.yml.html",
+        "sha256": "cd9d3a9f54b1a6459fed55a7796ca084c6698f4c8f836ea91d7b3570bfc6c204",
+        "bytes": 23151
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/.github__workflows__build.yml.html.receipt.json",
+        "sha256": "fe23938b18f4ca5614a9af7f9474281d8b77cbd337ce7987770fff96651bfcf5",
+        "bytes": 1826
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": ".github/workflows/build.yml",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "b1fdfefc9766b88be1f7bcc8d76397f00d7a93fa",
+        "size": 648
+      }
+    },
+    {
+      "source_path": ".gitignore",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/.gitignore",
+      "content": {
+        "path": "evidence/webpki-roots/files/.gitignore.txt",
+        "sha256": "90a1807949fbd171267fb042d8582b1e0e26787db69eb296fc665e34edaeb510",
+        "bytes": 50
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/.gitignore.html",
+        "sha256": "f02069bdfc89549f09734e58e685b2b2ab01dc3aaba451db29ed35361ac489f5",
+        "bytes": 18414
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/.gitignore.html.receipt.json",
+        "sha256": "2e9455f46afe640a555b745d0dd0b5020984e77fa7bf27dc1d7c00d6cbfb80d5",
+        "bytes": 1738
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": ".gitignore",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "191512a2be86a08573a2dfbe0b0b982207808469",
+        "size": 50
+      }
+    },
+    {
+      "source_path": "Cargo.lock",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/Cargo.lock",
+      "content": {
+        "path": "evidence/webpki-roots/files/Cargo.lock.txt",
+        "sha256": "d018b96da24865fe0f190fc99c40d3c15ade2b5a34550f70237bc43cde0a6da3",
+        "bytes": 5867
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/Cargo.lock.html",
+        "sha256": "be1af13bb41682cf3c080426552397e13e2ce6f4caecb9de44081367f3c58c54",
+        "bytes": 111645
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/Cargo.lock.html.receipt.json",
+        "sha256": "cb5f605e587d794ecedbf4ec2f2167df87682c058ffcd2e866eff56193480874",
+        "bytes": 1740
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "packaging_metadata_only": true
+    },
+    {
+      "source_path": "Cargo.toml",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/Cargo.toml",
+      "content": {
+        "path": "evidence/webpki-roots/files/Cargo.toml.txt",
+        "sha256": "d040c3733aa65f9fe2427c731a44033e2650a1c41deb8ff053bb11f2c7dfbd49",
+        "bytes": 377
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/Cargo.toml.html",
+        "sha256": "edef2404cbb233f9b1cbc209883e3f69e9a32641d552f0daca67a9dba737f9b5",
+        "bytes": 23642
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/Cargo.toml.html.receipt.json",
+        "sha256": "4e1f6951246717865b353e9382f15bab42eb7c58b7a2b12eebce91ff2acb06db",
+        "bytes": 1739
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "packaging_metadata_only": true
+    },
+    {
+      "source_path": "Cargo.toml.orig",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/Cargo.toml.orig",
+      "content": {
+        "path": "evidence/webpki-roots/files/Cargo.toml.orig.txt",
+        "sha256": "128cbadbf672e2d19a161a86e2f9f5675653ca7650cb73ef94e0bbecd841734e",
+        "bytes": 369
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/Cargo.toml.orig.html",
+        "sha256": "fc80b4fbecfaf8047df1e59720051a0392f3156c8161bfcae06f1dd7fbe12c33",
+        "bytes": 23485
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/Cargo.toml.orig.html.receipt.json",
+        "sha256": "3f75eee126420ebb52160ac986fd0857b440a454addd9c6f5a12b8a25731a208",
+        "bytes": 1762
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "Cargo.toml",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "25acdc961f0173685939e24ccb81cde947d92b83",
+        "size": 369
+      }
+    },
+    {
+      "source_path": "LICENSE",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/LICENSE",
+      "content": {
+        "path": "evidence/webpki-roots/files/LICENSE.txt",
+        "sha256": "6a70a4bf6b010016d59a64b8ae4ad8dc7f5ef16f1fb453cc2ecd771c5a341131",
+        "bytes": 1048
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/LICENSE.html",
+        "sha256": "5d661c95958873b91c814223a8e9d0181c59978651d924c411f08963c5118936",
+        "bytes": 18389
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/LICENSE.html.receipt.json",
+        "sha256": "ae520cbb57ed02f5e25471168402d6440d57cd1c9e71fac8667bcba825e1232c",
+        "bytes": 1727
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "LICENSE",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "802b53ff11e347c9bd2cabebeff5c51f716f1db9",
+        "size": 1048
+      }
+    },
+    {
+      "source_path": "README.md",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/README.md",
+      "content": {
+        "path": "evidence/webpki-roots/files/README.md.txt",
+        "sha256": "d30be16e79a59f0a94829c4f30bf59145b90a325fc552df91d84825d300d709c",
+        "bytes": 965
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/README.md.html",
+        "sha256": "905eb5c0db70872e0f9d2c5cdf482343fa31aca86a453c46a2abbfc9b73ee013",
+        "bytes": 19763
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/README.md.html.receipt.json",
+        "sha256": "a9633bb241ec8746d5bb140c0e19d07ee3e80109dd9f57e863d9b2063edd0e0b",
+        "bytes": 1734
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "README.md",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "61ce1e9c83d9a177fe962b95a3f838e49476ccd7",
+        "size": 965
+      }
+    },
+    {
+      "source_path": "build.py",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/build.py",
+      "content": {
+        "path": "evidence/webpki-roots/files/build.py.txt",
+        "sha256": "9831853e13a36d50531365ba61dc028e840afe715982d4c3aa19e3fa4d2a2af9",
+        "bytes": 5578
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/build.py.html",
+        "sha256": "50fd6edf8e56531a947524ae32b4694a5088c57b98d10fc7a492e4a3b74547fc",
+        "bytes": 171674
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/build.py.html.receipt.json",
+        "sha256": "fd1e0c73472c4e4d22827b4b1c91dec3868abc777fa3d22fb8dd2327dd9f9aa3",
+        "bytes": 1732
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "build.py",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "6e05a4f4204efaf96809faa9816f25ed4aa0c0dd",
+        "size": 5578
+      }
+    },
+    {
+      "source_path": "extra_constraints.py",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/extra_constraints.py",
+      "content": {
+        "path": "evidence/webpki-roots/files/extra_constraints.py.txt",
+        "sha256": "548e858b160ecaa28429878fdf12fea8f429dd19e02cc412caae21a42dc74511",
+        "bytes": 2642
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/extra_constraints.py.html",
+        "sha256": "31f15f3fb2383f6e218770bedfd099cc4c4ba88810fd1e8b3a9588e2fe19b574",
+        "bytes": 92676
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/extra_constraints.py.html.receipt.json",
+        "sha256": "0912907c820cb01b9eb033c29c26fc954c6319c5142546ab6f102e57bd3d0125",
+        "bytes": 1788
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "extra_constraints.py",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "f53823705214d84a24346739b2a7cdf5a2029692",
+        "size": 2642
+      }
+    },
+    {
+      "source_path": "src/bin/process_cert.rs",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/src/bin/process_cert.rs",
+      "content": {
+        "path": "evidence/webpki-roots/files/src__bin__process_cert.rs.txt",
+        "sha256": "f25719257ef6322fc236d05f424eace041194a6f4cdc10b733b09960bb76d68f",
+        "bytes": 614
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/src__bin__process_cert.rs.html",
+        "sha256": "513e3a0f52e9c30ed506e1c92337f95a5dc7f195fca913acf06f9550605e5a41",
+        "bytes": 30400
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/src__bin__process_cert.rs.html.receipt.json",
+        "sha256": "46f3acdd3fe39a634758d83deecdc66b9aa66e365c0fc4a0552d5ca0601f0f2b",
+        "bytes": 1808
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "src/bin/process_cert.rs",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "dc1556d1db8b6cc8e9dc1dfa152e3b54befecf83",
+        "size": 614
+      }
+    },
+    {
+      "source_path": "src/lib.rs",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/src/lib.rs",
+      "content": {
+        "path": "evidence/webpki-roots/files/src__lib.rs.txt",
+        "sha256": "c431fc3b4e973f7d9eee167752ebba859802fe8397e6c9c4a5404b68876d36f6",
+        "bytes": 493630
+      },
+      "response": {
+        "path": "evidence/webpki-roots/files/src__lib.rs.html",
+        "sha256": "8f008841a94a9a08b322cc420d19d955feb0db2893cccc8b205f160b525d608c",
+        "bytes": 725346
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/files/src__lib.rs.html.receipt.json",
+        "sha256": "2112b24139baa361e8ebf74184e7b96a8eb062d0915115ab2b214ef25f1bd64c",
+        "bytes": 1746
+      },
+      "public_without_authentication": true,
+      "charge_observed": 0,
+      "currency": "none",
+      "git_blob_binding": {
+        "repository_path": "src/lib.rs",
+        "commit": "a7c55302608de304a0f388540c5ea48071ae4bb5",
+        "git_blob_sha1": "621fb987bc3621894bea7830fc7155fa185fd5d8",
+        "size": 493630
+      }
+    }
+  ],
+  "directories": [
+    {
+      "source_path": "",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/",
+      "entries": [
+        ".cargo_vcs_info.json",
+        ".github/",
+        ".gitignore",
+        "Cargo.lock",
+        "Cargo.toml",
+        "Cargo.toml.orig",
+        "LICENSE",
+        "README.md",
+        "build.py",
+        "extra_constraints.py",
+        "src/"
+      ],
+      "response": {
+        "path": "evidence/webpki-roots/root.html",
+        "sha256": "59dcadd4ebe6a4282f5cbd322ec6a17cbb85dc7590a754e90d146a5e28f384b1",
+        "bytes": 15594
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/root.html.receipt.json",
+        "sha256": "1a3dd8c57063001006f1ad92c4b0726455abeae235f3ea38791bbdef7a5ed9dd",
+        "bytes": 1367
+      }
+    },
+    {
+      "source_path": "src/",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/src/",
+      "entries": [
+        "bin/",
+        "lib.rs"
+      ],
+      "response": {
+        "path": "evidence/webpki-roots/src.html",
+        "sha256": "e082879abee16ca828b3bfb6a3cf4ae41184b96ab0ce55ac403a6e2436a786b4",
+        "bytes": 12303
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/src.html.receipt.json",
+        "sha256": "84699b13c6a4f7794f2f84f3adc4d0148f9e39d5538b409b2fe9ae5d30e551bd",
+        "bytes": 1376
+      }
+    },
+    {
+      "source_path": ".github/",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/.github/",
+      "entries": [
+        "workflows/"
+      ],
+      "response": {
+        "path": "evidence/webpki-roots/github-dir.html",
+        "sha256": "ca0d4699f803fde5d18d5ce8e389926019ae5a027b09d2c9c98def2c22c82166",
+        "bytes": 11945
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/github-dir.html.receipt.json",
+        "sha256": "68e4d262430adc51140e4206c5cb38a37ccd049b14acf6dd7077178a9ff6737d",
+        "bytes": 1397
+      }
+    },
+    {
+      "source_path": "src/bin/",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/src/bin/",
+      "entries": [
+        "process_cert.rs"
+      ],
+      "response": {
+        "path": "evidence/webpki-roots/src-bin.html",
+        "sha256": "46d4b279365a76db5487994b4927c7ba2a36e2576611c8eb61e68aafe7969637",
+        "bytes": 11948
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/src-bin.html.receipt.json",
+        "sha256": "ae01ce57ea5038abde198cc82cff2398f71df94617160e61198d2ba1861c997f",
+        "bytes": 1394
+      }
+    },
+    {
+      "source_path": ".github/workflows/",
+      "url": "https://docs.rs/crate/webpki-roots/0.22.4/source/.github/workflows/",
+      "entries": [
+        "build.yml"
+      ],
+      "response": {
+        "path": "evidence/webpki-roots/github-workflows.html",
+        "sha256": "b70d4d1e30319d61d4338e98b5bb7c449fa01e6bcd09a2a2754a092dd325522c",
+        "bytes": 11953
+      },
+      "receipt": {
+        "path": "evidence/webpki-roots/github-workflows.html.receipt.json",
+        "sha256": "45337e9c3aba7f69525b5454ea2d2fbc7be3e3852728379bae4a53c28c375f26",
+        "bytes": 1431
+      }
+    }
+  ],
+  "file_count": 12,
+  "directory_count": 5,
+  "git_matched_file_count": 9,
+  "unresolved_directories": [],
+  "unavailable_files": [],
+  "license": "MPL-2.0",
+  "covered_source_form": "Complete published editable Rust source, original manifest, generator and constraints, including original certificates embedded in source comments; all repository source blobs match the published commit. Packaging metadata is included too.",
+  "modifications_covered_by_this_route": "none; exact unmodified version only",
+  "original_archive_acquired": false,
+  "source_to_payload_attestation": false,
+  "own_source_archive_mirror_required_by_mpl_3_2_a": false,
+  "source_obtaining_instructions": "Open the versioned source tree and select any listed file. Each public HTML page provides its complete selectable source text. No account or charge is required. Exact-commit GitHub tree is an additional provenance cross-check, not a prerequisite for recipients.",
+  "refresh_boundary": "At each approved original-payload acquisition or package publication transaction, refresh the fixed 5 directory and 12 file reads, compare all directory entries and extracted UTF-8 content hashes, and bind the successful transaction-specific receipt to its installation/publication seal. No routine LSP-launch network check.",
+  "refresh_predicates": [
+    "All 17 exact official source URLs return unauthenticated HTTP 200 text; redirects may not change the requested exact-version URL.",
+    "Directory entry sets equal this complete inventory; every child directory resolves.",
+    "Every file has a source pane and extracted UTF-8 SHA-256 and byte length equal the sealed content record.",
+    "No credentials or fee, source version changes or covered-source modifications in this route.",
+    "Delivered recipient notice names exact component/version, full MPL terms and exact source URL; original license substance remains intact."
+  ],
+  "failure_effect": "Unavailable, incomplete, altered or newly modified covered source blocks that acquisition/publication transaction until a new valid availability/notice record is provided. Never infer non-inclusion from absent symbols or source-lock ambiguity.",
+  "future_availability_guaranteed": false,
+  "allowed_refresh_origins": [
+    "https://docs.rs"
+  ],
+  "allowed_refresh_urls": [
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/src/",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/.github/",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/src/bin/",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/.github/workflows/",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/.cargo_vcs_info.json",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/.github/workflows/build.yml",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/.gitignore",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/Cargo.lock",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/Cargo.toml",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/Cargo.toml.orig",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/LICENSE",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/README.md",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/build.py",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/extra_constraints.py",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/src/bin/process_cert.rs",
+    "https://docs.rs/crate/webpki-roots/0.22.4/source/src/lib.rs"
+  ],
+  "refresh_url_count": 17,
+  "html_response_hash_role": "Historical receipt integrity only. HTML page bytes are not compared across refreshes; parsed directory entries and extracted source content hashes are compared."
+}

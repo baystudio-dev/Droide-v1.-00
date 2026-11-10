@@ -1,0 +1,117 @@
+--- /dev/null
++++ b/com/termux/terminal/TerminalPtyIo.java
+@@ -0,0 +1,114 @@
++package com.termux.terminal;
++
++/** Single-attempt I/O policy. Production backend never enters libcore Os retry loops. */
++final class TerminalPtyIo {
++    static final int MAX_CHUNK = 4096, MAX_POLL_MILLIS = 100, ATTEMPT_BUDGET = 16;
++    static final long CHUNK_TIMEOUT_NANOS = 5_000_000_000L;
++    static final int FAILURE_NONE = 0, FAILURE_CANCELLED = 1, FAILURE_TIMEOUT = 2,
++        FAILURE_IO = 3, FAILURE_EXCEPTION = 4, FAILURE_UNCONFIRMED = 5;
++    interface Backend {
++        long write(byte[] bytes, int offset, int count);
++        long poll(int timeoutMillis);
++        long nanoTime();
++        boolean cancelled();
++        void backoff(int millis) throws InterruptedException;
++    }
++    /** Mutable preallocated receipt; confirmed is kernel acceptance, never command execution. */
++    static final class WriteReceipt {
++        int confirmed;
++        int failure;
++    }
++    interface ReaderBackend {
++        long read(byte[] bytes);
++        long poll(int timeoutMillis);
++        boolean stopped();
++        boolean enqueue(byte[] bytes, int count);
++        void queued();
++        void backoff(int millis) throws InterruptedException;
++    }
++    static final class ReadReceipt { boolean incomplete; }
++
++    /** HUP/ERR may accompany a final readable tail. Never replay after a copy/queue exception. */
++    static void readUntilClosed(ReaderBackend backend, byte[] bytes, ReadReceipt receipt) {
++        if (bytes.length < 1 || bytes.length > MAX_CHUNK) throw new IllegalArgumentException("Invalid PTY read chunk");
++        receipt.incomplete = false;
++        int immediate = 0;
++        try {
++            while (!backend.stopped()) {
++                if (++immediate > ATTEMPT_BUDGET) { backend.backoff(10); immediate = 0; continue; }
++                long polled = backend.poll(MAX_POLL_MILLIS);
++                int tag = (int) (polled >>> 32), events = (int) polled;
++                if (tag == 1 && events == 4) continue;
++                if (tag != 0 || (events & 32) != 0) { receipt.incomplete = true; return; }
++                if (events == 0) continue;
++                if (backend.stopped()) { receipt.incomplete = true; return; }
++                long result = backend.read(bytes);
++                int readTag = (int) (result >>> 32), count = (int) result;
++                if (readTag == 1 && count == 4) continue;
++                if (readTag == 1 && count == 11) {
++                    if ((events & (8 | 16)) != 0) return;
++                    continue;
++                }
++                if (readTag == 1 && count == 5) return; // Linux PTY EOF commonly EIO.
++                if (readTag != 0 || count < 0 || count > bytes.length) { receipt.incomplete = true; return; }
++                if (count == 0) return;
++                if (!backend.enqueue(bytes, count)) { receipt.incomplete = true; return; }
++                backend.queued();
++            }
++            receipt.incomplete = true; // Stop/deadline is not a proven EOF.
++        } catch (InterruptedException interrupted) {
++            Thread.currentThread().interrupt(); receipt.incomplete = true;
++        } catch (Throwable failure) {
++            receipt.incomplete = true;
++            throw failure;
++        }
++    }
++
++    static void writeChunk(Backend backend, byte[] bytes, int count, WriteReceipt receipt) {
++        if (count < 1 || count > MAX_CHUNK || count > bytes.length) throw new IllegalArgumentException("Invalid PTY chunk");
++        receipt.confirmed = 0;
++        receipt.failure = FAILURE_NONE;
++        final long started = backend.nanoTime();
++        int immediate = 0;
++        boolean needsPoll = false;
++        try {
++            while (receipt.confirmed < count) {
++                if (backend.cancelled()) { receipt.failure = FAILURE_CANCELLED; return; }
++                long remaining = CHUNK_TIMEOUT_NANOS - (backend.nanoTime() - started);
++                if (remaining <= 0) { receipt.failure = FAILURE_TIMEOUT; return; }
++                if (++immediate > ATTEMPT_BUDGET) {
++                    backend.backoff((int) Math.min(10, Math.max(1, remaining / 1_000_000L)));
++                    immediate = 0;
++                    continue;
++                }
++                if (needsPoll) {
++                    int millis = (int) Math.min(MAX_POLL_MILLIS, Math.max(0, remaining / 1_000_000L));
++                    long polled = backend.poll(millis);
++                    int tag = (int) (polled >>> 32), value = (int) polled;
++                    if (tag == 1 && value == 4) continue; // EINTR, exposed by one native poll.
++                    if (tag != 0) { receipt.failure = backend.cancelled() ? FAILURE_CANCELLED : FAILURE_IO; return; }
++                    if ((value & (8 | 16 | 32)) != 0) { receipt.failure = FAILURE_IO; return; } // ERR/HUP/NVAL
++                    if ((value & 4) == 0) continue; // POLLOUT
++                    needsPoll = false;
++                    continue; // Always recheck cancellation and absolute deadline before write.
++                }
++                long result = backend.write(bytes, receipt.confirmed, count - receipt.confirmed);
++                int tag = (int) (result >>> 32), value = (int) result;
++                if (tag == 0) {
++                    if (value < 0 || value > count - receipt.confirmed) { receipt.failure = FAILURE_IO; return; }
++                    receipt.confirmed += value;
++                    needsPoll = value == 0;
++                } else if (tag == 1 && value == 4) { /* EINTR: same suffix, bounded next attempt. */ }
++                else if (tag == 1 && value == 11) needsPoll = true; // Linux EAGAIN/EWOULDBLOCK
++                else { receipt.failure = backend.cancelled() ? FAILURE_CANCELLED : FAILURE_IO; return; }
++            }
++        } catch (InterruptedException interrupted) {
++            Thread.currentThread().interrupt();
++            receipt.failure = FAILURE_CANCELLED;
++        } catch (Throwable failure) {
++            // No replay or guessed progress, even when the adapter fails after admission.
++            receipt.failure = FAILURE_EXCEPTION;
++            throw failure;
++        }
++    }
++}

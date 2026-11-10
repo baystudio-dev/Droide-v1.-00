@@ -1,0 +1,53 @@
+{
+  "vscodeRevision": "c44c5332b31c31eca0519ff6e7c5ebb9da0711e6",
+  "files": [
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/bat/package.json",
+      "sha256": "4bb96a47500286cabd49167aa5d32677f28417c1eceb99c86d4a82f332b101c2",
+      "bytes": 1081,
+      "file": "manifest.txt"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/bat/language-configuration.json",
+      "sha256": "4192576dc7bd834bda3bffdcba7da8f0390203fe640d9b37522c1a10d222205e",
+      "bytes": 468,
+      "file": "configuration.txt"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/bat/syntaxes/batchfile.tmLanguage.json",
+      "sha256": "33660a9b5e6a9188d64dcfdf122fd6422dfb40ec3141f628aee9adce17e65961",
+      "bytes": 18501,
+      "file": "grammar.txt"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/extensions/bat/snippets/batchfile.code-snippets",
+      "sha256": "9560bde2f73105ea18bdee6ec52e8a39ba4f4b803c17a043612e9a65b4471c45",
+      "bytes": 241,
+      "file": "snippets.txt"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/c44c5332b31c31eca0519ff6e7c5ebb9da0711e6/LICENSE.txt",
+      "sha256": "9480271317925265e806a9a196aaa33410a962fa9d4d1e248a4a5187bc8c9df9",
+      "bytes": 1088,
+      "file": "license.txt"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mmims/language-batchfile/6154ae25a24e01ac9329e7bcf958e093cd8733a9/LICENSE.md",
+      "sha256": "295aff5c4c9fcecbfb2961c5ddaf6e608bb2265d946afaec9bd600c3bacb7c5d",
+      "bytes": 1056,
+      "file": "grammar-license.txt"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for",
+      "sha256": "896d18f10b688fef617810787425e5ea0e1762472446ca3276df6be0aba30530",
+      "bytes": 63136,
+      "file": "windows-for.txt"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/if",
+      "sha256": "77896047bc9ef007056d5ce3f3056e81b93527a2d4c42972c7a9d1d6defdc2bf",
+      "bytes": 54295,
+      "file": "windows-if.txt"
+    }
+  ]
+}

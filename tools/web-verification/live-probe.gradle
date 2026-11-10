@@ -1,0 +1,10 @@
+// Opt-in JVM public-internet probe. Uses the caller's existing proxy and CA trust configuration.
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    app.tasks.register('agentWebLiveProbe', JavaExec) {
+        dependsOn app.tasks.named('compileDebugUnitTestKotlin')
+        classpath = app.tasks.named('testDebugUnitTest').get().classpath
+        mainClass.set('com.baystudio.droide.core.AgentWebLiveInternetProbe')
+        args app.providers.gradleProperty('webProbeOutput').get()
+    }
+}

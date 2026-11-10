@@ -1,0 +1,17 @@
+{
+  "upstream_commit": "6e2689f55295fa444be8ac8592c527c2c5ef3253",
+  "termux_c_sha256": "84eaec260b038984017df8d7f06ad7f0692097a6c0c50ff777f564157c975645",
+  "java_aar_sha256": "4852749bb1de1d64630ee82000ce728a842521e391c55c2392d4a1b84ae74b61",
+  "original_aar_sha256": "41a86008edfa5e6a10cf3bae9d1cc704f96cdee63dd95ea5f6a642977a56c663",
+  "ndk": "28.2.13676358",
+  "page_alignment": 16384,
+  "upstream_termux_c_sha256": "729112f2e66cdddb7e7311ddf8a89ad54037a54bddbf4d5291f2e1fff5b97373",
+  "upstream_source": "third_party/termux/native/termux-upstream.c",
+  "local_changes": [
+    "Close PTY master on setup/fork failures",
+    "Release JNI strings/argument arrays on every failure path; pair cwd string correctly",
+    "Reject invalid native startup parameters before acquiring a PTY",
+    "Retry interrupted waitpid and reject unrelated/invalid wait targets"
+  ],
+  "validation": "Host JNI fault-injection and real PTY lifecycle; Android packaging intentionally deferred"
+}

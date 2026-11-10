@@ -1,0 +1,20 @@
+.NET SDK 10.0.402 / runtime 10.0.13 source notice references
+
+Original SDK: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.402/dotnet-sdk-10.0.402-linux-arm64.tar.gz
+Release metadata: https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/10.0/releases.json
+Runtime source: https://github.com/dotnet/runtime/tree/6aa72daa24f66c01c3d7b6a32519e9d21396deec
+
+The application retains original SDK LICENSE.txt and ThirdPartyNotices.txt,
+all original nupkg metadata, resources and .signature.p7s, and the complete
+private Node LICENSE and README. SDK/tool authenticity is publisher SHA-512;
+private Node 22.23.3 uses its publisher SHA-256.
+
+Publisher artifact digest verified; embedded NuGet signature retained but not
+cryptographically verified. This statement describes the installer policy;
+no original artifact verification or execution is claimed by this source file.
+
+This reference file is not a complete shipped-component attribution manifest.
+The original released SDK/tool contents and their full component notices have
+not been inspected in source-only validation. Every unresolved original notice,
+managed dependency or native closure identity stops activation. A source-repository
+MIT expression cannot replace the complete original redistribution notices.

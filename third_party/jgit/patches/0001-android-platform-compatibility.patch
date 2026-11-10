@@ -1,0 +1,142 @@
+--- upstream/org/eclipse/jgit/internal/storage/file/GC.java
++++ android/org/eclipse/jgit/internal/storage/file/GC.java
+@@ -1932,7 +1932,8 @@
+ 		}
+ 
+ 		private long getPID() {
+-			return ProcessHandle.current().pid();
++			// Android has no java.lang.ProcessHandle. Preserve the real GC PID.
++			return android.os.Process.myPid();
+ 		}
+ 
+ 		private String getHostName() {
+--- upstream/org/eclipse/jgit/internal/storage/file/WindowCache.java
++++ android/org/eclipse/jgit/internal/storage/file/WindowCache.java
+@@ -32,7 +32,6 @@
+ import org.eclipse.jgit.internal.JGitText;
+ import org.eclipse.jgit.storage.file.WindowCacheConfig;
+ import org.eclipse.jgit.storage.file.WindowCacheStats;
+-import org.eclipse.jgit.util.Monitoring;
+ 
+ /**
+  * Caches slices of a {@link org.eclipse.jgit.internal.storage.file.Pack} in
+@@ -533,7 +532,7 @@
+ 
+ 	private WindowCache publishMBeanIfNeeded() {
+ 		if (publishMBean.getAndSet(false)) {
+-			Monitoring.registerMBean(mbean, "block_cache"); //$NON-NLS-1$
++			// Android has no JMX server; cache statistics remain available.
+ 		}
+ 		return this;
+ 	}
+--- upstream/org/eclipse/jgit/storage/file/WindowCacheStats.java
++++ android/org/eclipse/jgit/storage/file/WindowCacheStats.java
+@@ -11,8 +11,6 @@
+ 
+ import java.util.Map;
+ 
+-import javax.management.MXBean;
+-
+ import org.eclipse.jgit.internal.storage.file.WindowCache;
+ 
+ /**
+@@ -20,7 +18,6 @@
+  *
+  * @since 4.11
+  */
+-@MXBean
+ public interface WindowCacheStats {
+ 	/**
+ 	 * Get number of open files
+--- upstream/org/eclipse/jgit/transport/HttpAuthMethod.java
++++ android/org/eclipse/jgit/transport/HttpAuthMethod.java
+@@ -30,12 +30,6 @@
+ 
+ import org.eclipse.jgit.transport.http.HttpConnection;
+ import org.eclipse.jgit.util.Base64;
+-import org.eclipse.jgit.util.GSSManagerFactory;
+-import org.ietf.jgss.GSSContext;
+-import org.ietf.jgss.GSSException;
+-import org.ietf.jgss.GSSManager;
+-import org.ietf.jgss.GSSName;
+-import org.ietf.jgss.Oid;
+ 
+ /**
+  * Support class to populate user authentication data on a connection.
+@@ -85,7 +79,8 @@
+ 		NEGOTIATE {
+ 			@Override
+ 			public HttpAuthMethod method(String hdr) {
+-				return new Negotiate(hdr);
++				throw new UnsupportedOperationException(
++						"SPNEGO/Kerberos is unavailable in this Android JGit variant"); //$NON-NLS-1$
+ 			}
+ 
+ 			@Override
+@@ -138,6 +133,11 @@
+ 							try {
+ 								Type methodType = Type.valueOf(
+ 										valuePart[0].toUpperCase(Locale.ROOT));
++
++								// Android has no GSS implementation. Keep Basic/Digest selection.
++								if (methodType == Type.NEGOTIATE) {
++									continue;
++								}
+ 
+ 								if ((ignoreTypes != null)
+ 										&& ignoreTypes.contains(methodType)) {
+@@ -479,54 +479,4 @@
+ 		}
+ 	}
+ 
+-	private static class Negotiate extends HttpAuthMethod {
+-		private static final GSSManagerFactory GSS_MANAGER_FACTORY = GSSManagerFactory
+-				.detect();
+-
+-		private static final Oid OID;
+-		static {
+-			try {
+-				// OID for SPNEGO
+-				OID = new Oid("1.3.6.1.5.5.2"); //$NON-NLS-1$
+-			} catch (GSSException e) {
+-				throw new Error("Cannot create NEGOTIATE oid.", e); //$NON-NLS-1$
+-			}
+-		}
+-
+-		private final byte[] prevToken;
+-
+-		public Negotiate(String hdr) {
+-			super(Type.NEGOTIATE);
+-			prevToken = Base64.decode(hdr);
+-		}
+-
+-		@Override
+-		void authorize(String user, String pass) {
+-			// not used
+-		}
+-
+-		@Override
+-		void configureRequest(HttpConnection conn) throws IOException {
+-			GSSManager gssManager = GSS_MANAGER_FACTORY.newInstance(conn
+-					.getURL());
+-			String host = conn.getURL().getHost();
+-			String peerName = "HTTP@" + host.toLowerCase(Locale.ROOT); //$NON-NLS-1$
+-			try {
+-				GSSName gssName = gssManager.createName(peerName,
+-						GSSName.NT_HOSTBASED_SERVICE);
+-				GSSContext context = gssManager.createContext(gssName, OID,
+-						null, GSSContext.DEFAULT_LIFETIME);
+-				// Respect delegation policy in HTTP/SPNEGO.
+-				context.requestCredDeleg(true);
+-
+-				byte[] token = context.initSecContext(prevToken, 0,
+-						prevToken.length);
+-
+-				conn.setRequestProperty(HDR_AUTHORIZATION, getType().getSchemeName()
+-						+ " " + Base64.encodeBytes(token)); //$NON-NLS-1$
+-			} catch (GSSException e) {
+-				throw new IOException(e);
+-			}
+-		}
+-	}
+ }

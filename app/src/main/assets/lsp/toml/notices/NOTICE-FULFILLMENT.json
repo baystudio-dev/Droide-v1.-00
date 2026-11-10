@@ -1,0 +1,72 @@
+{
+  "schema": "taplo-notice-fulfillment-amendment-v1",
+  "status": "FINITE_NOTICE_OBLIGATIONS_SATISFIABLE",
+  "scope": [
+    "cargo:ring@0.16.20",
+    "cargo:webpki-roots@0.22.4"
+  ],
+  "source_candidate_count": 244,
+  "source_candidate_text_gaps": 0,
+  "disposition_policy": "conservative_include_for_obligations",
+  "dispositions": {
+    "path": "DISPOSITIONS.json",
+    "sha256": "8f8569dc98c17dd026174ebb09983bd6bc491f639e1f51bb8ac5d80c0c0bcff1",
+    "bytes": 95408
+  },
+  "ring": {
+    "path": "RING-CLARIFICATION.json",
+    "sha256": "c52cd64e89d7b400b9c18797a3b344bd03aa491fe640a607db82b2a8196b9e15",
+    "bytes": 2077
+  },
+  "mpl_source_availability": {
+    "path": "SOURCE-AVAILABILITY.json",
+    "sha256": "11c2ab08e4752e1a9f1cda632b5e6d3a3d6b4a3e55940a25847dd7a6654ffe3d",
+    "bytes": 19883
+  },
+  "recipient_notice": {
+    "path": "TAPLO-NOTICE-FULFILLMENT.txt",
+    "sha256": "8e6dd55ed244f68f8256da4a05573b2adac3266160557572b7cb311a6980691c",
+    "bytes": 30901
+  },
+  "required_inherited_bundle": {
+    "path": "toml-source-notice-closure/TAPLO-THIRD-PARTY-NOTICES.txt",
+    "sha256": "c67d4c7be6723482ae45e3a46ba3d6904299b6365d9756f4316427eb2968d1e4",
+    "bytes": 870457,
+    "root": "lsp-expansion-20261018"
+  },
+  "required_inherited_coverage": {
+    "path": "toml-source-notice-closure/TOML_NOTICE_COVERAGE.json",
+    "sha256": "2e81d528a4865eed57429059df4a212c0c991fc81e3757ce6fa46acf52181cfa",
+    "bytes": 1759,
+    "root": "lsp-expansion-20261018"
+  },
+  "mechanical_admission_predicates": [
+    "Original package integrity and original notice retention established by the separately authorized payload process.",
+    "All 244 candidates retain their inherited texts and receive conservative_include_for_obligations disposition.",
+    "This amendment, recipient notice, original notices and inherited notice bundle are delivered and hash-bound.",
+    "Finite webpki-roots source-availability refresh succeeds for the acquisition/publication transaction, with no covered-source modification or version change.",
+    "No newly observed concrete conflicting or unretained additional term remains in original payload notices."
+  ],
+  "never_required": [
+    "A linked SBOM guessed from a lockfile.",
+    "Missing-symbol non-inclusion inference.",
+    "An own-source archive mirror merely because MPL applies.",
+    "An unbounded ring header crawl.",
+    "Unspecified human legal approval.",
+    "An immutable research snapshot payload_admission_satisfied field becoming true."
+  ],
+  "qualifications": {
+    "original_payload_acquired": false,
+    "original_payload_inspected": false,
+    "original_payload_installed": false,
+    "original_payload_executed": false,
+    "native_package_acquired": false,
+    "source_archive_acquired": false,
+    "runtime_build_performed": false,
+    "actual_linkage_attested": false,
+    "source_to_binary_attested": false,
+    "baseline_accepted_R99_changed": false
+  },
+  "unresolved_within_two_component_source_scope": [],
+  "supersession": "Additive clarification only. Prior snapshot remains byte-for-byte unchanged and retains historical caveats. Its blanket future per-file/source-availability research gates are discharged for this conservative route by these concrete terms/notice/source predicates; actual payload work remains separately qualified."
+}

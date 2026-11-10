@@ -1,0 +1,23 @@
+Termux terminal-emulator / terminal-view AAR licensing: SOURCE AND AAR SCOPE VERIFIED
+
+Reviewed scope
+--------------
+Droide packages only the Termux 0.118.0 `terminal-emulator` and `terminal-view` AARs. It does not package `termux-shared` classes.
+
+Upstream basis
+--------------
+The upstream `termux/termux-app` repository is GPLv3-only by default. Its root LICENSE.md explicitly identifies Terminal Emulator for Android code in `terminal-view` and `terminal-emulator` as an Apache License 2.0 exception. Droide pins upstream tag `v0.118.0` at commit `6e2689f55295fa444be8ac8592c527c2c5ef3253`.
+
+Technical provenance evidence
+-----------------------------
+`third_party/termux/UPSTREAM_PROVENANCE.json` records the exact AAR SHA-256 values, source-JAR SHA-256 values, 20 upstream Java Git-blob identities, two JNI source Git-blob identities, and the four packaged `libtermux.so` ABI hashes. `tools/verify_termux_provenance.py` verifies the mapping offline and rejects unexpected classes or `termux-shared` content.
+
+Droide local Java change (2026-10-08)
+-----------------------------------
+The application uses the separately named `terminal-emulator-v0.118.0-droide-input.aar`. It adds a one-time TerminalSession input-owner hook and a worker-only queue-forwarding method that returns actual queue acceptance. These changes let user and Agent input share one bounded writer without blocking Android's main thread. Only the TerminalSession class family changes; the InputHandler nested interface is the sole additional class. Other Java classes, original AARs/source JARs, rendering and JNI ABI bytes are unchanged. The complete modified source, exact diff and rebuild hashes are retained under `third_party/termux/patches/`; `tools/build_termux_input_aar.py --check` reproduces the Java-only artifact offline using JDK 17, Java 8 bytecode and Android SDK API 36. The existing Apache-2.0 module license applies to this local modification.
+
+Packaged license material
+-------------------------
+The exact upstream root license statement is packaged as `legal/licenses/Termux-upstream-LICENSE.md`; the applicable Apache License 2.0 text is packaged as `legal/licenses/APACHE-2.0.txt` and is the catalog license text for this reviewed module scope.
+
+This file records a technical provenance/license-scope audit for the packaged artifacts. It is not a substitute for legal advice and does not make claims about unrelated Termux modules or trademarks.

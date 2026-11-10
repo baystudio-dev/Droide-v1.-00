@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/material-extensions/vscode-material-icon-theme",
+  "commit": "13025adc5ad10a5cc649528a2c1edec93069f1b9",
+  "retrievedDate": "2026-10-18",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2025 Material Extensions",
+  "licenseFile": "LICENSE",
+  "upstreamScope": "Material Icon Theme file-type artwork, not vendor-issued Adobe or Microsoft assets. The upstream repository LICENSE is MIT; its README credits Material Design Icons and Material Symbols as icon sources.",
+  "trademarkNotice": "Adobe/Acrobat/PDF and Microsoft/Word marks remain with their respective owners. The artwork identifies file formats only. The copyright license does not grant trademark rights or imply sponsorship, endorsement, affiliation, or release clearance.",
+  "conversion": "tools/generate_document_file_icons.py preserves exact upstream SVG path data, viewport and nonzero fill rule. PDF fill is unchanged. Word fill changes from #01579b to #1e88e5 for visibility on both dark and light workbench backgrounds; no shape edits or bitmap conversion.",
+  "assets": [
+    {
+      "name": "pdf",
+      "upstreamPath": "icons/pdf.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/pdf.svg",
+      "sourceFile": "pdf.svg",
+      "sourceBytes": 976,
+      "sourceSha256": "c14c66a3914b894da40778a6dcd00f0daa134426521aaddbd8ccea86ba4f5ffc",
+      "drawable": "app/src/main/res/drawable/filetype_pdf.xml",
+      "sourceFill": "#ef5350",
+      "androidFill": "#ef5350"
+    },
+    {
+      "name": "word",
+      "upstreamPath": "icons/word.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/word.svg",
+      "sourceFile": "word.svg",
+      "sourceBytes": 251,
+      "sourceSha256": "9f12a8d98f292c34f73181c49ce79dd378decfb82f760cd9c4aa9900e2d7b2d6",
+      "drawable": "app/src/main/res/drawable/filetype_word.xml",
+      "sourceFill": "#01579b",
+      "androidFill": "#1e88e5"
+    }
+  ],
+  "LICENSE": {
+    "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/LICENSE",
+    "bytes": 1085,
+    "sha256": "cdab3014d4f69b49dde2b85e81792208c72de613aa6aed7f7a9b5c6609b89670"
+  },
+  "UPSTREAM-README.md": {
+    "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/README.md",
+    "bytes": 18430,
+    "sha256": "7761bb2812f48b7bcff4324c522a76a963b384620a60912b7b99678a34f54e85"
+  }
+}

@@ -1,0 +1,274 @@
+package com.baystudio.droide.core
+
+import android.content.Context
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.*
+
+internal data class GraphqlPackageProof(val record:ManagedPackageRecord,val receiptSha256:String,val sealSha256:String,val activationId:String,
+    val dependencyReceipts:Map<String,String>,val helpersSha256:Map<String,String>,val closureSha256:String,val sourceBindingSha256:String,
+    val importReviewSha256:String,val noticeAdmissionSha256:String,val dataAdmissionSha256:String)
+
+/** Original-data transaction with separate Node ownership and genuine staged health. No implicit prerequisite acquisition. */
+internal class LocalUbuntuGraphqlInstaller(context:Context,private val authority:LocalManagedPackageAuthority) {
+    private val app=context.applicationContext
+    private val downloader=UserInitiatedArtifactTransfer(app)
+    suspend fun install(recipe:WorkstationInstallRecipe,node:ManagedPackageRecord?,progress:(String)->Unit={},deadline:GraphqlDeadline=GraphqlDeadline.install()):ManagedPackageRecord {
+        require(LocalUbuntuGraphqlPolicy.supports(recipe))
+        deadline.check()
+        val runtime=requireNotNull(node) { LocalUbuntuGraphqlPolicy.PREREQUISITE_MESSAGE }
+        require(runtime.familyId==LocalUbuntuGraphqlNodePolicy.FAMILY&&runtime.version==LocalUbuntuGraphqlNodePolicy.VERSION&&authority.owns(runtime)&&runCatching{provePackage(authority.appRoot,runtime,deadline::check)}.isSuccess) { LocalUbuntuGraphqlPolicy.PREREQUISITE_MESSAGE }
+        return transact(LocalUbuntuGraphqlPolicy.FAMILY,runtime,progress,deadline) { stage,active ->
+            val npm=File(stage,"payload/npm");require(npm.mkdirs());val budget=LocalUbuntuGraphqlArchive.Budget();val archives=linkedMapOf<String,JsonElement>()
+            for((placement,identity)in LocalUbuntuGraphqlPolicy.placements.toSortedMap()) {
+                progress("Authenticating original $identity…\n")
+                downloader.withArtifact(LocalUbuntuGraphqlArchive.spec(identity),{active();progress(it.describe()+"\n")}) { archive->
+                    archives[placement]=LocalUbuntuGraphqlArchive.extract(identity,archive,npm,budget,active)
+                }
+            }
+            val inventory=JsonObject(archives);write(stage,ARCHIVES,inventory.toString())
+            val data=LocalUbuntuGraphqlDataAdmission.inspect(npm,active);write(stage,DATA,data.toString())
+            LocalUbuntuGraphqlNoticePolicy.prepare(stage) { name->app.assets.open(name).use{it.readBytes()} }
+            progress("Checking complete original notice inventory and exact source supplements…\n")
+            write(stage,NOTICE,LocalUbuntuGraphqlNoticePolicy.derive(stage,inventory,active).toString())
+            val nodeProof=provePackage(authority.appRoot,runtime,active)
+            write(stage,CLOSURE,read(File(runtime.installRoot,CLOSURE),4_194_304,active))
+            require(nodeProof.receiptSha256==receiptSha(runtime))
+            sha(File(stage,ARCHIVES),active)
+        }
+    }
+    suspend fun installNode(recipe:LocalUbuntuVendorRecipe,progress:(String)->Unit={},deadline:GraphqlDeadline=GraphqlDeadline.install()):ManagedPackageRecord {
+        LocalUbuntuGraphqlNodePolicy.requireReviewed(recipe)
+        return transact(recipe.familyId,null,progress,deadline) { stage,active ->
+            val spec=TrustedArtifactSpec("graphql-node-22-23-3",recipe.assetUrl,recipe.assetSha256,recipe.assetName,LocalUbuntuGraphqlNodePolicy.ARTIFACT_BYTES,LocalUbuntuGraphqlNodePolicy.ARTIFACT_BYTES)
+            downloader.withArtifact(spec,{active();progress(it.describe()+"\n")}) { archive->
+                require(NimRuntimeClosure.measure(archive,LocalUbuntuGraphqlNodePolicy.ARTIFACT_BYTES,active)==(LocalUbuntuGraphqlNodePolicy.ARTIFACT_BYTES to LocalUbuntuGraphqlNodePolicy.SHA256))
+                val tree=File(stage,"payload/tree");require(tree.parentFile!!.mkdirs()||tree.parentFile!!.isDirectory)
+                LocalUbuntuGraphqlArchive.extractNode(archive,tree,active)
+            }
+            val tree=File(stage,"payload/tree");val inv=LocalUbuntuGraphqlNodePolicy.requireTree(File(tree,LocalUbuntuGraphqlNodePolicy.ENTRY),active)
+            val closure=LocalUbuntuGraphqlLaunchAuthority.requireExecutionClosure(inv,guest(root),active)
+            write(stage,ARCHIVES,snapshot(tree,active).toString())
+            write(stage,DATA,buildJsonObject{put("schema",1);put("sourceBindingSha256",LocalUbuntuGraphqlNodePolicy.SOURCE_BINDING_SHA256);put("configSha256",LocalUbuntuGraphqlNodePolicy.requireConfiguration(File(tree,LocalUbuntuGraphqlNodePolicy.CONFIG),active));put("originalTreeSha256",sha(File(stage,ARCHIVES),active))}.toString())
+            write(stage,NOTICE,buildJsonObject{put("schema",1);put("originalLicenseSha256",NimRuntimeClosure.measure(File(tree,"${LocalUbuntuGraphqlNodePolicy.TOP}/LICENSE"),4_194_304,active).second);put("originalReadmeSha256",NimRuntimeClosure.measure(File(tree,"${LocalUbuntuGraphqlNodePolicy.TOP}/README.md"),4_194_304,active).second);put("source","https://nodejs.org/dist/v22.23.3/")}.toString())
+            write(stage,CLOSURE,buildJsonObject{put("schema",1);put("files",mapping(closure.files));put("sha256",closure.sha256)}.toString())
+            LocalUbuntuGraphqlNodePolicy.SHA256
+        }
+    }
+    private val root get()=authority.appRoot
+    private suspend fun transact(family:String,node:ManagedPackageRecord?,progress:(String)->Unit,deadline:GraphqlDeadline,stageData:suspend(File,()->Unit)->String):ManagedPackageRecord=withContext(Dispatchers.IO) {
+        require(android.os.Build.SUPPORTED_ABIS.any{it=="arm64-v8a"||it=="aarch64"})
+        deadline.check()
+        withTimeout(deadline.remainingMillis().coerceAtLeast(1)) { LocalPackageInstallJournal.transactionMutex.withLock {
+            deadline.check()
+            val paths=LocalPackageInstallJournal.paths(root,family,LocalUbuntuGraphqlPolicy.version(family),LocalUbuntuGraphqlPolicy.kind(family))
+            val previous=authority.recoveryReceipt(family,LocalUbuntuGraphqlPolicy.version(family),LocalUbuntuGraphqlPolicy.kind(family))
+            LocalPackageInstallJournal.recover(paths,previous?.let{LocalPackageInstallJournal.Receipt(it.metadata[LocalManagedPackageMetadata.ACTIVATION_ID_KEY])})
+            val context=currentCoroutineContext();val active={context.ensureActive();deadline.check()}
+            val dep=node?.let{provePackage(root,it,active)}
+            var candidateId:String?=null
+            var adoptionStarted=false
+            val previousId=previous?.metadata?.get(LocalManagedPackageMetadata.ACTIVATION_ID_KEY)
+            try {
+                require(paths.stage.mkdirs());mode(paths.stage,493);val id=LocalPackageInstallJournal.prepare(paths.stage);mode(File(paths.stage,"DROIDE_ACTIVATION_ID"),420);candidateId=id
+                LocalPackageInstallJournal.beginGraphqlActivation(paths,id,previousId)
+                val artifact=stageData(paths.stage,active)
+                require(LocalUbuntuGraphqlLaunchAuthority.expectedHelperHashes.keys==setOf("payload/graphql-adapter.cjs","payload/graphql-wire.cjs","payload/graphql-bootstrap.cjs","payload/graphql-health.cjs","payload/graphql-node-health.cjs"))
+                for((path,hash)in LocalUbuntuGraphqlLaunchAuthority.expectedHelperHashes) {
+                    val bytes=app.assets.open("lsp/graphql/${path.substringAfterLast('/')}").use{it.readBytes()}
+                    require(bytes.size in 1..1_048_576&&LocalUbuntuGraphqlPolicy.sha256(bytes)==hash);write(paths.stage,path,bytes.toString(Charsets.UTF_8))
+                }
+                val sourceBinding=app.assets.open("lsp/graphql/SOURCE-BINDING.json").use{it.readBytes()}
+                require(sourceBinding.size<=262144&&LocalUbuntuGraphqlPolicy.sha256(sourceBinding)==LocalUbuntuGraphqlPolicy.SOURCE_BINDING_SHA256)
+                write(paths.stage,"payload/SOURCE-BINDING.json",sourceBinding.toString(Charsets.UTF_8))
+                val command=LocalUbuntuGraphqlPolicy.command(family);val finalGuest=LocalUbuntuGraphqlPolicy.root(family)
+                write(paths.stage,"payload/bin/$command",LocalUbuntuGraphqlLaunchAuthority.guestWrapper(family,finalGuest),493)
+                write(paths.stage,"payload/host-bin/$command",LocalUbuntuGraphqlLaunchAuthority.guestWrapper(family,finalGuest),493)
+                val closure=objectAt(paths.stage,CLOSURE,active)
+                val a=buildJsonObject {
+                    put("schema",1);put("policy",LocalUbuntuGraphqlPolicy.POLICY);put("family",family);put("version",LocalUbuntuGraphqlPolicy.version(family));put("activation",id);put("final",finalGuest)
+                    put("artifactSha256",artifact);put("archiveAdmissionSha256",sha(File(paths.stage,ARCHIVES),active));put("dataAdmissionSha256",sha(File(paths.stage,DATA),active));put("importReviewSha256",sha(File(paths.stage,DATA),active));put("noticeAdmissionSha256",sha(File(paths.stage,NOTICE),active));put("closureSha256",text(closure,"sha256"))
+                    put("sourceBindingSha256",if(family==LocalUbuntuGraphqlPolicy.FAMILY)LocalUbuntuGraphqlPolicy.SOURCE_BINDING_SHA256 else LocalUbuntuGraphqlNodePolicy.SOURCE_BINDING_SHA256)
+                    put("helpers",mapping(LocalUbuntuGraphqlLaunchAuthority.expectedHelperHashes));put("dependencyReceipts",mapping(dep?.let{mapOf(it.record.familyId to it.receiptSha256)}?:emptyMap()))
+                };write(paths.stage,AUTHORITY,a.toString())
+                val provisional=record(family,paths.final,id,artifact,"0".repeat(64),text(a,"archiveAdmissionSha256"),node)
+                val stagedProof=proof(provisional,a,sha(File(paths.stage,AUTHORITY),active),"0".repeat(64))
+                val nodeExe=if(node==null)"${paths.stage.absolutePath}/payload/tree/${LocalUbuntuGraphqlNodePolicy.ENTRY}" else LocalUbuntuGraphqlNodePolicy.EXECUTABLE
+                write(paths.stage,HEALTH_SEED,LocalUbuntuGraphqlLaunchAuthority.healthSeed(paths.stage.absolutePath,nodeExe,stagedProof).toString())
+                proveStaged(root,paths.stage,active)
+                progress("Checking genuine GraphQL runtime/API and exact owned cleanup…\n")
+                val hold=LocalPackageInstallJournal.beginGraphqlHealth(paths,id)
+                val healthDeadline=deadline.limited(LocalUbuntuGraphqlLspHealth.TIMEOUT_MS)
+                val health=LocalExecutionSubstrate.runGraphqlStagedHealth(root,paths.stage,node,hold,healthDeadline)
+                val cleanup=LocalUbuntuGraphqlLspHealth.teardownReceipt(health)
+                if(cleanup!=null)LocalPackageInstallJournal.finishGraphqlHealth(hold,cleanup)
+                check(if(node==null)LocalUbuntuGraphqlLspHealth.acceptsRuntime(health)else LocalUbuntuGraphqlLspHealth.acceptsServer(health)) { "GraphQL genuine health or owned cleanup failed; no active publication" }
+                LocalPackageInstallJournal.requireNoGraphqlHealthHold(paths)
+                proveStaged(root,paths.stage,active);node?.let { require(provePackage(root,it,active).receiptSha256==dep!!.receiptSha256) }
+                write(paths.stage,HEALTH,buildJsonObject{put("schema",1);put("authoritySha256",sha(File(paths.stage,AUTHORITY),active));put("cleanupVerified",true);put("cleanupReceipt",cleanupJson(requireNotNull(cleanup)));put("semanticOutputSha256",LocalUbuntuGraphqlPolicy.sha256(health.output.toByteArray()));put("exitCode",0);put("profile",if(node==null)"exact-node-identity-resources" else "genuine-local-schema-validation-completion-hover-outline")}.toString())
+                val seal=snapshot(paths.stage,active,setOf("SHA256SUMS")).toString();write(paths.stage,"SHA256SUMS",seal)
+                val record=provisional.copy(metadata=provisional.metadata+(LocalManagedPackageMetadata.SEAL_SHA256_KEY to LocalUbuntuGraphqlPolicy.sha256(seal.toByteArray())))
+                active();LocalPackageInstallJournal.beforeGraphqlPromotion(paths,id,previousId)
+                LocalPackageInstallJournal.activate(paths.stage,paths.final,paths.previous)
+                LocalPackageInstallJournal.syncGraphqlDirectories(paths)
+                active();node?.let { require(provePackage(root,it,active).receiptSha256==dep!!.receiptSha256) }
+                adoptionStarted=true;authority.adoptGraphql(record,deadline)
+                withContext(NonCancellable){LocalPackageInstallJournal.recoverGraphql(paths,LocalPackageInstallJournal.Receipt(id))}
+                record
+            } catch(failure:Throwable) {
+                withContext(NonCancellable) {
+                    if(runCatching{LocalPackageInstallJournal.requireNoGraphqlHealthHold(paths)}.isFailure)failure.addSuppressed(IllegalStateException("GraphQL exact owner cleanup unknown; stage, private state and journal retained"))
+                    else {
+                        // An uncertain registry adoption cannot authorize path-only rollback.
+                        runCatching {
+                            val durable=if(adoptionStarted)authority.recoveryReceipt(family,LocalUbuntuGraphqlPolicy.version(family),LocalUbuntuGraphqlPolicy.kind(family))else previous
+                            if(!adoptionStarted&&paths.graphqlActivationJournal?.exists()!=true&&candidateId!=null) {
+                                require(LocalPackageInstallJournal.matchesActivation(paths.stage,requireNotNull(candidateId)))
+                                check(PathSecurity.deleteTreeNoFollow(paths.stage))
+                            } else LocalPackageInstallJournal.recoverGraphql(paths,durable?.let{LocalPackageInstallJournal.Receipt(it.metadata[LocalManagedPackageMetadata.ACTIVATION_ID_KEY])})
+                        }.exceptionOrNull()?.let(failure::addSuppressed)
+                    }
+                };throw failure
+            }
+        }}
+    }
+    private fun record(family:String,final:File,id:String,artifact:String,seal:String,tree:String,node:ManagedPackageRecord?)=ManagedPackageRecord(
+        familyId=family,version=LocalUbuntuGraphqlPolicy.version(family),scope=ExecutionScope.LOCAL_LINUX_ARM64.name,installRoot=final.absolutePath,
+        installedAtEpochMs=System.currentTimeMillis(),active=true,pathEntries=listOf("$final/payload/host-bin"),commands=mapOf(LocalUbuntuGraphqlPolicy.command(family) to "$final/payload/host-bin/${LocalUbuntuGraphqlPolicy.command(family)}"),environment=emptyMap(),
+        dependencies=node?.let{listOf(LocalUbuntuGraphqlNodePolicy.KEY)}?:emptyList(),healthChecks=emptyList(),artifactSha256=artifact,abi="arm64-v8a",
+        metadata=mapOf(LocalManagedPackageMetadata.KIND_KEY to LocalUbuntuGraphqlPolicy.kind(family),LocalManagedPackageMetadata.PROFILE_KEY to DeclarativeGuestProfile.UBUNTU_24_04_GLIBC_ARM64.name,
+            LocalManagedPackageMetadata.LIBC_KEY to DeclarativeLibcCompatibility.GLIBC.name,LocalManagedPackageMetadata.ACTIVATION_ID_KEY to id,LocalManagedPackageMetadata.COMMAND_KEY to LocalUbuntuGraphqlPolicy.command(family),
+            LocalManagedPackageMetadata.SEAL_SHA256_KEY to seal,LocalManagedPackageMetadata.TREE_SHA256_KEY to tree,PackageBackendContract.METADATA_KEY to PackageBackendId.LOCAL_APP.name))
+    companion object {
+        const val AUTHORITY="GRAPHQL_AUTHORITY.json"
+        const val CLOSURE="GRAPHQL_RUNTIME_CLOSURE.json"
+        const val ARCHIVES="GRAPHQL_ARCHIVE_ADMISSION.json"
+        const val DATA="GRAPHQL_IMPORT_REVIEW.json"
+        const val NOTICE="GRAPHQL_NOTICE_ADMISSION.json"
+        const val HEALTH="GRAPHQL_HEALTH.json"
+        const val HEALTH_SEED="graphql-health-identity.json"
+        fun receiptSha(record:ManagedPackageRecord)=LocalUbuntuPowerShellLaunchAuthority.receiptSha(record)
+        fun write(root:File,path:String,value:String,permissions:Int=420) {
+            LocalUbuntuGraphqlPolicy.safeRelative(path);val file=File(root,path);require(root.canonicalFile==root.absoluteFile)
+            require(file.parentFile!!.mkdirs()||file.parentFile!!.isDirectory);NimRuntimeClosure.requireDirectory(file.parentFile!!);require(file.parentFile!!.canonicalFile==file.parentFile!!.absoluteFile)
+            val parent=Files.readAttributes(file.parentFile!!.toPath(),java.nio.file.attribute.BasicFileAttributes::class.java,NOFOLLOW_LINKS).fileKey();require(parent!=null)
+            java.nio.channels.FileChannel.open(file.toPath(),java.nio.file.StandardOpenOption.CREATE_NEW,java.nio.file.StandardOpenOption.WRITE,NOFOLLOW_LINKS).use { channel ->
+                val bytes=java.nio.ByteBuffer.wrap(value.toByteArray());while(bytes.hasRemaining())require(channel.write(bytes)>0);channel.force(true)
+            };mode(file,permissions)
+            require(Files.readAttributes(file.parentFile!!.toPath(),java.nio.file.attribute.BasicFileAttributes::class.java,NOFOLLOW_LINKS).fileKey()==parent)
+            java.nio.channels.FileChannel.open(file.parentFile!!.toPath(),java.nio.file.StandardOpenOption.READ).use{it.force(true)}
+        }
+        private val cleanupKeys=setOf("directChildReaped","groupEmpty","birthCustodyVerified","factorySettled","writersSettled","readersSettled","closeAttemptsSettled","privateCleanupVerified")
+        private fun cleanupJson(r:GraphqlTeardownReceipt)=buildJsonObject {
+            put("directChildReaped",r.directChildReaped);put("groupEmpty",r.groupEmpty);put("birthCustodyVerified",r.birthCustodyVerified);put("factorySettled",r.factorySettled)
+            put("writersSettled",r.writersSettled);put("readersSettled",r.readersSettled);put("closeAttemptsSettled",r.closeAttemptsSettled);put("privateCleanupVerified",r.privateCleanupVerified)
+        }.also(::requireCleanupJson)
+        private fun requireCleanupJson(value:JsonObject) { require(value.keys==cleanupKeys&&value.values.all{it==JsonPrimitive(true)}) }
+
+        private fun mode(file:File,value:Int)=android.system.Os.chmod(file.absolutePath,value)
+        private fun mapping(value:Map<String,String>)=JsonObject(value.toSortedMap().mapValues{JsonPrimitive(it.value)})
+        private fun text(o:JsonObject,k:String)=LocalUbuntuPowerShellRuntimePolicy.string(o,k)
+        private fun strings(o:JsonObject,k:String)=o.getValue(k).jsonObject.mapValues{it.value.jsonPrimitive.also{p->require(p.isString)}.content}
+        private fun read(file:File,max:Int=4_194_304,active:()->Unit={})=LocalUbuntuGraphqlPolicy.read(file,max,active)
+        private fun sha(file:File,active:()->Unit={})=NimRuntimeClosure.measure(file,67_108_864,active).second
+        private fun objectAt(root:File,path:String,active:()->Unit={})=LocalUbuntuGraphqlPolicy.strictObject(read(File(root,path),4_194_304,active))
+        private fun guest(appRoot:String)=File(appRoot,"guest/${FoundryUbuntuGuestEnvironmentSpec.ROOT_DIR}/rootfs")
+        private fun proof(record:ManagedPackageRecord,a:JsonObject,receipt:String,seal:String)=GraphqlPackageProof(record,receipt,seal,text(a,"activation"),strings(a,"dependencyReceipts"),strings(a,"helpers"),text(a,"closureSha256"),text(a,"sourceBindingSha256"),text(a,"importReviewSha256"),text(a,"noticeAdmissionSha256"),text(a,"dataAdmissionSha256"))
+        fun inspectPackage(appRoot:String,record:ManagedPackageRecord,active:()->Unit={}):GraphqlPackageProof {
+            active();require(LocalUbuntuGraphqlPolicy.isFamily(record.familyId)&&record.version==LocalUbuntuGraphqlPolicy.version(record.familyId))
+            val paths=LocalPackageInstallJournal.paths(appRoot,record.familyId,record.version,LocalUbuntuGraphqlPolicy.kind(record.familyId));LocalPackageInstallJournal.requireNoGraphqlHealthHold(paths)
+            require(record.active&&record.installRoot==paths.final.absolutePath&&record.abi=="arm64-v8a"&&record.scope==ExecutionScope.LOCAL_LINUX_ARM64.name&&record.environment.isEmpty()&&record.healthChecks.isEmpty()&&record.checksumFile=="SHA256SUMS")
+            require(record.metadata[LocalManagedPackageMetadata.KIND_KEY]==LocalUbuntuGraphqlPolicy.kind(record.familyId)&&record.metadata[PackageBackendContract.METADATA_KEY]==PackageBackendId.LOCAL_APP.name&&record.metadata[LocalManagedPackageMetadata.PROFILE_KEY]==DeclarativeGuestProfile.UBUNTU_24_04_GLIBC_ARM64.name&&record.metadata[LocalManagedPackageMetadata.LIBC_KEY]==DeclarativeLibcCompatibility.GLIBC.name)
+            val command=LocalUbuntuGraphqlPolicy.command(record.familyId);require(record.commands==mapOf(command to "${record.installRoot}/payload/host-bin/$command")&&record.pathEntries==listOf("${record.installRoot}/payload/host-bin"))
+            require(record.dependencies==if(record.familyId==LocalUbuntuGraphqlPolicy.FAMILY)listOf(LocalUbuntuGraphqlNodePolicy.KEY)else emptyList<String>())
+            val root=File(record.installRoot);require(root.canonicalFile==root.absoluteFile);val a=objectAt(root,AUTHORITY,active);requireAuthority(root,a,active)
+            require(text(a,"family")==record.familyId&&text(a,"activation")==record.metadata[LocalManagedPackageMetadata.ACTIVATION_ID_KEY]&&text(a,"artifactSha256")==record.artifactSha256&&text(a,"archiveAdmissionSha256")==record.metadata[LocalManagedPackageMetadata.TREE_SHA256_KEY])
+            val seal=sha(File(root,"SHA256SUMS"),active);require(seal==record.metadata[LocalManagedPackageMetadata.SEAL_SHA256_KEY])
+            val health=objectAt(root,HEALTH,active);require(health.keys==setOf("schema","authoritySha256","cleanupVerified","cleanupReceipt","semanticOutputSha256","exitCode","profile")&&health["schema"]==JsonPrimitive(1)&&health["cleanupVerified"]==JsonPrimitive(true)&&health["exitCode"]==JsonPrimitive(0)&&text(health,"authoritySha256")==sha(File(root,AUTHORITY),active)&&text(health,"profile")==if(record.familyId==LocalUbuntuGraphqlPolicy.FAMILY)"genuine-local-schema-validation-completion-hover-outline"else"exact-node-identity-resources")
+            requireCleanupJson(health.getValue("cleanupReceipt").jsonObject);require(text(health,"semanticOutputSha256").matches(Regex("[0-9a-f]{64}")))
+            return proof(record,a,receiptSha(record),seal)
+        }
+        private fun requireAuthority(root:File,a:JsonObject,active:()->Unit) {
+            require(a.keys==setOf("schema","policy","family","version","activation","final","artifactSha256","archiveAdmissionSha256","dataAdmissionSha256","importReviewSha256","noticeAdmissionSha256","closureSha256","sourceBindingSha256","helpers","dependencyReceipts"))
+            val family=text(a,"family");require(a["schema"]==JsonPrimitive(1)&&text(a,"policy")==LocalUbuntuGraphqlPolicy.POLICY&&LocalUbuntuGraphqlPolicy.isFamily(family)&&text(a,"version")==LocalUbuntuGraphqlPolicy.version(family)&&text(a,"final")==LocalUbuntuGraphqlPolicy.root(family)&&LocalPackageInstallJournal.matchesActivation(root,text(a,"activation")))
+            require(text(a,"sourceBindingSha256")==if(family==LocalUbuntuGraphqlPolicy.FAMILY)LocalUbuntuGraphqlPolicy.SOURCE_BINDING_SHA256 else LocalUbuntuGraphqlNodePolicy.SOURCE_BINDING_SHA256)
+            require(strings(a,"helpers")==LocalUbuntuGraphqlLaunchAuthority.expectedHelperHashes&&strings(a,"dependencyReceipts").keys==if(family==LocalUbuntuGraphqlPolicy.FAMILY)setOf(LocalUbuntuGraphqlNodePolicy.FAMILY)else emptySet<String>())
+            for(key in listOf("artifactSha256","archiveAdmissionSha256","dataAdmissionSha256","importReviewSha256","noticeAdmissionSha256","closureSha256"))require(text(a,key).matches(Regex("[0-9a-f]{64}")))
+            require(strings(a,"dependencyReceipts").values.all{it.matches(Regex("[0-9a-f]{64}"))})
+        }
+        fun provePackage(appRoot:String,record:ManagedPackageRecord,active:()->Unit={}):GraphqlPackageProof {
+            val p=inspectPackage(appRoot,record,active);val root=File(record.installRoot)
+            require(snapshot(root,active,setOf("SHA256SUMS")).toString()==read(File(root,"SHA256SUMS"),16_777_216,active)) { "GraphQL complete package seal changed" }
+            proveData(appRoot,root,objectAt(root,AUTHORITY,active),active);return p
+        }
+        fun proveStaged(appRoot:String,stage:File,active:()->Unit={}) {
+            val a=objectAt(stage,AUTHORITY,active);requireAuthority(stage,a,active)
+            val expected=LocalPackageInstallJournal.paths(appRoot,text(a,"family"),text(a,"version"),LocalUbuntuGraphqlPolicy.kind(text(a,"family"))).stage
+            require(stage.absoluteFile==expected.absoluteFile);proveData(appRoot,stage,a,active)
+        }
+        private fun proveData(appRoot:String,root:File,a:JsonObject,active:()->Unit) {
+            for((path,key)in mapOf(ARCHIVES to "archiveAdmissionSha256",DATA to "dataAdmissionSha256",NOTICE to "noticeAdmissionSha256"))require(sha(File(root,path),active)==text(a,key))
+            require(text(a,"importReviewSha256")==text(a,"dataAdmissionSha256"))
+            require(sha(File(root,"payload/SOURCE-BINDING.json"),active)==text(a,"sourceBindingSha256"))
+            for((path,hash)in strings(a,"helpers"))require(sha(File(root,path),active)==hash)
+            val family=text(a,"family");val command=LocalUbuntuGraphqlPolicy.command(family)
+            require(read(File(root,"payload/bin/$command"),65536,active)==LocalUbuntuGraphqlLaunchAuthority.guestWrapper(family,LocalUbuntuGraphqlPolicy.root(family)))
+            require(read(File(root,"payload/host-bin/$command"),65536,active)==LocalUbuntuGraphqlLaunchAuthority.guestWrapper(family,LocalUbuntuGraphqlPolicy.root(family)))
+            val nodeRoot=if(family==LocalUbuntuGraphqlPolicy.FAMILY)LocalPackageInstallJournal.paths(appRoot,LocalUbuntuGraphqlNodePolicy.FAMILY,LocalUbuntuGraphqlNodePolicy.VERSION,LocalManagedPackageMetadata.KIND_UBUNTU_VENDOR_TREE).final else root
+            val tree=File(nodeRoot,"payload/tree");val inv=LocalUbuntuGraphqlNodePolicy.requireTree(File(tree,LocalUbuntuGraphqlNodePolicy.ENTRY),active)
+            val closure=LocalUbuntuGraphqlLaunchAuthority.requireExecutionClosure(inv,guest(appRoot),active)
+            val c=objectAt(root,CLOSURE,active);require(c.keys==setOf("schema","files","sha256")&&c["schema"]==JsonPrimitive(1)&&strings(c,"files")==closure.files&&text(c,"sha256")==closure.sha256&&closure.sha256==text(a,"closureSha256"))
+            val originalStage=LocalPackageInstallJournal.paths(appRoot,family,LocalUbuntuGraphqlPolicy.version(family),LocalUbuntuGraphqlPolicy.kind(family)).stage.absolutePath
+            val seed=objectAt(root,HEALTH_SEED,active)
+            require(seed.keys==setOf("schema","policy","packageRoot","nodeExecutable","packageReceiptSha256","runtimeReceiptSha256","sourceBindingSha256","importReviewSha256","noticeAdmissionSha256","dataAdmissionSha256","helpersSha256"))
+            require(seed["schema"]==JsonPrimitive(1)&&text(seed,"policy")==LocalUbuntuGraphqlLaunchAuthority.POLICY&&text(seed,"packageRoot")==originalStage)
+            require(text(seed,"nodeExecutable")==if(family==LocalUbuntuGraphqlPolicy.FAMILY)LocalUbuntuGraphqlNodePolicy.EXECUTABLE else "$originalStage/payload/tree/${LocalUbuntuGraphqlNodePolicy.ENTRY}")
+            require(text(seed,"packageReceiptSha256")==sha(File(root,AUTHORITY),active)&&text(seed,"runtimeReceiptSha256")==strings(a,"dependencyReceipts")[LocalUbuntuGraphqlNodePolicy.FAMILY].orEmpty().ifEmpty{sha(File(root,AUTHORITY),active)})
+            for(key in listOf("sourceBindingSha256","importReviewSha256","noticeAdmissionSha256","dataAdmissionSha256"))require(seed[key]==a[key])
+            require(seed["helpersSha256"]==a["helpers"])
+            val data=objectAt(root,DATA,active)
+            if(family==LocalUbuntuGraphqlPolicy.FAMILY) {
+                val inventory=objectAt(root,ARCHIVES,active);require(text(a,"artifactSha256")==sha(File(root,ARCHIVES),active));requireNpmInventory(File(root,"payload/npm"),inventory,active)
+                require(data==LocalUbuntuGraphqlDataAdmission.inspect(File(root,"payload/npm"),active))
+                val notice=objectAt(root,NOTICE,active);require(notice==LocalUbuntuGraphqlNoticePolicy.derive(root,inventory,active))
+                val nodeAuthority=objectAt(nodeRoot,AUTHORITY,active);requireAuthority(nodeRoot,nodeAuthority,active)
+                require(snapshot(nodeRoot,active,setOf("SHA256SUMS")).toString()==read(File(nodeRoot,"SHA256SUMS"),16_777_216,active))
+            } else {
+                require(snapshot(tree,active)==objectAt(root,ARCHIVES,active))
+                require(text(a,"artifactSha256")==LocalUbuntuGraphqlNodePolicy.SHA256&&text(data,"configSha256")==LocalUbuntuGraphqlNodePolicy.requireConfiguration(File(tree,LocalUbuntuGraphqlNodePolicy.CONFIG),active)&&text(data,"originalTreeSha256")==sha(File(root,ARCHIVES),active))
+                val notice=objectAt(root,NOTICE,active);require(text(notice,"originalLicenseSha256")==sha(File(tree,"${LocalUbuntuGraphqlNodePolicy.TOP}/LICENSE"),active)&&text(notice,"originalReadmeSha256")==sha(File(tree,"${LocalUbuntuGraphqlNodePolicy.TOP}/README.md"),active))
+            }
+        }
+        internal fun requireNpmInventory(npm:File,inventory:JsonObject,active:()->Unit={}) {
+            require(inventory.keys==LocalUbuntuGraphqlPolicy.placements.keys)
+            val all=mutableSetOf("node_modules")
+            for((placement,identity)in LocalUbuntuGraphqlPolicy.placements) {
+                val a=inventory.getValue(placement).jsonObject;require(text(a,"sha512")==LocalUbuntuGraphqlPolicy.artifacts.getValue(identity).getValue("sha512").jsonPrimitive.content)
+                require((android.system.Os.lstat(File(npm,placement).absolutePath).st_mode and 511)==a.getValue("rootMode").jsonPrimitive.int)
+                val files=a.getValue("files").jsonObject;val dirs=a.getValue("directories").jsonObject;require(a.getValue("links").jsonObject.isEmpty())
+                val observed=snapshot(File(npm,placement),active)
+                require(observed.keys==files.keys+dirs.keys)
+                for((path,record)in files) { val actual=observed.getValue(path).jsonObject;val expected=record.jsonObject;require(text(actual,"kind")=="file"&&actual["size"]==expected["size"]&&actual["sha256"]==expected["sha256"]&&actual["mode"]==expected["mode"]) }
+                dirs.forEach{(path,mode)->require(text(observed.getValue(path).jsonObject,"kind")=="directory"&&observed.getValue(path).jsonObject["mode"]==mode)};all+=placement;all+=observed.keys.map{"$placement/$it"}
+                LocalUbuntuGraphqlPolicy.requirePackage(identity,LocalUbuntuGraphqlPolicy.strictObject(read(File(npm,"$placement/package.json"),65536,active)))
+            }
+            require(snapshot(npm,active).keys==all) { "Unexpected original npm member or dependency placement" }
+        }
+        internal fun snapshot(root:File,active:()->Unit={},exclude:Set<String> = emptySet()):JsonObject {
+            NimRuntimeClosure.requireDirectory(root);require(root.canonicalFile==root.absoluteFile);val map=sortedMapOf<String,JsonElement>();var total=0L
+            Files.walk(root.toPath()).use{stream->stream.forEach{p->active();if(p==root.toPath())return@forEach
+                val relative=root.toPath().relativize(p).toString().replace(File.separatorChar,'/');if(relative in exclude)return@forEach
+                LocalUbuntuGraphqlPolicy.safeRelative(relative);require(map.size<20_000);val mode=android.system.Os.lstat(p.toString()).st_mode and 511
+                map[relative]=when {
+                    Files.isSymbolicLink(p)->{require(relative.startsWith("payload/tree/")||root.name=="tree");buildJsonObject{put("kind","link");put("mode",mode);put("target",Files.readSymbolicLink(p).toString())}}
+                    Files.isDirectory(p,NOFOLLOW_LINKS)->buildJsonObject{put("kind","directory");put("mode",mode)}
+                    Files.isRegularFile(p,NOFOLLOW_LINKS)->{val measure=NimRuntimeClosure.measure(p.toFile(),536_870_912,active);total=Math.addExact(total,measure.first);require(total<=553_648_128);buildJsonObject{put("kind","file");put("mode",mode);put("size",measure.first);put("sha256",measure.second)}}
+                    else->error("GraphQL package special file")
+                }
+            }};return JsonObject(map)
+        }
+    }
+}

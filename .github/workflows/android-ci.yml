@@ -1,0 +1,96 @@
+name: Android CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Verify public source and dependency policies
+        run: bash tools/verify_release_source.sh
+
+  release:
+    needs: repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      DROIDE_TERMINAL_ENGINE: ${{ runner.temp }}/droide-terminal-engine
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install and verify pinned JDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/provision_build_jdk.py --output "$RUNNER_TEMP/droide-jdk"
+          echo "JAVA_HOME=$RUNNER_TEMP/droide-jdk/jdk-17.0.20.1+1" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/droide-jdk/jdk-17.0.20.1+1/bin" >> "$GITHUB_PATH"
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Install pinned SDK components
+        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          validate-wrappers: true
+      - name: Run critical application regressions
+        run: python3 tools/run_release_tests.py
+      - name: Build and verify unsigned release
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleSourceRelease \
+            -PDROIDE_SOURCE_RELEASE=true \
+            -PDROIDE_SOURCE_RELEASE_ENGINE_DIR="$DROIDE_TERMINAL_ENGINE" \
+            -PDROIDE_SOURCE_RELEASE_JDK_ARCHIVE="$RUNNER_TEMP/droide-jdk/vendor.tar.gz" \
+            -Pandroid.builder.sdkDownload=false \
+            -Pkotlin.compiler.execution.strategy=in-process -Pkotlin.incremental=false \
+            '-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC -XX:ActiveProcessorCount=2 -Dfile.encoding=UTF-8' \
+            --dependency-verification=strict --no-daemon --max-workers=1 \
+            --no-configuration-cache --no-build-cache
+      - name: Test current compiled engine and optimized APK
+        env:
+          DROIDE_SOURCE_RELEASE_APK: app/build-source-release/outputs/apk/release/app-release-unsigned.apk
+        run: python3 -B -m unittest discover -s tools/tests -p 'test_*.py' -v
+      - name: Preserve reports
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: android-verification
+          path: |
+            app/build-source-release/reports/
+            app/build-source-release/outputs/source-release-verification.json
+            app/build-host-jvm-tests/reports/tests/
+            app/build-host-jvm-tests/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve verified unsigned APK
+        if: success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: droide-release-unsigned
+          path: app/build-source-release/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14

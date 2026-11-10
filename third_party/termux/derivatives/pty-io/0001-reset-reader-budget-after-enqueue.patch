@@ -1,0 +1,10 @@
+--- a/com/termux/terminal/TerminalPtyIo.java
++++ b/com/termux/terminal/TerminalPtyIo.java
+@@ -54,6 +54,7 @@
+                 if (count == 0) return;
+                 if (!backend.enqueue(bytes, count)) { receipt.incomplete = true; return; }
+                 backend.queued();
++                immediate = 0;
+             }
+             receipt.incomplete = true; // Stop/deadline is not a proven EOF.
+         } catch (InterruptedException interrupted) {

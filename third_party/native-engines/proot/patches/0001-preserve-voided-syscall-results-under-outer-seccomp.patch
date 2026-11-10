@@ -1,0 +1,35 @@
+--- a/src/tracee/event.c
++++ b/src/tracee/event.c
+@@ -501,9 +501,10 @@
+ 					 * set tracee flag to ignore next SIGSYS.  */
+ 					if (was_sysenter) {
+ 						tracee->skip_next_seccomp_signal = (
+ 								seccomp_after_ptrace_enter &&
+-								get_sysnum(tracee, CURRENT) == PR_void);
++								get_sysnum(tracee, CURRENT) == PR_void &&
++								get_sysnum(tracee, ORIGINAL) != PR_void);
+ 					}
+ 
+ 					/* Redeliver signal suppressed during
+ 					 * syscall chain once it's finished.  */
+@@ -654,9 +655,19 @@
+ 					VERBOSE(tracee, 1, "Handling syscall exit from SIGSYS");
+ 					translate_syscall(tracee);
+ 				}
+ 
+-				if (tracee->skip_next_seccomp_signal || (seccomp_after_ptrace_enter && siginfo.si_syscall == SYSCALL_AVOIDER)) {
++				/* An outer Android seccomp filter may trap our avoider even
++				 * when PROOT_NO_SECCOMP disables the filter used to detect
++				 * ptrace/seccomp ordering.  The exit handler above already
++				 * produced the guest result: replaying the SIGSYS handler
++				 * would replace getcwd/fchdir results and real path errors
++				 * with -ENOSYS.  Suppress only a syscall PRoot itself voided;
++				 * genuine unsupported guest syscalls still reach that handler.
++				 * Based on termux/proot a179d3e8 (tracee/event.c). */
++				const bool own_void_syscall = siginfo.si_syscall == (int) SYSCALL_AVOIDER
++					&& get_sysnum(tracee, ORIGINAL) != PR_void;
++				if (tracee->skip_next_seccomp_signal || own_void_syscall) {
+ 					VERBOSE(tracee, 4, "suppressed SIGSYS after void syscall");
+ 					tracee->skip_next_seccomp_signal = false;
+ 					signal = 0;
+ 				} else {

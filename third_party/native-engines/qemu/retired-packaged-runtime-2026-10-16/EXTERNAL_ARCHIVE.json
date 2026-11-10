@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "retained-in-separate-source-archive",
+  "archive": {
+    "fileName": "Droide-Full-Source-STABIL-BUILD-SUCCESS-2026-11-09.zip",
+    "bytes": 131909157,
+    "sha256": "4378995f36fc766a3a60785d7f357c39e58a44b573da1f78c8c9259bca5e63a7",
+    "entryPrefix": "Droide/"
+  },
+  "sourceOffer": "app/src/main/assets/legal/COPYLEFT_SOURCE_OFFER.md",
+  "payloads": [
+    {
+      "path": "third_party/native-engines/qemu/alpine-v3.24-community-aarch64-APKINDEX.tar.gz",
+      "bytes": 2503496,
+      "sha256": "b3a70055b7f6526b21861d3037b0a15f882ebc2445dd8f6c4f5daf0557796804"
+    },
+    {
+      "path": "third_party/native-engines/qemu/alpine-v3.24-main-aarch64-APKINDEX.tar.gz",
+      "bytes": 529422,
+      "sha256": "c9bc75e1d555694bcbdd2bfe53d733661a06c806291f460cd59c3f9fe648616a"
+    },
+    {
+      "path": "third_party/native-engines/qemu/qemu-v11.0.3-source.tar.xz",
+      "bytes": 33530620,
+      "sha256": "41b07ba80f7bdb0dcd46dd4e30eeb914588c7148a7fd3b2dd3ea562084289119"
+    },
+    {
+      "path": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/assets/alpine-minirootfs-3.24.2-aarch64.tar.xz",
+      "bytes": 3203364,
+      "sha256": "66c582602205a7f90657c5cb01c8d7d1bfd0a2fc8eb03bd9de288f2c9ef2b935"
+    },
+    {
+      "path": "third_party/native-engines/qemu/retired-packaged-runtime-2026-10-16/assets/qemu-offline-alpine-v3.24-arm64.tar",
+      "bytes": 38912000,
+      "sha256": "406fbb16607902b7e39bc8b8c90bca3dda1c36772166b4f0d0777bb9b5d5b0f6"
+    }
+  ]
+}

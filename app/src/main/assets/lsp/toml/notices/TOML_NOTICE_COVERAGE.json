@@ -1,0 +1,39 @@
+{
+  "schema": "taplo-source-notice-coverage-v1",
+  "scope": "conservative_source_candidates_only",
+  "status": "source_candidate_texts_collected_with_explicit_caveats",
+  "cargo_candidate_count": 235,
+  "registry_candidate_count": 229,
+  "registry_checksum_matches": 229,
+  "workspace_candidate_count": 6,
+  "npm_root_and_core_count": 2,
+  "additional_js_helper_or_generator_candidates": 7,
+  "total_candidate_count": 244,
+  "unresolved_source_candidate_text_count": 0,
+  "unique_retained_text_count": 179,
+  "coverage_classes": {
+    "official_text_collected": 236,
+    "declared_standard_terms_with_original_headers": 2,
+    "same_commit_project_notices_with_exact_component_declaration": 5,
+    "publisher_spdx_standard_terms_no_original_notice_found": 1
+  },
+  "bundle": {
+    "path": "TAPLO-THIRD-PARTY-NOTICES.txt",
+    "sha256": "c67d4c7be6723482ae45e3a46ba3d6904299b6365d9756f4316427eb2968d1e4",
+    "bytes": 870457
+  },
+  "components_file": {
+    "path": "COMPONENTS.json",
+    "sha256": "aa8ce3a82514c263b02e6f2221f6ca624414b9fbbb68365a9884523dd8acbc9b"
+  },
+  "unresolved_file": {
+    "path": "UNRESOLVED.json",
+    "sha256": "384354080b303e426e9fc394d6367a2cf1cf8263a98ed3be54ca3ff98075a12c"
+  },
+  "all_original_archive_notices_must_be_retained": true,
+  "is_linked_sbom": false,
+  "is_source_to_payload_attestation": false,
+  "payload_acquired": false,
+  "payload_admission_satisfied": false,
+  "notice_admission_predicate": "All finite candidate text records have evidence-backed supported status, all originals retained, actual payload coverage and applicable source/attribution obligations resolved separately. Do not require an original comprehensive NOTICE file to exist; do not unconditionally pass or block merely because it does not."
+}

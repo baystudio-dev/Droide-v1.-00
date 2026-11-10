@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 3,
+  "ownedProcessAbiSource": {
+    "path": "third_party/termux/native/OWNED_PROCESS_ABI.json",
+    "sha256": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63"
+  },
+  "upstreamCommit": "6e2689f55295fa444be8ac8592c527c2c5ef3253",
+  "originalJavaAar": {
+    "path": "app/libs/terminal-emulator-v0.118.0-java.aar",
+    "sha256": "4852749bb1de1d64630ee82000ce728a842521e391c55c2392d4a1b84ae74b61"
+  },
+  "originalSourceJar": {
+    "path": "third_party/termux/terminal-emulator-v0.118.0-sources.jar",
+    "sha256": "7c5f8af31d4d0404962bd1568a997068a42b1c764896547b5b7c508d7b85fa5e"
+  },
+  "source": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java",
+    "sha256": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae"
+  },
+  "patch": {
+    "path": "third_party/termux/patches/0001-agent-input-owner-hook.patch",
+    "sha256": "3ab1ab01f873653876830fe01376c0c32ecd2752112d9516e89d8ed247ca1d8a"
+  },
+  "rowSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java",
+    "sha256": "6131e5639ad689e51a817a640076ca69ec6995a7cf911eee7250e086b7e2145b"
+  },
+  "rowPatch": {
+    "path": "third_party/termux/patches/0002-bounded-combining-row.patch",
+    "sha256": "a81dbe070a2c537d6165975fdcc6b6d7bca1b1943c32eab9703824c2ef93aceb"
+  },
+  "emulatorSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java",
+    "sha256": "91e8b1f545374e07696245fcf2b518b5d681ba15ff79fd8a79bdec29eac8d5ca"
+  },
+  "emulatorPatch": {
+    "path": "third_party/termux/patches/0003-bounded-parser-work.patch",
+    "sha256": "cf5735a02bbba46ece73a317feef3abf99a42cc08468a158d8568c926a21dd89"
+  },
+  "bufferSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java",
+    "sha256": "49565646f259eb81724696366e63a3f30a3234f7684895f293701b93b5d0ad9d"
+  },
+  "bufferPatch": {
+    "path": "third_party/termux/patches/0004-retained-buffer-budget.patch",
+    "sha256": "313b1200630ec061e2c062f1b2f087d81a5fd0a1e2e67a912e1368a97c576980"
+  },
+  "queueSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java",
+    "sha256": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3"
+  },
+  "queuePatch": {
+    "path": "third_party/termux/patches/0005-drainable-output-queue.patch",
+    "sha256": "b3f178d0dda4b0f255b8a9d373dcfbf00e33ed3149aa2a2c0b6f238845db144e"
+  },
+  "memorySource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java",
+    "sha256": "6b397797ed186229fc6709bd1391dbe3b04277edd92ab8c53e7ddecbf0ebe72e"
+  },
+  "memoryPatch": {
+    "path": "third_party/termux/patches/0006-mobile-memory-budget.patch",
+    "sha256": "92d64aeccd894eb893e7c532f0dbcf7eba64d7d5f81adbc80567054c634b8c2c"
+  },
+  "jniSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/JNI.java",
+    "sha256": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3"
+  },
+  "jniPatch": {
+    "path": "third_party/termux/patches/0007-owned-process-jni.patch",
+    "sha256": "1c64be92bdc3867ee2e81320555a54ea1129f616e466f916d362921ce0580ebf"
+  },
+  "ownerSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java",
+    "sha256": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f"
+  },
+  "ownerPatch": {
+    "path": "third_party/termux/patches/0008-prestarted-process-owner.patch",
+    "sha256": "1708c3207366ebc999788d4b2199b618502859fc4ec3d15ace760f28903bf31e"
+  },
+  "ioSource": {
+    "path": "third_party/termux/patches/src/com/termux/terminal/TerminalPtyIo.java",
+    "sha256": "c306cd096e1bf181f9f2c93616df5cc1f72811c33024d0e75943142fa309bbef"
+  },
+  "ioPatch": {
+    "path": "third_party/termux/patches/0009-bounded-pty-io.patch",
+    "sha256": "7401e652cd4d9f2061f31e37d756a8231d55f57a42b14512c79078f136f516a5"
+  },
+  "buildScript": {
+    "path": "tools/build_termux_input_aar.py",
+    "sha256": "3d99269c75609f6e75a19a90e7543800db75bd33c5925bab1e131231145f0dc0"
+  },
+  "compiler": {
+    "version": "javac 17.0.20.1",
+    "arguments": [
+      "--release",
+      "8",
+      "-encoding",
+      "UTF-8",
+      "-g:none"
+    ]
+  },
+  "androidJar": {
+    "api": 36,
+    "sha256": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a"
+  },
+  "zip": {
+    "timestamps": "1980-01-01T00:00:00",
+    "ordering": "sorted",
+    "compression": "deflate-9"
+  },
+  "output": {
+    "path": "app/libs/terminal-emulator-v0.118.0-droide-input.aar",
+    "sha256": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea"
+  },
+  "replacementClassSha256ByPath": {
+    "com/termux/terminal/ByteQueue$StopCondition.class": "7b46fbed43f5ece6a1f9ba4608eb5f36f8dc4b781b03c8f328812d6a1dfb10d9",
+    "com/termux/terminal/ByteQueue.class": "c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33",
+    "com/termux/terminal/JNI.class": "0f46033d6a7753e9bf7fa4784811c430a04b897462759b7df281553a6608782a",
+    "com/termux/terminal/TerminalBuffer.class": "c2fd2cb6b8196ad6ea51b03922c82fb9e594c53b0efd2cb01acda76525424551",
+    "com/termux/terminal/TerminalEmulator$SavedScreenState.class": "e975b317d7e8f41bb20e4da0bfc221db8bf4bc35144bcced159e59f90289ae08",
+    "com/termux/terminal/TerminalEmulator.class": "b5a0526374a8d6f222b7ee0c4c7ea7f0757ff14518f610e72e3091db234341ef",
+    "com/termux/terminal/TerminalMemoryBudget.class": "e04b6f26ea547f34d926ed52b5dfc3e14681198acc83e3c027b0f1918b835745",
+    "com/termux/terminal/TerminalProcessOwner$Backend.class": "45ff98a0ca290dfe672845634995dc4490ba6ebef6df6c05d89b1779ce5fb291",
+    "com/termux/terminal/TerminalProcessOwner$Worker.class": "3d9e5efdd6e268a33eab94879aec92f1134663997de6e6f51798f9fbb89d5737",
+    "com/termux/terminal/TerminalProcessOwner.class": "1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0",
+    "com/termux/terminal/TerminalPtyIo$Backend.class": "3e6e1add3adf5b17cb33d510fc429c85384b769cc78006f706db11917c9b7dd1",
+    "com/termux/terminal/TerminalPtyIo$ReadReceipt.class": "4b4a37396de770c34ebf0581be659ae4fe22515edb03d8d67cdb16245e7240a8",
+    "com/termux/terminal/TerminalPtyIo$ReaderBackend.class": "ef0e38ba8dcca01bc4787c280b8c244d5350814b2bf895f9e12f23441e884580",
+    "com/termux/terminal/TerminalPtyIo$WriteReceipt.class": "95a65337e5b757e79eb04c45064d7728b819d78c336121a890044909b9ea905e",
+    "com/termux/terminal/TerminalPtyIo.class": "dad71a2616d8896baad01e244ac3548f014960822462961d7569a6e557b6ee51",
+    "com/termux/terminal/TerminalRow.class": "39996b9f40c07f43b8fc752742267fbacca90f2b6395749cfa9341601cf5d134",
+    "com/termux/terminal/TerminalSession$1.class": "3c00016a943245c133c94fc2fad615b895fb31eb6a59006c18a515c4b1c8655b",
+    "com/termux/terminal/TerminalSession$2.class": "9869e07bb695b78842fb2833cb2f4f87fe4924ac892835fe054143d14980e043",
+    "com/termux/terminal/TerminalSession$3.class": "c7bc2dec3736a97958f0a24b85d0550905faf697e136345522e2ea6fc4e4984b",
+    "com/termux/terminal/TerminalSession$InputHandler.class": "2dda6dce690ea99ac9285342c6ce07a968fc925b2db507230b9fe39c19de2f64",
+    "com/termux/terminal/TerminalSession$MainThreadHandler.class": "f6cf415b4a9472ebf53f1be0bcab8d897c7a105be148f2ae9e45fb2c57ab974b",
+    "com/termux/terminal/TerminalSession$NativeBackend.class": "2c406e760667d44c67fd7762a025578b2af3f3f1d22f9fccbb97df2d0dedf49f",
+    "com/termux/terminal/TerminalSession$ReaderBackend.class": "02b9c5b42d5b78b0ff6a4774d4083356cfd498dfae1617d010315b03a8453451",
+    "com/termux/terminal/TerminalSession$ReaderStopCondition.class": "ea32e0d6a223b5c3b1910d08f7c91915bc7750780fbf496e1f29e0b5d3ebcdcd",
+    "com/termux/terminal/TerminalSession$WriterBackend.class": "22863256b177a21e892347f6ac5f5dea8e26bee238f24a5b80fd814857629f0d",
+    "com/termux/terminal/TerminalSession.class": "365f515dc00b5c62c19fbff53928515deedd01ffa3f08eb2daf43120286d7ca5"
+  },
+  "addedClasses": [
+    "com/termux/terminal/ByteQueue$StopCondition.class",
+    "com/termux/terminal/TerminalMemoryBudget.class",
+    "com/termux/terminal/TerminalProcessOwner$Backend.class",
+    "com/termux/terminal/TerminalProcessOwner$Worker.class",
+    "com/termux/terminal/TerminalProcessOwner.class",
+    "com/termux/terminal/TerminalPtyIo$Backend.class",
+    "com/termux/terminal/TerminalPtyIo$ReadReceipt.class",
+    "com/termux/terminal/TerminalPtyIo$ReaderBackend.class",
+    "com/termux/terminal/TerminalPtyIo$WriteReceipt.class",
+    "com/termux/terminal/TerminalPtyIo.class",
+    "com/termux/terminal/TerminalSession$InputHandler.class",
+    "com/termux/terminal/TerminalSession$NativeBackend.class",
+    "com/termux/terminal/TerminalSession$ReaderBackend.class",
+    "com/termux/terminal/TerminalSession$ReaderStopCondition.class",
+    "com/termux/terminal/TerminalSession$WriterBackend.class"
+  ],
+  "localChanges": [
+    "One-time input owner hook routes all write(byte[],offset,count) calls before upstream ByteQueue",
+    "Owner worker writeToPty returns actual upstream queue acceptance and rejects Android main-thread forwarding",
+    "Native-owned generation handle replaces all raw PID/fd and ParcelFileDescriptor ownership APIs",
+    "Waiter, reader and writer are preconstructed and started before native spawn with exactly-once handoffs",
+    "One-attempt native I/O exposes EINTR/EAGAIN; bounded partial writer and drain cancellation retain receipts",
+    "Writer lane acknowledgment gates clean completion; cleanup failures remain explicit",
+    "TerminalRow retains at most 64 UTF-16 units per cell and uses a non-narrowing row-length counter",
+    "Wide overwrite consumes the adjacent cell's full combining suffix; clear shrinks recycled text storage",
+    "Finite numeric parameters, explicit over-limit REP/SU rejection, ordered bounded owner continuations",
+    "Reader completion and queue/parser drain own final delivery; timeout explicitly reports incomplete output",
+    "Byte-accounted history, viewport admission and shared retained/reflow reservations across reachable emulators",
+    "Nine exact overlay families include JNI ABI v2; renderer and original artifact bytes remain unchanged",
+    "This Java-only AAR recipe does not build or attest native ABI v2; release requires separate native evidence"
+  ]
+}
