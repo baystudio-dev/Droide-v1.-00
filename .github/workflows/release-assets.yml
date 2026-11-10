@@ -3,6 +3,10 @@ name: Upload verified release assets
 on:
   workflow_dispatch:
     inputs:
+      release_id:
+        description: Existing draft release ID
+        required: true
+        type: string
       tag:
         description: Existing release tag
         required: true
@@ -37,6 +41,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          RELEASE_ID: ${{ inputs.release_id }}
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_COMMIT: ${{ inputs.commit }}
           RELEASE_ASSETS: ${{ inputs.assets }}

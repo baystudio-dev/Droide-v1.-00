@@ -12,6 +12,11 @@ import terminal_jdk_v2 as vendor
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def exact_vendor_filter(member, destination):
+    checked = tarfile.data_filter(member, destination)
+    return checked.replace(mode=member.mode) if checked is not None else None
+
+
 def provision(output, archive=None):
     output = vendor.safe_path(output)
     vendor.require(output != ROOT and ROOT not in output.parents and output not in ROOT.parents,
@@ -34,7 +39,7 @@ def provision(output, archive=None):
     vendor.archive_inventory(destination, manifest)
     # Extraction is allowed only after every archive member, symlink and hash matches the pinned manifest.
     with tarfile.open(destination, 'r:gz') as source:
-        source.extractall(output, filter='data')
+        source.extractall(output, filter=exact_vendor_filter)
     java_home = output / ('jdk-' + manifest['version'])
     vendor.installed_inventory(java_home, manifest)
     return java_home

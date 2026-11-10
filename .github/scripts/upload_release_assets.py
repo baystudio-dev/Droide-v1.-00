@@ -80,8 +80,11 @@ def existing_matches(asset, row):
 
 def main():
     repo, tag, commit = (os.environ[key] for key in ('GH_REPO', 'RELEASE_TAG', 'RELEASE_COMMIT'))
+    release_id = os.environ['RELEASE_ID']
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo) or not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise ValueError('Invalid repository or expected source commit')
+    if not re.fullmatch(r'[1-9][0-9]*', release_id):
+        raise ValueError('Invalid draft release ID')
     rows = validate_manifest(os.environ['RELEASE_ASSETS'])
     headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'Droide-release-publisher'}
 
@@ -94,7 +97,7 @@ def main():
     ref = urllib.parse.quote(tag, safe='')
     if api(api_root + '/commits/' + ref)['sha'] != commit:
         raise ValueError('Release tag does not match the verified source commit')
-    release = api(api_root + '/releases/tags/' + ref)
+    release = api(api_root + '/releases/' + release_id)
     if not release['draft'] or release['tag_name'] != tag:
         raise ValueError('Assets may only be added to the intended draft release')
     existing = {asset['name']: asset for asset in release['assets']}

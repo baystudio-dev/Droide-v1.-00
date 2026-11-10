@@ -2,10 +2,13 @@
 import base64
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('release_upload', Path(__file__).resolve().parents[2] / '.github/scripts/upload_release_assets.py')
 upload = importlib.util.module_from_spec(spec)
@@ -54,6 +57,26 @@ class ReleaseAssetUploadTests(unittest.TestCase):
         self.assertTrue(upload.existing_matches(asset, row))
         self.assertFalse(upload.existing_matches({**asset, 'digest': None}, row))
         self.assertFalse(upload.existing_matches({**asset, 'size': 1}, row))
+
+    def draft_api(self, draft=True):
+        row = self.row()
+        env = {'GH_REPO': 'owner/project', 'GH_TOKEN': 'test-token', 'RELEASE_ID': '123', 'RELEASE_TAG': 'v1.00', 'RELEASE_COMMIT': 'a' * 40, 'RELEASE_ASSETS': json.dumps([row])}
+        release = {'id': 123, 'draft': draft, 'tag_name': 'v1.00', 'assets': [{'name': row['name'], 'state': 'uploaded', 'size': row['bytes'], 'digest': 'sha256:' + row['sha256']}]}
+        replies = {'https://api.github.com/repos/owner/project/commits/v1.00': {'sha': 'a' * 40}, 'https://api.github.com/repos/owner/project/releases/123': release}
+        return env, lambda request, **kwargs: io.BytesIO(json.dumps(replies[request.full_url]).encode())
+
+    def test_draft_is_resolved_by_id_without_published_tag_lookup(self):
+        env, reply = self.draft_api()
+        with patch.dict(upload.os.environ, env), patch.object(upload.urllib.request, 'urlopen', side_effect=reply) as request, redirect_stdout(io.StringIO()):
+            upload.main()
+        self.assertEqual(2, request.call_count)
+
+    def test_published_release_is_rejected_before_receiving_files(self):
+        env, reply = self.draft_api(draft=False)
+        with patch.dict(upload.os.environ, env), patch.object(upload.urllib.request, 'urlopen', side_effect=reply), patch.object(upload, 'receive_asset') as receive:
+            with self.assertRaisesRegex(ValueError, 'intended draft'):
+                upload.main()
+            receive.assert_not_called()
 
 
 if __name__ == '__main__':
