@@ -371,7 +371,7 @@ dependencies {
     implementation(terminalEmulatorDependency)
     implementation(files("libs/terminal-view-v0.118.0.aar"))
 
-    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.2")
 
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-compose:1.9.2")
