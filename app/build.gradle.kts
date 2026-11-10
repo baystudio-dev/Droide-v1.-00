@@ -387,7 +387,7 @@ dependencies {
     implementation("io.github.rosemoe:language-textmate:0.24.6")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okio:okio-jvm:3.17.0")
+    implementation("com.squareup.okio:okio-jvm:3.18.2")
 
     // Same pinned support artifacts formerly supplied at runtime by Kadb; source now needs them to
     // compile.
