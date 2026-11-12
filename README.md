@@ -84,6 +84,7 @@ Use [the testing guide](docs/TESTING.md) for repository checks, dependency verif
 - [Testing](docs/TESTING.md)
 - [Dependency maintenance](docs/DEPENDENCIES.md)
 - [Release process](docs/RELEASING.md)
+- [F-Droid packaging readiness](docs/FDROID.md) (submission pending)
 - [v1.00 release notes](docs/releases/1.00.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security reporting](SECURITY.md)

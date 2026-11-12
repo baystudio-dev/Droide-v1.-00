@@ -1,0 +1,9 @@
+Droide is a native Android development workspace by BayStudio.
+
+Work with local projects and files, edit code with syntax highlighting and language-aware tools, manage Git changes, and preview web projects. A persistent Linux terminal supports command-line workflows and separately installed development toolchains.
+
+Optional AI agent connections let you use external coding assistants, follow their activity, and review code changes. External providers may require your own account, credentials, and an internet connection.
+
+Use Extensions to choose development tools and runtimes to install. Available tools and language features depend on your device, architecture, and installed components.
+
+Droide supports Android 10 and newer.

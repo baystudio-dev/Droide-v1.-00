@@ -1,0 +1,1 @@
+Droide 1.00 initial stable release: Android code editor, project file management, persistent Linux terminal, Git integration, web previews, extensions, and optional external AI agents.

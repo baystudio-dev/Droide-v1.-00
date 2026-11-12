@@ -22,6 +22,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Verify F-Droid listing metadata
+        run: python3 -B tools/verify_fdroid_metadata.py
       - name: Verify public source and dependency policies
         run: bash tools/verify_release_source.sh
 

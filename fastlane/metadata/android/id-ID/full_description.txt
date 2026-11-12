@@ -1,0 +1,9 @@
+Droide adalah lingkungan kerja pengembangan aplikasi native Android dari BayStudio.
+
+Kelola proyek dan berkas lokal, edit kode dengan penyorotan sintaks dan fitur bantuan bahasa, gunakan Git, serta lihat pratinjau proyek web. Terminal Linux yang persisten mendukung pekerjaan lewat baris perintah dan toolchain pengembangan yang dipasang secara terpisah.
+
+Koneksi agen AI bersifat opsional. Kamu dapat menggunakan asisten pemrograman eksternal, mengikuti aktivitasnya, serta meninjau perubahan kode. Penyedia AI eksternal mungkin memerlukan akun, kredensial, dan koneksi internet.
+
+Gunakan Extensions untuk memilih alat dan runtime yang ingin dipasang. Ketersediaan fitur bergantung pada perangkat, arsitektur, serta komponen yang terinstal.
+
+Droide mendukung Android 10 atau yang lebih baru.

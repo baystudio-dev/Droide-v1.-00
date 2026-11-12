@@ -1,0 +1,1 @@
+Rilis stabil awal Droide 1.00: editor kode Android, pengelola berkas proyek, terminal Linux persisten, integrasi Git, pratinjau web, extensions, dan agen AI eksternal opsional.
