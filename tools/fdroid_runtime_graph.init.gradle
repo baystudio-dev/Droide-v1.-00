@@ -1,0 +1,49 @@
+// Read-only CI instrumentation, attached to the already authorized source-release task.
+// Do not add :app:dependencies to the source-release task graph or weaken its task gate.
+import java.security.MessageDigest
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
+
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    def task = app.tasks.findByName('assembleSourceRelease')
+    if (task == null) {
+        throw new GradleException('Runtime graph capture requires :app:assembleSourceRelease')
+    }
+    task.doLast {
+        def runtime = app.configurations.getByName('releaseRuntimeClasspath')
+        def resolution = runtime.incoming.resolutionResult
+        def components = resolution.allComponents.collect { it.id.displayName }.sort()
+        def edges = resolution.allDependencies.collect { dependency ->
+            def selected = dependency instanceof ResolvedDependencyResult ?
+                dependency.selected.id.displayName : 'UNRESOLVED'
+            "${dependency.from.id.displayName} -> ${dependency.requested.displayName} => ${selected}"
+        }.sort()
+        def artifacts = runtime.files.collect { File file ->
+            if (!file.isFile()) {
+                throw new GradleException('Runtime dependency is not a regular file: ' + file.name)
+            }
+            def digest = MessageDigest.getInstance('SHA-256')
+            file.withInputStream { stream ->
+                byte[] buffer = new byte[65536]
+                int length
+                while ((length = stream.read(buffer)) != -1) {
+                    digest.update(buffer, 0, length)
+                }
+            }
+            "${file.name}|${file.length()}|${digest.digest().encodeHex()}"
+        }.sort()
+        if (components.size() < 10 || edges.size() < 10 || artifacts.size() < 10) {
+            throw new GradleException('Runtime dependency graph unexpectedly small')
+        }
+        def lines = ['DROIDE_RUNTIME_GRAPH_V1']
+        lines.addAll(components.collect { 'component|' + it })
+        lines.addAll(edges.collect { 'edge|' + it })
+        lines.addAll(artifacts.collect { 'artifact|' + it })
+        def report = new File(app.layout.buildDirectory.get().asFile,
+            'outputs/source-release-runtime-dependencies.txt')
+        report.parentFile.mkdirs()
+        report.setText(lines.join('\n') + '\n', 'UTF-8')
+        println "DROIDE_RUNTIME_GRAPH_CAPTURED ${components.size()} components, " +
+            "${edges.size()} edges, ${artifacts.size()} file hashes"
+    }
+}

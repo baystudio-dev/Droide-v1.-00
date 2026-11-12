@@ -1,6 +1,7 @@
 package com.baystudio.droide.core
 import android.content.Context
 import java.io.File
+import java.util.zip.GZIPInputStream
 import java.security.MessageDigest
 import kotlinx.coroutines.*
 import org.tukaani.xz.XZInputStream
@@ -48,5 +49,47 @@ object BundledRootfsExtractor {
             },
         )
         check(result.exitCode == 0 && !result.timedOut) { "Rootfs extraction failed: ${result.output.takeLast(4000)}" }
+    }
+
+    /** F-Droid path: use the identical Ubuntu TAR from Canonical, not a new or reduced runtime. */
+    suspend fun extractCanonicalDownloaded(archive: File, image: Image, destination: File) = withContext(Dispatchers.IO) {
+        require(image == ubuntu) { "Only the reviewed Ubuntu rootfs is supported" }
+        val spec = FoundryUbuntuGuestEnvironmentSpec.rootfsArtifact
+        LocalExecutionSubstrate.requireSafeLocalPath(destination.absolutePath)
+        check(destination.isDirectory && destination.list()?.isEmpty() == true && !PathSecurity.isSymbolicLink(destination)) {
+            "Rootfs extraction requires an empty private staging directory"
+        }
+        check(archive.isFile && !PathSecurity.isSymbolicLink(archive)) { "Unsafe downloaded Ubuntu archive" }
+        val task = currentCoroutineContext()
+        fun digest(decoded: Boolean): Pair<Long, String> {
+            val md = MessageDigest.getInstance("SHA-256")
+            var count = 0L
+            archive.inputStream().use { raw ->
+                (if (decoded) GZIPInputStream(raw, 65_536) else raw).use { input ->
+                    val buffer = ByteArray(65_536)
+                    while (true) {
+                        task.ensureActive()
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        count += n
+                        check(count <= if (decoded) image.tarBytes else spec.maxBytes) { "Ubuntu archive exceeds expected size" }
+                        md.update(buffer, 0, n)
+                    }
+                }
+            }
+            return count to md.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+        }
+        check(digest(false) == (spec.expectedBytes to spec.sha256)) { "Canonical Ubuntu archive integrity failure" }
+        check(digest(true) == (image.tarBytes to image.tarSha256)) { "Canonical Ubuntu TAR differs from reviewed bundled rootfs" }
+        val result = LocalProcessSupervisor.capture(
+            listOf("/system/bin/toybox", "tar", "-xf", "-", "-C", destination.absolutePath), destination,
+            maxOutputBytes = 65_536, timeoutMs = 180_000,
+            input = { output ->
+                archive.inputStream().use { raw -> GZIPInputStream(raw, 65_536).use { input ->
+                    RootfsTarCompatibility.copy(input, output, image.hardLinks, checkCancelled = { task.ensureActive() })
+                } }
+            },
+        )
+        check(result.exitCode == 0 && !result.timedOut) { "Canonical Ubuntu extraction failed: ${result.output.takeLast(4000)}" }
     }
 }

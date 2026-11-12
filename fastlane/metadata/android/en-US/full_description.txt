@@ -7,3 +7,5 @@ Optional AI agent connections let you use external coding assistants, follow the
 Use Extensions to choose development tools and runtimes to install. Available tools and language features depend on your device, architecture, and installed components.
 
 Droide supports Android 10 and newer.
+
+In the F-Droid build, the Ubuntu Linux environment is an optional download from Canonical. Before the first installation, Droide asks for consent and explains that the executable Ubuntu archive is downloaded outside F-Droid's build and review process. The archive's SHA-256 is verified. Declining does not prevent use of the code editor.
