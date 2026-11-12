@@ -94,8 +94,9 @@ release graph and packaged DEX before calling the flags false positives.
 
 1. [PR #8](https://github.com/baystudio-dev/Droide-v1.-00/pull/8): upstream Fastlane listing and artwork; repository and regular-release CI passed.
 2. [PR #9](https://github.com/baystudio-dev/Droide-v1.-00/pull/9): optional Canonical Ubuntu install with consent; repository, F-Droid candidate build and regular-release CI passed at commit `96ee94c`.
-3. The next candidate CI independently downloads the Canonical gzip and verifies the decompressed TAR equals the original XZ payload. Await the new run's result before treating that identity as proved.
-4. Neither passing workflow constitutes an independent F-Droid source build or device QA. No official F-Droid acceptance or new signed release is claimed.
+3. The [candidate CI run 43245371617](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43245371617) independently downloaded Canonical's gzip and **passed** the decompressed TAR byte-identity check against the originally bundled XZ payload.
+4. The next candidate CI additionally compares the complete `releaseRuntimeClasspath` Gradle dependency trees for regular versus F-Droid mode; a graph mismatch fails the job.
+5. Neither passing workflow constitutes an independent F-Droid source build or device QA. No official F-Droid acceptance or new signed release is claimed.
 
 **Next work order:** full source rebuild of Termux Base/View; source-derived
 SPAKE2/Kadb/JGit artifacts; source-built native loader pair and PRoot/CLI;

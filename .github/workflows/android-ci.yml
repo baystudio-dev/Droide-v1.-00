@@ -157,6 +157,35 @@ jobs:
             '-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC -XX:ActiveProcessorCount=2 -Dfile.encoding=UTF-8' \
             --dependency-verification=strict --no-daemon --max-workers=1 \
             --no-configuration-cache --no-build-cache
+      - name: Prove regular/F-Droid runtime dependency graph parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          common=(
+            :app:dependencies --configuration releaseRuntimeClasspath
+            -PDROIDE_SOURCE_RELEASE=true
+            "-PDROIDE_SOURCE_RELEASE_ENGINE_DIR=$RUNNER_TEMP/droide-terminal-engine"
+            "-PDROIDE_SOURCE_RELEASE_JDK_ARCHIVE=$RUNNER_TEMP/droide-jdk/vendor.tar.gz"
+            -Pandroid.builder.sdkDownload=false
+            --dependency-verification=strict --no-daemon --max-workers=1
+            --no-configuration-cache --no-build-cache --console=plain --quiet
+          )
+          ./gradlew "${common[@]}" \
+            > "$RUNNER_TEMP/droide-regular-runtime-dependencies.txt"
+          ./gradlew "${common[@]}" -PDROIDE_FDROID_BUILD=true \
+            > "$RUNNER_TEMP/droide-fdroid-runtime-dependencies.txt"
+          for report in \
+            "$RUNNER_TEMP/droide-regular-runtime-dependencies.txt" \
+            "$RUNNER_TEMP/droide-fdroid-runtime-dependencies.txt"; do
+            test -s "$report"
+            grep -Fq 'releaseRuntimeClasspath' "$report"
+            grep -Fq 'io.github.rosemoe:editor:0.24.6' "$report"
+            grep -Fq 'com.baystudio.compat:jgit-android-compat' "$report"
+          done
+          diff -u \
+            "$RUNNER_TEMP/droide-regular-runtime-dependencies.txt" \
+            "$RUNNER_TEMP/droide-fdroid-runtime-dependencies.txt"
+          echo 'Regular and F-Droid releaseRuntimeClasspath graphs match exactly.'
       - name: Preserve F-Droid candidate verification (not APK)
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
