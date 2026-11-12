@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "repository": "https://github.com/termux/termux-app",
+    "commit": "6e2689f55295fa444be8ac8592c527c2c5ef3253",
+    "tag": "v0.118.0"
+  },
+  "files": {
+    "AndroidManifest.xml": {
+      "upstreamPath": "terminal-view/src/main/AndroidManifest.xml",
+      "gitBlobSha1": "f2b0725df41305c9d557c16e80e10a890b24811d",
+      "sha256": "a595e81539a73bad6a0601d1b47b1cef0dd6ff236f2cc4e4158fffede55e57cb",
+      "url": "https://github.com/termux/termux-app/blob/6e2689f55295fa444be8ac8592c527c2c5ef3253/terminal-view/src/main/AndroidManifest.xml"
+    },
+    "res/drawable/text_select_handle_left_material.xml": {
+      "upstreamPath": "terminal-view/src/main/res/drawable/text_select_handle_left_material.xml",
+      "gitBlobSha1": "576ff4a968f6abd6da01db87847a312f7e8ae7c6",
+      "sha256": "3ce66a831646933bea6adc67ed8d4b8dfd3bb86b992b1ea789b0ba577add4551",
+      "url": "https://github.com/termux/termux-app/blob/6e2689f55295fa444be8ac8592c527c2c5ef3253/terminal-view/src/main/res/drawable/text_select_handle_left_material.xml"
+    },
+    "res/drawable/text_select_handle_right_material.xml": {
+      "upstreamPath": "terminal-view/src/main/res/drawable/text_select_handle_right_material.xml",
+      "gitBlobSha1": "d049d3a8a9b6f658ae51f372930d179179d76915",
+      "sha256": "977579c11e9c28ef74af25ab61b8f39f812006e8ac5d2a9c5bf185a2456d522f",
+      "url": "https://github.com/termux/termux-app/blob/6e2689f55295fa444be8ac8592c527c2c5ef3253/terminal-view/src/main/res/drawable/text_select_handle_right_material.xml"
+    },
+    "res/values/strings.xml": {
+      "upstreamPath": "terminal-view/src/main/res/values/strings.xml",
+      "gitBlobSha1": "cd03c618ef1b158511f5943673cf7a4ff54bbb8e",
+      "sha256": "c2880e9b490ea42e0816dc2ad1b9bd6b1e75098508afd3681433ba07b14a1bfb",
+      "url": "https://github.com/termux/termux-app/blob/6e2689f55295fa444be8ac8592c527c2c5ef3253/terminal-view/src/main/res/values/strings.xml"
+    },
+    "LICENSE.md": {
+      "upstreamPath": "LICENSE.md",
+      "gitBlobSha1": "36cd48f8710cc1e2552b5bfacff730d064415b92",
+      "sha256": "a8992ad867b1b4ea442693acb2e1ee829a814758e79a099bd8243a04ae383304",
+      "url": "https://github.com/termux/termux-app/blob/6e2689f55295fa444be8ac8592c527c2c5ef3253/LICENSE.md"
+    }
+  },
+  "buildMetadata": {
+    "minSdkVersion": 24,
+    "targetSdkVersion": 28,
+    "compileSdkVersion": 30
+  },
+  "buildMetadataSource": {
+    "upstreamPath": "gradle.properties",
+    "gitBlobSha1": "c8f9ae0514310cf33a32ff0b2ce01ef55ea2461e",
+    "sha256": "2b2ea08b383b5a9689d01d62a5997baab7e29f6bba63ffc9a2dede46a4bcd933",
+    "url": "https://github.com/termux/termux-app/blob/6e2689f55295fa444be8ac8592c527c2c5ef3253/gradle.properties"
+  },
+  "resourceTrees": {
+    "drawable": {
+      "gitTreeSha1": "4668147f88f807ed7a04b8cc41a322e7c2b05b11",
+      "paths": [
+        "text_select_handle_left_material.xml",
+        "text_select_handle_right_material.xml"
+      ]
+    },
+    "values": {
+      "gitTreeSha1": "23a894c7c7912ee29b38d6a3d5de6f5c99ffbede",
+      "paths": [
+        "strings.xml"
+      ]
+    }
+  },
+  "referenceAar": {
+    "path": "app/libs/terminal-view-v0.118.0.aar",
+    "sha256": "06b3e83cf34c40e82ba5348a88fc72657ebf35177e28f567e86b2389c34cd2d0"
+  },
+  "notes": [
+    "All five source/license files were retrieved from the immutable official upstream commit and their Git blob identities independently recomputed.",
+    "The exact upstream LICENSE.md retains the repository GPLv3-only default and its Apache-2.0 exception naming terminal-view and terminal-emulator.",
+    "The complete Apache-2.0 license text is retained in app/src/main/assets/legal/licenses/APACHE-2.0.txt.",
+    "Both drawable files are byte-identical to the pinned reference AAR. Source strings.xml is XML-equivalent to its generated res/values/values.xml.",
+    "The source manifest contains only package com.termux.view; the reference AAR adds uses-sdk min24/target28 from the pinned upstream build properties.",
+    "The upstream resource directories contain exactly the three recorded XML resources, with no alternative configuration directories.",
+    "This is source-resource preparation only: no production AAR, Gradle dependency, binary, integrity pin, terminal capability or application feature is changed.",
+    "Default offline source checks do not open the reference AAR. A reference comparison is an explicit optional audit, not a source-build dependency.",
+    "Java compilation, Android resource processing, APK integration, device behavior and F-Droid acceptance remain unverified by this provenance record."
+  ]
+}

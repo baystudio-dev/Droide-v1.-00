@@ -1,0 +1,70 @@
+name: F-Droid isolated source proofs
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fdroid-source-proofs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-proof:
+    name: source-proof (${{ matrix.proof }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        proof: [tests, cli, spake2, termux]
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout source without stored credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Provision trusted OS sandbox utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes bubblewrap
+      - name: Provision and verify the existing pinned vendor JDK
+        if: matrix.proof == 'spake2' || matrix.proof == 'termux'
+        run: python3 -B tools/provision_build_jdk.py --output "$RUNNER_TEMP/source-proof-jdk"
+      - name: Set up Android tools for trusted SDK provisioning
+        if: matrix.proof == 'cli' || matrix.proof == 'termux'
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Provision the existing pinned NDK
+        if: matrix.proof == 'cli'
+        run: sdkmanager --install 'ndk;28.2.13676358'
+      - name: Provision API 36 (the proof checks the exact android.jar hash)
+        if: matrix.proof == 'termux'
+        run: sdkmanager --install 'platforms;android-36'
+      - name: Run source proof contract tests offline
+        if: matrix.proof == 'tests'
+        run: bash tools/run_fdroid_source_proofs.sh tests --sudo
+      - name: Compile and inspect CLI twice offline (never execute ARM64 output)
+        if: matrix.proof == 'cli'
+        run: bash tools/run_fdroid_source_proofs.sh cli --sudo --ndk "$ANDROID_HOME/ndk/28.2.13676358"
+      - name: Compile SPAKE2 twice and check retained deterministic vector offline
+        if: matrix.proof == 'spake2'
+        run: |
+          bash tools/run_fdroid_source_proofs.sh spake2 --sudo \
+            --jdk "$RUNNER_TEMP/source-proof-jdk/jdk-17.0.20.1+1" \
+            --jdk-archive "$RUNNER_TEMP/source-proof-jdk/vendor.tar.gz"
+      - name: Compile complete Termux emulator Java twice offline
+        if: matrix.proof == 'termux'
+        run: |
+          bash tools/run_fdroid_source_proofs.sh termux --sudo \
+            --jdk "$RUNNER_TEMP/source-proof-jdk/jdk-17.0.20.1+1" \
+            --jdk-archive "$RUNNER_TEMP/source-proof-jdk/vendor.tar.gz" \
+            --android-jar "$ANDROID_HOME/platforms/android-36/android.jar"
+      # No APK, compiled replacement JAR/ELF, signing credentials, or artifact
+      # publication belongs in this workflow. Scratch outputs disappear when
+      # the sandbox exits. Success is not F-Droid or Android-device acceptance.

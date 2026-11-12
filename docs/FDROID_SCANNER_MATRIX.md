@@ -96,8 +96,11 @@ release graph and packaged DEX before calling the flags false positives.
 2. [PR #9](https://github.com/baystudio-dev/Droide-v1.-00/pull/9): optional Canonical Ubuntu install with consent; repository, F-Droid candidate build and regular-release CI passed at commit `96ee94c`.
 3. The [candidate CI run 43245371617](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43245371617) independently downloaded Canonical's gzip and **passed** the decompressed TAR byte-identity check against the originally bundled XZ payload.
 4. [Run 43246883360](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43246883360) built and source-verified the F-Droid candidate APK and passed the regular release. A **separate reporting step** failed because the protected source-release mode correctly forbids invoking `:app:dependencies` instead of `:app:assembleSourceRelease`; it was not a dependency mismatch.
-5. The next candidate CI captures resolved `releaseRuntimeClasspath` components, edges and **artifact SHA-256** from inside each already-authorized `:app:assembleSourceRelease` task, then compares their exported manifests in an independent job. This retains the strict source-release task guard. Await CI before claiming dependency parity.
+5. [Run 43263976477](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43263976477), head `c764defbada62db21ea1e8fe9103963b1c0b6e58`, passed all four jobs: repository, regular release, F-Droid candidate and dependency parity. It captures resolved `releaseRuntimeClasspath` components, edges and **artifact SHA-256** from inside each already-authorized `:app:assembleSourceRelease` task, then compares their exported manifests in an independent job. The runtime graphs and artifact bytes match exactly. The strict source-release task guard remains unchanged.
 6. Neither passing workflow constitutes an independent F-Droid source build or device QA. No official F-Droid acceptance or new signed release is claimed.
+
+The separate [source-build proof work](FDROID_SOURCE_PROOFS.md) does not wire
+new artifacts into the APK or resolve these scanner findings by itself.
 
 **Next work order:** full source rebuild of Termux Base/View; source-derived
 SPAKE2/Kadb/JGit artifacts; source-built native loader pair and PRoot/CLI;
