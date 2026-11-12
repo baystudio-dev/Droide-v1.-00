@@ -43,6 +43,9 @@ explains that executable code is obtained outside F-Droid review. The existing
 archive using HTTPS and verifies the exact compressed archive length and SHA-256;
 the extractor additionally verifies the decompressed TAR's length and SHA-256
 against the same baseline as the bundled XZ edition. Any mismatch fails closed.
+The F-Droid candidate CI separately downloads the official Canonical gzip and
+uses `tools/verify_fdroid_ubuntu_archive.py` to prove that its decompressed TAR
+has the **exact same size and SHA-256** as the bundled XZ image.
 The existing guest is never replaced as a side effect. The regular build keeps
 the bundled Ubuntu and needs neither network download nor consent.
 
@@ -72,6 +75,10 @@ The scanner also marked `io.opencensus:opencensus-api:0.31.0` and
 `app/gradle.lockfile` entries place them in internal Android testing tooling,
 not in `releaseRuntimeClasspath`. Confirm this against the resolved Gradle graph
 before concluding whether they are packaged in the release APK.
+
+For the full per-artifact classification, including source-only archives versus
+active runtime dependencies and explicit native loader blockers, see
+[F-Droid scanner triage](FDROID_SCANNER_MATRIX.md).
 
 In particular, `app/src/main/cpp/CMakeLists.txt` compiles `libtermux.so` and
 `libdroide_files.so`, but the four ARM64 libraries under

@@ -24,6 +24,8 @@ jobs:
           persist-credentials: false
       - name: Verify F-Droid listing metadata
         run: python3 -B tools/verify_fdroid_metadata.py
+      - name: Verify unresolved F-Droid scanner inventory
+        run: python3 -B tools/verify_fdroid_scanner_inventory.py
       - name: Verify public source and dependency policies
         run: bash tools/verify_release_source.sh
 
@@ -132,6 +134,15 @@ jobs:
           validate-wrappers: true
       - name: Verify F-Droid source/consent guards
         run: python3 -B -m unittest discover -s tools/tests -p 'test_fdroid_distribution_guards.py' -v
+      - name: Verify Canonical Ubuntu archive and bundled TAR parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --max-time 180 \
+            --output "$RUNNER_TEMP/droide-canonical-ubuntu.tar.gz" \
+            'https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.5-base-arm64.tar.gz'
+          python3 -B tools/verify_fdroid_ubuntu_archive.py \
+            --archive "$RUNNER_TEMP/droide-canonical-ubuntu.tar.gz"
       - name: Build and verify F-Droid candidate (not for distribution)
         shell: bash
         run: |
