@@ -36,9 +36,26 @@ are compared independently. No result is silently substituted into Gradle.
   The runner masks Git metadata and runs only source-proof tests. The existing
   scanner inventory and listing guards remain in Android CI, unchanged; their
   Git-index-dependent checks are not silently interpreted as source-proof tests.
+- The first remote proof run stopped before compilation: bwrap's user namespace
+  mapped host root rather than the checkout owner and could not traverse the
+  private runner home. The launcher now uses sudo only to create an isolated
+  outer network namespace, then drops back to the caller's host UID/GID with
+  no supplemental groups, inheritable/ambient/bounding capabilities, or privilege
+  escalation before bwrap. No host permissions, read-only mounts or target
+  isolation are relaxed. A further namespace-policy denial is a blocker, not
+  permission to run outside the sandbox.
+- The repository integrity guard also correctly rejected six new View source
+  files absent from its manifest. Their measured SHA-256 values were added to
+  the existing manifest, along with a regression test for coverage; the guard
+  itself was not changed. These setup fixes require a fresh remote run before
+  any successful compilation claim.
+- With those setup and manifest regression checks, the local isolated test
+  runner passed **117 tests**. This checks command construction, not execution
+  of the CI-only sudo branch, which remains subject to the next remote run.
 - Tests ran with source/toolchain read-only, a clean environment, no external
-  network, a 64 MiB disposable scratch filesystem, and explicit resource and
-  time limits. No generated target files were retained.
+  network, disposable scratch (64 MiB for initial fixture runs, 512 MiB for the
+  dedicated runner), and explicit resource and time limits. No generated target
+  files were retained.
 - The existing host CLI behavioral test compiled the C host shim and passed its
   help/bare-command case, but nine local socket cases were **blocked by the
   execution environment** (`socket(AF_UNIX)` returned `EPERM`). This is neither

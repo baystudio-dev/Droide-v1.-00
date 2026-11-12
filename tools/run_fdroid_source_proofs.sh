@@ -8,7 +8,7 @@ usage() {
     'Usage: bash tools/run_fdroid_source_proofs.sh MODE [options]' \
     'Modes: tests | cli | spake2 | termux' \
     'Options: --ndk DIR --jdk DIR --jdk-archive FILE --android-jar FILE' \
-    '         --sudo (CI namespace setup only) --show-command (do not execute)'
+    '         --sudo (CI network setup only) --show-command (do not execute)'
 }
 
 fail() { printf 'SOURCE_PROOF_SANDBOX_FAILED: %s\n' "$*" >&2; exit 2; }
@@ -102,9 +102,18 @@ limits=(--as=6442450944 --cpu=120 --nproc=128 --nofile=256 --fsize=67108864 --co
 isolation=(--unshare-all --unshare-user --disable-userns)
 launch=(/usr/bin/timeout --signal=TERM --kill-after=3s 300s /usr/bin/prlimit "${limits[@]}" --)
 if [[ $use_sudo == true ]]; then
-  # CI uses sudo only to establish the namespace. bwrap drops privileges before
-  # target code starts; no target command runs with host root credentials.
-  launch=(/usr/bin/sudo -n "${launch[@]}")
+  # sudo is ONLY for creating the empty outer network namespace. Return to the
+  # checkout owner's host UID before bwrap resolves/mounts private ancestor
+  # paths. Mapping host root into bwrap's user namespace loses host DAC bypass
+  # but does not acquire the checkout owner's permissions (GitHub runner homes
+  # are private). Do not chmod those homes, stage credentials, or relax mounts.
+  caller_uid=$(/usr/bin/id -u)
+  caller_gid=$(/usr/bin/id -g)
+  [[ $caller_uid =~ ^[0-9]+$ && $caller_gid =~ ^[0-9]+$ && $caller_uid != 0 ]] || fail '--sudo requires an unprivileged caller'
+  launch=(/usr/bin/sudo -n "${launch[@]}" /usr/bin/unshare --net --
+    /usr/bin/setpriv --reuid "$caller_uid" --regid "$caller_gid" --clear-groups
+    --inh-caps=-all --ambient-caps=-all --bounding-set=-all --no-new-privs)
+  isolation+=(--share-net)
 else
   # Share ONLY this newly-created, empty outer network namespace. This avoids
   # bwrap's loopback NETLINK setup where the host forbids that operation.
@@ -168,6 +177,7 @@ for tool in /usr/bin/timeout /usr/bin/prlimit /usr/bin/bwrap /usr/bin/python3; d
 done
 if [[ $use_sudo == true ]]; then
   [[ -x /usr/bin/sudo ]] || fail 'sudo unavailable; no fallback is permitted'
+  [[ -x /usr/bin/unshare && -x /usr/bin/setpriv ]] || fail 'CI namespace/identity utilities unavailable; no fallback is permitted'
 else
   [[ -x /usr/bin/unshare ]] || fail 'unshare unavailable; no fallback is permitted'
 fi

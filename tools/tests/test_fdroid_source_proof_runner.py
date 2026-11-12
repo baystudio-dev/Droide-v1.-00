@@ -1,5 +1,6 @@
 """Contract tests for the proof launcher; never start a sandbox or a compiler."""
 from pathlib import Path
+import os
 import shlex
 import subprocess
 import tempfile
@@ -57,12 +58,27 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("--share-net", arguments[bwrap:])
         self.assertNotIn("/usr/bin/sudo", arguments)
 
-    def test_sudo_is_explicit_and_keeps_independent_network_isolation(self):
+    def test_sudo_only_creates_outer_network_then_returns_to_checkout_owner(self):
         arguments = self.args(self.invoke("tests", "--sudo"))
         self.assertEqual(["/usr/bin/sudo", "-n"], arguments[:2])
         self.assertIn("--unshare-all", arguments)
-        self.assertNotIn("--share-net", arguments)
-        self.assertNotIn("/usr/bin/unshare", arguments)
+        unshare = arguments.index("/usr/bin/unshare")
+        identity = arguments.index("/usr/bin/setpriv")
+        bwrap = arguments.index("/usr/bin/bwrap")
+        self.assertEqual(["--net", "--"], arguments[unshare + 1:identity])
+        self.assertEqual(["--reuid", str(os.getuid()), "--regid", str(os.getgid()), "--clear-groups",
+                          "--inh-caps=-all", "--ambient-caps=-all", "--bounding-set=-all",
+                          "--no-new-privs"], arguments[identity + 1:bwrap])
+        self.assertIn("--share-net", arguments[bwrap:])
+
+    def test_sandbox_setup_does_not_widen_host_file_permissions_or_copy_secrets(self):
+        source = RUNNER.read_text()
+        self.assertIn("'--sudo requires an unprivileged caller'", source)
+        self.assertNotIn("/usr/bin/chmod", source)
+        self.assertNotIn("/usr/bin/chown", source)
+        self.assertNotIn("/usr/bin/cp", source)
+        self.assertNotIn("--preserve-env", source)
+        self.assertNotIn("--preserve-groups", source)
 
     def test_limits_are_fixed_and_not_operator_relaxable(self):
         arguments = self.args(self.invoke("tests"))

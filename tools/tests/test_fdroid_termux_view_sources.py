@@ -53,6 +53,20 @@ class ViewSourceFixture:
 
 
 class ViewSourceTests(ViewSourceFixture, unittest.TestCase):
+    def test_vendored_sources_are_covered_by_shared_integrity_manifest(self):
+        manifest = TOOLS.parent / "third_party/ARTIFACTS_SHA256.txt"
+        pins = {}
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            if line.strip() and not line.lstrip().startswith("#"):
+                digest, relative = line.split(None, 1)
+                self.assertNotIn(relative.strip(), pins)
+                pins[relative.strip()] = digest
+        for name in set(checker.PINS) | {"PROVENANCE.json"}:
+            relative = (checker.SOURCE_RELATIVE / name).as_posix()
+            with self.subTest(path=relative):
+                self.assertIn(relative, pins)
+                self.assertEqual(checker.sha256((TOOLS.parent / relative).read_bytes()), pins[relative])
+
     def test_source_only_default_never_reads_or_requires_an_aar(self):
         original_read = checker.read_regular
         reads = []
