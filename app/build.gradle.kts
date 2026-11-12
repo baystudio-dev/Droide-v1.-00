@@ -1,5 +1,6 @@
 import java.net.URI
 import java.io.File
+import org.gradle.api.tasks.Sync
 
 plugins {
     id("com.android.application")
@@ -32,6 +33,15 @@ val sourceDebug = providers.gradleProperty("DROIDE_SOURCE_DEBUG").orNull?.let {
 val sourceRelease = providers.gradleProperty("DROIDE_SOURCE_RELEASE").orNull?.let {
     it.toBooleanStrictOrNull() ?: throw GradleException("DROIDE_SOURCE_RELEASE must be true or false")
 } ?: false
+// Opt-in *packaging* variant for F-Droid. Standard builds retain every asset and dependency.
+val fdroidDistribution = providers.gradleProperty("DROIDE_FDROID_BUILD").orNull?.let {
+    it.toBooleanStrictOrNull() ?: throw GradleException("DROIDE_FDROID_BUILD must be true or false")
+} ?: false
+if (fdroidDistribution) {
+    require(sourceRelease && !sourceDebug && !hostJvmOnly) {
+        "F-Droid packaging requires the independently verified current-source release build"
+    }
+}
 fun sourceBuildPath(property: String): File = File(requireNotNull(gradle.startParameter.projectProperties[property]) {
     "Source build requires explicit $property"
 }).also { require(it.isAbsolute) { "$property must be an absolute path" } }
@@ -85,6 +95,9 @@ val releaseKeystorePassword = providers.gradleProperty("DROIDE_KEYSTORE_PASSWORD
 val releaseKeyAlias = providers.gradleProperty("DROIDE_KEY_ALIAS").orNull ?: System.getenv("DROIDE_KEY_ALIAS")
 val releaseKeyPassword = providers.gradleProperty("DROIDE_KEY_PASSWORD").orNull ?: System.getenv("DROIDE_KEY_PASSWORD")
 val hasReleaseSigning = listOf(releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+if (fdroidDistribution) {
+    require(!hasReleaseSigning) { "The F-Droid distribution must be built unsigned for repository signing" }
+}
 if (sourceRelease) {
     require(hasReleaseSigning || listOf(releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword).all { it.isNullOrBlank() }) {
         "Release signing is incomplete: configure all four signing values or build unsigned"
@@ -150,6 +163,11 @@ android {
     buildToolsVersion = "36.0.0"
 
     sourceSets.getByName("main").java.srcDir("../third_party/kadb/droide-source/src/main/kotlin")
+    if (fdroidDistribution) {
+        // The original Ubuntu XZ stays in source for conventional builds; F-Droid ships
+        // its own opt-in, digest-checked Canonical download path without a bundled rootfs.
+        sourceSets.getByName("main").assets.setSrcDirs(listOf(layout.buildDirectory.dir("fdroid-assets").get().asFile))
+    }
 
     defaultConfig {
         applicationId = "com.baystudio.droide"
@@ -162,6 +180,7 @@ android {
             else "com.baystudio.droide.PhysicalDeviceSmokeInstrumentation"
         testFunctionalTest = true
         buildConfigField("boolean", "EXPLORER_EXPORT_EXPERIMENTAL", explorerExportExperimental.toString())
+        buildConfigField("boolean", "FDROID_DISTRIBUTION", fdroidDistribution.toString())
         buildConfigField("String", "GITHUB_OAUTH_CLIENT_ID", buildConfigString(githubOAuthClientId))
         buildConfigField("String", "GITHUB_ACCOUNT_CLIENT_ID", buildConfigString(githubAccountClientId))
         buildConfigField("String", "GITHUB_APP_SLUG", buildConfigString(githubAppSlug))
@@ -239,6 +258,19 @@ android {
             excludes -= setOf("/META-INF/LICENSE.txt", "/META-INF/NOTICE.txt")
             merges += setOf("META-INF/LICENSE.txt", "META-INF/NOTICE.txt")
         }
+    }
+}
+if (fdroidDistribution) {
+    val prepareFdroidAssets by tasks.registering(Sync::class) {
+        group = "build"
+        description = "Copy all app assets except the opt-in Canonical Ubuntu rootfs"
+        from(layout.projectDirectory.dir("src/main/assets")) {
+            exclude("workstation/ubuntu-base-24.04.5-base-arm64.tar.xz")
+        }
+        into(layout.buildDirectory.dir("fdroid-assets"))
+    }
+    tasks.matching { it.name == "preBuild" || it.name == "mergeReleaseAssets" }.configureEach {
+        dependsOn(prepareFdroidAssets)
     }
 }
 
@@ -341,6 +373,7 @@ if (sourceRelease) {
             "--root", rootProject.projectDir, "--build-dir", layout.buildDirectory.get().asFile,
             "--engine", requireNotNull(sourceReleaseEngine), "--sdk", android.sdkDirectory,
             "--signing", if (hasReleaseSigning) "signed" else "unsigned")
+        if (fdroidDistribution) args("--fdroid-build")
         outputs.upToDateWhen { false }
     }
     tasks.register("assembleSourceRelease") {

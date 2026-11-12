@@ -666,6 +666,7 @@ fun IdeScreen(
         else if (tool == DroideBottomTool.Terminal) workspaceTab = 2
     }
     var linuxSetupJob by remember(terminalManager) { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var showUbuntuDownloadConsent by remember { mutableStateOf(false) }
     val ubuntuPreparation by terminalManager.ubuntuPreparation.collectAsState()
     val substrateState by LocalExecutionSubstrate.state.collectAsState()
     fun reportLinuxSetupFailure(failure: Throwable) {
@@ -674,6 +675,10 @@ fun IdeScreen(
     }
     fun openLinuxTerminal() {
         if (linuxSetupJob != null || ubuntuPreparation.preparing || !terminalManager.canCreateTab) return
+        if (FdroidUbuntuConsent.requiresConsentForFreshInstall(ctx)) {
+            showUbuntuDownloadConsent = true
+            return
+        }
         openBottomTool(DroideBottomTool.Terminal)
         terminalManager.dismissUbuntuPreparationError()
         linuxSetupJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
@@ -691,6 +696,36 @@ fun IdeScreen(
     }
     DisposableEffect(terminalManager) { onDispose { linuxSetupJob?.cancel() } }
     MaterialTheme(colorScheme = scheme) {
+        if (showUbuntuDownloadConsent) {
+            AlertDialog(
+                onDismissRequest = { showUbuntuDownloadConsent = false },
+                title = { Text("Install Ubuntu for Droide?") },
+                text = {
+                    Text(
+                        "The F-Droid edition can download Ubuntu Base 24.04.5 ARM64 (~30 MB) " +
+                            "from Canonical over HTTPS to enable the Linux terminal and toolchains. " +
+                            "This contains executable components downloaded outside F-Droid's " +
+                            "build and security checks. Droide verifies the exact archive SHA-256 " +
+                            "before installation. This download happens only if you agree. " +
+                            "You can decline and continue using the editor."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        try {
+                            FdroidUbuntuConsent.approveCanonicalArchive(ctx)
+                            showUbuntuDownloadConsent = false
+                            openLinuxTerminal()
+                        } catch (failure: Exception) {
+                            reportLinuxSetupFailure(failure)
+                        }
+                    }) { Text("Download and install") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUbuntuDownloadConsent = false }) { Text("Not now") }
+                },
+            )
+        }
         val physicalLandscape = droidePhysicalLandscape()
         BoxWithConstraints(
             Modifier.fillMaxSize().landscapeWorkbenchImePadding(physicalLandscape).onGloballyPositioned {

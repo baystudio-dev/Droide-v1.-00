@@ -16,6 +16,42 @@ The [F-Droid upstream metadata guide](https://fdroid.gitlab.io/jekyll-fdroid/doc
 documents the layout. Fastlane itself does not need to be installed to publish
 these text and image files.
 
+## Separate Ubuntu opt-in packaging candidate
+
+An experimental packaging mode isolates the F-Droid executable download policy
+without modifying the regular Droide APK or trimming any app dependency:
+
+```sh
+./gradlew :app:assembleSourceRelease \
+  -PDROIDE_SOURCE_RELEASE=true \
+  -PDROIDE_FDROID_BUILD=true \
+  -PDROIDE_SOURCE_RELEASE_ENGINE_DIR=/absolute/path/to/current-source-terminal-engine \
+  -PDROIDE_SOURCE_RELEASE_JDK_ARCHIVE=/absolute/path/to/pinned-vendor-jdk.tar.gz \
+  --dependency-verification=strict
+```
+
+The same validated current-source release pipeline is used; the *only* excluded
+APK asset is the bundled Ubuntu Base `.tar.xz`. All other assets and existing
+native libraries are preserved. `verify_source_release.py --fdroid-build`
+checks the omission and the byte identity of every remaining asset. The F-Droid
+binary sets `BuildConfig.FDROID_DISTRIBUTION=true` for the alternate bootstrap.
+
+When an Ubuntu guest is absent, the core manager blocks installation unless the
+user accepts an explicit first-use notice in the Linux terminal. The notice
+explains that executable code is obtained outside F-Droid review. The existing
+`TrustedArtifactDownloader` fetches Canonical's pinned Ubuntu Base 24.04.5 ARM64
+archive using HTTPS and verifies the exact compressed archive length and SHA-256;
+the extractor additionally verifies the decompressed TAR's length and SHA-256
+against the same baseline as the bundled XZ edition. Any mismatch fails closed.
+The existing guest is never replaced as a side effect. The regular build keeps
+the bundled Ubuntu and needs neither network download nor consent.
+
+This is a **candidate architecture, not a declaration of F-Droid acceptance**.
+The other scanner findings (including prebuilts in source, native ELF provenance,
+and dependency repositories) remain unresolved. The variant still requires a
+successful independent build, F-Droid scanner/lint review, runtime tests on an
+actual Android device, and a human packaging decision.
+
 ## Outstanding source-build blockers
 
 The [automated packaging report for request #4776](https://gitlab.com/fdroid/rfp/-/work_items/4776#note_4209909038)

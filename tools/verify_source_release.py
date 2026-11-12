@@ -133,7 +133,27 @@ def native_methods_from_dex(entries):
     return matches[0]
 
 
-def verify_apk(root, build, engine, sdk, signing):
+FDROID_EXCLUDED_ASSET = "assets/workstation/ubuntu-base-24.04.5-base-arm64.tar.xz"
+
+
+def verify_asset_payloads(root, archive, fdroid_build=False):
+    """Allow exactly one omitted rootfs in F-Droid builds; verify all other assets byte-for-byte."""
+    names = set(archive.namelist())
+    if fdroid_build:
+        require(FDROID_EXCLUDED_ASSET not in names, "F-Droid APK embeds the opt-in Ubuntu executable archive")
+    asset_count = 0
+    for source in (root / "app/src/main/assets").rglob("*"):
+        if source.is_file():
+            name = "assets/" + source.relative_to(root / "app/src/main/assets").as_posix()
+            if fdroid_build and name == FDROID_EXCLUDED_ASSET:
+                continue
+            require(name in names and archive.read(name) == source.read_bytes(),
+                    "Packaged asset missing/changed: " + name)
+            asset_count += 1
+    return asset_count
+
+
+def verify_apk(root, build, engine, sdk, signing, fdroid_build=False):
     output = build / "outputs/apk/release"
     candidates = list(output.glob("*.apk"))
     require(len(candidates) == 1, "Expected exactly one release APK; remove stale build outputs")
@@ -176,11 +196,7 @@ def verify_apk(root, build, engine, sdk, signing):
             name = "lib/" + source.relative_to(root / "app/src/main/jniLibs").as_posix()
             require(archive.read(name) == source.read_bytes(), "Bundled runtime library changed: " + name)
             libraries[name] = sha(source.read_bytes())
-        for source in (root / "app/src/main/assets").rglob("*"):
-            if source.is_file():
-                name = "assets/" + source.relative_to(root / "app/src/main/assets").as_posix()
-                require(archive.read(name) == source.read_bytes(), "Packaged asset missing/changed: " + name)
-                asset_count += 1
+        asset_count = verify_asset_payloads(root, archive, fdroid_build=fdroid_build)
         if signing == "unsigned":
             require(not any(re.fullmatch(r"META-INF/[^/]+\.(SF|RSA|DSA|EC)", name, re.I) for name in names),
                     "Unsigned output unexpectedly contains signing material")
@@ -198,6 +214,8 @@ def verify_apk(root, build, engine, sdk, signing):
         require("CN=Android Debug" not in checks["signature"], "Debug certificate is not a release signer")
     result = {
         "status": "RELEASE_VARIANT_BUILD_VERIFIED", "apk": str(apk),
+        "distribution": "fdroid" if fdroid_build else "regular",
+        "omittedAssets": [FDROID_EXCLUDED_ASSET] if fdroid_build else [],
         "apkSha256": sha(apk.read_bytes()), "apkBytes": apk.stat().st_size,
         "signing": signing, "deviceValidated": False, "publicationApproved": False,
         "engineAarSha256": receipt["inspection"]["aarSha256"],
@@ -220,9 +238,11 @@ if __name__ == "__main__":
     for name in ("build-dir", "engine", "sdk"):
         parser.add_argument("--" + name, type=Path)
     parser.add_argument("--signing", choices=("unsigned", "signed"))
+    parser.add_argument("--fdroid-build", action="store_true")
     args = parser.parse_args()
     if args.action == "inputs":
         verify_inputs(args.root.resolve())
     else:
         require(all((args.build_dir, args.engine, args.sdk, args.signing)), "APK verification arguments missing")
-        verify_apk(args.root.resolve(), args.build_dir.resolve(), args.engine.resolve(), args.sdk.resolve(), args.signing)
+        verify_apk(args.root.resolve(), args.build_dir.resolve(), args.engine.resolve(), args.sdk.resolve(),
+                   args.signing, fdroid_build=args.fdroid_build)

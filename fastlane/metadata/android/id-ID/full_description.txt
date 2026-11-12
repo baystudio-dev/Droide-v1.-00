@@ -7,3 +7,5 @@ Koneksi agen AI bersifat opsional. Kamu dapat menggunakan asisten pemrograman ek
 Gunakan Extensions untuk memilih alat dan runtime yang ingin dipasang. Ketersediaan fitur bergantung pada perangkat, arsitektur, serta komponen yang terinstal.
 
 Droide mendukung Android 10 atau yang lebih baru.
+
+Pada edisi F-Droid, lingkungan Linux Ubuntu merupakan unduhan opsional dari Canonical. Sebelum pemasangan pertama, Droide meminta persetujuan dan menjelaskan bahwa arsip Ubuntu berisi program yang diunduh di luar proses build dan pemeriksaan F-Droid. Keaslian arsip diperiksa menggunakan SHA-256. Jika menolak, editor kode tetap dapat digunakan.

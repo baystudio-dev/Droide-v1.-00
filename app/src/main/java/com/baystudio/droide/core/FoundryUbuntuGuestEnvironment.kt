@@ -226,6 +226,9 @@ class FoundryUbuntuGuestEnvironmentManager(
             )
         }
 
+        // A fresh F-Droid installation may download executable Ubuntu components only after
+        // the user explicitly opts in. Existing guest trees are never replaced or re-downloaded.
+        FdroidUbuntuConsent.requireFreshInstallAuthorization(appContext)
         DeviceWorkstationStorageGuard.requireHeadroom(
 
             additionalBytes = maxOf(
@@ -244,7 +247,15 @@ class FoundryUbuntuGuestEnvironmentManager(
         check(prep.exitCode == 0) { "Could not prepare Ubuntu guest environment: ${prep.output}" }
 
         try {
-            BundledRootfsExtractor.extract(appContext, BundledRootfsExtractor.ubuntu, File("$stage/rootfs"))
+            if (com.baystudio.droide.BuildConfig.FDROID_DISTRIBUTION) {
+                TrustedArtifactDownloader(appContext).withArtifact(FoundryUbuntuGuestEnvironmentSpec.rootfsArtifact) { archive ->
+                    BundledRootfsExtractor.extractCanonicalDownloaded(
+                        archive, BundledRootfsExtractor.ubuntu, File("$stage/rootfs"),
+                    )
+                }
+            } else {
+                BundledRootfsExtractor.extract(appContext, BundledRootfsExtractor.ubuntu, File("$stage/rootfs"))
+            }
             val loopbackContext = currentCoroutineContext()
             val loopback = UbuntuGuestLoopbackHosts.repair(File("$stage/rootfs")) {
                 loopbackContext.ensureActive()
