@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Isolated, non-packaged source-build proof for Droide's ARM64 CLI bridge.
+"""Baseline-free CLI compilation with a separate retained-byte proof wrapper.
 
 This does not replace an APK payload, change the installer hash, build PRoot,
 or execute the resulting ARM64 program. A trusted, preinstalled Android NDK
 28.2.13676358 is required; its revision metadata alone is not authentication.
 The output directory must be explicit, absolute, new, and outside the source
-tree and NDK. Artifacts are retained on failure for inspection.
+tree and NDK. The caller must enforce offline, read-only-input, bounded scratch
+execution. Neither API promotes artifacts or grants APK/distribution admission.
+``build_sources`` never reads a retained ELF; the unchanged command-line entry
+point calls ``build_proof`` and independently compares the retained CLI bytes.
 """
 from __future__ import annotations
 
@@ -24,8 +27,15 @@ ROOT = Path(__file__).resolve().parents[1]
 NDK_REVISION = "28.2.13676358"
 SOURCE_RELATIVE = Path("app/src/main/cpp/droide_cli_client.c")
 SOURCE_SHA256 = "f668eff99575d9a3ad1f68ce5727f6d51db4d7f8ebe811b4d800532084304830"
-BUNDLED_RELATIVE = Path("app/src/main/jniLibs/arm64-v8a/libdroide_cli.so")
+OUTPUT_NAME = "libdroide_cli.so"
+# Frozen textual identity of the existing reviewed output, not a build input.
+# The size is independently recorded by the two-build CLI source proof.
+OUTPUT_SHA256 = "913b313398b30115416acd20959b1c449eab0563c15c83230862b03e44e7cfee"
+OUTPUT_BYTES = 4528
+BUNDLED_RELATIVE = Path("app/src/main/jniLibs/arm64-v8a") / OUTPUT_NAME
 INSTALLER_RELATIVE = Path("app/src/main/java/com/baystudio/droide/core/DroideCliClientInstaller.kt")
+MAX_INPUT_BYTES = 1024 * 1024
+MAX_MANIFEST_BYTES = 128 * 1024
 MAX_BINARY_BYTES = 64 * 1024
 MIN_LOAD_ALIGNMENT = 16 * 1024
 # Preserve the existing freestanding Linux/AArch64 contract. In particular,
@@ -47,10 +57,14 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def read_regular(path: Path) -> bytes:
+def read_regular(path: Path, bound: int = MAX_INPUT_BYTES) -> bytes:
     if path.is_symlink() or not path.is_file():
         raise SourceBuildError(f"Expected a regular, non-symlink file: {path}")
-    return path.read_bytes()
+    with path.open("rb") as stream:
+        data = stream.read(bound + 1)
+    if len(data) > bound:
+        raise SourceBuildError(f"File exceeds its {bound}-byte input bound: {path}")
+    return data
 
 
 def validate_elf(data: bytes) -> dict:
@@ -103,7 +117,7 @@ def checked_output(output_dir: Path, root: Path, ndk: Path) -> Path:
         raise SourceBuildError("--output-dir must be new; existing files/directories are never overwritten")
     output = output_dir.resolve()
     for protected in (root.resolve(), ndk.resolve()):
-        if output == protected or protected in output.parents:
+        if output == protected or protected in output.parents or output in protected.parents:
             raise SourceBuildError("--output-dir must be outside the repository and NDK")
     if not output.parent.is_dir():
         raise SourceBuildError("The output parent directory must already exist")
@@ -112,7 +126,7 @@ def checked_output(output_dir: Path, root: Path, ndk: Path) -> Path:
 
 def ndk_tools(ndk_path: Path, root: Path) -> tuple[Path, Path, Path]:
     ndk = ndk_path.resolve(strict=True)
-    if ndk == root.resolve() or root.resolve() in ndk.parents:
+    if ndk == root.resolve() or root.resolve() in ndk.parents or ndk in root.resolve().parents:
         raise SourceBuildError("Use a trusted NDK installation outside the source tree")
     if platform.system() != "Linux" or platform.machine().lower() not in ("x86_64", "amd64"):
         raise SourceBuildError("This proof currently requires a Linux x86_64 host")
@@ -162,45 +176,95 @@ def run_tool(command: list[str], cwd: Path, environment: dict[str, str], timeout
     return result.stdout.strip()
 
 
-def build_proof(ndk_path: Path, output_dir: Path, root: Path = ROOT) -> dict:
-    root = root.resolve()
-    source = read_regular(root / SOURCE_RELATIVE)
-    if sha256(source) != SOURCE_SHA256:
+def read_source_inputs(root: Path) -> dict[Path, bytes]:
+    """Read only reviewed source/text inputs; no retained ELF path is consulted."""
+    inputs = {path: read_regular(root / path) for path in (SOURCE_RELATIVE, INSTALLER_RELATIVE)}
+    if sha256(inputs[SOURCE_RELATIVE]) != SOURCE_SHA256:
         raise SourceBuildError("CLI source checksum differs from the reviewed source pin")
-    bundled = read_regular(root / BUNDLED_RELATIVE)
-    installer = read_regular(root / INSTALLER_RELATIVE).decode("utf-8")
+    installer = inputs[INSTALLER_RELATIVE].decode("utf-8")
     pins = re.findall(r'const val SHA256 = "([0-9a-f]{64})"', installer)
-    if len(pins) != 1 or sha256(bundled) != pins[0]:
-        raise SourceBuildError("Bundled CLI does not match the existing installer integrity pin")
-    validate_elf(bundled)
+    if pins != [OUTPUT_SHA256]:
+        raise SourceBuildError("Existing installer integrity pin differs from the frozen CLI output identity")
+    return inputs
+
+
+def require_output_identity(data: bytes) -> None:
+    if len(data) != OUTPUT_BYTES or sha256(data) != OUTPUT_SHA256:
+        raise SourceBuildError(
+            f"CLI output differs from the pinned output identity: expected {OUTPUT_BYTES} bytes / "
+            f"{OUTPUT_SHA256}, observed {len(data)} bytes / {sha256(data)}")
+
+
+def write_manifest(path: Path, report: dict) -> None:
+    """Publish only a fully written/closed receipt, without replacing any leaf."""
+    payload = (json.dumps(report, indent=2) + "\n").encode("utf-8")
+    if len(payload) > MAX_MANIFEST_BYTES:
+        raise SourceBuildError("CLI manifest exceeds its bounded diagnostic size")
+    pending = path.with_name(path.name + ".pending")
+    created = False
+    try:
+        with pending.open("xb") as stream:
+            created = True
+            if stream.write(payload) != len(payload):
+                raise OSError("Incomplete CLI manifest write")
+            stream.flush()
+            os.fsync(stream.fileno())
+    except BaseException:
+        if created:
+            pending.unlink()
+        raise
+    # link() is the final fallible filesystem operation and cannot replace a
+    # destination. Retain the complete pending diagnostic link, even on a final
+    # collision: cleanup after publication must never turn published success
+    # into failure. Neither receipt link is a promoted APK artifact.
+    os.link(pending, path, follow_symlinks=False)
+
+
+def build_sources(ndk_path: Path, output_dir: Path, root: Path = ROOT) -> dict:
+    """Compile twice from source only; exact text pins are mandatory, never overrides.
+
+    Generated files remain unpromoted scratch data. No retained-artifact path,
+    retained bytes, comparator callback, or fallback is accepted by this API.
+    """
+    root = root.resolve()
+    inputs = read_source_inputs(root)
+    source = inputs[SOURCE_RELATIVE]
+    builder_path = Path(__file__).resolve()
+    builder_source = read_regular(builder_path)
     ndk, compiler, linker = ndk_tools(ndk_path, root)
     initial_tools = {str(tool): tool_identity(ndk, tool) for tool in (compiler, linker)}
     ndk_properties = read_regular(ndk / "source.properties")
+    source_copies: list[Path] = []
+    output_copies: list[tuple[Path, bytes]] = []
 
-    def check_provenance(source_copies: tuple[Path, ...] = ()) -> None:
-        if read_regular(root / SOURCE_RELATIVE) != source or read_regular(root / BUNDLED_RELATIVE) != bundled:
-            raise SourceBuildError("Source or bundled baseline changed during the proof")
-        if read_regular(root / INSTALLER_RELATIVE).decode("utf-8") != installer:
-            raise SourceBuildError("Installer baseline changed during the proof")
+    def check_provenance() -> None:
+        for relative, original in inputs.items():
+            if read_regular(root / relative) != original:
+                raise SourceBuildError(f"CLI source/text input changed during the build: {relative}")
+        if read_regular(builder_path) != builder_source:
+            raise SourceBuildError("CLI builder source changed during the build")
         if read_regular(ndk / "source.properties") != ndk_properties:
-            raise SourceBuildError("Toolchain revision metadata changed during the proof")
+            raise SourceBuildError("Toolchain revision metadata changed during the build")
         for tool in (compiler, linker):
             if tool_identity(ndk, tool) != initial_tools[str(tool)]:
-                raise SourceBuildError(f"Toolchain compiler/linker changed during the proof: {tool.name}")
+                raise SourceBuildError(f"Toolchain compiler/linker changed during the build: {tool.name}")
         for copy in source_copies:
             if read_regular(copy) != source:
-                raise SourceBuildError(f"Isolated compiler source copy changed during the proof: {copy}")
+                raise SourceBuildError(f"Isolated compiler source copy changed during the build: {copy}")
+        for path, original in output_copies:
+            if read_regular(path, MAX_BINARY_BYTES) != original:
+                raise SourceBuildError(f"Built CLI output changed during the build: {path}")
 
     output = checked_output(output_dir, root, ndk)
     output.mkdir(exist_ok=False)
     temporary_dir = output / "tmp"
     temporary_dir.mkdir()
     environment = build_environment(compiler.parent, temporary_dir)
+    check_provenance()
     compiler_version = run_tool([str(compiler), "--version"], output, environment, timeout=15)
     linker_version = run_tool([str(linker), "--version"], output, environment, timeout=15)
     builds = []
     results = []
-    source_copies = []
     for name in ("first", "second"):
         build_dir = output / name
         build_dir.mkdir()
@@ -208,27 +272,31 @@ def build_proof(ndk_path: Path, output_dir: Path, root: Path = ROOT) -> dict:
         with source_copy.open("xb") as stream:
             stream.write(source)
         source_copies.append(source_copy)
-        binary = build_dir / BUNDLED_RELATIVE.name
+        binary = build_dir / OUTPUT_NAME
         command = [str(compiler), *BUILD_FLAGS, "-o", str(binary), str(source_copy)]
-        check_provenance(tuple(source_copies))
+        check_provenance()
         compiler_output = run_tool(command, build_dir, environment)
-        check_provenance(tuple(source_copies))
-        data = read_regular(binary)
+        check_provenance()
+        data = read_regular(binary, MAX_BINARY_BYTES)
         # The proof output stays data-only even on a matching-architecture host.
         binary.chmod(0o644)
         elf = validate_elf(data)
         results.append(data)
+        output_copies.append((binary, data))
         builds.append({"name": name, "directory": str(build_dir), "command": command,
                        "sha256": sha256(data), "bytes": len(data), "elf": elf,
                        "compilerOutput": compiler_output})
     if results[0] != results[1]:
-        raise SourceBuildError("Two isolated builds were not byte-identical; proof failed")
-    check_provenance(tuple(source_copies))
+        raise SourceBuildError("Two isolated builds were not byte-identical; source build failed")
+    for data in results:
+        require_output_identity(data)
+    check_provenance()
     report = {
         "schemaVersion": 1,
-        "status": "isolated-source-build-proof-only",
+        "status": "isolated-source-build-only",
         "source": {"path": SOURCE_RELATIVE.as_posix(), "sha256": sha256(source)},
-        "builderSha256": sha256(Path(__file__).read_bytes()),
+        "sourceInputs": {path.as_posix(): sha256(data) for path, data in inputs.items()},
+        "builderSha256": sha256(builder_source),
         "toolchain": {"ndkRevision": NDK_REVISION, "host": "linux-x86_64",
                       "compiler": str(compiler), "compilerSha256": initial_tools[str(compiler)]["sha256"],
                       "compilerVersion": compiler_version, "linker": str(linker),
@@ -237,21 +305,62 @@ def build_proof(ndk_path: Path, output_dir: Path, root: Path = ROOT) -> dict:
                       "ndkPropertiesSha256": sha256(ndk_properties)},
         "builds": builds,
         "reproducibleAcrossTwoBuildDirectories": True,
-        "bundledBaseline": {"path": BUNDLED_RELATIVE.as_posix(), "sha256": sha256(bundled),
-                            "bytes": len(bundled), "installerSha256": pins[0]},
-        "matchesBundledBytes": results[0] == bundled,
+        "expectedOutput": {"name": OUTPUT_NAME, "sha256": OUTPUT_SHA256, "bytes": OUTPUT_BYTES},
+        "matchesPinnedOutputIdentity": True,
+        "inputsAndToolsUnchanged": True,
+        "outputFilesUnchanged": True,
+        "retainedArtifactInputs": [],
+        "baselineComparisonPerformed": False,
         "packagedPayloadsChanged": False,
+        "publicationApproved": False,
         "arm64OutputExecuted": False,
         "androidRuntimeCompatibilityVerified": False,
         "fdroidSourceBuildAcceptanceVerified": False,
         "notes": ["No packaged payload, installer pin, Gradle packaging, or PRoot loader was changed.",
+                  "The core reads source/text inputs and trusted tools, never a retained CLI ELF.",
+                  "Outputs are unpromoted scratch data; a separate trusted admission boundary is required.",
                   "Deterministic compiler output and ELF structure do not prove Android runtime compatibility.",
-                  "A differing binary must not replace the bundled CLI without separate integration and device testing.",
+                  "A differing output identity is rejected; no reference-copy fallback exists.",
                   "NDK revision metadata and recorded tool hashes do not independently authenticate the NDK installation."],
     }
-    with (output / "build-manifest.json").open("x", encoding="utf-8") as stream:
-        json.dump(report, stream, indent=2)
-        stream.write("\n")
+    write_manifest(output / "source-build-manifest.json", report)
+    return report
+
+
+def build_proof(ndk_path: Path, output_dir: Path, root: Path = ROOT) -> dict:
+    """Independently compare both source-only results with the retained CLI."""
+    root = root.resolve()
+    original_inputs = read_source_inputs(root)
+    bundled = read_regular(root / BUNDLED_RELATIVE, MAX_BINARY_BYTES)
+    validate_elf(bundled)
+    require_output_identity(bundled)
+    core = build_sources(ndk_path, output_dir, root)
+    output = output_dir.resolve()
+    for name in ("first", "second"):
+        data = read_regular(output / name / OUTPUT_NAME, MAX_BINARY_BYTES)
+        validate_elf(data)
+        if data != bundled:
+            raise SourceBuildError(f"Retained CLI byte comparison failed for the {name} source build")
+        require_output_identity(data)
+    if read_regular(root / BUNDLED_RELATIVE, MAX_BINARY_BYTES) != bundled:
+        raise SourceBuildError("Retained CLI baseline changed during the proof")
+    if read_source_inputs(root) != original_inputs:
+        raise SourceBuildError("CLI source/text inputs changed during the retained-byte proof")
+    if sha256(read_regular(Path(__file__).resolve())) != core["builderSha256"]:
+        raise SourceBuildError("CLI builder source changed during the retained-byte proof")
+    core_manifest = read_regular(output / "source-build-manifest.json", MAX_MANIFEST_BYTES)
+    if core_manifest != (json.dumps(core, indent=2) + "\n").encode("utf-8"):
+        raise SourceBuildError("Source-only CLI manifest changed before the retained-byte proof completed")
+    report = {**core,
+              "status": "isolated-source-build-proof-only",
+              "retainedArtifactInputs": [BUNDLED_RELATIVE.as_posix()],
+              "baselineComparisonPerformed": True,
+              "bundledBaseline": {"path": BUNDLED_RELATIVE.as_posix(), "sha256": sha256(bundled),
+                                  "bytes": len(bundled), "installerSha256": OUTPUT_SHA256},
+              "matchesBundledBytes": True,
+              "sourceBuildManifestSha256": sha256(core_manifest),
+              "notes": core["notes"] + ["The proof wrapper separately compared both generated files with the retained CLI."]}
+    write_manifest(output / "build-manifest.json", report)
     return report
 
 

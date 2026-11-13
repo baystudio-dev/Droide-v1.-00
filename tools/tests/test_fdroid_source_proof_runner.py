@@ -85,6 +85,7 @@ class ProofRunnerTests(unittest.TestCase):
         for options in (("tests",), ("cli", "--ndk", self.ndk),
                         ("loaders", "--ndk", self.ndk),
                         ("proot", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk),
+                        ("native", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk),
                         ("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive),
                         ("termux", "--jdk", self.jdk, "--jdk-archive", self.archive,
                          "--android-jar", self.android),
@@ -224,6 +225,62 @@ class ProofRunnerTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self.invoke(mode, "--loader-ndk", self.loader_ndk, success=False)
 
+    def test_native_adds_only_one_fixed_empty_readonly_mask_to_proot_isolation(self):
+        options = ("--ndk", self.ndk, "--loader-ndk", self.loader_ndk)
+        native = self.args(self.invoke("native", *options))
+        proot = self.args(self.invoke("proot", *options))
+        mask = "/src/app/src/main/jniLibs/arm64-v8a"
+        at = native.index(mask) - 3
+        self.assertEqual(["--size", "4096", "--tmpfs", mask, "--remount-ro", mask], native[at:at + 6])
+        source_mount = native.index(str(ROOT)) - 1
+        self.assertEqual(["--ro-bind", str(ROOT), "/src"], native[source_mount:source_mount + 3])
+        self.assertGreater(at, source_mount + 2)
+        self.assertEqual(2, native.count(mask))
+        self.assertNotIn(mask, proot)
+        self.assertEqual(["tools/fdroid_native_source_build.py", "--ndk", "/toolchain/ndk",
+                          "--loader-ndk", "/toolchain/loader-ndk", "--output-dir", "/scratch/proof"], native[-7:])
+        del native[at:at + 6]
+        self.assertEqual(proot[:-7], native[:-7])
+        for forbidden in ("--bind", "--bind-try", "--run-vector-test", "--reference-engine", "--keep-output"):
+            self.assertNotIn(forbidden, native)
+
+    def test_native_requires_exact_two_toolchain_inputs(self):
+        options = ("native", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk)
+        self.invoke("native", success=False)
+        self.invoke("native", "--ndk", self.ndk, success=False)
+        self.invoke("native", "--loader-ndk", self.loader_ndk, success=False)
+        self.invoke(*options, "--ndk", self.ndk, success=False)
+        self.invoke(*options, "--loader-ndk", self.loader_ndk, success=False)
+        for flag, value in (("--jdk", self.jdk), ("--jdk-archive", self.archive),
+                            ("--android-jar", self.android), ("--annotation-jar", self.annotation),
+                            ("--output-dir", self.scratch), ("--mask", "/src")):
+            with self.subTest(flag=flag):
+                self.invoke(*options, flag, value, success=False)
+
+    def test_native_rejects_protected_alias_and_ancestor_ndk_inputs(self):
+        nested = self.ndk / "native-nested"
+        nested.mkdir()
+        (nested / "source.properties").write_text("Pkg.Revision = 29.0.14206865\n")
+        alias = self.scratch / "native-ndk-alias"
+        alias.symlink_to(self.ndk, target_is_directory=True)
+        for first, second in ((self.ndk, self.ndk), (self.ndk, alias),
+                              (self.ndk, nested), (nested, self.ndk),
+                              (ROOT, self.loader_ndk), (ROOT.parent, self.loader_ndk),
+                              (self.ndk, ROOT), (self.ndk, ROOT.parent),
+                              (self.ndk, self.archive), (self.ndk, "relative/ndk")):
+            with self.subTest(first=first, second=second):
+                self.invoke("native", "--ndk", first, "--loader-ndk", second, success=False)
+
+    def test_no_other_mode_receives_native_input_mask(self):
+        for options in (("tests",), ("cli", "--ndk", self.ndk), ("loaders", "--ndk", self.ndk),
+                        ("proot", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk),
+                        ("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive),
+                        ("termux", "--jdk", self.jdk, "--jdk-archive", self.archive, "--android-jar", self.android),
+                        ("view", "--jdk", self.jdk, "--jdk-archive", self.archive,
+                         "--android-jar", self.android, "--annotation-jar", self.annotation)):
+            with self.subTest(mode=options[0]):
+                self.assertNotIn("/src/app/src/main/jniLibs/arm64-v8a", self.args(self.invoke(*options)))
+
     def test_proot_rejects_protected_overlapping_and_invalid_toolchains(self):
         for flag in ("--ndk", "--loader-ndk"):
             other_flag = "--loader-ndk" if flag == "--ndk" else "--ndk"
@@ -314,7 +371,7 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("contents: read", workflow)
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("fail-fast: false", workflow)
-        self.assertIn("proof: [tests, cli, loaders, proot, spake2, termux, view]", workflow)
+        self.assertIn("proof: [tests, cli, loaders, proot, native, spake2, termux, view]", workflow)
         self.assertIn("needs: sandbox-readiness", workflow)
         self.assertIn("Require isolated source contracts before provisioning compilers", workflow)
         self.assertIn("Official registry byte parity (data only)", workflow)
@@ -372,7 +429,7 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("if: matrix.proof == 'proot'", workflow[start:end])
         self.assertIn("sudo apt-get install --no-install-recommends --yes patch xxd", workflow[start:end])
         start = workflow.index("- name: Rebuild patched PRoot with both source-built loaders twice offline")
-        end = workflow.index("- name: Compile SPAKE2", start)
+        end = workflow.index("- name: Compile all four native outputs", start)
         step = workflow[start:end]
         self.assertIn("if: matrix.proof == 'proot'", step)
         self.assertIn("bash tools/run_fdroid_source_proofs.sh proot --sudo", step)
@@ -380,6 +437,29 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn('--loader-ndk "$ANDROID_HOME/ndk/29.0.14206865"', step)
         self.assertNotIn("sdkmanager", step)
         self.assertNotIn("apt-get", step)
+
+    def test_native_ci_provisions_only_fixed_native_tools_before_offline_execution(self):
+        workflow = WORKFLOW.read_text()
+        steps = (
+            ("Set up Android tools for trusted SDK provisioning", "Provision the existing pinned NDK"),
+            ("Provision the existing pinned NDK", "Provision the historical loader NDK"),
+            ("Provision the historical loader NDK", "Provision engine patch and source-wrapper utilities"),
+            ("Provision engine patch and source-wrapper utilities", "Provision API 36"),
+        )
+        for name, following in steps:
+            with self.subTest(step=name):
+                start = workflow.index("- name: " + name)
+                end = workflow.index("- name: " + following, start)
+                self.assertIn("matrix.proof == 'native'", workflow[start:end])
+        start = workflow.index("- name: Compile all four native outputs with retained ELF inputs inaccessible")
+        end = workflow.index("- name: Compile SPAKE2", start)
+        step = workflow[start:end]
+        self.assertIn("if: matrix.proof == 'native'", step)
+        self.assertIn("bash tools/run_fdroid_source_proofs.sh native --sudo", step)
+        self.assertIn('--ndk "$ANDROID_HOME/ndk/28.2.13676358"', step)
+        self.assertIn('--loader-ndk "$ANDROID_HOME/ndk/29.0.14206865"', step)
+        for forbidden in ("sdkmanager", "apt-get", "upload-artifact", "--keep-output", "./gradlew", "adb "):
+            self.assertNotIn(forbidden, step)
 
     def test_view_provisioning_is_one_pinned_bounded_download_before_offline_compile(self):
         workflow = WORKFLOW.read_text()

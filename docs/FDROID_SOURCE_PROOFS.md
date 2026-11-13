@@ -189,6 +189,11 @@ CLI, PRoot-loader, PRoot-engine, SPAKE2, emulator and View jobs. A separate data
 the eight fixed ordinary Maven artifacts under external process supervision;
 it never extracts, executes, or substitutes them into an application build.
 See [registry parity scope](FDROID_MAVEN_REGISTRY_PARITY.md).
+The [baseline-free native lane](FDROID_NATIVE_SOURCE_CORE.md) separately masks
+the four retained native APK inputs with an empty read-only directory and calls
+source-only CLI/loader/engine cores. Retained-byte comparison remains in the
+original proof wrappers. This lane still discards every generated artifact;
+it is not production source-only APK integration or scanner acceptance.
 The separate [R8 registry comparison](FDROID_R8_REGISTRY_PARITY.md) checks only
 the existing R8 JAR/POM pins at their fixed Google Maven endpoints. Its mocked
 network and XML contracts run in the offline source-proof test suite before

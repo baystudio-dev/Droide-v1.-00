@@ -45,6 +45,17 @@ def argv(git_kind="directory"):
     return result + ["--chdir", "/src", "/usr/bin/true"]
 
 
+def native_argv(git_kind="directory"):
+    result = argv(git_kind)
+    at = result.index("--proc")
+    result[at:at] = [
+        "--size", "4096", "--tmpfs", ns.NATIVE_MASK, "--remount-ro", ns.NATIVE_MASK,
+        "--ro-bind", "/opt/native-ndk28", "/toolchain/ndk",
+        "--ro-bind", "/opt/native-ndk29", "/toolchain/loader-ndk",
+    ]
+    return result[:-1] + list(ns.NATIVE_COMMAND)
+
+
 class ValidationTests(unittest.TestCase):
     def test_original_layout_and_fixed_smoke_are_allowed(self):
         for kind in ("directory", "file", None):
@@ -201,6 +212,144 @@ class ValidationTests(unittest.TestCase):
             ns.validate_bwrap(argv() + ["x" * 131072], SOURCE, "directory")
         with self.assertRaises(ns.SetupError):
             ns.validate_bwrap(argv() + ["\x00"], SOURCE, "directory")
+
+
+class NativeMaskValidationTests(unittest.TestCase):
+    def test_native_exact_target_allows_only_fixed_readonly_empty_mask(self):
+        self.assertEqual("/src/app/src/main/jniLibs/arm64-v8a", ns.NATIVE_MASK)
+        self.assertEqual(("tools/fdroid_native_source_build.py", "--ndk", "/toolchain/ndk",
+                          "--loader-ndk", "/toolchain/loader-ndk", "--output-dir", "/scratch/proof"),
+                         ns.NATIVE_COMMAND[-7:])
+        for kind in ("directory", "file", None):
+            with self.subTest(git=kind):
+                ns.validate_bwrap(native_argv(kind), SOURCE, kind)
+
+    def test_native_target_rejects_missing_mask(self):
+        command = native_argv()
+        at = command.index(ns.NATIVE_MASK) - 3
+        del command[at:at + 6]
+        with self.assertRaisesRegex(ns.SetupError, "masked after the source mount"):
+            ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_mask_cannot_be_writable_or_remounted_before_creation(self):
+        for earlier in (False, True):
+            command = native_argv()
+            mount = command.index(ns.NATIVE_MASK) - 3
+            remount = command[mount + 4:mount + 6]
+            del command[mount + 4:mount + 6]
+            if earlier:
+                command[mount:mount] = remount
+            with self.subTest(earlier=earlier), self.assertRaisesRegex(ns.SetupError, "explicitly read-only"):
+                ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_mask_cannot_precede_and_be_hidden_by_source_mount(self):
+        command = native_argv()
+        at = command.index(ns.NATIVE_MASK) - 3
+        mask = command[at:at + 6]
+        del command[at:at + 6]
+        source = command.index(SOURCE) - 1
+        command[source:source] = mask
+        with self.assertRaisesRegex(ns.SetupError, "masked after the source mount"):
+            ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_mask_rejects_changed_size_permissions_or_duplicate_mount(self):
+        mutations = ("size", "missing-size", "permissions", "duplicate")
+        for mutation in mutations:
+            command = native_argv()
+            at = command.index(ns.NATIVE_MASK) - 3
+            if mutation == "size":
+                command[at + 1] = "536870912"
+            elif mutation == "missing-size":
+                del command[at:at + 2]
+            elif mutation == "permissions":
+                command[at + 2:at + 2] = ["--perms", "1777"]
+            else:
+                command[at:at] = command[at:at + 6]
+            with self.subTest(mutation=mutation), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_mask_has_no_alternate_or_child_mount_destinations(self):
+        for alternate in ("/src/app/src/main/jniLibs", "/src/app/src/main/jniLibs/armeabi-v7a",
+                          ns.NATIVE_MASK + "/libdroide_cli.so", "/src/other"):
+            command = [alternate if value == ns.NATIVE_MASK else value for value in native_argv()]
+            with self.subTest(alternate=alternate), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
+        for mount in (["--ro-bind", "/opt/retained", ns.NATIVE_MASK],
+                      ["--ro-bind", "/opt/retained/file.so", ns.NATIVE_MASK + "/libdroide_cli.so"],
+                      ["--bind", "/opt/retained", ns.NATIVE_MASK],
+                      ["--dir", ns.NATIVE_MASK + "/new"]):
+            command = native_argv()
+            at = command.index("--proc")
+            command[at:at] = mount
+            with self.subTest(mount=mount), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_mask_is_rejected_for_every_other_fixed_proof_target(self):
+        for script in ("fdroid_cli_source_build.py", "fdroid_proot_loader_source_build.py",
+                       "fdroid_proot_engine_source_build.py", "fdroid_spake2_source_build.py",
+                       "fdroid_termux_source_build.py", "fdroid_termux_view_source_build.py"):
+            command = native_argv()
+            command[command.index(ns.NATIVE_SCRIPT)] = "tools/" + script
+            with self.subTest(script=script), self.assertRaisesRegex(ns.SetupError, "exact fixed source-only target"):
+                ns.validate_bwrap(command, SOURCE, "directory")
+        command = native_argv()
+        at = command.index("/bin/bash")
+        for target in (["/usr/bin/true"], ["/usr/bin/python3", "-m", "unittest"]):
+            with self.subTest(target=target), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command[:at] + target, SOURCE, "directory")
+
+    def test_native_command_requires_exact_probe_wrapper_paths_and_arguments(self):
+        mutations = ("shell", "entry", "absolute-script", "output", "ndk", "extra", "direct")
+        for mutation in mutations:
+            command = native_argv()
+            at = command.index("/bin/bash")
+            if mutation == "shell":
+                command[at + 2] = '"$@"'
+            elif mutation == "entry":
+                command[at] = "/bin/sh"
+            elif mutation == "absolute-script":
+                command[command.index(ns.NATIVE_SCRIPT)] = "/src/" + ns.NATIVE_SCRIPT
+            elif mutation == "output":
+                command[-1] = "/scratch/elsewhere"
+            elif mutation == "ndk":
+                target_ndk = command.index("--ndk", at)
+                command[target_ndk + 1] = "/toolchain/loader-ndk"
+            elif mutation == "extra":
+                command += ["--reference", "/src/retained.so"]
+            else:
+                command = command[:at] + ["/usr/bin/python3", "-B", ns.NATIVE_SCRIPT, *ns.NATIVE_COMMAND[-6:]]
+            with self.subTest(mutation=mutation), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_target_cannot_avoid_required_mask_using_an_alternate_script_path(self):
+        command = native_argv()
+        at = command.index(ns.NATIVE_MASK) - 3
+        del command[at:at + 6]
+        command[command.index(ns.NATIVE_SCRIPT)] = "/src/" + ns.NATIVE_SCRIPT
+        with self.assertRaises(ns.SetupError):
+            ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_target_requires_both_readonly_ndks_and_no_other_tool_inputs(self):
+        for missing in ("/toolchain/ndk", "/toolchain/loader-ndk"):
+            command = native_argv()
+            at = command.index(missing) - 2
+            del command[at:at + 3]
+            with self.subTest(missing=missing), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
+        for target in ("/toolchain/jdk", "/toolchain/jdk.tar.gz", "/toolchain/android.jar", "/toolchain/annotation.jar"):
+            command = native_argv()
+            at = command.index("--proc")
+            command[at:at] = ["--ro-bind", "/opt/public-extra", target]
+            with self.subTest(target=target), self.assertRaisesRegex(ns.SetupError, "exactly the two"):
+                ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_native_ndks_cannot_overlap_or_cover_source(self):
+        for source in ("/opt/native-ndk28", "/opt/native-ndk28/nested", "/opt", SOURCE,
+                       SOURCE + "/tools", "/workspace"):
+            command = native_argv()
+            command[command.index("/opt/native-ndk29")] = source
+            with self.subTest(source=source), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
 
 
 class MappingTests(unittest.TestCase):
