@@ -338,8 +338,12 @@ def publish_result(output, summary, receipt, *, summary_name, receipt_name):
         evidence_summary["status"] = "verified-pending-summary-publication"
     evidence = {**receipt, "summary": evidence_summary, "publicationState": "pending-summary",
                 "authoritativeSummary": {"file": summary_name, "sha256": sha(compact), "required": True}}
-    detailed = (json.dumps(evidence, indent=2) + "\n").encode("utf-8")
-    require(len(detailed) <= MAX_RECEIPT, "Detailed source receipt exceeds diagnostic bound")
+    # Preserve every evidence value and repeated dependency record, but do not
+    # spend the fixed byte budget on deeply nested pretty-print whitespace.
+    detailed = (json.dumps(evidence, separators=(",", ":")) + "\n").encode("utf-8")
+    require(len(detailed) <= MAX_RECEIPT,
+            "Detailed source receipt exceeds diagnostic bound (%d bytes; limit %d bytes)" %
+            (len(detailed), MAX_RECEIPT))
     descriptor = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
     try:
         _stage_receipt(descriptor, summary_name + ".pending", compact)

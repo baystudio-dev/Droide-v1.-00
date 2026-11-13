@@ -91,7 +91,7 @@ binary survives the sandbox or enters a release through this lane.
 
 ## Validation and remaining work
 
-The enforced offline, read-only sandbox passed all **580 source-proof
+The enforced offline, read-only sandbox passed all **582 source-proof
 regression tests**. A separate check against this real checkout with the
 native directory masked empty validated all 12 source/text inputs and
 confirmed that the retained-byte proof readers fail without their baseline
@@ -99,11 +99,27 @@ files. That check did not invoke a compiler. Independent static reviews of
 the core/proof separation, final publication and fixed mask integration found
 no blocking issue.
 
-The actual new native compilation CI result is still pending. Synthetic/mock
-unit tests and a real source-input check do not prove that a real compiler
-builds with the native inputs masked. Actual evidence must record the
-head/tree, tested merge, run/job, successful final sandbox probe and complete
-summary for all eight generated outputs.
+Initial source-proof run
+[43383353842](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43383353842),
+head `df011ec8bfc160f7da88a22606e40488df286a12`, tested merge
+`1fd9c77627c876d186d90e912f641487d2a06a40`, passed eight of eleven jobs. Native
+job `131746170645` and PRoot proof job `131746170648` failed with
+`Detailed source receipt exceeds diagnostic bound`; the separate inherited R8
+404 also remained a failure. The failed PRoot summary records both exact
+engine output pins and coupling/reproducibility gates as true, but its
+authoritative status is failed because evidence publication did not complete.
+The native orchestrator likewise did not publish a successful result.
+
+The follow-up changes only the detailed receipt's JSON whitespace, retaining
+every field and repeated dependency record within the unchanged 4 MiB cap.
+Its regression fixture preserves a complete synthetic two-build, 347-header,
+21-translation-unit inventory whose pretty representation exceeds the cap;
+an oversized compact receipt still fails before opening or staging outputs.
+This fixture is not the unexported real CI receipt. Independent review and all
+582 enforced tests passed after this fix; a successful real native compilation
+result still requires the follow-up CI run. Evidence must record the head/tree,
+tested merge, run/job, successful final sandbox probe and complete summary for
+all eight generated outputs.
 
 Before this can resolve the four native scanner findings, a separately
 reviewed source-only candidate preparation/build integration must exclude the

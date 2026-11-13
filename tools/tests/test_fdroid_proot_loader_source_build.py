@@ -617,6 +617,80 @@ class LoaderReceiptPublicationTests(unittest.TestCase):
                          receipt["authoritativeSummary"]["sha256"])
         self.assertEqual(self.summary, json.loads((self.output / destinations[1]).read_text()))
 
+    def test_large_repeated_header_evidence_is_losslessly_compact_and_published_last(self):
+        # Actual engine CI reported 347 distinct headers per build. The 21
+        # translation units here are synthetic, not a claim about that run's
+        # unexported receipt; they exercise its repeated full-header-map shape.
+        headers = {
+            "ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/sys/header_%03d.h" % index:
+            {"sha256": "%064x" % index,
+             "path": "/toolchain/ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/sys/header_%03d.h" % index}
+            for index in range(347)
+        }
+        receipt = {
+            "builds": [
+                {"name": label, "compilerDependencies": {"unit_%02d.o" % unit: headers for unit in range(21)},
+                 "objectInventory": ["unit_%02d.o" % unit for unit in range(21)]}
+                for label in ("first", "second")
+            ],
+            "commands": [{"command": ["/toolchain/ndk/bin/clang", "-c", "unit_%02d.c" % index],
+                          "log": "command-%03d.log" % index, "logSha256": "%064x" % index}
+                         for index in range(48)],
+            "trustLimits": ["Synthetic publication fixture; no compiler or target output is executed."],
+        }
+        original_receipt = json.dumps(receipt, separators=(",", ":"))
+        summary_raw = builder.summary_bytes(self.summary)
+        expected = {**receipt, "summary": {**self.summary, "status": "verified-pending-summary-publication"},
+                    "publicationState": "pending-summary",
+                    "authoritativeSummary": {"file": "source-build-summary.json",
+                                             "sha256": builder.sha(summary_raw), "required": True}}
+        compact = (json.dumps(expected, separators=(",", ":")) + "\n").encode("utf-8")
+        self.assertGreater(len((json.dumps(expected, indent=2) + "\n").encode("utf-8")), builder.MAX_RECEIPT)
+        self.assertLessEqual(len(compact), builder.MAX_RECEIPT)
+        original_fdopen, original_link = builder.os.fdopen, builder.os.link
+        streams, destinations = [], []
+
+        def record_stream(*args, **kwargs):
+            stream = original_fdopen(*args, **kwargs)
+            streams.append(stream)
+            return stream
+
+        def record_link(source, destination, **kwargs):
+            self.assertEqual(2, len(streams))
+            self.assertTrue(all(stream.closed for stream in streams))
+            destinations.append(destination)
+            return original_link(source, destination, **kwargs)
+
+        with patch.object(builder.os, "fdopen", side_effect=record_stream), \
+                patch.object(builder.os, "link", side_effect=record_link), \
+                patch.object(builder.os, "unlink", side_effect=AssertionError("No post-publication cleanup")):
+            builder.publish_result(self.output, self.summary, receipt,
+                                   summary_name="source-build-summary.json", receipt_name="source-build-receipt.json")
+        self.assertEqual(["source-build-receipt.json", "source-build-summary.json"], destinations)
+        actual = (self.output / "source-build-receipt.json").read_bytes()
+        self.assertEqual(compact, actual)
+        self.assertEqual(json.loads(compact), json.loads(actual))
+        self.assertEqual(original_receipt, json.dumps(receipt, separators=(",", ":")))
+        self.assertEqual(summary_raw, (self.output / "source-build-summary.json").read_bytes())
+        self.assertEqual(builder.sha(summary_raw), json.loads(actual)["authoritativeSummary"]["sha256"])
+
+    def test_compact_receipt_over_limit_fails_before_any_pending_or_final_file(self):
+        receipt = {"payload": "x" * builder.MAX_RECEIPT}
+        expected = {**receipt, "summary": {**self.summary, "status": "verified-pending-summary-publication"},
+                    "publicationState": "pending-summary",
+                    "authoritativeSummary": {"file": "source-build-summary.json",
+                                             "sha256": builder.sha(builder.summary_bytes(self.summary)), "required": True}}
+        expected_bytes = len((json.dumps(expected, separators=(",", ":")) + "\n").encode("utf-8"))
+        self.assertGreater(expected_bytes, builder.MAX_RECEIPT)
+        with patch.object(builder, "_stage_receipt") as stage, \
+                patch.object(builder.os, "open", side_effect=AssertionError("No output descriptor before size validation")), \
+                self.assertRaisesRegex(builder.SourceBuildError, "Detailed source receipt exceeds diagnostic bound") as caught:
+            builder.publish_result(self.output, self.summary, receipt,
+                                   summary_name="source-build-summary.json", receipt_name="source-build-receipt.json")
+        stage.assert_not_called()
+        self.assertIn("%d bytes; limit %d bytes" % (expected_bytes, builder.MAX_RECEIPT), str(caught.exception))
+        self.assertEqual([], list(self.output.iterdir()))
+
     def test_completed_pending_receipt_then_write_failure_has_no_published_success(self):
         original = builder._stage_receipt
 
