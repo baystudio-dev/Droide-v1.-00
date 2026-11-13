@@ -95,10 +95,23 @@ The import also temporarily suppresses bytecode-cache writes, restoring the
 caller's prior setting afterward; the offline default does not depend on
 `-B` to avoid creating a sibling cache directory.
 
-Actual online evidence must record the tested commit, run, job and complete
-two-file receipt before claiming registry parity. At initial implementation,
-that check is pending. An HTTP error or digest mismatch must remain failed;
-it is not permission to change the version, pin, endpoint or scanner policy.
+Actual source-proof run
+[43381300770](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43381300770)
+at head `bac29f382e25944fa1e6ca784142ab190e5de467`, tested merge
+`26c619cb141cfbaa7385205d4519bc9959bae445`, finished with nine successful jobs
+and one failure. R8 job `131739546469` failed because the fixed Google Maven
+JAR endpoint returned **HTTP 404**. No artifact file was created and no body
+bytes were received; the POM request was not attempted. The complete failed
+receipt was inspected: before/after pin metadata match, zero redirects,
+retries or fallbacks, and `registryParityVerified` remains false.
+
+All seven source-proof jobs, sandbox readiness and the ordinary eight-artifact
+registry comparison succeeded. The R8 failure blocks this proposed
+same-version Google Maven switch. It is not permission to refresh the
+version/digests, ignore a scanner rule, hide a repository or add a fallback.
+No optimizer, production repository or dependency has been changed. A
+different optimizer version, source-built optimizer, or upstream acceptance
+of its documented official raw repository needs a separate reviewed decision.
 
 Local validation of this implementation passed 493 source-proof contract
 tests, including all 46 R8 cases and the fixed CI-job contract, in the enforced
@@ -108,8 +121,8 @@ the unchanged 256,832-byte Gradle pin metadata, SHA-256
 `ee785fe0326dbdb96d8912608281f580df9f479955322050699f3229756456f3`,
 without attempting network access. An independent read-only review checked
 the directory-anchoring, canonical import and receipt-failure regressions.
-These are local implementation checks, not a substitute for the pending
-official registry comparison.
+These are local implementation checks, not registry parity or availability
+evidence; the actual negative observation above takes precedence.
 
 Even a successful result establishes only those two official registry byte
 identities. Moving the candidate build to standard `google()` resolution

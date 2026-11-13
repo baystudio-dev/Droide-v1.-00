@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Proof-only rebuild of the two retained PRoot loaders; never executes them.
+"""Baseline-free source rebuild and separate retained-byte PRoot loader proof.
 
 Run through run_fdroid_source_proofs.sh with a separately provisioned, trusted
 NDK r29. Recorded installation identities are not authentication of the vendor
@@ -44,6 +44,7 @@ LOADERS = {
     "arm64": ("libproot-loader.so", "44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04"),
     "arm32": ("libproot-loader32.so", "25f6bd90bc5a3d3088026289a0d3eaf3e502bd2b00e5cb74fadd9791132efa34"),
 }
+OUTPUT_BYTES = {"arm64": 18136, "arm32": 6244}
 NATIVE = "app/src/main/jniLibs/arm64-v8a"
 NDK_REVISION = "29.0.14206865"
 HISTORICAL_NDK_ZIP_SHA256 = "4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf"
@@ -53,6 +54,7 @@ COMMON_CPPFLAGS = ("-isystem" + TERMUX_PREFIX + "/include/c++/v1 -isystem" +
                    TERMUX_PREFIX + "/include -DARG_MAX=131072")
 MAX_ARCHIVE = 4 * 1024 * 1024
 MAX_FILE = 1024 * 1024
+MAX_RECEIPT = 4 * MAX_FILE
 MAX_EXPANDED = 16 * 1024 * 1024
 MAX_MEMBERS = 4096
 HOST_TOOLS = {name: Path("/usr/bin") / name for name in ("make", "gawk", "readelf", "ld")}
@@ -130,21 +132,29 @@ def archive_sources(raw):
     return sources
 
 
-def read_inputs(root):
+def read_source_inputs(root):
+    """Read source/proof code only; the native artifact tree is never accessed."""
     archive = read(root / ARCHIVE, MAX_ARCHIVE)
     require(sha(archive) == ARCHIVE_SHA256, "PRoot source archive checksum mismatch")
     sources = archive_sources(archive)
     for name, digest in SOURCE_BLOBS.items():
         require(name in sources and git_blob(sources[name]) == digest,
                 "Reviewed source Git-blob mismatch: " + name)
-    baselines = {}
     inputs = {ARCHIVE: archive}
     for name in ("tools/fdroid_proot_loader_source_build.py", "tools/fdroid_proot_loader_elf.py"):
         inputs[name] = read(root / name)
+    return sources, inputs
+
+
+def read_inputs(root):
+    """Compatibility input reader for the independent retained-byte proof only."""
+    sources, inputs = read_source_inputs(root)
+    baselines = {}
     for abi, (name, digest) in LOADERS.items():
         relative = NATIVE + "/" + name
         raw = read(root / relative)
-        require(sha(raw) == digest, "Retained loader baseline checksum mismatch: " + name)
+        require(len(raw) == OUTPUT_BYTES[abi] and sha(raw) == digest,
+                "Retained loader baseline size/checksum mismatch: " + name)
         inspect_loader(raw, abi)
         baselines[abi] = raw
         inputs[relative] = raw
@@ -288,15 +298,88 @@ def save_summary(path, value):
     write_new(path, raw)
 
 
+def summary_bytes(value):
+    raw = (json.dumps(value, separators=(",", ":")) + "\n").encode("utf-8")
+    require(len(raw) <= 12 * 1024, "Critical loader summary exceeds diagnostic bound")
+    return raw
+
+
+def _stage_receipt(directory_fd, name, raw):
+    descriptor = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=directory_fd)
+    with os.fdopen(descriptor, "wb") as stream:
+        require(stream.write(raw) == len(raw), "Short receipt write")
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def _close_receipt_directory(descriptor):
+    # Directory descriptor cleanup cannot invalidate an already committed final
+    # summary. No output-content I/O occurs after its no-overwrite publication.
+    try:
+        os.close(descriptor)
+    except OSError:
+        pass
+
+
+def publish_result(output, summary, receipt, *, summary_name, receipt_name):
+    """Stage both closed files, then publish evidence and authoritative summary.
+
+    The detailed receipt is explicitly pending/non-authoritative, even when all
+    build gates passed. Only the final summary commits the result; its link is
+    the last fallible filesystem operation. Pending names are left diagnostic.
+    """
+    require((summary_name, receipt_name) in {
+        ("source-build-summary.json", "source-build-receipt.json"), ("SUMMARY.json", "receipt.json")},
+        "Unexpected fixed loader receipt names")
+    compact = summary_bytes(summary)
+    evidence_summary = dict(summary)
+    if evidence_summary["status"] != "failed":
+        evidence_summary["status"] = "verified-pending-summary-publication"
+    evidence = {**receipt, "summary": evidence_summary, "publicationState": "pending-summary",
+                "authoritativeSummary": {"file": summary_name, "sha256": sha(compact), "required": True}}
+    detailed = (json.dumps(evidence, indent=2) + "\n").encode("utf-8")
+    require(len(detailed) <= MAX_RECEIPT, "Detailed source receipt exceeds diagnostic bound")
+    descriptor = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        _stage_receipt(descriptor, summary_name + ".pending", compact)
+        _stage_receipt(descriptor, receipt_name + ".pending", detailed)
+        os.link(receipt_name + ".pending", receipt_name, src_dir_fd=descriptor, dst_dir_fd=descriptor,
+                follow_symlinks=False)
+        os.link(summary_name + ".pending", summary_name, src_dir_fd=descriptor, dst_dir_fd=descriptor,
+                follow_symlinks=False)
+    finally:
+        _close_receipt_directory(descriptor)
+
+
+def publish_failure_summary(path, summary):
+    """Publish a failed verdict without reusing success-pending or final names."""
+    require(path.name in ("source-build-summary.json", "SUMMARY.json") and summary["status"] == "failed",
+            "Expected a fixed failed-summary publication")
+    raw = summary_bytes(summary)
+    descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        pending = path.name + ".failed.pending"
+        _stage_receipt(descriptor, pending, raw)
+        os.link(pending, path.name, src_dir_fd=descriptor, dst_dir_fd=descriptor, follow_symlinks=False)
+    finally:
+        _close_receipt_directory(descriptor)
+
+
+def matches_output_pin(raw, abi):
+    return len(raw) == OUTPUT_BYTES[abi] and sha(raw) == LOADERS[abi][1]
+
+
 def compact_elf(report):
     return {key: report[key] for key in ("class", "type", "machine", "entryPoint", "flags", "static",
             "nonExecutableStack", "minimumLoadAlignment", "loadableSegmentsSha256", "textSha256",
             "pokedataOffset", "pokedataStubVerified")}
 
 
-def build_proof(ndk_path, output_dir, root=ROOT):
+def build_sources(ndk_path, output_dir, root=ROOT):
+    """Build both loaders twice from source without consulting retained ELFs."""
     root = root.resolve()
-    sources, baselines, inputs = read_inputs(root)
+    sources, inputs = read_source_inputs(root)
     ndk, properties, tools, identities = ndk_tools(ndk_path, root)
     output = output_path(output_dir, root, ndk)
     output.mkdir(mode=0o700)
@@ -305,7 +388,9 @@ def build_proof(ndk_path, output_dir, root=ROOT):
     environment = build_environment(tools, temporary)
     summary = {"schemaVersion": 1, "status": "failed", "proofOnly": True,
                "sourceBuildSucceeded": False, "rawReproducible": False, "postStripReproducible": False,
-               "matchesBundledBytes": False, "inputsAndToolsUnchanged": False,
+               "matchesBundledBytes": False, "matchesPinnedOutputIdentity": False,
+               "retainedArtifactInputs": [], "baselineComparisonPerformed": False,
+               "inputsAndToolsUnchanged": False, "publicationPerformed": False, "publicationApproved": False,
                "packagedPayloadsChanged": False, "targetOutputExecuted": False,
                "androidRuntimeCompatibilityVerified": False, "fdroidAcceptanceVerified": False,
                "ndkArchiveAuthenticated": False, "elfCleanerExecuted": False,
@@ -377,7 +462,7 @@ def build_proof(ndk_path, output_dir, root=ROOT):
             command = make_command(tools)
             run(command, source_dir)
             images, reports, dependencies = {}, {}, {}
-            for abi, (baseline_name, _) in LOADERS.items():
+            for abi, (output_name, pinned_digest) in LOADERS.items():
                 suffix = "" if abi == "arm64" else "-m32"
                 selector = [] if abi == "arm64" else ["-m32"]
                 raw_path = source_dir / ("loader/loader" + suffix)
@@ -415,7 +500,7 @@ def build_proof(ndk_path, output_dir, root=ROOT):
                     generated_path = work / "generated-loader-info.c"
                     write_new(generated_path, generated)
                     snapshots.append((generated_path, generated))
-                stripped_path = work / ("post-strip-" + baseline_name)
+                stripped_path = work / ("post-strip-" + output_name)
                 write_new(stripped_path, raw)
                 run([tools["strip"], "--strip-unneeded", "--preserve-dates", stripped_path], source_dir)
                 stripped_path.chmod(0o600)
@@ -425,7 +510,9 @@ def build_proof(ndk_path, output_dir, root=ROOT):
                 images[abi] = {"raw": raw, "postStrip": stripped}
                 reports[abi] = {"rawSha256": sha(raw), "postStripSha256": sha(stripped),
                                 "rawBytes": len(raw), "postStripBytes": len(stripped),
-                                "baselineSha256": sha(baselines[abi]), "matchesBundledBytes": stripped == baselines[abi],
+                                "pinnedOutputSha256": pinned_digest, "pinnedOutputBytes": OUTPUT_BYTES[abi],
+                                "matchesPinnedOutputIdentity": matches_output_pin(stripped, abi),
+                                "matchesBundledBytes": False,
                                 "textUnchangedByStrip": raw_elf["textSha256"] == stripped_elf["textSha256"],
                                 "compileDriverExpansionSha256": sha(compile_expansion),
                                 "linkDriverExpansionSha256": sha(link_expansion),
@@ -450,15 +537,17 @@ def build_proof(ndk_path, output_dir, root=ROOT):
         summary["sourceBuildSucceeded"] = True
         summary["rawReproducible"] = all(pairs[0][abi]["raw"] == pairs[1][abi]["raw"] for abi in LOADERS)
         summary["postStripReproducible"] = all(pairs[0][abi]["postStrip"] == pairs[1][abi]["postStrip"] for abi in LOADERS)
-        summary["matchesBundledBytes"] = all(pair[abi]["postStrip"] == baselines[abi]
-                                              for pair in pairs for abi in LOADERS)
-        summary["postprocessingIncomplete"] = not summary["matchesBundledBytes"]
+        summary["matchesPinnedOutputIdentity"] = all(matches_output_pin(pair[abi]["postStrip"], abi)
+                                                      for pair in pairs for abi in LOADERS)
+        summary["postprocessingIncomplete"] = not summary["matchesPinnedOutputIdentity"]
         unchanged()
         summary["inputsAndToolsUnchanged"] = True
-        if summary["rawReproducible"] and summary["postStripReproducible"] and summary["matchesBundledBytes"]:
-            summary["status"] = "source-built-both-retained-loader-bytes-reproduced"
-        save_json(output / "receipt.json", {
-            "summary": summary,
+        require(summary["rawReproducible"] and summary["postStripReproducible"],
+                "Two isolated loader builds were not byte-identical")
+        require(summary["matchesPinnedOutputIdentity"],
+                "Post-strip loader differs from the fixed output size/SHA-256; historical postprocessing remains incomplete")
+        summary["status"] = "source-built-both-loader-pinned-identities-reproduced"
+        receipt = {
             "toolIdentities": identities, "toolVersions": versions, "ndkPropertiesSha256": sha(properties),
             "builds": details,
             "historicalNdkZipSha256NotDownloadedOrAuthenticated": HISTORICAL_NDK_ZIP_SHA256,
@@ -468,20 +557,114 @@ def build_proof(ndk_path, output_dir, root=ROOT):
             "trustLimits": ["Trusted sdkmanager installation; recorded identities are not archive authentication.",
                             "No Termux prefix headers or patched Termux sysroot supplied; actual dependencies are recorded.",
                             "Historical ELF cleaner v3.0.1 was not executed; no claim it is a no-op.",
-                            "Only retained final-byte equality can close this experiment without that cleaner.",
+                            "Both builds must meet both fixed final size/SHA-256 identities without that cleaner.",
+                            "No retained ELF is read, copied, inspected or compared by this source-build core.",
                             "No PRoot engine, talloc, APK, installed payload, feature, or dependency was changed.",
-                            "No loader execution, Android device QA, or F-Droid acceptance is demonstrated."]})
-        require(summary["rawReproducible"] and summary["postStripReproducible"],
-                "Two isolated loader builds were not byte-identical")
-        require(summary["matchesBundledBytes"],
-                "Post-strip loader differs from retained baseline; historical postprocessing remains incomplete")
-        summary["status"] = "source-built-both-retained-loader-bytes-reproduced"
+                            "No loader execution, Android device QA, or F-Droid acceptance is demonstrated."]}
+        publish_result(output, summary, receipt, summary_name="source-build-summary.json",
+                       receipt_name="source-build-receipt.json")
     except (SourceBuildError, LoaderElfError, OSError, ValueError) as error:
         summary["status"] = "failed"
         summary["error"] = str(error)[-2000:]
-        save_summary(output / "SUMMARY.json", summary)
+        publish_failure_summary(output / "source-build-summary.json", summary)
         raise SourceBuildError(str(error)) from error
-    save_summary(output / "SUMMARY.json", summary)
+    return summary
+
+
+def build_proof(ndk_path, output_dir, root=ROOT):
+    """Independently compare both freshly built ABI outputs against old bytes."""
+    root = root.resolve()
+    # Validate the external location before any failure-summary write. The core
+    # remains solely responsible for provisioning checks and creating it.
+    output = output_path(output_dir, root, ndk_path.resolve(strict=True))
+    _, baselines, inputs = read_inputs(root)
+    summary = {"schemaVersion": 1, "status": "failed", "proofOnly": True,
+               "sourceBuildSucceeded": False, "rawReproducible": False, "postStripReproducible": False,
+               "matchesPinnedOutputIdentity": False, "matchesBundledBytes": False,
+               "retainedArtifactInputs": [NATIVE + "/" + name for name, _ in LOADERS.values()],
+               "baselineComparisonPerformed": False, "sourceBuildOutputsUnchanged": False,
+               "inputsAndToolsUnchanged": False, "publicationPerformed": False, "publicationApproved": False,
+               "packagedPayloadsChanged": False, "targetOutputExecuted": False,
+               "androidRuntimeCompatibilityVerified": False, "fdroidAcceptanceVerified": False}
+    try:
+        core = build_sources(ndk_path, output, root)
+        require(core.get("status") == "source-built-both-loader-pinned-identities-reproduced" and
+                all(core.get(key) is True for key in ("sourceBuildSucceeded", "rawReproducible",
+                    "postStripReproducible", "matchesPinnedOutputIdentity", "inputsAndToolsUnchanged",
+                    "gawkOffsetMatchesIndependentSymbols")) and
+                core.get("retainedArtifactInputs") == [] and
+                all(core.get(key) is False for key in ("baselineComparisonPerformed", "matchesBundledBytes",
+                    "publicationApproved", "targetOutputExecuted", "packagedPayloadsChanged")),
+                "Source-build core did not establish its baseline-free strict result")
+        summary.update(json.loads(json.dumps(core)))
+        summary["status"] = "failed"
+        summary["retainedArtifactInputs"] = [NATIVE + "/" + name for name, _ in LOADERS.values()]
+        summary["sourceBuildOutputsUnchanged"] = False
+        summary["inputsAndToolsUnchanged"] = False
+        source_summary = read(output / "source-build-summary.json")
+        require(source_summary == summary_bytes(core), "Source-build summary does not match the returned result")
+        source_receipt = read(output / "source-build-receipt.json", 4 * MAX_FILE)
+        receipt = json.loads(source_receipt)
+        require(receipt.get("publicationState") == "pending-summary" and
+                receipt.get("authoritativeSummary") == {
+                    "file": "source-build-summary.json", "sha256": sha(source_summary), "required": True},
+                "Source-build receipt is not bound to its authoritative summary")
+        require([row["name"] for row in summary["builds"]] == ["first", "second"],
+                "Expected the two independent source-build output records")
+        observations = []
+        snapshots = [(output / "source-build-summary.json", source_summary),
+                     (output / "source-build-receipt.json", source_receipt)]
+        for row in summary["builds"]:
+            require(set(row["loaders"]) == set(LOADERS), "Expected both source-built loader ABI records")
+            for abi, (name, _) in LOADERS.items():
+                record = row["loaders"][abi]
+                suffix = "" if abi == "arm64" else "-m32"
+                raw_path = output / row["name"] / "src/loader" / ("loader" + suffix)
+                stripped_path = output / row["name"] / ("post-strip-" + name)
+                raw, stripped = read(raw_path), read(stripped_path)
+                snapshots.extend(((raw_path, raw), (stripped_path, stripped)))
+                unchanged_record = (len(raw) == record["rawBytes"] and sha(raw) == record["rawSha256"] and
+                                    len(stripped) == record["postStripBytes"] and
+                                    sha(stripped) == record["postStripSha256"] and matches_output_pin(stripped, abi))
+                match = stripped == baselines[abi]
+                record["baselineSha256"], record["matchesBundledBytes"] = sha(baselines[abi]), match
+                observations.append({"build": row["name"], "abi": abi, "matchesBundledBytes": match,
+                                     "matchesSourceBuildRecord": unchanged_record})
+        summary["baselineComparisonPerformed"] = True
+        summary["matchesBundledBytes"] = all(row["matchesBundledBytes"] for row in observations)
+        summary["sourceBuildOutputsUnchanged"] = all(row["matchesSourceBuildRecord"] for row in observations)
+        summary["postprocessingIncomplete"] = not summary["matchesBundledBytes"]
+        for relative, raw in inputs.items():
+            require(read(root / relative, MAX_ARCHIVE) == raw, "Pinned proof input changed: " + relative)
+        for path, raw in snapshots:
+            require(read(path, 4 * MAX_FILE) == raw, "Source-build output changed during comparison: " + path.name)
+        summary["inputsAndToolsUnchanged"] = True
+        require(summary["sourceBuildOutputsUnchanged"], "Source-built loader output changed before baseline comparison")
+        require(summary["matchesBundledBytes"], "Source-built loaders differ from retained baselines")
+        summary["status"] = "source-built-both-retained-loader-bytes-reproduced"
+        proof_receipt = {**receipt, "baselineComparisons": observations,
+                         "sourceBuildSummarySha256": sha(source_summary),
+                         "sourceBuildReceiptSha256": sha(source_receipt),
+                         "sourceOnlyBuildSummary": core}
+        for row in proof_receipt["builds"]:
+            for abi, record in row["loaders"].items():
+                record["baselineSha256"] = sha(baselines[abi])
+                record["matchesBundledBytes"] = True
+        publish_result(output, summary, proof_receipt, summary_name="SUMMARY.json", receipt_name="receipt.json")
+    except (SourceBuildError, LoaderElfError, OSError, ValueError, KeyError, TypeError) as error:
+        # A failed core retains its own truthful summary. The old proof CLI also
+        # receives its fixed diagnostic name, but never a success on core failure.
+        if not summary["sourceBuildSucceeded"] and output.is_dir() and not output.is_symlink():
+            source_failed = output / "source-build-summary.json"
+            if source_failed.is_file() and not source_failed.is_symlink():
+                failed = json.loads(read(source_failed))
+                summary.update(failed)
+                summary["retainedArtifactInputs"] = [NATIVE + "/" + name for name, _ in LOADERS.values()]
+        summary["status"] = "failed"
+        summary["error"] = str(error)[-2000:]
+        if output.is_dir() and not output.is_symlink():
+            publish_failure_summary(output / "SUMMARY.json", summary)
+        raise SourceBuildError(str(error)) from error
     return summary
 
 

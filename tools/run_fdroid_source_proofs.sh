@@ -6,9 +6,9 @@ set -euo pipefail
 usage() {
   printf '%s\n' \
     'Usage: bash tools/run_fdroid_source_proofs.sh MODE [options]' \
-    'Modes: tests | cli | loaders | proot | spake2 | termux | view' \
+    'Modes: tests | cli | loaders | proot | native | spake2 | termux | view' \
     'Options: --ndk DIR --jdk DIR --jdk-archive FILE --android-jar FILE' \
-    '         --annotation-jar FILE (view only) --loader-ndk DIR (proot only)' \
+    '         --annotation-jar FILE (view only) --loader-ndk DIR (proot/native only)' \
     '         --sudo (CI namespace setup only) --show-command (do not execute)'
 }
 
@@ -16,7 +16,7 @@ fail() { printf 'SOURCE_PROOF_SANDBOX_FAILED: %s\n' "$*" >&2; exit 2; }
 [[ $# -ge 1 ]] || { usage >&2; exit 2; }
 mode=$1
 shift
-case "$mode" in tests|cli|loaders|proot|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
+case "$mode" in tests|cli|loaders|proot|native|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
 
 use_sudo=false
 show_command=false
@@ -45,7 +45,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ $mode == view || -z $annotation_path ]] || fail '--annotation-jar is permitted only for view mode'
-[[ $mode == proot || -z $loader_ndk_path ]] || fail '--loader-ndk is permitted only for proot mode'
+[[ $mode == proot || $mode == native || -z $loader_ndk_path ]] || fail '--loader-ndk is permitted only for proot/native mode'
 
 script_path=$(/usr/bin/realpath -e -- "${BASH_SOURCE[0]}")
 source_root=$(/usr/bin/realpath -e -- "$(/usr/bin/dirname -- "$script_path")/..")
@@ -86,15 +86,20 @@ case "$mode" in
       target+=(tools/fdroid_cli_source_build.py --ndk /toolchain/ndk --output-dir /scratch/proof)
     fi
     ;;
-  proot)
-    [[ -n $ndk_path && -n $loader_ndk_path && -z $jdk_path && -z $archive_path && -z $android_path ]] || fail 'proot mode requires only --ndk and --loader-ndk'
+  proot|native)
+    [[ -n $ndk_path && -n $loader_ndk_path && -z $jdk_path && -z $archive_path && -z $android_path ]] || fail "$mode mode requires only --ndk and --loader-ndk"
     ndk_path=$(external_path "$ndk_path" directory)
     loader_ndk_path=$(external_path "$loader_ndk_path" directory)
     [[ $ndk_path != "$loader_ndk_path" && $ndk_path != "$loader_ndk_path/"* && $loader_ndk_path != "$ndk_path/"* ]] || fail 'engine and loader NDK inputs must be separate non-overlapping directories'
     [[ -f $ndk_path/source.properties && -f $loader_ndk_path/source.properties ]] || fail 'NDK source.properties missing'
     tool_mounts+=(--ro-bind "$ndk_path" /toolchain/ndk --ro-bind "$loader_ndk_path" /toolchain/loader-ndk)
-    target+=(tools/fdroid_proot_engine_source_build.py --ndk /toolchain/ndk
-      --loader-ndk /toolchain/loader-ndk --output-dir /scratch/proof)
+    if [[ $mode == native ]]; then
+      target+=(tools/fdroid_native_source_build.py --ndk /toolchain/ndk
+        --loader-ndk /toolchain/loader-ndk --output-dir /scratch/proof)
+    else
+      target+=(tools/fdroid_proot_engine_source_build.py --ndk /toolchain/ndk
+        --loader-ndk /toolchain/loader-ndk --output-dir /scratch/proof)
+    fi
     ;;
   spake2|termux|view)
     [[ -n $jdk_path && -n $archive_path && -z $ndk_path ]] || fail 'Java proofs require --jdk and --jdk-archive, but not --ndk'
@@ -155,6 +160,13 @@ if [[ -d $source_root/.git ]]; then
   source_masks+=(--size 4096 --tmpfs /src/.git --remount-ro /src/.git)
 elif [[ -e $source_root/.git ]]; then
   source_masks+=(--ro-bind /dev/null /src/.git)
+fi
+if [[ $mode == native ]]; then
+  # The source-only native core cannot read any of the four retained ELF files.
+  # This fresh empty mask is read-only, fixed-size, and mounted after /src; it
+  # neither deletes checkout files nor grants an additional writable surface.
+  source_masks+=(--size 4096 --tmpfs /src/app/src/main/jniLibs/arm64-v8a
+    --remount-ro /src/app/src/main/jniLibs/arm64-v8a)
 fi
 launch+=(/usr/bin/bwrap "${isolation[@]}"
   --die-with-parent --new-session --uid 65534 --gid 65534 --cap-drop ALL --clearenv

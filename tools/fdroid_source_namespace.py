@@ -46,6 +46,20 @@ SETUP_SECONDS = 20.0
 RUN_SECONDS = 300.0
 REAP_SECONDS = 3.0
 CLEAN_ENV = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8", "TZ": "UTC"}
+NATIVE_MASK = "/src/app/src/main/jniLibs/arm64-v8a"
+NATIVE_SCRIPT = "tools/fdroid_native_source_build.py"
+# Only this existing probe/diagnostic wrapper and exact target may request the
+# additional empty read-only mask. It grants no output mount or new execution
+# authority. Other proof modes retain their original filesystem contract.
+NATIVE_COMMAND = (
+    "/bin/bash", "-c",
+    'set -e; umask 077; /usr/bin/mkdir -m 700 -- /scratch/home /scratch/tmp /scratch/cache; '
+    '/usr/bin/python3 -I -B -S /src/tools/fdroid_source_sandbox_probe.py; set +e; "$@"; '
+    'result=$?; /usr/bin/python3 -B -c "$PROOF_DIAGNOSTICS"; exit "$result"',
+    "proof-runner", "/usr/bin/python3", "-B", NATIVE_SCRIPT,
+    "--ndk", "/toolchain/ndk", "--loader-ndk", "/toolchain/loader-ndk",
+    "--output-dir", "/scratch/proof",
+)
 
 
 class SetupError(RuntimeError):
@@ -171,7 +185,7 @@ def validate_bwrap(argv: list[str], source_root: str, git_kind: str | None) -> N
         elif option == "--tmpfs":
             target = values[0]
             expected = ("536870912", "1777") if target == "/scratch" else ("4096", None)
-            if target not in {"/scratch", "/src/.git"} or target in mounts or (pending_size, pending_perms) != expected:
+            if target not in {"/scratch", "/src/.git", NATIVE_MASK} or target in mounts or (pending_size, pending_perms) != expected:
                 raise SetupError("unbounded or undeclared writable mount")
             if target == "/src/.git" and git_kind != "directory":
                 raise SetupError("unexpected Git metadata mask")
@@ -180,7 +194,7 @@ def validate_bwrap(argv: list[str], source_root: str, git_kind: str | None) -> N
             last_mount = start
         elif option == "--remount-ro":
             target = values[0]
-            if target not in {"/", "/proc", "/dev", "/src/.git"} or target in remounts:
+            if target not in {"/", "/proc", "/dev", "/src/.git", NATIVE_MASK} or target in remounts:
                 raise SetupError("unexpected read-only remount")
             remounts[target] = start
     if set(seen) != required | set(singles) or seen["--share-net"] < seen["--unshare-all"]:
@@ -208,6 +222,16 @@ def validate_bwrap(argv: list[str], source_root: str, git_kind: str | None) -> N
             raise SetupError("Git metadata must be masked after the source mount")
     if i == len(argv) or argv[i] not in {"/bin/bash", "/usr/bin/python3", "/usr/bin/true"}:
         raise SetupError("unexpected sandbox target entry point")
+    native_target = any(os.path.basename(value) == os.path.basename(NATIVE_SCRIPT) for value in argv[i:])
+    if native_target or NATIVE_MASK in mounts or NATIVE_MASK in remounts:
+        if tuple(argv[i:]) != NATIVE_COMMAND:
+            raise SetupError("native input mask requires the exact fixed source-only target")
+        if set(binds) & tool_destinations != {"/toolchain/ndk", "/toolchain/loader-ndk"}:
+            raise SetupError("native source-only target requires exactly the two read-only NDK inputs")
+        if mounts.get(NATIVE_MASK, -1) <= bind_positions.get("/src", -1):
+            raise SetupError("native inputs must be masked after the source mount")
+        if remounts.get(NATIVE_MASK, -1) <= mounts[NATIVE_MASK]:
+            raise SetupError("native input mask must be explicitly read-only after its mount")
 
 
 class _CapHeader(ctypes.Structure):

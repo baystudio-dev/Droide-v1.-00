@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import inspect
 import json
 import os
 from pathlib import Path
@@ -33,6 +34,12 @@ def tar_fixture(entries):
 
 
 class EngineInputDataTests(unittest.TestCase):
+    def test_core_interface_and_output_identity_have_no_reference_override(self):
+        self.assertEqual(["ndk_path", "loader_ndk_path", "output_dir", "root"],
+                         list(inspect.signature(builder.build_sources).parameters))
+        self.assertEqual(265648, builder.ENGINE_BYTES)
+        self.assertEqual("6a7babd8480adea03afba45a3cabd89a1387040a0cdc205a90f37185cb4f882b", builder.ENGINE_SHA256)
+
     def test_recipe_paths_reject_whitespace_shell_and_make_metacharacters(self):
         builder.recipe_path(Path("/scratch/proof-path_1.2"))
         for name in ("space x", "dollar$x", "quote'x", 'quote"x', "semi;x", "new\nline", "star*x", "tick`x", "back\\x"):
@@ -53,6 +60,30 @@ class EngineInputDataTests(unittest.TestCase):
         objects = builder.engine_objects(sources["src/GNUmakefile"])
         self.assertIn("extension/native_offload/native_offload.o", objects)
         self.assertEqual(["loader/loader-wrapped.o", "loader/loader-m32-wrapped.o", "loader/loader-info.o"], objects[-3:])
+
+    def test_real_source_input_reader_never_stats_or_opens_native_references(self):
+        native = TOOLS.parent / "app/src/main/jniLibs"
+        original_open, original_lstat = Path.open, Path.lstat
+
+        def check(path):
+            if path == native or native in path.parents:
+                self.fail("Source input reader touched retained native path: " + str(path))
+
+        def guarded_open(path, *args, **kwargs):
+            check(path)
+            return original_open(path, *args, **kwargs)
+
+        def guarded_lstat(path, *args, **kwargs):
+            check(path)
+            return original_lstat(path, *args, **kwargs)
+
+        with patch.object(Path, "open", autospec=True, side_effect=guarded_open), \
+             patch.object(Path, "lstat", autospec=True, side_effect=guarded_lstat):
+            sources, talloc, shim, inputs = builder.read_source_inputs(TOOLS.parent)
+        self.assertEqual(builder.EVENT_BEFORE_SHA256, builder.sha(sources[builder.EVENT]))
+        self.assertEqual({"talloc.c", "talloc.h"}, set(talloc))
+        self.assertTrue(shim)
+        self.assertFalse(any(name.startswith("app/src/main/jniLibs/") for name in inputs))
 
     def test_talloc_stages_only_the_two_reviewed_source_files(self):
         root = builder.TALLOC_ROOT
@@ -159,6 +190,18 @@ class EngineBuildControlTests(unittest.TestCase):
         self.loaders = {"arm64": b"SOURCE64-COMMENT", "arm32": b"SOURCE32-COMMENT"}
         self.loader_pins = {abi: ("libproot-loader.so" if abi == "arm64" else "libproot-loader32.so", builder.sha(data))
                             for abi, data in self.loaders.items()}
+        self.retained_paths = [self.root / builder.ENGINE]
+        for abi, (name, _) in self.loader_pins.items():
+            relative = builder.loader.NATIVE + "/" + name
+            self.inputs[relative] = self.loaders[abi]
+            path = self.root / relative
+            path.write_bytes(self.loaders[abi])
+            self.retained_paths.append(path)
+        unused_cli = self.root / builder.loader.NATIVE / "libdroide_cli.so"
+        unused_cli.write_bytes(b"UNUSED_RETAINED_CLI")
+        self.retained_paths.append(unused_cli)
+        self.source_inputs = {name: data for name, data in self.inputs.items()
+                              if not name.startswith("app/src/main/jniLibs/")}
         self.wrapper_pairs = [{"arm64": b"SOURCE64", "arm32": b"SOURCE32"} for _ in range(2)]
         self.wrapper_pins = {abi: (len(data), builder.sha(data)) for abi, data in self.wrapper_pairs[0].items()}
         self.wrapper_calls, self.certificate_mutator = [], None
@@ -169,11 +212,16 @@ class EngineBuildControlTests(unittest.TestCase):
         self.bad_patch, self.bad_coupling, self.changed_text, self.changed_wrapper = False, False, False, False
         for patcher in (
             patch.object(builder, "read_inputs", return_value=(self.sources, self.talloc, self.shim, self.baseline, self.inputs)),
+            patch.object(builder, "read_source_inputs", return_value=(self.sources, self.talloc, self.shim, self.source_inputs)),
             patch.object(builder, "ndk_tools", return_value=(self.ndk, self.properties, self.tools, self.identities)),
             patch.object(builder.loader, "ndk_tools", return_value=(self.loader_ndk, self.loader_properties, self.loader_tools, self.loader_identities)),
-            patch.object(builder.loader, "build_proof", side_effect=self.fake_loader_proof),
+            patch.object(builder.loader, "build_sources", side_effect=self.fake_loader_source),
+            patch.object(builder.loader, "build_proof", side_effect=AssertionError("Engine must not call the retained loader proof")),
             patch.object(builder.loader, "inspect_loader", side_effect=self.fake_loader_inspect),
             patch.object(builder.loader, "LOADERS", self.loader_pins),
+            patch.object(builder.loader, "OUTPUT_BYTES", {abi: len(data) for abi, data in self.loaders.items()}),
+            patch.object(builder, "ENGINE_SHA256", builder.sha(self.baseline)),
+            patch.object(builder, "ENGINE_BYTES", len(self.baseline)),
             patch.object(builder, "WRAPPED_LOADERS", self.wrapper_pins),
             patch.object(builder, "EVENT_AFTER_SHA256", builder.sha(self.after_event)),
             patch.object(builder, "run_tool", side_effect=self.fake_tool),
@@ -183,7 +231,7 @@ class EngineBuildControlTests(unittest.TestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
 
-    def fake_loader_proof(self, ndk, output, root):
+    def fake_loader_source(self, ndk, output, root):
         self.loader_calls += 1
         self.assertEqual(self.loader_ndk, ndk)
         self.assertEqual(self.root, root)
@@ -202,10 +250,12 @@ class EngineBuildControlTests(unittest.TestCase):
             builder.write_new(output / label / "generated-loader-info.c",
                               b"#include <unistd.h>\nconst ssize_t offset_to_pokedata_workaround=4;\n")
         report = {key: True for key in ("sourceBuildSucceeded", "rawReproducible", "postStripReproducible",
-                                       "matchesBundledBytes", "inputsAndToolsUnchanged", "gawkOffsetMatchesIndependentSymbols")}
-        report.update(status="source-built-both-retained-loader-bytes-reproduced", targetOutputExecuted=False,
-                      packagedPayloadsChanged=False, arm64PokedataOffset=4)
-        builder.save_json(output / "SUMMARY.json", report)
+                                       "matchesPinnedOutputIdentity", "inputsAndToolsUnchanged", "gawkOffsetMatchesIndependentSymbols")}
+        report.update(status="source-built-both-loader-pinned-identities-reproduced", targetOutputExecuted=False,
+                      packagedPayloadsChanged=False, arm64PokedataOffset=4, publicationApproved=False,
+                      matchesBundledBytes=False, baselineComparisonPerformed=False, retainedArtifactInputs=[])
+        builder.loader.publish_result(output, report, {"summary": report},
+                                      summary_name="source-build-summary.json", receipt_name="source-build-receipt.json")
         return report
 
     def fake_loader_inspect(self, raw, abi, *, require_symbols=False):
@@ -343,8 +393,201 @@ class EngineBuildControlTests(unittest.TestCase):
     def build(self):
         return builder.build_proof(self.ndk, self.loader_ndk, self.output, self.root)
 
+    def build_sources(self):
+        return builder.build_sources(self.ndk, self.loader_ndk, self.output, self.root)
+
     def summary(self):
         return json.loads((self.output / "SUMMARY.json").read_text())
+
+    def source_summary(self):
+        return json.loads((self.output / "source-build-summary.json").read_text())
+
+    def test_source_core_succeeds_with_all_four_retained_native_files_absent(self):
+        for path in self.retained_paths:
+            path.unlink()
+        report = self.build_sources()
+        self.assertEqual(builder.SOURCE_SUCCESS, report["status"])
+        self.assertEqual([], report["retainedArtifactInputs"])
+        self.assertFalse(report["baselineComparisonPerformed"])
+        self.assertFalse(report["matchesBundledBytes"])
+        self.assertFalse(report["publicationApproved"])
+        self.assertTrue(report["matchesPinnedOutputIdentity"])
+        self.assertEqual(1, self.loader_calls)
+        self.assertEqual(2, self.make_count)
+        self.assertFalse(any(path.exists() for path in self.retained_paths))
+        self.assertFalse((self.output / "SUMMARY.json").exists())
+        self.assertFalse((self.output / "receipt.json").exists())
+        self.assertEqual(report, self.source_summary())
+        for item in report["builds"]:
+            self.assertTrue(item["matchesPinnedOutputIdentity"])
+            self.assertFalse(item["matchesBundledBytes"])
+        receipt = json.loads((self.output / "source-build-receipt.json").read_text())
+        self.assertEqual("pending-summary", receipt["publicationState"])
+        self.assertEqual({**report, "status": "verified-pending-summary-publication"}, receipt["summary"])
+        self.assertFalse(receipt["loaderSourceBuildSummary"]["matchesBundledBytes"])
+
+    def test_source_core_does_not_read_or_repair_poisoned_native_references(self):
+        for index, path in enumerate(self.retained_paths):
+            path.write_bytes(("poisoned retained file " + str(index)).encode())
+        before = {path: path.read_bytes() for path in self.retained_paths}
+        report = self.build_sources()
+        self.assertTrue(report["matchesPinnedOutputIdentity"])
+        self.assertEqual(before, {path: path.read_bytes() for path in self.retained_paths})
+
+    def test_source_core_transitively_forbids_native_reference_path_access(self):
+        native = self.root / "app/src/main/jniLibs"
+        original_open, original_stat, original_lstat = Path.open, Path.stat, Path.lstat
+
+        def check(path):
+            if path == native or native in path.parents:
+                self.fail("Source-only engine touched retained native input: " + str(path))
+
+        def guarded_open(path, *args, **kwargs):
+            check(path)
+            return original_open(path, *args, **kwargs)
+
+        def guarded_stat(path, *args, **kwargs):
+            check(path)
+            return original_stat(path, *args, **kwargs)
+
+        def guarded_lstat(path, *args, **kwargs):
+            check(path)
+            return original_lstat(path, *args, **kwargs)
+
+        with patch.object(Path, "open", autospec=True, side_effect=guarded_open), \
+             patch.object(Path, "stat", autospec=True, side_effect=guarded_stat), \
+             patch.object(Path, "lstat", autospec=True, side_effect=guarded_lstat), \
+             patch.object(builder, "read_inputs", side_effect=AssertionError("Proof reader called by core")), \
+             patch.object(builder.loader, "read_inputs", side_effect=AssertionError("Loader proof reader called by core")):
+            report = self.build_sources()
+        self.assertTrue(report["matchesPinnedOutputIdentity"])
+
+    def test_source_core_rejects_wrong_engine_size_despite_matching_hash(self):
+        with patch.object(builder, "ENGINE_BYTES", len(self.baseline) + 1), \
+             self.assertRaisesRegex(builder.SourceBuildError, "fixed output checksum/size"):
+            self.build_sources()
+        self.assertFalse(self.source_summary()["matchesPinnedOutputIdentity"])
+        self.assertEqual("failed", self.source_summary()["status"])
+        self.assertFalse((self.output / "source-build-receipt.json").exists())
+
+    def test_source_core_rechecks_fresh_loader_sizes_before_embedding(self):
+        with patch.object(builder.loader, "OUTPUT_BYTES", {"arm64": len(self.loaders["arm64"]) + 1,
+                                                          "arm32": len(self.loaders["arm32"])}), \
+             self.assertRaisesRegex(builder.SourceBuildError, "pinned output identity"):
+            self.build_sources()
+        self.assertEqual(0, self.make_count)
+        self.assertFalse(self.source_summary()["sourceBuildSucceeded"])
+
+    def test_source_core_rejects_a_reference_dependent_nested_result(self):
+        def dishonest(ndk, output, root):
+            report = self.fake_loader_source(ndk, output, root)
+            report["baselineComparisonPerformed"] = True
+            report["retainedArtifactInputs"] = [builder.loader.NATIVE + "/libproot-loader.so"]
+            return report
+
+        with patch.object(builder.loader, "build_sources", side_effect=dishonest), \
+             self.assertRaisesRegex(builder.SourceBuildError, "status/limits"):
+            self.build_sources()
+        self.assertEqual(0, self.make_count)
+
+    def test_source_core_failure_never_falls_back_to_retained_payloads(self):
+        with patch.object(builder, "run_tool", side_effect=builder.SourceBuildError("compiler failed")), \
+             self.assertRaisesRegex(builder.SourceBuildError, "compiler failed"):
+            self.build_sources()
+        self.assertEqual(0, self.make_count)
+        self.assertFalse(self.source_summary()["sourceBuildSucceeded"])
+        self.assertFalse((self.output / "first/post-strip-libdroide_proot.so").exists())
+        self.assertEqual(self.baseline, (self.root / builder.ENGINE).read_bytes())
+
+    def test_proof_rejects_comparison_input_failure_before_source_build(self):
+        with patch.object(builder, "read_inputs", side_effect=builder.SourceBuildError("retained input missing")), \
+             self.assertRaisesRegex(builder.SourceBuildError, "retained input missing"):
+            self.build()
+        self.assertFalse(self.output.exists())
+        self.assertEqual(0, self.loader_calls)
+        self.assertEqual(0, self.make_count)
+
+    def test_proof_independently_compares_each_engine_output(self):
+        original_core = builder.build_sources
+        for label in ("first", "second"):
+            with self.subTest(build=label):
+                self.output = self.base / ("engine-proof-mismatch-" + label)
+                self.make_count = self.loader_calls = 0
+
+                def modified(ndk, loader_ndk, output, root):
+                    report = original_core(ndk, loader_ndk, output, root)
+                    (output / label / "post-strip-libdroide_proot.so").write_bytes(b"changed independently")
+                    return report
+
+                with patch.object(builder, "build_sources", side_effect=modified), \
+                     self.assertRaisesRegex(builder.SourceBuildError, "Retained engine byte comparison failed for " + label):
+                    self.build()
+                self.assertFalse(self.summary()["matchesBundledBytes"])
+                self.assertEqual("failed", self.summary()["status"])
+                self.assertEqual(builder.SOURCE_SUCCESS, self.source_summary()["status"])
+                self.assertFalse((self.output / "receipt.json").exists())
+
+    def test_proof_independently_compares_all_four_loader_outputs(self):
+        original_core = builder.build_sources
+        for label in ("first", "second"):
+            for abi in ("arm64", "arm32"):
+                with self.subTest(build=label, abi=abi):
+                    self.output = self.base / ("loader-proof-mismatch-" + label + "-" + abi)
+                    self.make_count = self.loader_calls = 0
+
+                    def modified(ndk, loader_ndk, output, root):
+                        report = original_core(ndk, loader_ndk, output, root)
+                        path = output / "loader-source-proof" / label / ("post-strip-" + self.loader_pins[abi][0])
+                        path.write_bytes(b"changed independently")
+                        return report
+
+                    with patch.object(builder, "build_sources", side_effect=modified), \
+                         patch.object(builder.loader, "inspect_loader", return_value={"pokedataOffset": 4}), \
+                         self.assertRaisesRegex(builder.SourceBuildError, "Retained " + abi + " loader byte comparison failed for " + label):
+                        self.build()
+                    self.assertFalse(self.summary()["loaderMatchesBundledBytes"])
+                    self.assertFalse(self.summary()["matchesBundledBytes"])
+                    self.assertEqual("failed", self.summary()["status"])
+                    self.assertFalse((self.output / "receipt.json").exists())
+
+    def test_retained_mutation_does_not_affect_core_but_invalidates_wrapper(self):
+        self.after_make = lambda _: (self.root / builder.ENGINE).write_bytes(b"concurrent retained mutation")
+        with self.assertRaisesRegex(builder.SourceBuildError, "Retained-byte proof input changed"):
+            self.build()
+        self.assertEqual(builder.SOURCE_SUCCESS, self.source_summary()["status"])
+        self.assertFalse(self.source_summary()["baselineComparisonPerformed"])
+        self.assertEqual("failed", self.summary()["status"])
+        self.assertFalse((self.output / "receipt.json").exists())
+
+    def test_source_summary_mutation_is_rejected_before_wrapper_publication(self):
+        original_core = builder.build_sources
+
+        def modified(ndk, loader_ndk, output, root):
+            report = original_core(ndk, loader_ndk, output, root)
+            (output / "source-build-summary.json").write_bytes(b"{}\n")
+            return report
+
+        with patch.object(builder, "build_sources", side_effect=modified), \
+             self.assertRaisesRegex(builder.SourceBuildError, "Source-only engine summary changed"):
+            self.build()
+        self.assertEqual("failed", self.summary()["status"])
+        self.assertFalse((self.output / "receipt.json").exists())
+
+    def test_source_receipt_binding_mutation_is_rejected_before_wrapper_publication(self):
+        original_core = builder.build_sources
+
+        def modified(ndk, loader_ndk, output, root):
+            report = original_core(ndk, loader_ndk, output, root)
+            path = output / "source-build-receipt.json"
+            receipt = json.loads(path.read_text())
+            receipt["authoritativeSummary"]["sha256"] = "0" * 64
+            path.write_text(json.dumps(receipt))
+            return report
+
+        with patch.object(builder, "build_sources", side_effect=modified), \
+             self.assertRaisesRegex(builder.SourceBuildError, "not bound to its completed summary"):
+            self.build()
+        self.assertEqual("failed", self.summary()["status"])
 
     def test_two_engine_builds_use_two_fresh_loader_pairs_without_production_mutation(self):
         report = self.build()
@@ -365,7 +608,15 @@ class EngineBuildControlTests(unittest.TestCase):
             self.assertEqual(data, (self.root / name).read_bytes())
         for label in ("first", "second"):
             self.assertEqual(0, (self.output / label / "post-strip-libdroide_proot.so").stat().st_mode & 0o111)
-        self.assertEqual(report, json.loads((self.output / "receipt.json").read_text())["summary"])
+        receipt = json.loads((self.output / "receipt.json").read_text())
+        self.assertEqual({**report, "status": "verified-pending-summary-publication"}, receipt["summary"])
+        self.assertEqual("pending-summary", receipt["publicationState"])
+        self.assertEqual(builder.sha((self.output / "SUMMARY.json").read_bytes()), receipt["authoritativeSummary"]["sha256"])
+        self.assertEqual(4, len(receipt["loaderBaselineComparisons"]))
+        self.assertTrue(report["loaderMatchesBundledBytes"])
+        self.assertTrue(report["loaderBaselineComparisonPerformed"])
+        self.assertFalse(receipt["loaderSourceBuildSummary"]["baselineComparisonPerformed"])
+        self.assertFalse(receipt["loaderSourceBuildSummary"]["matchesBundledBytes"])
         self.assertLessEqual((self.output / "SUMMARY.json").stat().st_size, 12 * 1024)
 
     def test_original_engine_assignments_and_talloc_flags_are_preserved(self):
@@ -389,9 +640,18 @@ class EngineBuildControlTests(unittest.TestCase):
 
     def test_realistic_full_summary_evidence_fits_the_diagnostic_budget(self):
         report = self.build()
-        self.assertEqual(4, len(report["proofCodeSha256"]))
-        self.assertEqual(8, len(report["loaderInstalledToolSha256"]))
-        self.assertEqual(13, len(report["engineInstalledToolSha256"]))
+        source_report = self.source_summary()
+        self.assertEqual(4, len(source_report["proofCodeSha256"]))
+        self.assertEqual(8, len(source_report["loaderInstalledToolSha256"]))
+        self.assertEqual(13, len(source_report["engineInstalledToolSha256"]))
+        provenance = report["sourceBuildProvenanceRef"]
+        self.assertTrue(provenance["verified"])
+        self.assertEqual("source-build-summary.json", provenance["file"])
+        self.assertEqual(list(builder.PROVENANCE_FIELDS), provenance["fields"])
+        self.assertEqual(builder.sha((self.output / provenance["file"]).read_bytes()), provenance["sha256"])
+        for field in builder.PROVENANCE_FIELDS:
+            self.assertNotIn(field, report)
+            self.assertIn(field, source_report)
         self.assertEqual(256, len(report["compilerGenerationPreview"]))
         self.assertEqual(128, len(report["linkerGenerationPreview"]))
         self.assertEqual({"class": "ELF64", "type": "ET_DYN", "machine": "AArch64",
@@ -406,6 +666,7 @@ class EngineBuildControlTests(unittest.TestCase):
             coupling = item["rawElf"]["coupling"]
             self.assertTrue(item["rawElf"]["sharedContractVerified"])
             self.assertTrue(item["postStripElf"]["sharedContractVerified"])
+            self.assertEqual({"verified": False, "symbolsRequested": False}, item["postStripElf"]["coupling"])
             self.assertTrue(coupling["relocationsDoNotOverlap"])
             self.assertEqual("loaderWrapping", coupling["loaderIdentityRef"])
             self.assertNotIn("scope", coupling)
@@ -430,14 +691,60 @@ class EngineBuildControlTests(unittest.TestCase):
             for evidence in coupling["loaders"].values():
                 self.assertEqual({"start", "end", "size"}, set(evidence["symbols"]))
         self.assertLessEqual((self.output / "SUMMARY.json").stat().st_size, 12 * 1024)
+        self.assertLessEqual((self.output / "source-build-summary.json").stat().st_size, 12 * 1024)
+
+    def test_core_full_late_failure_keeps_all_provenance_and_2000_character_error(self):
+        original = builder.loader.publish_result
+
+        def fail(output, summary, receipt, **names):
+            if output == self.output and names["summary_name"] == "source-build-summary.json":
+                raise OSError("x" * 2500 + " core receipt persistence failure")
+            return original(output, summary, receipt, **names)
+
+        with patch.object(builder.loader, "publish_result", side_effect=fail), \
+             self.assertRaisesRegex(builder.SourceBuildError, "core receipt persistence failure"):
+            self.build_sources()
+        report = self.source_summary()
+        self.assertEqual("failed", report["status"])
+        self.assertEqual(2000, len(report["error"]))
+        self.assertEqual(2, len(report["builds"]))
+        self.assertTrue(report["matchesPinnedOutputIdentity"])
+        self.assertFalse(report["matchesBundledBytes"])
+        for field in builder.PROVENANCE_FIELDS:
+            self.assertIn(field, report)
+        self.assertLessEqual((self.output / "source-build-summary.json").stat().st_size, 12 * 1024)
+        self.assertFalse((self.output / "source-build-receipt.json").exists())
+
+    def test_core_final_summary_link_failure_leaves_only_pending_success_evidence(self):
+        original = builder.loader.os.link
+        blocked = []
+
+        def fail_summary(source, destination, **kwargs):
+            belongs_to_engine = os.fstat(kwargs["dst_dir_fd"]).st_ino == self.output.stat().st_ino
+            if belongs_to_engine and destination == "source-build-summary.json" and source.endswith(".json.pending"):
+                blocked.append(source)
+                raise OSError("core final summary publication failed")
+            return original(source, destination, **kwargs)
+
+        with patch.object(builder.loader.os, "link", side_effect=fail_summary), \
+             self.assertRaisesRegex(builder.SourceBuildError, "core final summary publication failed"):
+            self.build_sources()
+        self.assertEqual(["source-build-summary.json.pending"], blocked)
+        report = self.source_summary()
+        self.assertEqual("failed", report["status"])
+        receipt = json.loads((self.output / "source-build-receipt.json").read_text())
+        self.assertEqual("pending-summary", receipt["publicationState"])
+        self.assertEqual("verified-pending-summary-publication", receipt["summary"]["status"])
+        self.assertNotEqual(receipt["authoritativeSummary"]["sha256"],
+                            builder.sha((self.output / "source-build-summary.json").read_bytes()))
 
     def test_full_failure_summary_with_maximum_error_still_fits_budget(self):
-        original = builder.save_json
-        def fail(path, value):
-            if path == self.output / "receipt.json":
+        original = builder.loader.publish_result
+        def fail(output, summary, receipt, **names):
+            if output == self.output and names["receipt_name"] == "receipt.json":
                 raise OSError("x" * 2500 + " receipt persistence failure")
-            return original(path, value)
-        with patch.object(builder, "save_json", side_effect=fail), \
+            return original(output, summary, receipt, **names)
+        with patch.object(builder.loader, "publish_result", side_effect=fail), \
              self.assertRaisesRegex(builder.SourceBuildError, "receipt persistence failure"):
             self.build()
         report = self.summary()
@@ -447,7 +754,7 @@ class EngineBuildControlTests(unittest.TestCase):
         self.assertLessEqual((self.output / "SUMMARY.json").stat().st_size, 12 * 1024)
 
     def test_loader_subproof_failure_prevents_any_engine_compilation(self):
-        with patch.object(builder.loader, "build_proof", side_effect=builder.SourceBuildError("loader failed")), \
+        with patch.object(builder.loader, "build_sources", side_effect=builder.SourceBuildError("loader failed")), \
              self.assertRaisesRegex(builder.SourceBuildError, "loader failed"):
             self.build()
         self.assertEqual(0, self.make_count)
@@ -469,9 +776,9 @@ class EngineBuildControlTests(unittest.TestCase):
         self.assertFalse(self.summary()["postStripReproducible"])
         self.assertFalse(self.summary()["matchesBundledBytes"])
 
-    def test_repeatable_wrong_engine_fails_strict_baseline_gate(self):
+    def test_repeatable_wrong_engine_fails_strict_output_pin_gate(self):
         self.stripped_pairs = [b"WRONG", b"WRONG"]
-        with self.assertRaisesRegex(builder.SourceBuildError, "retained baseline"):
+        with self.assertRaisesRegex(builder.SourceBuildError, "fixed output checksum/size"):
             self.build()
         self.assertTrue(self.summary()["rawReproducible"])
         self.assertTrue(self.summary()["postStripReproducible"])
@@ -593,31 +900,37 @@ class EngineBuildControlTests(unittest.TestCase):
             self.build()
 
     def test_receipt_failure_forces_failed_status_without_erasing_factual_gates(self):
-        original = builder.save_json
-        def fail(path, value):
-            if path == self.output / "receipt.json":
+        original = builder.loader.publish_result
+        def fail(output, summary, receipt, **names):
+            if output == self.output and names["receipt_name"] == "receipt.json":
                 raise OSError("receipt failed")
-            return original(path, value)
-        with patch.object(builder, "save_json", side_effect=fail), self.assertRaisesRegex(builder.SourceBuildError, "receipt failed"):
+            return original(output, summary, receipt, **names)
+        with patch.object(builder.loader, "publish_result", side_effect=fail), self.assertRaisesRegex(builder.SourceBuildError, "receipt failed"):
             self.build()
         self.assertEqual("failed", self.summary()["status"])
         self.assertTrue(self.summary()["matchesBundledBytes"])
         self.assertTrue(self.summary()["sourceBuildSucceeded"])
 
     def test_summary_write_failure_does_not_leave_success_status(self):
-        original = builder.save_summary
+        original = builder.loader.os.link
         calls = []
-        def fail_once(path, value):
-            calls.append(value["status"])
-            if len(calls) == 1:
+        def fail_once(source, destination, **kwargs):
+            if destination == "SUMMARY.json":
+                calls.append(source)
+            if destination == "SUMMARY.json" and source == "SUMMARY.json.pending":
                 raise OSError("summary persistence failed")
-            return original(path, value)
-        with patch.object(builder, "save_summary", side_effect=fail_once), \
+            return original(source, destination, **kwargs)
+        with patch.object(builder.loader.os, "link", side_effect=fail_once), \
              self.assertRaisesRegex(builder.SourceBuildError, "summary persistence failed"):
             self.build()
-        self.assertEqual([builder.SUCCESS, "failed"], calls)
+        self.assertEqual(["SUMMARY.json.pending", "SUMMARY.json.failed.pending"], calls)
         self.assertEqual("failed", self.summary()["status"])
         self.assertTrue(self.summary()["matchesBundledBytes"])
+        receipt = json.loads((self.output / "receipt.json").read_text())
+        self.assertEqual("verified-pending-summary-publication", receipt["summary"]["status"])
+        self.assertEqual("pending-summary", receipt["publicationState"])
+        self.assertNotEqual(receipt["authoritativeSummary"]["sha256"],
+                            builder.sha((self.output / "SUMMARY.json").read_bytes()))
 
     def test_input_ndk_ancestry_overlaps_are_rejected_directly(self):
         for directory in (self.base, self.root, self.ndk, self.ndk / "child"):

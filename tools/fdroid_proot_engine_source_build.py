@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline proof-only PRoot rebuild with independently source-built loaders.
+"""Baseline-free PRoot compilation and a separate retained-byte proof wrapper.
 
 Run only through the enforced source-proof runner. The existing production
 recipe and APK inputs are never modified, and no generated target is executed.
@@ -7,11 +7,15 @@ Installed tool identities are recorded, not presented as authenticated vendor
 archives. Exact final-byte reproduction is not Android QA/F-Droid acceptance.
 Direct calls require canonical ASCII recipe paths without whitespace or shell/
 make metacharacters; the runner remaps external paths to fixed safe mounts.
+``build_sources`` never consults retained native binaries, including through its
+loader sub-build. The command-line entry still calls the separate ``build_proof``
+wrapper. Every output remains unpromoted, data-only scratch evidence.
 """
 from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import io
 import json
 import os
@@ -53,6 +57,13 @@ MAX_OUTPUT = 4 * 1024 * 1024
 MAX_TREE_BYTES = 64 * 1024 * 1024
 MAX_TREE_FILES = 4096
 SUCCESS = "source-built-engine-and-both-loaders-retained-bytes-reproduced"
+SOURCE_SUCCESS = "source-built-engine-and-both-loader-pinned-identities-reproduced"
+# These complete maps stay in the final source-only summary and full receipts.
+# The retained-byte wrapper references that exact summary instead of duplicating
+# its long maps in a second 12-KiB diagnostic, reserving late-error headroom.
+PROVENANCE_FIELDS = (
+    "sourceArchives", "proofCodeSha256", "engineInstalledToolSha256", "loaderInstalledToolSha256",
+)
 
 SourceBuildError = loader.SourceBuildError
 require, sha, read = loader.require, loader.sha, loader.read
@@ -117,19 +128,31 @@ def stable_shim(raw):
     return result
 
 
-def read_inputs(root):
-    sources, _, inputs = loader.read_inputs(root)
+def read_source_inputs(root):
+    """Read pinned archives, patch and source/text metadata; never native ELFs."""
+    sources, inputs = loader.read_source_inputs(root)
     require(sha(sources.get(EVENT, b"")) == EVENT_BEFORE_SHA256, "Original event source checksum mismatch")
     for relative in (TALLOC_ARCHIVE, PATCH, STABLE_BUILDER,
-                     "tools/fdroid_proot_engine_source_build.py", "tools/fdroid_proot_engine_elf.py", ENGINE):
+                     "tools/fdroid_proot_engine_source_build.py", "tools/fdroid_proot_engine_elf.py"):
         inputs[relative] = read(root / relative, loader.MAX_ARCHIVE)
     require(sha(inputs[TALLOC_ARCHIVE]) == TALLOC_SHA256, "Talloc source archive checksum mismatch")
     require(sha(inputs[PATCH]) == PATCH_SHA256, "Reviewed seccomp patch checksum mismatch")
-    baseline = inputs[ENGINE]
+    return sources, talloc_sources(inputs[TALLOC_ARCHIVE]), stable_shim(inputs[STABLE_BUILDER]), inputs
+
+
+def read_inputs(root):
+    """Compatibility proof reader: native baselines are comparison inputs only."""
+    sources, talloc, shim, inputs = read_source_inputs(root)
+    _, _, retained_inputs = loader.read_inputs(root)
+    for name, raw in retained_inputs.items():
+        require(name not in inputs or inputs[name] == raw, "Source changed between proof input reads: " + name)
+        inputs[name] = raw
+    baseline = read(root / ENGINE, MAX_OUTPUT)
     require(len(baseline) == ENGINE_BYTES and sha(baseline) == ENGINE_SHA256,
             "Retained engine baseline checksum/size mismatch")
     inspect_engine(baseline)
-    return sources, talloc_sources(inputs[TALLOC_ARCHIVE]), stable_shim(inputs[STABLE_BUILDER]), baseline, inputs
+    inputs[ENGINE] = baseline
+    return sources, talloc, shim, baseline, inputs
 
 
 def ndk_tools(path, root):
@@ -243,7 +266,7 @@ def elf_contract(report):
     return {key: report[key] for key in ("class", "type", "machine", "interpreter", "dynamicDependencies")}
 
 
-def compact_elf(report, contract, wrapping):
+def compact_elf(report, contract, wrapping, *, symbols_requested):
     # The full parsed ELF, exact symbol names and scope wording are preserved
     # independently in receipt.builds[].rawElf/postStripElf. The diagnostic
     # summary retains only proof-critical coupling values, avoiding repeated
@@ -252,6 +275,12 @@ def compact_elf(report, contract, wrapping):
     result = {key: report[key] for key in ("entryPoint", "loadableSegmentsSha256", "textSha256")}
     result["sharedContractVerified"] = True
     coupling = report["coupling"]
+    if not symbols_requested:
+        require(all(coupling.get(key) is False for key in ("verified", "constantVerified", "embeddedLoadersVerified")) and
+                coupling.get("pokedataOffset") is None and coupling.get("loaders") == {},
+                "Unexpected coupling claim from the symbol-free stripped inspection")
+        result["coupling"] = {"verified": False, "symbolsRequested": False}
+        return result
     result["coupling"] = {key: coupling[key] for key in ("verified", "constantVerified", "embeddedLoadersVerified",
                           "pokedataOffset", "constantFileOffset", "relocationsDoNotOverlap") if key in coupling}
     result["coupling"]["loaders"] = {}
@@ -267,11 +296,16 @@ def compact_elf(report, contract, wrapping):
     return result
 
 
-def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
+def build_sources(ndk_path, loader_ndk_path, output_dir, root=ROOT):
+    """Build both engines and their loader pairs without reading retained ELFs.
+
+    Frozen source/output text pins remain mandatory. There is no reference-path,
+    reference-bytes, comparator, callback, or fallback argument to this core.
+    """
     root = root.resolve()
     for path in (root, ndk_path.resolve(strict=True), loader_ndk_path.resolve(strict=True), output_dir):
         recipe_path(path)
-    sources, talloc, shim, baseline, inputs = read_inputs(root)
+    sources, talloc, shim, inputs = read_source_inputs(root)
     ndk, properties, tools, identities = ndk_tools(ndk_path, root)
     second_ndk, second_properties, second_tools, second_identities = loader.ndk_tools(loader_ndk_path, root)
     recipe_path(second_ndk)
@@ -288,6 +322,8 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                "loaderSourceProofSucceeded": False, "sourceBuildSucceeded": False,
                "rawReproducible": False, "postStripReproducible": False,
                "matchesBundledBytes": False, "loaderCouplingVerified": False,
+               "matchesPinnedOutputIdentity": False, "baselineComparisonPerformed": False,
+               "retainedArtifactInputs": [], "publicationApproved": False,
                "loaderWrapperTransformsVerified": False,
                "inputsAndToolsUnchanged": False, "packagedPayloadsChanged": False,
                "targetOutputExecuted": False, "androidRuntimeCompatibilityVerified": False,
@@ -297,11 +333,11 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                "sourceArchives": {loader.ARCHIVE: loader.ARCHIVE_SHA256, TALLOC_ARCHIVE: TALLOC_SHA256},
                "patchSha256": PATCH_SHA256, "patchedEventSha256": EVENT_AFTER_SHA256,
                "productionRecipeSha256": STABLE_BUILDER_SHA256, "tallocShimSha256": sha(shim),
-               "baselineSha256": sha(baseline), "baselineBytes": len(baseline),
+               "pinnedOutputSha256": ENGINE_SHA256, "pinnedOutputBytes": ENGINE_BYTES,
                "proofCodeSha256": {name: sha(raw) for name, raw in inputs.items() if name.startswith("tools/")},
                "engineInstalledToolSha256": {name: item["sha256"] for name, item in identities.items()},
                "engineNdkPropertiesSha256": sha(properties), "loaderNdkPropertiesSha256": sha(second_properties),
-               "toolchainTrust": "Trusted separately provisioned SDK-manager installations; not vendor archive authentication.",
+               "toolchainTrust": "Externally provisioned; vendor archives not authenticated.",
                "builds": []}
     snapshots, source_copies, dependency_inputs = [], [], {}
     nested_directory, nested_snapshot = output / "loader-source-proof", None
@@ -341,12 +377,14 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
             require(snapshot_tree(nested_directory) == nested_snapshot, "Nested source-loader proof changed")
 
     try:
-        nested = loader.build_proof(second_ndk, nested_directory, root)
+        nested = loader.build_sources(second_ndk, nested_directory, root)
         for key in ("sourceBuildSucceeded", "rawReproducible", "postStripReproducible",
-                    "matchesBundledBytes", "inputsAndToolsUnchanged", "gawkOffsetMatchesIndependentSymbols"):
+                    "matchesPinnedOutputIdentity", "inputsAndToolsUnchanged", "gawkOffsetMatchesIndependentSymbols"):
             require(nested.get(key) is True, "Source-loader subproof did not establish " + key)
-        require(nested.get("status") == "source-built-both-retained-loader-bytes-reproduced" and
-                nested.get("targetOutputExecuted") is False and nested.get("packagedPayloadsChanged") is False,
+        require(nested.get("status") == "source-built-both-loader-pinned-identities-reproduced" and
+                nested.get("targetOutputExecuted") is False and nested.get("packagedPayloadsChanged") is False and
+                nested.get("baselineComparisonPerformed") is False and nested.get("matchesBundledBytes") is False and
+                nested.get("retainedArtifactInputs") == [] and nested.get("publicationApproved") is False,
                 "Unexpected source-loader proof status/limits")
         nested_snapshot = snapshot_tree(nested_directory)
         nested_header_identities = {}
@@ -369,7 +407,10 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                 "Source-loader builds disagree on pokedata offset")
         summary["loaderSourceProofSucceeded"] = True
         summary["arm64PokedataOffset"] = offset
-        summary["loaderSourceProofSummarySha256"] = sha(read(nested_directory / "SUMMARY.json"))
+        nested_summary_bytes = read(nested_directory / "source-build-summary.json")
+        require(nested_summary_bytes == (json.dumps(nested, separators=(",", ":")) + "\n").encode("utf-8"),
+                "Nested source-loader final summary differs from its returned evidence")
+        summary["loaderSourceProofSummarySha256"] = sha(nested_summary_bytes)
         summary["loaderInstalledToolSha256"] = {name: item["sha256"] for name, item in second_identities.items()}
         summary["loaderHeaderClosureCount"] = len(nested_header_identities)
         summary["loaderHeaderClosureSha256"] = sha(json.dumps(nested_header_identities, sort_keys=True,
@@ -416,7 +457,8 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                 if abi == "arm64":
                     require(loader_report["pokedataOffset"] == offset, "Raw source-loader offset changed")
                 data = read(nested_directory / label / ("post-strip-" + name))
-                require(sha(data) == digest, "Fresh source-built loader differs from proved retained identity")
+                require(len(data) == loader.OUTPUT_BYTES[abi] and sha(data) == digest,
+                        "Fresh source-built loader differs from pinned output identity")
                 loader.inspect_loader(data, abi)
                 source_loaders[abi] = data
                 destination = source_dir / ("loader/loader" if abi == "arm64" else "loader/loader-m32")
@@ -512,9 +554,10 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                                     "-MD", "-c", "./tracee/event.c", "-o", "tracee/event.o"], source_dir)
             link_expansion = run([tools["cc"], "-###", "-o", "proot", *objects, *shlex.split(ldflags)], source_dir)
             item = {"name": label, "rawSha256": sha(raw), "postStripSha256": sha(stripped),
-                    "rawBytes": len(raw), "postStripBytes": len(stripped), "matchesBundledBytes": stripped == baseline,
-                    "textUnchangedByStrip": True, "rawElf": compact_elf(raw_elf, contract, wrapping),
-                    "postStripElf": compact_elf(stripped_elf, contract, wrapping),
+                    "rawBytes": len(raw), "postStripBytes": len(stripped), "matchesBundledBytes": False,
+                    "matchesPinnedOutputIdentity": len(stripped) == ENGINE_BYTES and sha(stripped) == ENGINE_SHA256,
+                    "textUnchangedByStrip": True, "rawElf": compact_elf(raw_elf, contract, wrapping, symbols_requested=True),
+                    "postStripElf": compact_elf(stripped_elf, contract, wrapping, symbols_requested=False),
                     "tallocObjectSha256": sha(talloc_object), "tallocLibrarySha256": sha(talloc_library),
                     "loaderWrapping": wrapping, "headerClosureCount": len(closure),
                     "compileOnlyFeatureResults": feature_results,
@@ -533,32 +576,162 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
         summary["loaderWrapperTransformsVerified"] = True
         summary["rawReproducible"] = pairs[0]["raw"] == pairs[1]["raw"]
         summary["postStripReproducible"] = pairs[0]["postStrip"] == pairs[1]["postStrip"]
-        summary["matchesBundledBytes"] = all(item["postStrip"] == baseline for item in pairs)
+        summary["matchesPinnedOutputIdentity"] = all(item["matchesPinnedOutputIdentity"] for item in summary["builds"])
         unchanged()
         summary["inputsAndToolsUnchanged"] = True
-        if summary["rawReproducible"] and summary["postStripReproducible"] and summary["matchesBundledBytes"]:
-            summary["status"] = SUCCESS
+        require(summary["rawReproducible"] and summary["postStripReproducible"], "Two source engine builds were not byte-identical")
+        require(summary["matchesPinnedOutputIdentity"], "Source-built engine does not match the fixed output checksum/size")
+        summary["status"] = SOURCE_SUCCESS
         receipt = {"summary": summary, "engineToolIdentities": identities, "engineToolVersions": versions,
-                   "loaderToolIdentities": second_identities, "loaderProofSummary": nested, "builds": details,
+                   "loaderToolIdentities": second_identities, "loaderSourceBuildSummary": nested, "builds": details,
                    "environment": environment, "commands": commands,
                    "sourceSha256": {name: sha(data) for name, data in sources.items()},
                    "tallocSourceSha256": {name: sha(data) for name, data in talloc.items()},
-                   "trustLimits": ["The nested loader proof compiles both loaders twice from pinned source with NDK r29.",
+                   "trustLimits": ["The baseline-free nested loader build compiles both loaders twice from pinned source with NDK r29.",
                                    "Each engine embeds its corresponding source-built pair after the unchanged engine-NDK strip pass.",
                                    "Only the observed .comment/section-table rewrite is certified; wrapper identities are independently pinned.",
-                                   "Retained engine/loader binaries are comparison inputs only, never source-output providers.",
+                                   "No retained native binary is read by this source-only build; frozen text identities are mandatory.",
                                    "The existing engine recipe, seccomp patch, talloc shim and native offload source remain unchanged.",
                                    "Installed SDK-manager tool hashes are not whole vendor ZIP authentication.",
                                    "No target output was executed, promoted into the APK, or proven accepted by F-Droid."]}
-        save_json(output / "receipt.json", receipt)
-        require(summary["rawReproducible"] and summary["postStripReproducible"], "Two source engine builds were not byte-identical")
-        require(summary["matchesBundledBytes"], "Source-built engine does not match the retained baseline bytes")
         unchanged()
-        save_summary(output / "SUMMARY.json", summary)
+        loader.publish_result(output, summary, receipt, summary_name="source-build-summary.json",
+                              receipt_name="source-build-receipt.json")
     except (SourceBuildError, loader.LoaderElfError, EngineElfError, OSError, ValueError) as error:
         summary["status"] = "failed"
         summary["error"] = str(error)[-2000:]
-        save_summary(output / "SUMMARY.json", summary)
+        loader.publish_failure_summary(output / "source-build-summary.json", summary)
+        raise SourceBuildError(str(error)) from error
+    return summary
+
+
+def _proof_summary(core, core_summary_raw, retained_paths, *, provenance_verified):
+    """Keep physical gates/rows, reference only duplicated provenance maps."""
+    summary = copy.deepcopy(core)
+    referenced = [name for name in PROVENANCE_FIELDS if name in summary]
+    for name in referenced:
+        del summary[name]
+    summary.update(status="failed", retainedArtifactInputs=retained_paths,
+                   loaderBaselineComparisonPerformed=False, loaderMatchesBundledBytes=False,
+                   sourceBuildProvenanceRef={"file": "source-build-summary.json", "sha256": sha(core_summary_raw),
+                                             "fields": referenced, "verified": provenance_verified})
+    return summary
+
+
+def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
+    """Compile once through the core, then independently compare all six ELFs.
+
+    This wrapper alone reads the retained engine and two retained loader files.
+    The four new loader outputs remain paired with their own engine builds; no
+    second loader compilation, retained-byte provider, or core callback exists.
+    """
+    root = root.resolve()
+    for path in (root, ndk_path.resolve(strict=True), loader_ndk_path.resolve(strict=True), output_dir):
+        recipe_path(path)
+    _, _, _, baseline, original_inputs = read_inputs(root)
+    # Resolve output safety before permitting a failure receipt to be written.
+    output = loader.output_path(output_dir, root, ndk_path.resolve(strict=True))
+    loader.output_path(output_dir, root, loader_ndk_path.resolve(strict=True))
+    retained_paths = [ENGINE] + [loader.NATIVE + "/" + name for name, _ in loader.LOADERS.values()]
+    summary = {"schemaVersion": 1, "status": "failed", "proofOnly": True,
+               "sourceBuildSucceeded": False, "matchesPinnedOutputIdentity": False,
+               "matchesBundledBytes": False, "baselineComparisonPerformed": False,
+               "loaderBaselineComparisonPerformed": False, "loaderMatchesBundledBytes": False,
+               "retainedArtifactInputs": retained_paths, "publicationApproved": False,
+               "packagedPayloadsChanged": False, "targetOutputExecuted": False,
+               "androidRuntimeCompatibilityVerified": False, "fdroidAcceptanceVerified": False}
+    core = None
+    try:
+        core = build_sources(ndk_path, loader_ndk_path, output, root)
+        require(isinstance(core, dict), "Source-only engine result is not an object")
+        expected_core_summary = loader.summary_bytes(core)
+        summary = _proof_summary(core, expected_core_summary, retained_paths, provenance_verified=False)
+        for key in ("loaderSourceProofSucceeded", "sourceBuildSucceeded", "rawReproducible",
+                    "postStripReproducible", "matchesPinnedOutputIdentity", "loaderCouplingVerified",
+                    "loaderWrapperTransformsVerified", "inputsAndToolsUnchanged"):
+            require(core.get(key) is True, "Source-only engine core did not establish " + key)
+        require(core.get("status") == SOURCE_SUCCESS and core.get("baselineComparisonPerformed") is False and
+                core.get("retainedArtifactInputs") == [] and core.get("matchesBundledBytes") is False and
+                core.get("publicationApproved") is False and core.get("targetOutputExecuted") is False and
+                core.get("packagedPayloadsChanged") is False,
+                "Unexpected source-only engine status/limits")
+        core_summary_raw = read(output / "source-build-summary.json", 12 * 1024)
+        require(core_summary_raw == expected_core_summary,
+                "Source-only engine summary changed before the retained-byte proof")
+        core_receipt_raw = read(output / "source-build-receipt.json", MAX_OUTPUT)
+        core_receipt = json.loads(core_receipt_raw)
+        expected_pending = {**core, "status": "verified-pending-summary-publication"}
+        require(isinstance(core_receipt, dict) and core_receipt.get("summary") == expected_pending and
+                core_receipt.get("publicationState") == "pending-summary" and
+                core_receipt.get("authoritativeSummary") == {
+                    "file": "source-build-summary.json", "sha256": sha(core_summary_raw), "required": True},
+                "Source-only engine receipt is not bound to its completed summary")
+        summary["sourceBuildProvenanceRef"]["verified"] = True
+        require([item.get("name") for item in core.get("builds", [])] == ["first", "second"],
+                "Source-only engine must expose both ordered independent builds")
+        comparisons, checked_files = [], []
+        for index, label in enumerate(("first", "second")):
+            engine_path = output / label / "post-strip-libdroide_proot.so"
+            raw = read(engine_path, MAX_OUTPUT)
+            inspect_engine(raw)
+            require(raw == baseline, "Retained engine byte comparison failed for " + label)
+            require(len(raw) == ENGINE_BYTES and sha(raw) == ENGINE_SHA256,
+                    "Engine proof output differs from the frozen checksum/size")
+            require(core["builds"][index]["postStripSha256"] == sha(raw) and
+                    core["builds"][index]["postStripBytes"] == len(raw),
+                    "Engine output differs from its source-only receipt")
+            summary["builds"][index]["matchesBundledBytes"] = True
+            checked_files.append((engine_path, raw))
+            for abi, (name, digest) in loader.LOADERS.items():
+                relative = loader.NATIVE + "/" + name
+                source_path = output / "loader-source-proof" / label / ("post-strip-" + name)
+                data = read(source_path)
+                loader.inspect_loader(data, abi)
+                require(data == original_inputs[relative], "Retained " + abi + " loader byte comparison failed for " + label)
+                require(len(data) == loader.OUTPUT_BYTES[abi] and sha(data) == digest,
+                        "Loader proof output differs from the frozen checksum/size")
+                wrapping = core["builds"][index]["loaderWrapping"][abi]
+                require(wrapping["sourceSha256"] == sha(data) and wrapping["sourceBytes"] == len(data),
+                        "Loader output differs from its same-build wrapper provenance")
+                comparisons.append({"build": label, "abi": abi, "baseline": relative,
+                                    "sha256": sha(data), "bytes": len(data), "matchesBundledBytes": True})
+                checked_files.append((source_path, data))
+        summary.update(matchesBundledBytes=True, baselineComparisonPerformed=True,
+                       loaderMatchesBundledBytes=True, loaderBaselineComparisonPerformed=True,
+                       baselineSha256=sha(baseline), baselineBytes=len(baseline),
+                       sourceBuildReceiptSha256=sha(core_receipt_raw))
+
+        def unchanged_proof_inputs():
+            for name, raw in original_inputs.items():
+                require(read(root / name, loader.MAX_ARCHIVE) == raw, "Retained-byte proof input changed: " + name)
+            for path, raw in checked_files + [(output / "source-build-summary.json", core_summary_raw),
+                                              (output / "source-build-receipt.json", core_receipt_raw)]:
+                require(read(path, MAX_OUTPUT) == raw, "Retained-byte proof evidence changed: " + str(path))
+
+        unchanged_proof_inputs()
+        summary["status"] = SUCCESS
+        receipt = {**core_receipt, "summary": summary, "sourceBuildSummary": core,
+                   "sourceBuildReceiptSha256": sha(core_receipt_raw), "loaderBaselineComparisons": comparisons,
+                   "trustLimits": core_receipt["trustLimits"] + [
+                       "Only this wrapper reads retained ELFs, independently comparing both engines and all four loader outputs.",
+                       "The embedded loader source-build summary remains baseline-free; loader comparisons above belong to this wrapper."]}
+        unchanged_proof_inputs()
+        loader.publish_result(output, summary, receipt, summary_name="SUMMARY.json", receipt_name="receipt.json")
+    except (SourceBuildError, loader.LoaderElfError, EngineElfError, OSError, ValueError) as error:
+        # A completed source-only result may coexist with a failed independent
+        # retained-byte proof. Never relabel the source-only receipt or rebuild.
+        if output.is_dir() and not output.is_symlink():
+            if core is None:
+                try:
+                    failed_raw = read(output / "source-build-summary.json", 12 * 1024)
+                    failed_core = json.loads(failed_raw)
+                    if isinstance(failed_core, dict) and failed_core.get("status") == "failed":
+                        summary = _proof_summary(failed_core, failed_raw, retained_paths, provenance_verified=True)
+                except (SourceBuildError, OSError, ValueError):
+                    pass
+            summary["status"] = "failed"
+            summary["error"] = str(error)[-2000:]
+            loader.publish_failure_summary(output / "SUMMARY.json", summary)
         raise SourceBuildError(str(error)) from error
     return summary
 
