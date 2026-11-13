@@ -1,10 +1,10 @@
-# Termux View compiler metadata: observed failure and compatibility plan
+# Termux View compiler metadata: raw failure and compatibility proof
 
 Recorded: 2026-11-13 (Asia/Jakarta). This note separates an observed raw
-compiler result from a subsequent, exact-pin metadata-compatibility plan.
-The planned adaptation has **not yet demonstrated successful fresh compilation
-and end-to-end validation**. It is not a production dependency replacement or
-an accepted F-Droid recipe.
+compiler result from a separate exact-pin metadata-compatibility artifact.
+The dated PR11 checkpoint below records successful isolated compilation and
+adaptation while retaining the raw strict failure. This is not Android
+end-to-end validation, a production replacement or an accepted F-Droid recipe.
 
 ## Observed raw source-build result
 
@@ -94,15 +94,15 @@ the separate JitPack AAR build environment. SDK metadata can influence copied
 parameter names, but changing the SDK is not necessary to explain the observed
 `x0,x1` fallback once the javac reader change is accounted for.
 
-## Planned exact-pin metadata compatibility adaptation
+## Exact-pin metadata compatibility adaptation
 
-The current plan keeps the verified JDK17/compiler dependency pins and the
-original Java source unchanged. It proposes a **separate, explicitly adapted
+The implemented recipe keeps the verified JDK17/compiler dependency pins and the
+original Java source unchanged. It produces a **separate, explicitly adapted
 proof artifact**, not a comparator exception and not substitution of the
-historical binary. A successful result is still pending actual execution of
-this revised proof.
+historical binary. Its actual isolated result is recorded below, separately
+from the earlier raw failure and fixture-only checkpoints.
 
-The planned contract must enforce all of the following:
+The contract must enforce all of the following:
 
 1. Retain both raw compiler outputs, their hashes, the raw strict failure and
    the three exact metadata differences as independently inspectable evidence.
@@ -149,8 +149,8 @@ SDK downgrade is authorized by this note.
 - The observed raw rebuild still has **nineteen complete class-byte
   differences** from the retained AAR. The three metadata paths do not explain
   all byte differences, and metadata adaptation does not establish full
-  byte identity or general method-body equivalence. Any remaining adapted
-  byte differences must be explicitly reported by its eventual receipt.
+  byte identity or general method-body equivalence. The actual adapted receipt
+  also reports nineteen complete class-byte differences from the reference.
 - The no-Code-mutation condition compares adapted output with raw output.
   It must never be represented as proving all raw method bodies match the
   historical reference, even if the two inspected constructors match.
@@ -164,3 +164,42 @@ SDK downgrade is authorized by this note.
 See [source-proof scope](FDROID_SOURCE_PROOFS.md), the
 [View source closure plan](FDROID_TERMUX_VIEW_SOURCE_PLAN.md), and the
 [scanner matrix](FDROID_SCANNER_MATRIX.md).
+
+## PR11 actual compatibility result: 2026-11-13
+
+Independently retrieved logs and the bounded `SUMMARY.json` from
+[View job 131711037711](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378186/job/131711037711)
+confirm success in [run 43372378186](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378186).
+It tested merge `1a379ca95b8478bfb1c4649d436d94026fa4f36b`, incorporating
+head `426c79ce38c193cc7114c579a6eb68efb40caea0`. All **7/7 source-proof
+workflow jobs** succeeded. The readiness and contract jobs each ran **297
+tests, OK**; these are repeated executions, not 594 unique tests.
+
+Both raw builds retained exactly the JAR/AAR hashes above and the raw failing
+comparison: `rawAllAccessibleApiMatched=false`, three changed metadata paths.
+Both separately adapted builds produced these identical hashes:
+
+| Adapted output | SHA-256 |
+| --- | --- |
+| JAR | `d7bcf81c7fc03c27ec28d4acced3f708a5f0d64f7e07beb679002c79f8a974ce` |
+| AAR | `f2ab04a6ac29b5a3effc7dfded488a1b174124d4c60e772577b8357781aea5a7` |
+
+The actual transformation certificate lists exactly the three reviewed changes
+in two constructors, with seventeen other classes untouched. It reports
+preservation of every complete Code attribute, existing constant-pool entries
+and unrelated class structure **from raw to adapted output**. The adapted
+strict API/annotation comparison has zero differences; all five resource
+GETSTATIC accesses and both inspected constructor bindings match. Inputs are
+unchanged, the comparator was not relaxed and production promotion is false.
+
+The compact summary retains the raw failure/count but marks its detailed raw
+entries as truncated. All three transformation paths remain visible. It also
+marks the two constructor-instruction records as display-truncated, so its
+matched gate alone is not a fully printed instruction-level audit.
+
+The raw and adapted variants each still differ from the historical reference
+in nineteen complete class hashes. General method-body equivalence, resource
+linking, device validation and F-Droid acceptance remain explicitly false.
+The separate [Android run 43372378207](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378207)
+was `in_progress` at the last recorded observation, not a completed integration
+proof for this View output. The original **33 scanner findings are unresolved**.

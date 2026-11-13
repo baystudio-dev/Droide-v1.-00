@@ -80,6 +80,7 @@ class ProofRunnerTests(unittest.TestCase):
         module = importlib.util.module_from_spec(specification)
         specification.loader.exec_module(module)
         for options in (("tests",), ("cli", "--ndk", self.ndk),
+                        ("loaders", "--ndk", self.ndk),
                         ("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive),
                         ("termux", "--jdk", self.jdk, "--jdk-archive", self.archive,
                          "--android-jar", self.android),
@@ -171,6 +172,27 @@ class ProofRunnerTests(unittest.TestCase):
                           "--output-dir", "/scratch/proof"], arguments[-5:])
         self.assertNotIn("--run-vector-test", arguments)
 
+    def test_loaders_reuses_the_exact_cli_isolation_and_readonly_ndk_mount(self):
+        cli = self.args(self.invoke("cli", "--ndk", self.ndk))
+        loaders = self.args(self.invoke("loaders", "--ndk", self.ndk))
+        self.assertEqual(cli[:-5], loaders[:-5])
+        self.assertEqual(["tools/fdroid_proot_loader_source_build.py", "--ndk",
+                          "/toolchain/ndk", "--output-dir", "/scratch/proof"], loaders[-5:])
+        self.assertNotIn("/toolchain/jdk", loaders)
+        self.assertNotIn("/toolchain/android.jar", loaders)
+        self.assertNotIn("/toolchain/annotation.jar", loaders)
+
+    def test_loaders_rejects_missing_extra_and_protected_toolchain_inputs(self):
+        self.invoke("loaders", success=False)
+        self.invoke("loaders", "--ndk", self.ndk, "--ndk", self.ndk, success=False)
+        for option, value in (("--jdk", self.jdk), ("--jdk-archive", self.archive),
+                              ("--android-jar", self.android), ("--annotation-jar", self.annotation)):
+            with self.subTest(option=option):
+                self.invoke("loaders", "--ndk", self.ndk, option, value, success=False)
+        for value in (ROOT, ROOT.parent, ROOT / "tools", "/", "relative/ndk"):
+            with self.subTest(value=value):
+                self.invoke("loaders", "--ndk", value, success=False)
+
     def test_spake2_has_only_jdk_and_explicit_vector_test(self):
         arguments = self.args(self.invoke("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive))
         self.assertIn(str(self.jdk), arguments)
@@ -241,7 +263,7 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("contents: read", workflow)
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("fail-fast: false", workflow)
-        self.assertIn("proof: [tests, cli, spake2, termux, view]", workflow)
+        self.assertIn("proof: [tests, cli, loaders, spake2, termux, view]", workflow)
         self.assertIn("needs: sandbox-readiness", workflow)
         self.assertIn("Require isolated source contracts before provisioning compilers", workflow)
         self.assertIn("Official registry byte parity (data only)", workflow)
@@ -249,6 +271,7 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("tools/fdroid_maven_registry_parity.py", workflow)
         self.assertIn("jdk-17.0.20.1+1", workflow)
         self.assertIn("ndk;28.2.13676358", workflow)
+        self.assertIn("ndk;29.0.14206865", workflow)
         self.assertNotIn("pull_request_target", workflow)
         self.assertNotIn("upload-artifact", workflow)
         self.assertNotIn("continue-on-error", workflow)
@@ -256,6 +279,21 @@ class ProofRunnerTests(unittest.TestCase):
         for line in workflow.splitlines():
             if "uses:" in line:
                 self.assertRegex(line, r"uses: [\w/-]+@[0-9a-f]{40}(?:\s|$)")
+
+    def test_loader_toolchain_provisioning_is_scoped_and_separate_from_cli(self):
+        workflow = WORKFLOW.read_text()
+        start = workflow.index("- name: Provision the historical loader NDK and recipe utility")
+        end = workflow.index("- name: Provision API 36", start)
+        step = workflow[start:end]
+        self.assertIn("if: matrix.proof == 'loaders'", step)
+        self.assertIn("sdkmanager --install 'ndk;29.0.14206865'", step)
+        self.assertIn("sudo apt-get install --no-install-recommends --yes gawk", step)
+        self.assertNotIn("elf-cleaner", step)
+        self.assertNotIn("28.2.13676358", step)
+        self.assertIn('bash tools/run_fdroid_source_proofs.sh loaders --sudo --ndk "$ANDROID_HOME/ndk/29.0.14206865"', workflow[end:])
+        self.assertIn('bash tools/run_fdroid_source_proofs.sh cli --sudo --ndk "$ANDROID_HOME/ndk/28.2.13676358"', workflow)
+        self.assertEqual(1, workflow.count("sdkmanager --install 'ndk;29.0.14206865'"))
+        self.assertEqual(1, workflow.count("sdkmanager --install 'ndk;28.2.13676358'"))
 
     def test_view_provisioning_is_one_pinned_bounded_download_before_offline_compile(self):
         workflow = WORKFLOW.read_text()

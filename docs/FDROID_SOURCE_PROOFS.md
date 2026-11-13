@@ -11,6 +11,7 @@ findings have disappeared.
 | Helper | Compilation inputs | Evidence and limitations |
 | --- | --- | --- |
 | `tools/fdroid_cli_source_build.py` | The pinned existing C source and Android NDK 28.2.13676358 | Two independent builds; static ELF64/AArch64/ET_EXEC and 16 KiB layout checks; exact output comparison; separate comparison against the unchanged bundled CLI. Does not execute the ARM64 output or prove device compatibility. |
+| `tools/fdroid_proot_loader_source_build.py` | The pinned OpenMinis archive and reviewed loader/Makefile blobs; separately provisioned NDK 29.0.14206865 at API 24 | Two independent standalone ARM64/ARM32 loader builds, bounded ELF/symbol/stub inspection, header/driver evidence and separate raw/post-strip comparisons. Success requires both complete retained baseline bytes; no engine build, historical ELF-cleaner execution, APK substitution or device claim. |
 | `tools/fdroid_spake2_source_build.py` | Two pinned Java sources, notices, and the complete verified Temurin 17.0.20.1+1 JDK | Empty compiler classpath/sourcepath; deterministic reconstruction; exact class/entry comparison and separate API/whole-JAR comparison. Optional retained deterministic vector test is not a cryptographic audit or device-interoperability certification. |
 | `tools/fdroid_termux_source_build.py` | Thirteen upstream Java families, four Droide families, generated BuildConfig, the pinned JDK and API 36 android.jar | Eighteen source files produce an expected forty classes; latest overlay stage wins; no precompiled Termux classes on compiler classpath. Exact existing overlay hashes, retained accessible APIs including package-private members, and the owned-process JNI contract are checked separately. Not a terminal-view/AAR/native/APK rebuild. |
 | `tools/fdroid_termux_view_sources.py` | The original manifest, three XML resources and license from immutable Termux v0.118.0 source | Source-only provenance verification by default, with optional pinned-AAR comparison. Drawable bytes match; string XML is semantically equal; the built manifest adds only the verified SDK declaration. Does not compile the View or generate Android resources. |
@@ -126,7 +127,7 @@ three metadata deltas are consistent with specific official javac changes, but
 neither those causes nor matching API/resources explain every class-byte
 difference. The exact historical JDK vendor/update is not established.
 
-The next proof implementation retains that raw failure and adds a separately
+The compatibility extension retains that raw failure and adds a separately
 named, exact-pin metadata compatibility artifact. Before adaptation it requires
 the fixed observed raw JAR/AAR and class hashes, precisely the reviewed full API
 differences, unchanged declaration ABI/resource references, and matching resolved
@@ -143,8 +144,8 @@ proof additionally requires raw/adapted reproducibility, byte-preservation
 certificates and final input/output integrity checks. Receipts and compact
 summaries distinguish raw metadata failure from adapted metadata parity, and
 never claim historical method-body equivalence, device validation or production
-promotion. Fixture tests are not a fresh compiler/adaptation result; actual
-execution of this extension must be recorded independently.
+promotion. Fixture tests are not a fresh compiler/adaptation result; the
+subsequent actual execution is recorded in the dated PR11 checkpoint below.
 
 The extension's local enforced-sandbox checkpoint passed **297 tests**: the
 earlier 265 plus six constructor-binding tests, four binding/gate receipt tests,
@@ -152,8 +153,8 @@ twelve exact metadata-transform tests, seven compatibility-pipeline tests and
 three mocked full-build orchestration tests. These include additional/missing
 delta rejection, constant-pool overflow, raw Code/debug preservation, independent
 output failure/nondeterminism and retention of the raw failing verdict. A
-separate static peer review found no concrete blocker. None of these results
-substitutes for the pending actual compiler/adaptation CI run.
+separate static peer review found no concrete blocker. Those local results do
+not substitute for the actual compiler/adaptation CI evidence recorded below.
 
 ### Android application checkpoint, separate from isolated View proof
 
@@ -182,11 +183,16 @@ run an output merely because it was successfully compiled.
 
 The isolated CI workflow `.github/workflows/fdroid-source-proofs.yml` first
 requires a no-compilation sandbox readiness job. Only after that succeeds does
-it provision trusted compiler tools and run the five independent contract,
-CLI, SPAKE2, emulator and View jobs. A separate data-only registry parity job downloads
+it provision trusted compiler tools and run the six independent contract,
+CLI, PRoot-loader, SPAKE2, emulator and View jobs. A separate data-only registry parity job downloads
 the eight fixed ordinary Maven artifacts under external process supervision;
 it never extracts, executes, or substitutes them into an application build.
 See [registry parity scope](FDROID_MAVEN_REGISTRY_PARITY.md).
+
+The loader experiment adds no sandbox mount or authority. It uses the same
+read-only NDK input and resource limits as the CLI proof, while provisioning
+its historical compiler generation separately. See the
+[loader recipe and evidence boundaries](FDROID_PROOT_LOADER_SOURCE_PROOF.md).
 
 View additionally provisions one existing, pinned AndroidX annotation compiler
 dependency from a fixed Google Maven URL with SHA-256 verification, no redirect
@@ -221,9 +227,9 @@ fall back to unsandboxed execution if isolation is unavailable.
 
 ## Remaining gates
 
-1. Complete the later View proof and inspect all byte/API discrepancies before
-   considering production integration. The earlier three proof builds passed
-   with the scoped results above, not a blanket runtime-equivalence result.
+1. Investigate the remaining View class-byte differences and complete Android
+   resource/link/runtime checks before production integration. The isolated
+   raw/adapted proof results below are not blanket runtime-equivalence results.
 2. Complete source reconstruction for terminal-view, Kadb mDNS, JGit and native
    PRoot/loaders; retain all current runtime capabilities.
 3. Integrate the verified ordinary Maven payloads only through a separately
@@ -239,3 +245,54 @@ fall back to unsandboxed execution if isolation is unavailable.
 Authoritative policy references: [Inclusion Policy](https://f-droid.org/docs/Inclusion_Policy/),
 [developer FAQ](https://f-droid.org/docs/FAQ_-_App_Developers/), and
 [Build Metadata Reference](https://f-droid.org/docs/Build_Metadata_Reference/).
+
+## PR11 actual isolated-proof checkpoint: 2026-11-13
+
+[Run 43372378186](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378186)
+completed **7/7 jobs successfully**: sandbox readiness, registry parity,
+source contracts, CLI, SPAKE2, emulator and View. The actual merge checkout was
+`1a379ca95b8478bfb1c4649d436d94026fa4f36b`, incorporating PR11 head
+`426c79ce38c193cc7114c579a6eb68efb40caea0`. The readiness and source-contract
+jobs each reported **297 tests, OK**: two executions of the same suite, not
+594 unique tests. Their final probes and the View probe verified the required
+offline, read-only, unprivileged sandbox controls.
+
+[View job 131711037711](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378186/job/131711037711)
+completed both full emulator/View source rebuilds and both independent
+metadata adaptations. Raw outputs reproduced the earlier failing hashes and
+retained `rawAllAccessibleApiMatched=false` with three metadata paths. The
+separate adapted outputs were identical across runs:
+
+| Adapted proof output | SHA-256 |
+| --- | --- |
+| JAR | `d7bcf81c7fc03c27ec28d4acced3f708a5f0d64f7e07beb679002c79f8a974ce` |
+| AAR | `f2ab04a6ac29b5a3effc7dfded488a1b174124d4c60e772577b8357781aea5a7` |
+
+The unchanged strict comparator reported zero adapted API/metadata differences,
+nineteen classes, five matching actual resource GETSTATIC reads and two matching
+constructor-binding checks. Exactly three metadata changes affected two
+classes; seventeen classes were untouched. All complete Code attributes,
+existing constant-pool entries and unrelated structure were preserved **relative
+to the raw rebuild**. Inputs remained unchanged; no production output was
+promoted and no reference bytecode was copied into a candidate.
+
+Both raw and adapted outputs still have **nineteen complete class-byte
+differences from the historical reference**. No general method-body equivalence,
+Android resource link, device QA or F-Droid acceptance is established. The
+bounded summary explicitly truncates individual constructor-instruction records;
+its matched gate is not a complete printed instruction audit.
+
+At the last recorded observation, the separate
+[Android run 43372378207](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378207)
+was still `in_progress`; this checkpoint does not claim its completion or
+transfer prior Android results to the unintegrated View output. The original
+**33 scanner findings remain unresolved**.
+
+## Subsequent loader-proof local checkpoint
+
+The expanded enforced-sandbox suite passed **357 tests**: the previous 297,
+three loader runner/workflow contracts, twenty-eight loader build/input
+contracts and twenty-nine bounded ELF tests. Both existing stripped loaders
+were parsed only as hash-pinned comparison data. Compiler orchestration used
+mocked tools; the actual NDK loader rebuild remains pending at this checkpoint.
+No fixture result is counted as a native compilation or F-Droid acceptance.
