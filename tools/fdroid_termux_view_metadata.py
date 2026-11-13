@@ -624,3 +624,93 @@ def resource_field_references(raw):
     silently excluded from a resource-parity claim.
     """
     return _inspect(raw)[1]
+
+
+def constructor_binding_evidence(raw, descriptor):
+    """Diagnostic only: resolve a narrow straight-line constructor as data.
+
+    This does not alter API gates or claim general method/runtime equivalence.
+    Local slots come only from the descriptor, never MethodParameters names.
+    Only parameter loads, ICONST_0, own-field stores, one direct-super <init>
+    call and a final RETURN are supported. All other paths fail closed.
+    """
+    _inspect(raw)
+    parsed = java_archive.parse_class(raw)
+    constructors = [row for row in parsed["methods"] if row["name"] == "<init>"]
+    require(len(constructors) == 1 and constructors[0]["descriptor"] == descriptor,
+            "constructor descriptor missing or overloaded/ambiguous")
+    method = constructors[0]
+    pool = Pool(parsed["constantPool"], int.from_bytes(raw[8:10], "big"))
+    r = Reader(method["attributes"]["Code"])
+    max_stack, max_locals, length = r.u2(), r.u2(), r.u4()
+    require(length <= 256, "constructor diagnostic byte budget exceeded")
+    code = Reader(r.take(length))
+    handlers = r.u2()
+    require(handlers == 0, "constructor diagnostic forbids exception handlers")
+    arguments, result = _method_descriptor(descriptor)
+    require(result == "V", "constructor must return void")
+    slots = {0: {"kind": "this", "slot": 0, "descriptor": "L" + parsed["name"] + ";"}}
+    slot = 1
+    for argument in arguments:
+        slots[slot] = {"kind": "parameter", "slot": slot, "descriptor": argument}
+        slot += _slots(argument)
+    fields = {(row["name"], row["descriptor"]) for row in parsed["fields"] if not row["access"] & 8}
+    stack, instructions, stores, calls = [], [], [], []
+
+    def category(value):
+        return "I" if value in "BCISZ" else "A" if value.startswith(("L", "[")) else value
+
+    def pop(expected):
+        require(stack and category(stack[-1]["descriptor"]) == category(expected),
+                "constructor diagnostic stack/operand type mismatch")
+        return stack.pop()
+
+    returned = False
+    while code.pos < len(code.raw):
+        offset, opcode = code.pos, code.u1()
+        require(len(instructions) < 64, "constructor diagnostic instruction budget exceeded")
+        instruction = {"offset": offset, "opcode": opcode}
+        if 0x15 <= opcode <= 0x19 or 0x1a <= opcode <= 0x2d:
+            kind = opcode - 0x15 if opcode <= 0x19 else (opcode - 0x1a) // 4
+            slot = code.u1() if opcode <= 0x19 else (opcode - 0x1a) % 4
+            require(slot in slots and category(slots[slot]["descriptor"]) == "IJFDA"[kind],
+                    "constructor load is not a matching parameter slot")
+            stack.append(slots[slot])
+            instruction.update(op="ilfda"[kind] + "load", value=slots[slot])
+        elif opcode == 0x03:
+            value = {"kind": "literal", "descriptor": "I", "value": 0}
+            stack.append(value)
+            instruction.update(op="iconst_0", value=value)
+        elif opcode == 0xb5:
+            owner, name, field_type = pool.reference(code.u2(), {9})
+            require(owner == parsed["name"] and (name, field_type) in fields,
+                    "constructor store is not an own instance field")
+            value, receiver = pop(field_type), pop("Ljava/lang/Object;")
+            require(receiver == slots[0], "constructor field receiver is not this")
+            store = {"owner": owner, "name": name, "descriptor": field_type, "value": value}
+            stores.append(store)
+            instruction.update(op="putfield", **store)
+        elif opcode == 0xb7:
+            owner, name, call_descriptor = pool.reference(code.u2(), {10})
+            call_args, call_result = _method_descriptor(call_descriptor)
+            require(owner == parsed["super"] and name == "<init>" and call_result == "V" and not calls,
+                    "constructor diagnostic requires one direct-super constructor call")
+            values = [pop(argument) for argument in reversed(call_args)][::-1]
+            require(pop("Ljava/lang/Object;") == slots[0], "constructor call receiver is not this")
+            call = {"owner": owner, "name": name, "descriptor": call_descriptor, "arguments": values}
+            calls.append(call)
+            instruction.update(op="invokespecial", **call)
+        elif opcode == 0xb1:
+            require(not stack and len(calls) == 1 and code.pos == len(code.raw),
+                    "constructor diagnostic requires final empty-stack return after super call")
+            returned = True
+            instruction.update(op="return")
+        else:
+            raise ValueError("unsupported constructor diagnostic opcode")
+        require(sum(_slots(value["descriptor"]) for value in stack) <= max_stack,
+                "constructor diagnostic stack exceeds max_stack")
+        instructions.append(instruction)
+    require(returned, "constructor diagnostic missing RETURN")
+    return {"class": parsed["name"], "access": method["access"], "descriptor": descriptor,
+            "max_stack": max_stack, "max_locals": max_locals, "exception_handlers": handlers,
+            "instructions": instructions, "field_stores": stores, "super_call": calls[0]}

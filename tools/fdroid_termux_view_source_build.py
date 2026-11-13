@@ -21,6 +21,7 @@ import subprocess
 import sys
 
 import fdroid_termux_source_build as emulator
+import fdroid_termux_view_compat as compatibility
 import fdroid_termux_view_metadata as metadata
 import fdroid_termux_view_sources as resources
 import java_archive
@@ -35,6 +36,10 @@ SOURCE_JAR = "third_party/termux/terminal-view-v0.118.0-sources.jar"
 SOURCE_SHA256 = "93449d6faf0fa0c0e1b89595959d35f4f84bb2f04f7a3d06dc78226677c7f09d"
 RESOURCE_PROVENANCE_SHA256 = "70549552343f0eb228e6bc342ae95f080a1353b154910017b2369ea37a8de6d3"
 REFERENCE_JAR_SHA256 = "9bceb16dc4d35f412aff579a11fcf4498bd5935dbbee85b9adb11c4ea3ec9068"
+# Measured in both independent compilations in run 43369448300, not learned
+# from the candidate under test. Any new compiler output needs a fresh review.
+RAW_JAR_SHA256 = "b66ee025ea84c1314dee858bc0c711db8b959d8ce04e24b01d5f0616e1519b00"
+RAW_AAR_SHA256 = "e61c71cc8e94d06d944e107404fedb07990224aa5cf49a48fa27e793a03b54e0"
 ANDROID_SHA256 = "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a"
 ANNOTATION_SHA256 = "ddd072ddbb553178e205517ce777b2f05aa9e412982d9ecb4eedc74f1212f697"
 ANNOTATION_COORDINATE = "androidx.annotation:annotation-jvm:1.10.0"
@@ -78,6 +83,28 @@ R_FIELDS = {
     "com/termux/view/R$string": frozenset(("copy_text", "paste_text", "text_selection_more")),
 }
 R_CLASSES = frozenset((PREFIX + "R.class", PREFIX + "R$drawable.class", PREFIX + "R$string.class"))
+INSPECTED_CONSTRUCTORS = {
+    PREFIX + "TerminalView$1$1.class": "(Lcom/termux/view/TerminalView$1;ZLandroid/view/MotionEvent;)V",
+    PREFIX + "TerminalView$2.class": "(Lcom/termux/view/TerminalView;Landroid/view/View;Z)V",
+}
+METADATA_COMPATIBILITY = {
+    PREFIX + "TerminalView$1$1.class": {
+        "referenceParameters": [{"name": "this$1", "access": 32784},
+                                {"name": "val$e2", "access": 4112},
+                                {"name": "val$mouseTrackingAtStartOfFling", "access": 4112}],
+        "candidateParameters": [{"name": "this$1", "access": 32784},
+                                {"name": "val$mouseTrackingAtStartOfFling", "access": 4112},
+                                {"name": "val$e2", "access": 4112}],
+        "referenceSignature": None, "candidateSignature": "()V",
+    },
+    PREFIX + "TerminalView$2.class": {
+        "referenceParameters": [{"name": "this$0", "access": 32784},
+                                {"name": "x0", "access": 0}, {"name": "x1", "access": 0}],
+        "candidateParameters": [{"name": "this$0", "access": 32784},
+                                {"name": "targetView", "access": 0}, {"name": "fullEditor", "access": 0}],
+        "referenceSignature": None, "candidateSignature": None,
+    },
+}
 BUILD_CONFIG_SOURCE = b'''package com.termux.view;
 
 /** Generated release constants, compared against the unchanged reference. */
@@ -179,6 +206,7 @@ def load_inputs(root):
     root = resources.checked(root)
     require(resources.checked(__file__) == resources.checked(root / SCRIPT), "proof tool is outside selected source root")
     modules = ((emulator, "tools/fdroid_termux_source_build.py"), (metadata, "tools/fdroid_termux_view_metadata.py"),
+               (compatibility, "tools/fdroid_termux_view_compat.py"),
                (resources, "tools/fdroid_termux_view_sources.py"), (java_archive, "tools/java_archive.py"),
                (terminal_jdk_v2, "tools/terminal_jdk_v2.py"))
     for module, relative in modules:
@@ -450,6 +478,128 @@ def compare_classes(classes, references):
             "methodBodyEquivalenceClaimed": False}
 
 
+def constructor_binding_comparison(classes, references):
+    """Two bounded straight-line constructor diagnostics, not an API waiver."""
+    rows = []
+    for name, descriptor in sorted(INSPECTED_CONSTRUCTORS.items()):
+        before = metadata.constructor_binding_evidence(references[name], descriptor)
+        after = metadata.constructor_binding_evidence(classes[name], descriptor)
+        rows.append({"class": name, "descriptor": descriptor, "matched": before == after,
+                     "referenceEvidence": before, "candidateEvidence": after})
+    return {"allInspectedBindingsMatched": all(row["matched"] for row in rows),
+            "constructorCount": len(rows), "constructors": rows,
+            "scope": "ordered resolved instructions, local slots, field stores and super calls in only these two constructors",
+            "reflectionMetadataEquivalenceClaimed": False, "methodBodyEquivalenceClaimed": False,
+            "strictMetadataGateRelaxed": False}
+
+
+def compact_constructor_bindings(comparison):
+    """Keep one common instruction record when equal; preserve both on mismatch."""
+    compact = json.loads(json.dumps(comparison))
+    for row in compact.get("constructors", []):
+        if row["matched"]:
+            row["candidateEvidence"] = {"identicalToReferenceEvidence": True}
+    return compact
+
+
+def verify_raw_compatibility(classes, references, comparison, bindings):
+    """Require exactly the reviewed metadata delta, using complete API records.
+
+    This is a precondition for a separate artifact transformation, not an API
+    comparator exception. The raw strict comparison remains a failing record.
+    """
+    require(comparison["allAccessibleApiMatched"] is False and
+            set(comparison["accessibleApiDifferences"]) == set(METADATA_COMPATIBILITY),
+            "raw candidate does not have exactly the two reviewed metadata targets")
+    require(comparison["accessibleDeclarationAbiMatched"] is True and
+            comparison["resourceGetstaticMatched"] is True,
+            "raw declaration ABI or resource reads differ")
+    require(bindings["allInspectedBindingsMatched"] is True and bindings["constructorCount"] == 2,
+            "raw constructor instructions/bindings differ from reference")
+    validate_inventory(classes)
+    validate_inventory(references)
+    for name in sorted(EXPECTED_CLASSES):
+        expected = metadata.accessible_api(references[name])
+        candidate = metadata.accessible_api(classes[name])
+        if name in METADATA_COMPATIBILITY:
+            rule = METADATA_COMPATIBILITY[name]
+            constructors = [row for row in expected["methods"] if row["name"] == "<init>"]
+            require(len(constructors) == 1 and constructors[0]["descriptor"] == INSPECTED_CONSTRUCTORS[name]
+                    and constructors[0]["access"] == 0, "reviewed constructor declaration changed")
+            details = constructors[0]["metadata"]
+            require(details["parameters"] == rule["referenceParameters"] and
+                    details["signature"] == rule["referenceSignature"], "historical metadata precondition changed")
+            # Fixed source-controlled expectations only. This modifies a fresh
+            # comparison model, never the raw class or its reported comparison.
+            details["parameters"] = rule["candidateParameters"]
+            details["signature"] = rule["candidateSignature"]
+        require(candidate == expected, "unreviewed raw API/metadata difference: " + name)
+
+
+def code_attribute_inventory(raw):
+    """All methods, including private/initializers, with complete raw Code bytes."""
+    return [(method["name"], method["descriptor"], method["access"], method["attributes"].get("Code"))
+            for method in java_archive.parse_class(raw)["methods"]]
+
+
+def adapt_once(work, raw_result, references, source_resources):
+    """Create a distinct metadata-adapted proof after every exact guard passes."""
+    classes, raw_jar, raw_aar = raw_result
+    require(sha(raw_jar) == RAW_JAR_SHA256 and sha(raw_aar) == RAW_AAR_SHA256,
+            "raw View archive differs from reviewed compiler output")
+    require(java_archive.archive_entries(raw_jar) == classes and proof_aar(raw_jar, source_resources) == raw_aar,
+            "raw View artifact payload disagrees with compiler result")
+    raw_comparison = compare_classes(classes, references)
+    raw_bindings = constructor_binding_comparison(classes, references)
+    verify_raw_compatibility(classes, references, raw_comparison, raw_bindings)
+    adapted, records = dict(classes), []
+    for name in sorted(METADATA_COMPATIBILITY):
+        adapted[name], evidence = compatibility.adapt_class(name, classes[name])
+        require(evidence["existingConstantPoolPreserved"] is True and
+                evidence["allCodeAttributesPreserved"] is True and
+                evidence["unrelatedClassStructurePreserved"] is True,
+                "metadata compatibility preservation certificate failed")
+        require(evidence["rawSha256"] == sha(classes[name]) and evidence["adaptedSha256"] == sha(adapted[name]),
+                "metadata compatibility certificate hash mismatch")
+        require(evidence["class"] == name and evidence["descriptor"] == INSPECTED_CONSTRUCTORS[name],
+                "metadata compatibility certificate identity mismatch")
+        records.append(evidence)
+    require({name for name in classes if classes[name] != adapted[name]} == set(METADATA_COMPATIBILITY),
+            "metadata compatibility changed the wrong class set")
+    for name in sorted(EXPECTED_CLASSES):
+        require(code_attribute_inventory(classes[name]) == code_attribute_inventory(adapted[name]),
+                "metadata compatibility changed a method or its Code bytes: " + name)
+    comparison = compare_classes(adapted, references)
+    bindings = constructor_binding_comparison(adapted, references)
+    require(comparison["allAccessibleApiMatched"] is True and comparison["resourceGetstaticMatched"] is True and
+            bindings["allInspectedBindingsMatched"] is True, "adapted candidate failed unchanged strict comparison")
+    jar = java_archive.deterministic_zip(adapted)
+    aar = proof_aar(jar, source_resources)
+    work = resources.checked(work)
+    work.mkdir(mode=0o700)
+    write_new(work / "terminal-view-metadata-compatible-proof.jar", jar)
+    write_new(work / "terminal-view-metadata-compatible-proof.aar", aar)
+    evidence = {"applied": True, "recipe": "EXACT_TWO_CONSTRUCTOR_METADATA_COMPATIBILITY_V1",
+                "classCount": len(records), "changedMetadataPathCount": 3, "classes": records,
+                "allCodeAttributesPreservedFromRaw": True, "untouchedClassCount": len(classes) - len(records),
+                "strictMetadataGateRelaxed": False, "referenceBinaryCopiedToOutput": False,
+                "rawVsReferenceMethodBodyEquivalenceClaimed": False, "productionPromotionPerformed": False}
+    return {"classes": adapted, "jar": jar, "aar": aar, "comparison": comparison,
+            "constructorBindingComparison": bindings, "metadataCompatibility": evidence}
+
+
+def proof_matches(receipt):
+    comparison = receipt["comparison"]
+    adaptation = receipt.get("metadataCompatibility", {})
+    return bool(receipt.get("inputsUnchanged") is True and receipt.get("rawIndependentBuildsEqual") and receipt["independentBuildsEqual"] and
+                receipt.get("comparisonArtifact") == "metadata-adapted" and
+                adaptation.get("applied") is True and adaptation.get("allCodeAttributesPreservedFromRaw") is True and
+                adaptation.get("strictMetadataGateRelaxed") is False and
+                comparison["allAccessibleApiMatched"] and
+                comparison["resourceGetstaticMatched"] and
+                receipt["constructorBindingComparison"]["allInspectedBindingsMatched"])
+
+
 def rebuild_emulator(root, java_home, android_jar, vendor_archive, output, expected):
     captured = io.StringIO()
     with contextlib.redirect_stdout(captured):
@@ -507,6 +657,7 @@ def failure_diagnostics(output):
 
 def summary(receipt):
     comparison = receipt.get("comparison", {})
+    raw = receipt.get("rawComparison", {})
     result = {"status": receipt["status"], "artifactKind": KIND,
               "fullViewJavaSourceRebuild": receipt["fullViewJavaSourceRebuild"],
               "fullEmulatorJavaSourceRebuild": receipt["fullEmulatorJavaSourceRebuild"],
@@ -522,9 +673,26 @@ def summary(receipt):
               "resourceGetstaticMatched": comparison.get("resourceGetstaticMatched", False),
               "resourceGetstaticCount": comparison.get("candidateResourceAccesses", {}).get("getstaticCount", 0),
               "inputsUnchanged": receipt.get("inputsUnchanged", False), "outputs": receipt["outputs"],
+              "comparisonArtifact": receipt.get("comparisonArtifact", "raw"),
+              "rawIndependentBuildsEqual": receipt.get("rawIndependentBuildsEqual", False),
+              "rawAllAccessibleApiMatched": raw.get("allAccessibleApiMatched", False),
+              "rawApiDifferences": json.loads(json.dumps(raw.get("compactApiDifferences", {}))),
+              "rawClassByteDifferenceCount": len(raw.get("allClassHashDifferences", {})),
+              "rawOutputs": receipt.get("rawOutputs", []),
               "productionWiringChanged": False, "binaryTermuxCompilerClasspath": False,
               "androidResourceLinkingVerified": False, "deviceValidated": False,
               "methodBodyEquivalenceClaimed": False, "fdroidAcceptanceVerified": False}
+    if "metadataCompatibility" in receipt:
+        adaptation = receipt["metadataCompatibility"]
+        result["metadataCompatibility"] = {key: value for key, value in adaptation.items() if key != "classes"}
+        result["metadataCompatibility"]["classes"] = [
+            {key: row[key] for key in ("class", "descriptor", "rawSha256", "adaptedSha256", "changedAttributes",
+                                      "existingConstantPoolPreserved", "allCodeAttributesPreserved", "unrelatedClassStructurePreserved")}
+            for row in adaptation.get("classes", [])]
+    if "constructorBindingComparison" in receipt:
+        result["constructorBindingComparison"] = compact_constructor_bindings(receipt["constructorBindingComparison"])
+    elif "rawConstructorBindingComparison" in receipt:
+        result["constructorBindingComparison"] = compact_constructor_bindings(receipt["rawConstructorBindingComparison"])
     if "failure" in receipt:
         result["failure"] = receipt["failure"][:800]
         result["compilerDiagnostics"] = list(receipt.get("compilerDiagnostics", []))
@@ -536,13 +704,20 @@ def finish(output, receipt):
     # Leave space within the runner's 16 KiB log budget even for escaped text.
     while len(json.dumps(compact, indent=2, sort_keys=True).encode("utf-8")) > 12 * 1024:
         samples = compact.get("apiDifferences", {}).get("entries", [])
+        raw_samples = compact.get("rawApiDifferences", {}).get("entries", [])
         diagnostics = compact.get("compilerDiagnostics", [])
         if samples:
             samples.pop()
             compact["apiDifferences"]["truncated"] = True
+        elif raw_samples:
+            raw_samples.pop()
+            compact["rawApiDifferences"]["truncated"] = True
         elif diagnostics:
             diagnostics.pop()
             compact["compilerDiagnosticsTruncated"] = True
+        elif compact.get("constructorBindingComparison", {}).get("constructors"):
+            compact["constructorBindingComparison"]["constructors"].pop()
+            compact["constructorBindingComparison"]["displayTruncated"] = True
         else:
             raise ValueError("compact proof summary unexpectedly exceeds byte budget")
     # Summary first: the bounded runner must not lose the verdict behind hashes.
@@ -560,7 +735,8 @@ def build(root, java_home, android_jar, annotation_jar, vendor_archive, output):
                "fullEmulatorJavaSourceRebuild": False, "productionWiringChanged": False, "releaseCompatible": False,
                "binaryTermuxCompilerClasspath": False, "binaryClassCopiedToOutput": False,
                "androidResourceLinkingVerified": False, "deviceValidated": False, "fdroidAcceptanceVerified": False,
-               "methodBodyEquivalenceClaimed": False, "inputsUnchanged": False, "outputs": []}
+               "methodBodyEquivalenceClaimed": False, "inputsUnchanged": False, "outputs": [], "rawOutputs": [],
+               "comparisonArtifact": "raw", "metadataCompatibility": {"applied": False, "strictMetadataGateRelaxed": False}}
     try:
         inputs = load_inputs(root)
         android_bytes, annotation_bytes = read(android_jar, MAX_ANDROID), read(annotation_jar, MAX_ARCHIVE)
@@ -582,27 +758,42 @@ def build(root, java_home, android_jar, annotation_jar, vendor_archive, output):
         emulator_jar, emulator_receipt = rebuild_emulator(root, java_home, android_jar, vendor_archive,
                                                          output / "emulator", inputs["emulatorExpected"])
         receipt.update(fullEmulatorJavaSourceRebuild=True, emulatorSourceProof=emulator_receipt)
-        results = []
+        raw_results = []
         for number in (1, 2):
             require(load_inputs(root)["inputs"] == inputs["inputs"], "source/reference inputs changed before View compile")
             require(read(android_jar, MAX_ANDROID) == android_bytes and read(annotation_jar, MAX_ARCHIVE) == annotation_bytes,
                     "compiler dependency changed before View compile")
             result = compile_once(output / ("run-" + str(number)), java_home, android_bytes, annotation_bytes,
                                   emulator_jar, inputs["sources"], inputs["resources"])
-            results.append(result)
-            receipt["outputs"].append({"run": number, "classCount": len(result[0]), "jarSha256": sha(result[1]),
-                                       "aarSha256": sha(result[2])})
+            raw_results.append(result)
+            receipt["rawOutputs"].append({"run": number, "artifactVariant": "raw", "directory": "run-" + str(number),
+                                          "classCount": len(result[0]), "jarSha256": sha(result[1]), "aarSha256": sha(result[2])})
             require(load_inputs(root)["inputs"] == inputs["inputs"], "source/reference inputs changed during View compile")
             require(read(android_jar, MAX_ANDROID) == android_bytes and read(annotation_jar, MAX_ARCHIVE) == annotation_bytes,
                     "compiler dependency changed during View compile")
         receipt["fullViewJavaSourceRebuild"] = True
+        receipt["rawIndependentBuildsEqual"] = raw_results[0] == raw_results[1]
+        receipt["rawComparison"] = compare_classes(raw_results[0][0], inputs["references"])
+        receipt["comparison"] = receipt["rawComparison"]
+        receipt["rawConstructorBindingComparison"] = constructor_binding_comparison(raw_results[0][0], inputs["references"])
+        require(receipt["rawIndependentBuildsEqual"], "independent raw compiler outputs differ")
+        results = []
+        for number, raw_result in enumerate(raw_results, start=1):
+            result = adapt_once(output / ("compat-run-" + str(number)), raw_result, inputs["references"], inputs["resources"])
+            results.append(result)
+            receipt["outputs"].append({"run": number, "artifactVariant": "metadata-adapted", "directory": "compat-run-" + str(number),
+                                       "classCount": len(result["classes"]), "jarSha256": sha(result["jar"]), "aarSha256": sha(result["aar"])})
         receipt["independentBuildsEqual"] = results[0] == results[1]
-        receipt["comparison"] = compare_classes(results[0][0], inputs["references"])
+        receipt["comparisonArtifact"] = "metadata-adapted"
+        receipt["comparison"] = results[0]["comparison"]
+        receipt["constructorBindingComparison"] = results[0]["constructorBindingComparison"]
+        receipt["metadataCompatibility"] = results[0]["metadataCompatibility"]
         receipt["resourceComparison"] = inputs["resourceComparison"]
         receipt["packaging"] = {"referenceClassesJarSha256": REFERENCE_JAR_SHA256,
                                 "referenceAarSha256": resources.AAR_SHA256,
-                                "classesJarByteIdenticalToReference": sha(results[0][1]) == REFERENCE_JAR_SHA256,
-                                "aarByteIdenticalToReference": sha(results[0][2]) == resources.AAR_SHA256,
+                                "artifactVariant": "metadata-adapted",
+                                "classesJarByteIdenticalToReference": sha(results[0]["jar"]) == REFERENCE_JAR_SHA256,
+                                "aarByteIdenticalToReference": sha(results[0]["aar"]) == resources.AAR_SHA256,
                                 "sourceResourceBytesPreserved": True, "sourceLicenseBytesPreserved": True,
                                 "licenseEntry": LICENSE_PATH, "resourceSymbolCount": 5,
                                 "generatedManifestAddsOnlyPinnedUsesSdk": True,
@@ -617,18 +808,23 @@ def build(root, java_home, android_jar, annotation_jar, vendor_archive, output):
                 "compiler dependency changed after proof")
         require(all(read(output / "emulator" / ("run-" + str(number)) / "terminal-emulator-source-proof.jar", MAX_ARCHIVE) == emulator_jar
                     for number in (1, 2)), "source-built emulator dependency changed during View proof")
-        for number, (_, jar, aar) in enumerate(results, start=1):
+        for number, (_, jar, aar) in enumerate(raw_results, start=1):
             work = output / ("run-" + str(number))
             require(read(work / "terminal-view-source-proof.jar", MAX_ARCHIVE) == jar and
                     read(work / "terminal-view-source-proof.aar", MAX_ARCHIVE) == aar,
-                    "View proof artifact changed after compilation")
+                    "raw View proof artifact changed after compilation")
+        for number, result in enumerate(results, start=1):
+            work = output / ("compat-run-" + str(number))
+            require(read(work / "terminal-view-metadata-compatible-proof.jar", MAX_ARCHIVE) == result["jar"] and
+                    read(work / "terminal-view-metadata-compatible-proof.aar", MAX_ARCHIVE) == result["aar"],
+                    "adapted View proof artifact changed after comparison")
         receipt["inputsUnchanged"] = True
-        comparison = receipt["comparison"]
-        matched = receipt["independentBuildsEqual"] and comparison["allAccessibleApiMatched"] and comparison["resourceGetstaticMatched"]
-        receipt["status"] = ("VIEW_SOURCE_PROOF_REPRODUCIBLE_API_RESOURCES_MATCHED_DEVICE_UNVALIDATED" if matched else
+        matched = proof_matches(receipt)
+        receipt["status"] = ("VIEW_SOURCE_PROOF_COMPAT_ADAPTED_REPRODUCIBLE_API_RESOURCES_MATCHED_DEVICE_UNVALIDATED" if matched else
                              "VIEW_SOURCE_PROOF_DIFFERENCES_DEVICE_UNVALIDATED")
         receipt["needsValidation"] = [
             "API, annotations and resource reads do not establish method-body equivalence when complete class bytes differ",
+            "metadata compatibility preserves Code bytes from the raw rebuild, not equivalence of those bytes to the historical baseline",
             "Android resource compilation/linking, APK build and Dex/native integration have not been run",
             "physical-device selection handles, copy/paste/more, rendering/row metrics, gestures, IME and autofill QA",
             "production source-only wiring without reference binary requirements remains a separate reviewed change",

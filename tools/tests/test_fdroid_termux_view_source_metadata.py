@@ -520,5 +520,96 @@ class PinnedViewMetadataTests(unittest.TestCase):
         self.assertTrue(all(row["field_descriptor"] == "I" for row in uses))
 
 
+class ConstructorBindingEvidenceTests(unittest.TestCase):
+    descriptor = "(II)V"
+
+    def sample(self, *, seed=None, slot=1, field="left", field_type="I", call_type="()V", reverse=False, **overrides):
+        owner = "com/termux/view/Fixture"
+        fields = [{"name": field, "descriptor": field_type, "access": 0x10},
+                  {"name": "right", "descriptor": "I", "access": 0x10}]
+        def code(pool):
+            left = b"\x2a\x15" + bytes((slot,)) + b"\xb5" + u2(pool.ref(owner, field, field_type))
+            right = b"\x2a\x1c\xb5" + u2(pool.ref(owner, "right", "I"))
+            call = b"\x2a" + (b"\x1b" if call_type != "()V" else b"")
+            call += b"\xb7" + u2(pool.ref("java/lang/Object", "<init>", call_type, 10))
+            return (right + left if reverse else left + right) + call + b"\xb1"
+        row = method(name="<init>", descriptor=self.descriptor, code=code, **overrides)
+        return fixture(fields=fields, methods=[row], seed=seed)
+
+    def evidence(self, raw):
+        return metadata.constructor_binding_evidence(raw, self.descriptor)
+
+    def test_pool_reordering_preserves_resolved_binding_evidence(self):
+        before, after = self.sample(), self.sample(seed=lambda p: [p.utf(v) for v in ("right", "I", "left", "pad")])
+        self.assertNotEqual(before, after)
+        self.assertEqual(self.evidence(before), self.evidence(after))
+        result = self.evidence(before)
+        self.assertEqual([(r["name"], r["value"]["slot"]) for r in result["field_stores"]], [("left", 1), ("right", 2)])
+        self.assertEqual(result["super_call"], {"owner": "java/lang/Object", "name": "<init>", "descriptor": "()V", "arguments": []})
+        self.assertEqual((result["max_stack"], result["max_locals"], result["exception_handlers"]), (64, 256, 0))
+
+    def test_slot_field_type_call_order_and_frame_mutations_differ(self):
+        before = self.evidence(self.sample())
+        for options in ({"slot": 2}, {"field": "renamed"}, {"field_type": "Z"}, {"call_type": "(I)V"},
+                        {"reverse": True}, {"max_stack": 63}, {"max_locals": 255}, {"access": 0}):
+            with self.subTest(options=options):
+                self.assertNotEqual(before, self.evidence(self.sample(**options)))
+
+    def test_parameter_names_remain_a_separate_strict_metadata_gate(self):
+        before = self.sample(parameters=[("historicalWrongCaptureName", 0x1010), ("other", 0)])
+        after = self.sample(parameters=[("correctedCaptureName", 0x1010), ("other", 0)])
+        self.assertEqual(self.evidence(before), self.evidence(after))
+        self.assertIn("methods", metadata.api_difference(before, after))
+
+    def test_zero_literal_and_super_arguments_are_explicit(self):
+        owner = "com/termux/view/Fixture"
+        def code(pool):
+            return (b"\x2a\x03\xb5" + u2(pool.ref(owner, "counter", "I")) + b"\x2a\x1b\x1c\xb7" +
+                    u2(pool.ref("java/lang/Object", "<init>", "(II)V", 10)) + b"\xb1")
+        result = self.evidence(fixture(fields=[{"name": "counter", "descriptor": "I"}],
+            methods=[method(name="<init>", descriptor=self.descriptor, code=code)]))
+        self.assertEqual(result["field_stores"][0]["value"], {"kind": "literal", "descriptor": "I", "value": 0})
+        self.assertEqual([value["slot"] for value in result["super_call"]["arguments"]], [1, 2])
+
+    def test_unsupported_malformed_handlers_overloads_and_wrong_calls_fail(self):
+        def call(pool):
+            return b"\x2a\xb7" + u2(pool.ref("java/lang/Object", "<init>", "()V", 10)) + b"\xb1"
+        unsupported = [lambda p: b"\0" + call(p), lambda p: b"\x04\x57" + call(p),
+                       lambda p: b"\xc4\x15\0\1\x57" + call(p), lambda p: b"\xa7\0\3" + call(p),
+                       lambda p: b"\x2a\xb5\0", lambda p: b"\xb1", lambda p: call(p) + b"\xb1",
+                       lambda p: b"\x2a\xb7" + u2(p.ref("java/lang/Object", "run", "()V", 10)) + b"\xb1",
+                       lambda p: b"\x2a\xb7" + u2(p.ref("example/Other", "<init>", "()V", 10)) + b"\xb1"]
+        for code in unsupported:
+            with self.subTest(code=code), self.assertRaises(ValueError):
+                self.evidence(fixture(methods=[method(name="<init>", descriptor=self.descriptor, code=code)]))
+        with self.assertRaisesRegex(ValueError, "exception handlers"):
+            self.evidence(fixture(methods=[method(name="<init>", descriptor=self.descriptor, code=call, handlers=[(0, 5, 4, 0)])]))
+        with self.assertRaisesRegex(ValueError, "overloaded/ambiguous"):
+            self.evidence(fixture(methods=[method(name="<init>", descriptor=self.descriptor, code=call),
+                                          method(name="<init>", code=call)]))
+        with self.assertRaisesRegex(ValueError, "descriptor missing"):
+            metadata.constructor_binding_evidence(self.sample(), "()V")
+        with self.assertRaisesRegex(ValueError, "parameter slot"):
+            self.evidence(self.sample(slot=3))
+        with self.assertRaisesRegex(ValueError, "stack/operand type"):
+            self.evidence(self.sample(field_type="Ljava/lang/Object;"))
+
+    def test_two_pinned_anonymous_constructors_are_data_only_diagnostics(self):
+        raw = (TOOLS.parent / "app/libs/terminal-view-v0.118.0.aar").read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), "06b3e83cf34c40e82ba5348a88fc72657ebf35177e28f567e86b2389c34cd2d0")
+        classes = java_archive.archive_entries(java_archive.archive_entries(raw)["classes.jar"])
+        fling = metadata.constructor_binding_evidence(classes["com/termux/view/TerminalView$1$1.class"],
+            "(Lcom/termux/view/TerminalView$1;ZLandroid/view/MotionEvent;)V")
+        fields = {row["name"]: row["value"] for row in fling["field_stores"]}
+        self.assertEqual(fields["this$1"]["slot"], 1)
+        self.assertEqual(fields["val$mouseTrackingAtStartOfFling"]["slot"], 2)
+        self.assertEqual(fields["val$e2"]["slot"], 3)
+        self.assertEqual(fields["mLastY"], {"kind": "literal", "descriptor": "I", "value": 0})
+        connection = metadata.constructor_binding_evidence(classes["com/termux/view/TerminalView$2.class"],
+            "(Lcom/termux/view/TerminalView;Landroid/view/View;Z)V")
+        self.assertEqual(connection["super_call"]["owner"], "android/view/inputmethod/BaseInputConnection")
+        self.assertEqual([value["slot"] for value in connection["super_call"]["arguments"]], [2, 3])
+
+
 if __name__ == "__main__":
     unittest.main()

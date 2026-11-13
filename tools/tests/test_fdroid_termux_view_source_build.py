@@ -18,6 +18,7 @@ sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fdroid_termux_view_source_build as proof
 from test_fdroid_termux_source_build import class_fixture
+from test_fdroid_termux_view_source_metadata import fixture as metadata_fixture, u2
 
 
 def view_classes():
@@ -406,7 +407,273 @@ class ApiAndPackagingTests(unittest.TestCase):
             proof.proof_aar(jar, dict(sources, **{"LICENSE.md": b"license removed"}))
 
 
+class CompatibilityPipelineTests(unittest.TestCase):
+    def fixture_pair(self, *, extra_constructor_attribute=False, omit_signature=False):
+        references, classes = view_classes(), view_classes()
+        def code(pool):
+            return b"\x2a\xb7" + u2(pool.ref("java/lang/Object", "<init>", "()V", 10)) + b"\xb1"
+        for name, rule in proof.METADATA_COMPATIBILITY.items():
+            for label, output in (("reference", references), ("candidate", classes)):
+                row = {"name": "<init>", "descriptor": proof.INSPECTED_CONSTRUCTORS[name], "access": 0,
+                       "code": code, "parameters": [(p["name"], p["access"]) for p in rule[label + "Parameters"]]}
+                signature = rule[label + "Signature"]
+                if signature is not None and not (label == "candidate" and omit_signature):
+                    row["signature"] = signature
+                if label == "candidate" and extra_constructor_attribute:
+                    row["attrs"] = [("Deprecated", b"")]
+                output[name] = metadata_fixture(name=name[:-6], methods=[row])
+        return references, classes
+
+    def compare(self, classes, references):
+        with patch.object(proof.metadata, "resource_field_references", side_effect=fixture_resource_reads):
+            return proof.compare_classes(classes, references)
+
+    def test_exact_three_delta_precondition_keeps_raw_failure_intact(self):
+        references, classes = self.fixture_pair()
+        comparison = self.compare(classes, references)
+        unchanged = copy.deepcopy(comparison)
+        bindings = proof.constructor_binding_comparison(classes, references)
+        self.assertFalse(comparison["allAccessibleApiMatched"])
+        self.assertEqual(comparison["compactApiDifferences"]["changedPathCount"], 3)
+        self.assertTrue(bindings["allInspectedBindingsMatched"])
+        proof.verify_raw_compatibility(classes, references, comparison, bindings)
+        self.assertEqual(comparison, unchanged)
+        self.assertFalse(self.compare(classes, references)["allAccessibleApiMatched"])
+
+    def test_extra_metadata_in_same_two_classes_is_not_hidden_by_class_allowlist(self):
+        references, classes = self.fixture_pair(extra_constructor_attribute=True)
+        comparison = self.compare(classes, references)
+        self.assertEqual(set(comparison["accessibleApiDifferences"]), set(proof.METADATA_COMPATIBILITY))
+        self.assertTrue(comparison["accessibleDeclarationAbiMatched"])
+        with self.assertRaisesRegex(ValueError, "unreviewed raw API/metadata"):
+            proof.verify_raw_compatibility(classes, references, comparison,
+                                           proof.constructor_binding_comparison(classes, references))
+
+    def test_missing_one_reviewed_delta_is_not_accepted(self):
+        references, classes = self.fixture_pair(omit_signature=True)
+        comparison = self.compare(classes, references)
+        self.assertEqual(comparison["compactApiDifferences"]["changedPathCount"], 2)
+        with self.assertRaisesRegex(ValueError, "unreviewed raw API/metadata"):
+            proof.verify_raw_compatibility(classes, references, comparison,
+                                           proof.constructor_binding_comparison(classes, references))
+
+    def test_raw_bindings_declaration_and_resource_gates_are_independent(self):
+        references, classes = self.fixture_pair()
+        comparison = self.compare(classes, references)
+        bindings = proof.constructor_binding_comparison(classes, references)
+        for key in ("accessibleDeclarationAbiMatched", "resourceGetstaticMatched"):
+            altered = copy.deepcopy(comparison)
+            altered[key] = False
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, "raw declaration ABI or resource"):
+                proof.verify_raw_compatibility(classes, references, altered, bindings)
+        for altered in (dict(bindings, allInspectedBindingsMatched=False), dict(bindings, constructorCount=1)):
+            with self.subTest(altered=altered), self.assertRaisesRegex(ValueError, "raw constructor instructions/bindings"):
+                proof.verify_raw_compatibility(classes, references, comparison, altered)
+
+    def test_raw_artifact_hash_change_stops_before_transform_or_output(self):
+        references, classes = self.fixture_pair()
+        resources, _ = proof.resources.source_inputs(TOOLS.parent)
+        jar = proof.java_archive.deterministic_zip(classes)
+        aar = proof.proof_aar(jar, resources)
+        with tempfile.TemporaryDirectory() as directory, patch.object(proof.compatibility, "adapt_class") as adapt:
+            output = Path(directory) / "adapted"
+            with self.assertRaisesRegex(ValueError, "raw View archive differs"):
+                proof.adapt_once(output, (classes, jar, aar), references, resources)
+            adapt.assert_not_called()
+            self.assertFalse(output.exists())
+
+    def test_all_code_inventory_includes_private_and_initializer_attributes(self):
+        methods = [{"name": "privateBody", "descriptor": "()V", "access": 2, "code": b"\xb1"},
+                   {"name": "<clinit>", "descriptor": "()V", "access": 8, "code": b"\xb1"}]
+        before = metadata_fixture(methods=methods)
+        after = metadata_fixture(methods=[dict(methods[0], code=b"\0\xb1"), methods[1]])
+        self.assertEqual(proof.metadata.api_difference(before, after), {})
+        self.assertNotEqual(proof.code_attribute_inventory(before), proof.code_attribute_inventory(after))
+        self.assertEqual([row[0] for row in proof.code_attribute_inventory(before)], ["privateBody", "<clinit>"])
+
+    def test_summary_labels_raw_failure_and_adapted_match_separately(self):
+        references, classes = self.fixture_pair()
+        raw = self.compare(classes, references)
+        adapted = self.compare(references, references)
+        receipt = {"status": "PROOF_ONLY", "fullViewJavaSourceRebuild": True, "fullEmulatorJavaSourceRebuild": True,
+                   "comparison": adapted, "rawComparison": raw, "comparisonArtifact": "metadata-adapted",
+                   "rawIndependentBuildsEqual": True, "independentBuildsEqual": True, "inputsUnchanged": True,
+                   "rawOutputs": [{"artifactVariant": "raw", "jarSha256": "raw"}],
+                   "outputs": [{"artifactVariant": "metadata-adapted", "jarSha256": "adapted"}],
+                   "metadataCompatibility": {"applied": True, "allCodeAttributesPreservedFromRaw": True,
+                                             "strictMetadataGateRelaxed": False, "classes": []}}
+        result = proof.summary(receipt)
+        self.assertFalse(result["rawAllAccessibleApiMatched"])
+        self.assertEqual(result["rawApiDifferences"]["changedPathCount"], 3)
+        self.assertTrue(result["allAccessibleApiMatched"])
+        self.assertEqual(result["comparisonArtifact"], "metadata-adapted")
+        self.assertNotEqual(result["rawOutputs"], result["outputs"])
+        for key in ("methodBodyEquivalenceClaimed", "deviceValidated", "productionWiringChanged", "fdroidAcceptanceVerified"):
+            self.assertFalse(result[key])
+        self.assertFalse(result["metadataCompatibility"]["strictMetadataGateRelaxed"])
+
+
+class BuildOrchestrationTests(unittest.TestCase):
+    def run_fixture(self, *, fail_second=False, different_second=False):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            root, jdk, output = base / "src", base / "jdk", base / "proof"
+            (root / "tools").mkdir(parents=True)
+            jdk.mkdir()
+            (root / proof.JDK_MANIFEST).write_bytes(b"{}")
+            android, annotation, vendor = [base / name for name in ("android.jar", "annotation.jar", "jdk.tar.gz")]
+            for path, raw in ((android, b"android"), (annotation, b"annotation"), (vendor, b"vendor")):
+                path.write_bytes(raw)
+            inputs = {"inputs": {proof.JDK_MANIFEST: proof.sha(b"{}")}, "sources": {}, "resources": {},
+                      "recipe": {"baseAar": "fixture-reference.aar"}, "emulatorExpected": {},
+                      "references": {}, "resourceComparison": {"fixture": True}}
+            raw_comparison = {"allAccessibleApiMatched": False, "resourceGetstaticMatched": True,
+                              "compactApiDifferences": {"changedPathCount": 3, "entries": [], "truncated": True}}
+            adapted_comparison = {"allAccessibleApiMatched": True, "resourceGetstaticMatched": True}
+            bindings = {"allInspectedBindingsMatched": True, "constructorCount": 2, "constructors": []}
+            adaptation = {"applied": True, "allCodeAttributesPreservedFromRaw": True, "strictMetadataGateRelaxed": False, "classes": []}
+            compiled, adapted = [], []
+            def emulator_fixture(_root, _jdk, _android, _vendor, destination, _expected):
+                for number in (1, 2):
+                    work = destination / ("run-" + str(number))
+                    work.mkdir(parents=True)
+                    (work / "terminal-emulator-source-proof.jar").write_bytes(b"source-emulator")
+                return b"source-emulator", {"fixture": True}
+            def compile_fixture(work, *_args):
+                compiled.append(work.name)
+                work.mkdir()
+                (work / "terminal-view-source-proof.jar").write_bytes(b"raw-jar")
+                (work / "terminal-view-source-proof.aar").write_bytes(b"raw-aar")
+                return {}, b"raw-jar", b"raw-aar"
+            def adaptation_fixture(work, raw_result, *_args):
+                self.assertEqual(raw_result, ({}, b"raw-jar", b"raw-aar"))
+                adapted.append(work.name)
+                if fail_second and len(adapted) == 2:
+                    raise ValueError("fixture second adaptation failed")
+                jar = b"adapted-jar-2" if different_second and len(adapted) == 2 else b"adapted-jar"
+                work.mkdir()
+                (work / "terminal-view-metadata-compatible-proof.jar").write_bytes(jar)
+                (work / "terminal-view-metadata-compatible-proof.aar").write_bytes(b"adapted-aar")
+                return {"classes": {}, "jar": jar, "aar": b"adapted-aar", "comparison": adapted_comparison,
+                        "constructorBindingComparison": bindings, "metadataCompatibility": adaptation}
+            with patch.object(proof, "load_inputs", return_value=inputs), \
+                    patch.object(proof, "ANDROID_SHA256", proof.sha(b"android")), \
+                    patch.object(proof, "ANNOTATION_SHA256", proof.sha(b"annotation")), \
+                    patch.object(proof.terminal_jdk_v2, "verify", return_value={"entries": []}), \
+                    patch.object(proof, "rebuild_emulator", side_effect=emulator_fixture), \
+                    patch.object(proof, "compile_once", side_effect=compile_fixture), \
+                    patch.object(proof, "compare_classes", return_value=raw_comparison), \
+                    patch.object(proof, "constructor_binding_comparison", return_value=bindings), \
+                    patch.object(proof, "adapt_once", side_effect=adaptation_fixture), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                if fail_second:
+                    with self.assertRaisesRegex(ValueError, "second adaptation failed"):
+                        proof.build(root, jdk, android, annotation, vendor, output)
+                    result = None
+                else:
+                    result = proof.build(root, jdk, android, annotation, vendor, output)
+            self.assertEqual(compiled, ["run-1", "run-2"])
+            self.assertEqual(adapted, ["compat-run-1", "compat-run-2"])
+            for number in (1, 2):
+                self.assertEqual((output / ("run-" + str(number)) / "terminal-view-source-proof.jar").read_bytes(), b"raw-jar")
+            return result, json.loads((output / "receipt.json").read_text()), json.loads((output / "SUMMARY.json").read_text())
+
+    def test_two_compilations_and_two_adaptations_keep_distinct_receipts(self):
+        result, receipt, summary = self.run_fixture()
+        self.assertEqual(result, 0)
+        self.assertFalse(receipt["rawComparison"]["allAccessibleApiMatched"])
+        self.assertTrue(receipt["comparison"]["allAccessibleApiMatched"])
+        self.assertEqual(len(receipt["rawOutputs"]), 2)
+        self.assertEqual(len(receipt["outputs"]), 2)
+        self.assertNotEqual(receipt["rawOutputs"][0]["jarSha256"], receipt["outputs"][0]["jarSha256"])
+        self.assertIn("COMPAT_ADAPTED", summary["status"])
+        self.assertFalse(summary["rawAllAccessibleApiMatched"])
+        self.assertFalse(summary["fdroidAcceptanceVerified"])
+
+    def test_second_adaptation_failure_cannot_produce_success_verdict(self):
+        _, receipt, summary = self.run_fixture(fail_second=True)
+        self.assertEqual(receipt["status"], "VIEW_SOURCE_PROOF_FAILED")
+        self.assertEqual(len(receipt["outputs"]), 1)
+        self.assertFalse(summary["allAccessibleApiMatched"])
+        self.assertFalse(summary["metadataCompatibility"]["applied"])
+
+    def test_independently_adapted_nondeterminism_fails_even_when_api_matches(self):
+        result, receipt, summary = self.run_fixture(different_second=True)
+        self.assertEqual(result, 1)
+        self.assertTrue(summary["allAccessibleApiMatched"])
+        self.assertTrue(summary["rawIndependentBuildsEqual"])
+        self.assertFalse(summary["independentBuildsEqual"])
+        self.assertEqual(receipt["status"], "VIEW_SOURCE_PROOF_DIFFERENCES_DEVICE_UNVALIDATED")
+
+
 class ReceiptAndPathTests(unittest.TestCase):
+    def test_constructor_binding_self_comparison_checks_only_two_named_paths(self):
+        inputs = proof.load_inputs(TOOLS.parent)
+        result = proof.constructor_binding_comparison(inputs["references"], inputs["references"])
+        self.assertTrue(result["allInspectedBindingsMatched"])
+        self.assertEqual(result["constructorCount"], 2)
+        self.assertEqual({row["class"]: row["descriptor"] for row in result["constructors"]},
+                         proof.INSPECTED_CONSTRUCTORS)
+        self.assertFalse(result["reflectionMetadataEquivalenceClaimed"])
+        self.assertFalse(result["methodBodyEquivalenceClaimed"])
+        self.assertFalse(result["strictMetadataGateRelaxed"])
+
+    def test_constructor_binding_differences_and_unsupported_code_are_not_hidden(self):
+        before, after = {"instructions": ["before"]}, {"instructions": ["after"]}
+        inputs = {name: b"class bytes" for name in proof.INSPECTED_CONSTRUCTORS}
+        with patch.object(proof.metadata, "constructor_binding_evidence", side_effect=[before, after, before, before]):
+            result = proof.constructor_binding_comparison(inputs, inputs)
+        self.assertFalse(result["allInspectedBindingsMatched"])
+        self.assertFalse(result["constructors"][0]["matched"])
+        self.assertTrue(result["constructors"][1]["matched"])
+        self.assertEqual(result["constructors"][0]["referenceEvidence"], before)
+        self.assertEqual(result["constructors"][0]["candidateEvidence"], after)
+        with patch.object(proof.metadata, "constructor_binding_evidence", side_effect=ValueError("unsupported constructor opcode")):
+            with self.assertRaisesRegex(ValueError, "unsupported constructor opcode"):
+                proof.constructor_binding_comparison(inputs, inputs)
+
+    def test_compact_constructor_diagnostic_preserves_differences_without_mutating_receipt(self):
+        original = {"constructors": [
+            {"matched": True, "referenceEvidence": {"slot": 2}, "candidateEvidence": {"slot": 2}},
+            {"matched": False, "referenceEvidence": {"slot": 2}, "candidateEvidence": {"slot": 3}},
+        ]}
+        unchanged = copy.deepcopy(original)
+        compact = proof.compact_constructor_bindings(original)
+        self.assertEqual(original, unchanged)
+        self.assertEqual(compact["constructors"][0]["candidateEvidence"], {"identicalToReferenceEvidence": True})
+        self.assertEqual(compact["constructors"][1], original["constructors"][1])
+
+    def test_constructor_binding_match_cannot_override_strict_metadata_failure(self):
+        receipt = {"independentBuildsEqual": True, "rawIndependentBuildsEqual": True, "inputsUnchanged": True,
+                   "comparisonArtifact": "metadata-adapted",
+                   "metadataCompatibility": {"applied": True, "allCodeAttributesPreservedFromRaw": True, "strictMetadataGateRelaxed": False},
+                   "comparison": {"allAccessibleApiMatched": True, "resourceGetstaticMatched": True},
+                   "constructorBindingComparison": {"allInspectedBindingsMatched": True}}
+        self.assertTrue(proof.proof_matches(receipt))
+        changed = copy.deepcopy(receipt)
+        changed["comparison"]["allAccessibleApiMatched"] = False
+        self.assertFalse(proof.proof_matches(changed))
+        changed = copy.deepcopy(receipt)
+        changed["constructorBindingComparison"]["allInspectedBindingsMatched"] = False
+        self.assertFalse(proof.proof_matches(changed))
+        changed = copy.deepcopy(receipt)
+        changed["comparison"]["resourceGetstaticMatched"] = False
+        self.assertFalse(proof.proof_matches(changed))
+        changed = copy.deepcopy(receipt)
+        changed["independentBuildsEqual"] = False
+        self.assertFalse(proof.proof_matches(changed))
+        for key in ("inputsUnchanged", "rawIndependentBuildsEqual"):
+            changed = copy.deepcopy(receipt)
+            changed[key] = False
+            self.assertFalse(proof.proof_matches(changed))
+        for key, value in (("applied", False), ("allCodeAttributesPreservedFromRaw", False), ("strictMetadataGateRelaxed", True)):
+            changed = copy.deepcopy(receipt)
+            changed["metadataCompatibility"][key] = value
+            self.assertFalse(proof.proof_matches(changed))
+        changed = copy.deepcopy(receipt)
+        changed["comparisonArtifact"] = "raw"
+        self.assertFalse(proof.proof_matches(changed))
+
     def test_output_must_be_fresh_outside_source_and_compiler(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

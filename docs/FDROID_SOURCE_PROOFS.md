@@ -14,7 +14,8 @@ findings have disappeared.
 | `tools/fdroid_spake2_source_build.py` | Two pinned Java sources, notices, and the complete verified Temurin 17.0.20.1+1 JDK | Empty compiler classpath/sourcepath; deterministic reconstruction; exact class/entry comparison and separate API/whole-JAR comparison. Optional retained deterministic vector test is not a cryptographic audit or device-interoperability certification. |
 | `tools/fdroid_termux_source_build.py` | Thirteen upstream Java families, four Droide families, generated BuildConfig, the pinned JDK and API 36 android.jar | Eighteen source files produce an expected forty classes; latest overlay stage wins; no precompiled Termux classes on compiler classpath. Exact existing overlay hashes, retained accessible APIs including package-private members, and the owned-process JNI contract are checked separately. Not a terminal-view/AAR/native/APK rebuild. |
 | `tools/fdroid_termux_view_sources.py` | The original manifest, three XML resources and license from immutable Termux v0.118.0 source | Source-only provenance verification by default, with optional pinned-AAR comparison. Drawable bytes match; string XML is semantically equal; the built manifest adds only the verified SDK declaration. Does not compile the View or generate Android resources. |
-| `tools/fdroid_termux_view_source_build.py` | Seven pinned View Java files, generated release BuildConfig and non-final resource symbols; source-rebuilt emulator; the verified JDK, API 36 and existing annotation-jvm 1.10.0 | Two clean Java compilations and deterministic proof-only AAR packaging; exact nineteen-class inventory, annotation-aware non-private API and actual resource field accesses are separate gates. No copied Termux bytecode, resource linking, output execution, APK substitution or device claim. |
+| `tools/fdroid_termux_view_source_build.py` | Seven pinned View Java files, generated release BuildConfig and non-final resource symbols; source-rebuilt emulator; the verified JDK, API 36 and existing annotation-jvm 1.10.0 | Two clean Java compilations and deterministic proof-only AAR packaging; exact nineteen-class inventory, annotation-aware non-private API and actual resource field accesses are separate gates. Raw and exact-pin metadata-adapted artifacts are distinctly identified; no copied Termux bytecode, resource linking, output execution, APK substitution or device claim. |
+| `tools/fdroid_termux_view_compat.py` | Two immutable raw View class preimages and a source-controlled metadata recipe; no reference binary input | Changes exactly two constructor MethodParameters payloads and removes one exact Signature; append-only constant pool and all complete Code attributes/unrelated structure are independently verified unchanged from raw. This is an explicit artifact transformation, not comparator normalization or proof of historical method-body equivalence. |
 
 The reference binary inputs are inspection data, never candidate compiler
 inputs. The future production source-only path must not require those reference
@@ -97,9 +98,9 @@ The seven differing retained emulator classes are `BuildConfig`, `KeyHandler`,
 independent instruction-level comparison. No result from this run was copied
 into a production artifact, dependency mirror or release.
 
-The added View proof is a separate, later checkpoint. This record does not
-claim that its compiler, Android resource linker or physical-device tests have
-run. Its compact summary must distinguish source compilation, byte differences,
+The added View proof is a separate, later checkpoint. At its initial local
+checkpoint, its compiler, Android resource linker and physical-device tests had
+not run. Its compact summary must distinguish source compilation, byte differences,
 API/annotation parity, resource accesses and untested Android behavior.
 Its local source-contract suite passed **265 tests** in the same enforced
 sandbox: the prior 191 plus four runner tests, thirty-nine View builder tests
@@ -107,6 +108,68 @@ and thirty-one metadata/bytecode tests. The real nineteen-class reference also
 passed data-only self-comparison with exactly five actual GETSTATIC resource
 reads. This validates the proof machinery and fixed input closure, not Java
 compiler or APK behavior.
+
+### Actual raw View result and compatibility extension
+
+[Run 43369448300](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43369448300)
+tested PR merge `233a52ed10fdd446bac7ddbd00880515dad91a87`, incorporating
+head `72d0e47f28db4aa6fefea8a239bfb17ffb004111`. Six jobs passed. The View
+compiler succeeded twice, producing all nineteen expected classes and identical
+raw JAR/AAR bytes, but its **strict metadata comparison failed**. The narrower
+declaration ABI and five actual resource GETSTATIC reads matched; inputs were
+unchanged. The exact three metadata paths in two constructors and the raw
+artifact hashes are recorded in the
+[compiler metadata note](FDROID_TERMUX_COMPILER_METADATA.md).
+
+All nineteen raw class byte hashes differ from the retained reference. The
+three metadata deltas are consistent with specific official javac changes, but
+neither those causes nor matching API/resources explain every class-byte
+difference. The exact historical JDK vendor/update is not established.
+
+The next proof implementation retains that raw failure and adds a separately
+named, exact-pin metadata compatibility artifact. Before adaptation it requires
+the fixed observed raw JAR/AAR and class hashes, precisely the reviewed full API
+differences, unchanged declaration ABI/resource references, and matching resolved
+instructions/bindings in the two affected constructors. The source-controlled
+helper never reads a reference AAR or copies its bytes. Only the intended
+parameter-name payloads and one Signature removal are eligible; existing
+constant-pool bytes/indices, every full Code attribute and all unrelated class
+structure must remain unchanged. The other seventeen classes remain identical
+to the raw source rebuild.
+
+Both raw builds are adapted independently into fresh `compat-run-*` outputs.
+The same strict metadata comparator must pass on those adapted classes; the
+proof additionally requires raw/adapted reproducibility, byte-preservation
+certificates and final input/output integrity checks. Receipts and compact
+summaries distinguish raw metadata failure from adapted metadata parity, and
+never claim historical method-body equivalence, device validation or production
+promotion. Fixture tests are not a fresh compiler/adaptation result; actual
+execution of this extension must be recorded independently.
+
+The extension's local enforced-sandbox checkpoint passed **297 tests**: the
+earlier 265 plus six constructor-binding tests, four binding/gate receipt tests,
+twelve exact metadata-transform tests, seven compatibility-pipeline tests and
+three mocked full-build orchestration tests. These include additional/missing
+delta rejection, constant-pool overflow, raw Code/debug preservation, independent
+output failure/nondeterminism and retention of the raw failing verdict. A
+separate static peer review found no concrete blocker. None of these results
+substitutes for the pending actual compiler/adaptation CI run.
+
+### Android application checkpoint, separate from isolated View proof
+
+[Android run 43367069506](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43367069506)
+completed all four jobs for merge `b8c59e3b6fbf17ae88566dd0d4ae14a55a12b6cc`.
+Regular and F-Droid candidate builds and verification succeeded. There were
+112 executed critical application cases across thirteen classes and 446 Python
+tests, including twenty-one current-engine and five actual optimized-APK/JNI
+checks. Both resolved runtime manifests contain 137 components, 759 edges and
+103 artifact file hashes, with an exact diff pass. The unsigned candidate APK
+was not uploaded, and the stable signed release was not changed.
+
+These application jobs used the existing production View dependency, not the
+new isolated View proof output. Their success cannot be transferred to an
+unintegrated source-built View AAR. The scanner inventory remains **33 known
+unresolved findings**. See the [scanner matrix](FDROID_SCANNER_MATRIX.md).
 
 ## Safe execution
 
