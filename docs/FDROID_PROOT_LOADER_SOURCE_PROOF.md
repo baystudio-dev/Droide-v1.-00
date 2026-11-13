@@ -108,9 +108,9 @@ validity, independent-build reproducibility, baseline byte equality,
 postprocessing completeness and unchanged inputs. A partial build or mismatch
 is not a successful result, even if one ABI matches.
 
-At initial implementation, actual NDK compiler execution is **pending**;
-fixture tests are not a substitute. Actual CI results must identify their run,
-head and tested merge before any result is claimed.
+At initial implementation, actual NDK compiler execution was pending;
+fixture tests were not a substitute. The subsequent actual result is recorded
+below with its run, head and tested merge.
 
 The local enforced-sandbox checkpoint passed **357 tests** in 2.756 seconds.
 This comprises the earlier 297 source-proof contracts, three added runner
@@ -118,10 +118,66 @@ contracts, twenty-eight loader builder/input tests and twenty-nine ELF tests.
 Both real stripped baseline files pass the data-only parser under their
 unchanged SHA-256 pins. Mocked compiler/tool calls verify the orchestration and
 failure paths; none of these tests execute the ARM outputs or demonstrate the
-pending actual NDK compilation.
+actual NDK compilation recorded separately below.
 
 Even a byte-identical loader proof does not establish a complete source-only
 PRoot/Android build. Engine coupling, source-only dependency integration,
 resource linking, final APK checks, physical-device regressions, update/signing
 review and F-Droid maintainer acceptance remain separate gates. Production
 promotion is deliberately excluded from this proof.
+
+## PR12 actual isolated-loader checkpoint: 2026-11-13
+
+[Run 43374627049](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43374627049)
+completed **8/8 jobs successfully**, including the separate registry-parity
+job and all six source-contract/compiler matrix jobs after sandbox readiness.
+The actual checkout was merge
+`f41850f2cfb03b63af422408c94cb34bb00f0785`, incorporating PR12 head
+`7d6a1a140d22579d1b7c1a453d0ef7151b589f87`. Independently retrieved logs
+confirm **357 tests, OK** in each of readiness job `131718108321` and contract
+job `131718212303` (2.121 and 2.497 seconds respectively). These are two
+executions of the same suite, not 714 unique tests.
+
+[Loader job 131718212293](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43374627049/job/131718212293)
+actually compiled both loader ABIs from the pinned source in two fresh build
+trees, using NDK `29.0.14206865` at API 24. Its complete **7,882-character
+`SUMMARY.json`** was printed and independently read; this is actual compiler
+evidence, not a fixture-only result. Both builds produced the same values:
+
+| ABI and stage | Bytes | SHA-256 |
+| --- | ---: | --- |
+| ARM64, unstripped | 18,520 | `9851ac9137c3053926ccce7cfe90ec489a839543f261bb19f5269d6a9cbfdabb` |
+| ARM64, stripped | 18,136 | `44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04` |
+| ARM32, unstripped | 6,504 | `4a1c0657c05577deee93ea1fde076828c5be0358f2477f006985141d677c9176` |
+| ARM32, stripped | 6,244 | `25f6bd90bc5a3d3088026289a0d3eaf3e502bd2b00e5cb74fadd9791132efa34` |
+
+Both stripped outputs exactly match their unchanged retained baselines in
+**both builds**. The raw and post-strip reproducibility gates passed, `.text`
+was unchanged by stripping, and the source/tool/header/output integrity
+rereads passed. GNU gawk and the independent ELF symbol inspection agreed on
+the ARM64 pokedata offset **1,120 bytes (`0x460`)**; the mapped eight-byte
+store/trap stub was verified before stripping. The ELF64/ARM64 and
+ELF32/ARM EABI5 structural contracts, static linkage, non-executable stacks and
+respective 16 KiB/4 KiB load alignments passed without executing either output.
+
+The final probe reported UID/GID 65534, empty capabilities,
+no-new-privileges, read-only inputs, allowlisted environment, masked Git
+metadata, a 512 MiB scratch limit and loopback-only networking with no external
+route. The summary verdict is
+`source-built-both-retained-loader-bytes-reproduced`.
+
+`elfCleanerExecuted`, `historicalPostprocessingReplayed` and
+`ndkArchiveAuthenticated` remain **false**. Exact final-byte equality closes
+this loader reproduction experiment without running the cleaner; it does not
+authenticate the historical NDK ZIP, recreate every historical Termux
+environment detail, or prove that cleaner is generally a no-op. The expanded
+receipt is subject to the fixed diagnostic budget; the complete compact
+summary, not an untruncated full receipt, supplies the results above.
+
+`packagedPayloadsChanged`, `targetOutputExecuted`,
+`androidRuntimeCompatibilityVerified` and `fdroidAcceptanceVerified` are also
+**false**. No PRoot engine or APK was built by this loader job, and no proof
+output was promoted. The separate PR12 Android application workflow was still
+in progress at the last recorded observation. Engine/source-only integration,
+device QA and maintainer acceptance remain outstanding; the original **33
+scanner findings remain unresolved**.

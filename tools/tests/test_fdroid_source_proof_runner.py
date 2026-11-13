@@ -27,6 +27,9 @@ class ProofRunnerTests(unittest.TestCase):
         self.ndk = self.scratch / "ndk"
         self.ndk.mkdir()
         (self.ndk / "source.properties").write_text("Pkg.Revision = 28.2.13676358\n")
+        self.loader_ndk = self.scratch / "loader ndk"
+        self.loader_ndk.mkdir()
+        (self.loader_ndk / "source.properties").write_text("Pkg.Revision = 29.0.14206865\n")
         self.archive = self.scratch / "vendor.tar.gz"
         self.archive.write_bytes(b"not a real archive")
         self.android = self.scratch / "android.jar"
@@ -81,6 +84,7 @@ class ProofRunnerTests(unittest.TestCase):
         specification.loader.exec_module(module)
         for options in (("tests",), ("cli", "--ndk", self.ndk),
                         ("loaders", "--ndk", self.ndk),
+                        ("proot", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk),
                         ("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive),
                         ("termux", "--jdk", self.jdk, "--jdk-archive", self.archive,
                          "--android-jar", self.android),
@@ -193,6 +197,53 @@ class ProofRunnerTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.invoke("loaders", "--ndk", value, success=False)
 
+    def test_proot_uses_two_fixed_readonly_ndks_without_changing_isolation(self):
+        arguments = self.args(self.invoke("proot", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk))
+        for source, target in ((self.ndk, "/toolchain/ndk"), (self.loader_ndk, "/toolchain/loader-ndk")):
+            at = arguments.index(str(source))
+            self.assertEqual(["--ro-bind", str(source), target], arguments[at - 1:at + 2])
+        self.assertEqual(["tools/fdroid_proot_engine_source_build.py", "--ndk", "/toolchain/ndk",
+                          "--loader-ndk", "/toolchain/loader-ndk", "--output-dir", "/scratch/proof"], arguments[-7:])
+        loader_at = arguments.index(str(self.loader_ndk)) - 1
+        del arguments[loader_at:loader_at + 3]
+        cli = self.args(self.invoke("cli", "--ndk", self.ndk))
+        self.assertEqual(cli[:-5], arguments[:-7])
+
+    def test_proot_requires_both_toolchains_and_rejects_other_mode_inputs(self):
+        options = ("proot", "--ndk", self.ndk, "--loader-ndk", self.loader_ndk)
+        self.invoke("proot", success=False)
+        self.invoke("proot", "--ndk", self.ndk, success=False)
+        self.invoke("proot", "--loader-ndk", self.loader_ndk, success=False)
+        self.invoke(*options, "--loader-ndk", self.loader_ndk, success=False)
+        self.invoke(*options, "--ndk", self.ndk, success=False)
+        for option, value in (("--jdk", self.jdk), ("--jdk-archive", self.archive),
+                              ("--android-jar", self.android), ("--annotation-jar", self.annotation)):
+            with self.subTest(option=option):
+                self.invoke(*options, option, value, success=False)
+        for mode in ("tests", "cli", "loaders", "spake2", "termux", "view"):
+            with self.subTest(mode=mode):
+                self.invoke(mode, "--loader-ndk", self.loader_ndk, success=False)
+
+    def test_proot_rejects_protected_overlapping_and_invalid_toolchains(self):
+        for flag in ("--ndk", "--loader-ndk"):
+            other_flag = "--loader-ndk" if flag == "--ndk" else "--ndk"
+            other_path = self.loader_ndk if flag == "--ndk" else self.ndk
+            for value in (ROOT, ROOT.parent, ROOT / "tools", "/", "relative/ndk", self.archive):
+                with self.subTest(flag=flag, value=value):
+                    self.invoke("proot", flag, value, other_flag, other_path, success=False)
+        nested = self.ndk / "nested"
+        nested.mkdir()
+        (nested / "source.properties").write_text("Pkg.Revision = 29.0.14206865\n")
+        alias = self.scratch / "ndk alias"
+        alias.symlink_to(self.ndk, target_is_directory=True)
+        for first, second in ((self.ndk, self.ndk), (self.ndk, alias),
+                              (self.ndk, nested), (nested, self.ndk)):
+            with self.subTest(first=first, second=second):
+                self.invoke("proot", "--ndk", first, "--loader-ndk", second, success=False)
+        missing = self.scratch / "unprovisioned"
+        missing.mkdir()
+        self.invoke("proot", "--ndk", self.ndk, "--loader-ndk", missing, success=False)
+
     def test_spake2_has_only_jdk_and_explicit_vector_test(self):
         arguments = self.args(self.invoke("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive))
         self.assertIn(str(self.jdk), arguments)
@@ -263,7 +314,7 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("contents: read", workflow)
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("fail-fast: false", workflow)
-        self.assertIn("proof: [tests, cli, loaders, spake2, termux, view]", workflow)
+        self.assertIn("proof: [tests, cli, loaders, proot, spake2, termux, view]", workflow)
         self.assertIn("needs: sandbox-readiness", workflow)
         self.assertIn("Require isolated source contracts before provisioning compilers", workflow)
         self.assertIn("Official registry byte parity (data only)", workflow)
@@ -283,9 +334,9 @@ class ProofRunnerTests(unittest.TestCase):
     def test_loader_toolchain_provisioning_is_scoped_and_separate_from_cli(self):
         workflow = WORKFLOW.read_text()
         start = workflow.index("- name: Provision the historical loader NDK and recipe utility")
-        end = workflow.index("- name: Provision API 36", start)
+        end = workflow.index("- name: Provision engine patch and source-wrapper utilities", start)
         step = workflow[start:end]
-        self.assertIn("if: matrix.proof == 'loaders'", step)
+        self.assertIn("if: matrix.proof == 'loaders' || matrix.proof == 'proot'", step)
         self.assertIn("sdkmanager --install 'ndk;29.0.14206865'", step)
         self.assertIn("sudo apt-get install --no-install-recommends --yes gawk", step)
         self.assertNotIn("elf-cleaner", step)
@@ -294,6 +345,26 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn('bash tools/run_fdroid_source_proofs.sh cli --sudo --ndk "$ANDROID_HOME/ndk/28.2.13676358"', workflow)
         self.assertEqual(1, workflow.count("sdkmanager --install 'ndk;29.0.14206865'"))
         self.assertEqual(1, workflow.count("sdkmanager --install 'ndk;28.2.13676358'"))
+
+    def test_engine_provisioning_retains_both_toolchain_revisions_and_fixed_offline_target(self):
+        workflow = WORKFLOW.read_text()
+        start = workflow.index("- name: Provision the existing pinned NDK")
+        end = workflow.index("- name: Provision the historical loader NDK", start)
+        self.assertIn("if: matrix.proof == 'cli' || matrix.proof == 'proot'", workflow[start:end])
+        self.assertIn("sdkmanager --install 'ndk;28.2.13676358'", workflow[start:end])
+        start = workflow.index("- name: Provision engine patch and source-wrapper utilities")
+        end = workflow.index("- name: Provision API 36", start)
+        self.assertIn("if: matrix.proof == 'proot'", workflow[start:end])
+        self.assertIn("sudo apt-get install --no-install-recommends --yes patch xxd", workflow[start:end])
+        start = workflow.index("- name: Rebuild patched PRoot with both source-built loaders twice offline")
+        end = workflow.index("- name: Compile SPAKE2", start)
+        step = workflow[start:end]
+        self.assertIn("if: matrix.proof == 'proot'", step)
+        self.assertIn("bash tools/run_fdroid_source_proofs.sh proot --sudo", step)
+        self.assertIn('--ndk "$ANDROID_HOME/ndk/28.2.13676358"', step)
+        self.assertIn('--loader-ndk "$ANDROID_HOME/ndk/29.0.14206865"', step)
+        self.assertNotIn("sdkmanager", step)
+        self.assertNotIn("apt-get", step)
 
     def test_view_provisioning_is_one_pinned_bounded_download_before_offline_compile(self):
         workflow = WORKFLOW.read_text()
