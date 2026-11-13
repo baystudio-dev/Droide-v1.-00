@@ -4,7 +4,16 @@ Investigation date: 2026-11-13 (Asia/Jakarta). Status: **source closure and
 reference inventory inspected; View compilation and resource linking have not
 been demonstrated by this investigation**.
 
-This document does not change a dependency, production build, reference binary,
+Subsequent implementation checkpoint: `tools/fdroid_termux_view_source_build.py`
+and the independent `tools/fdroid_termux_view_metadata.py` comparator now
+implement the offline Java proof described below. **265 source-proof tests
+passed in the enforced local sandbox**, including 39 View builder tests, 31
+annotation/bytecode metadata tests, and the existing source/sandbox contracts.
+Both inspection APIs accepted all nineteen pinned reference classes as data,
+with exactly five resource GETSTATIC reads. This is not an actual View compiler
+result, Android resource link, device check or production integration.
+
+This document and its proof implementation do not change a dependency, production build, reference binary,
 integrity pin, runtime capability, release APK, or signing configuration. It
 records preparation for an isolated source-build proof, not an accepted F-Droid
 recipe or permission to replace the stable View AAR. No compiler, target class,
@@ -240,6 +249,7 @@ The reference also contains debug information:
 | `LineNumberTable` | 153 |
 | `LocalVariableTable` | 151 |
 | `StackMapTable` | 73 |
+| `MethodParameters` | 119 |
 
 `SourceFile` attributes identify the seven original sources and generated
 `BuildConfig.java`. Using the emulator proof's `-g:none` option for View would
@@ -250,7 +260,40 @@ parity nor an explanation of debug metadata proves method-body equivalence.
 Compare complete classes, API/metadata, resource entries, JAR wrapping and AAR
 wrapping as distinct results, without changing any baseline hash to pass.
 
+A later bounded inspection of the pinned reference found the 119
+`MethodParameters` records above. They are distinct from local-variable debug
+tables: `-g` alone does not request parameter-name metadata. The View proof
+must preserve parameter names and modifier flags using an explicit
+`-parameters` compilation setting and a constant-pool-normalized comparator,
+or report an unresolved metadata difference. Synthetic enclosing-instance
+parameters must not disappear from this check merely because they are not
+written as explicit Java source parameters.
+
 ## 7. Bounded implementation and promotion gates
+
+The implemented proof uses the verified existing JDK, API 36 and pinned
+annotation-jvm 1.10.0. It first runs the complete emulator source proof in fresh
+scratch, then compiles the View twice with `-g`, `-parameters`, disabled
+annotation processors and an explicit closed classpath. Exactly three generated
+compile-symbol classes are excluded; no extra dependency class is silently
+stripped. The proof AAR additionally embeds the unchanged upstream license and
+preserves the source string XML rather than copying generated reference XML.
+These archive differences are explicitly reported.
+
+Its separate annotation-aware comparator resolves constant-pool indices,
+checks all non-private declarations, parameter names/flags and declaration
+annotation values, and decodes actual resource field instructions. Unsupported
+metadata fails closed. Strict metadata differences still fail the proof even
+when the narrower declaration-ABI diagnostic matches. In particular, historical
+captured constructor parameter names are not reordered or inferred from types
+to manufacture parity. Neither comparator is a JVM stack/type verifier or a
+method-body equivalence proof.
+
+The fixed `view` runner mode adds only one read-only annotation JAR input and
+keeps the existing network, identity, filesystem and resource limits. A compact
+`SUMMARY.json` is shown before the larger receipt; neither proof AAR nor JAR is
+promoted to a release. Actual compiler outcomes must be recorded separately
+from the local 265-test checkpoint.
 
 1. Verify the exact source inventory, per-file identities, resources, notices,
    compiler tools and dependency hashes before and after each proof build.
