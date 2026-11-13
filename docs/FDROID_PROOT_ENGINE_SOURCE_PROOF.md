@@ -54,8 +54,36 @@ recipe. A missing symbol cannot silently become offset zero. The generated
 The original engine Makefile still copies and strips each loader with the
 engine NDK before wrapping it into an object. Those intermediate `.exe` files
 are explicit make goals so they can be inspected without changing a compile
-or link rule. Their bytes must remain exactly equal to the corresponding
-source-built loader. Both wrapper object hashes are recorded.
+or link rule. This second strip is a distinct, historically present stage:
+it removes the compiler `.comment` section and rewrites section-table metadata.
+It is not a no-op on the externally packaged loader files.
+
+The first engine CI run stopped because the initial proof incorrectly required
+whole-file equality across this second strip. Independent inspection of the
+unchanged retained engine established the exact historical wrapper identities:
+
+| Embedded loader | Bytes | SHA-256 |
+| --- | ---: | --- |
+| ARM64 | 17,728 | `cb5e5b6900e198ca8160e9d355ea5b98d646333887a769411ff74132c1cec5df` |
+| ARM32 | 5,860 | `02c898c049ed1b6af243e4bc8bc8243c772799b7b2d5c9785b790cedf28512b0` |
+
+The corrected proof requires a narrow data-only certificate for that precise
+transformation, plus these measured hash/size comparison pins. Both ELF files
+must retain identical program mappings, entry point, architecture flags,
+allocated-section content and instruction bytes. Within mapped data, only
+`e_shoff`, `e_shnum` and `e_shstrndx` may change. The section inventories permit
+only `.comment` removal and necessary section-table/string-table reserialization;
+neither input nor output may contain symbols. ARM32's `.ARM.exidx` and
+`.ARM.attributes` bytes must remain exact, although the nonallocated attributes
+move when the comment is removed. The ARM64 workaround stub must remain exact
+at the independently source-proved offset in both files. Unexpected sections,
+payload changes, metadata loss, unaccounted bytes or trailing data fail.
+
+Engine coupling uses the **certified second-strip bytes**, not a retained
+wrapper copied from the original engine. The external source-built loader
+hashes, certified wrapper hashes and wrapper-object hashes are distinct
+evidence. The original standalone-loader and complete-engine byte-equality
+gates remain unchanged.
 
 The separate `tools/fdroid_proot_engine_elf.py` inspects the engine as data. It
 does not weaken the standalone static-loader parser or execute ARM code. Its
@@ -119,7 +147,7 @@ this does not independently authenticate the complete historical NDK ZIPs.
 
 ## Validation status and remaining integration
 
-The local enforced-sandbox checkpoint passed **419 tests in 3.759 seconds**:
+The initial local enforced-sandbox checkpoint passed **419 tests in 3.759 seconds**:
 the previous 357 contracts, six added runner/namespace contracts, 31 engine
 builder/input tests and 25 dynamic-ELF tests. A separate real repository-policy
 check and its 15 mutation tests passed. The final sandbox probe passed before
@@ -132,11 +160,31 @@ two-build result plus a maximum-length failure message. Repeated symbol-name
 and scope text is kept in the detailed receipt rather than duplicated in the
 compact summary; byte/hash/span/offset/verdict evidence is retained there.
 
-At implementation, actual engine compiler execution is pending. Local
-fixture/mutation tests and successful standalone loader CI cannot be presented
-as this complete engine build's result. Actual CI evidence must be recorded
-with the head, tested merge, run and job, and the full compact summary before
-claiming byte reproduction.
+The wrapper-correction checkpoint passed **446 tests in 3.597 seconds** in
+the same enforced sandbox: 22 new exact-transform regressions and five net
+additional builder/control cases. The 15 repository-policy tests and real
+repository check also passed. Historical pinned wrappers are inspected only
+as data; orchestration compiler calls remain mocked in this local suite.
+The full two-build summary plus maximum error still fits the unchanged
+12 KiB limit. The common validated ELF contract is stored once, and each
+coupling record references its own build's already-verified wrapper identities;
+both references are checked before compacting. Full certificates, tool versions
+and mapped-header byte changes remain in the detailed receipt.
+
+The first actual source-proof run
+[43377040483](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43377040483)
+passed eight of nine jobs at head
+`6e1812e5754111a92c9a66bafc7730440653dfb1`, tested merge
+`6ba3672423bdbd4d042df8404a22db8726a7740c`. PRoot job
+`131725977920` passed its nested source-loader build, then stopped with
+`Engine NDK strip changed source-built loader`. It did not reach complete
+engine inspection or final byte-equality admission. That failed result is
+preserved; the wrapper correction requires a fresh actual CI result.
+
+Local fixture/mutation tests, historical-wrapper inspection and successful
+standalone loader CI are not this complete engine build's result. Actual
+successful evidence must identify the head, tested merge, run and job and
+include the complete compact summary before claiming byte reproduction.
 
 An enforced data-only inspection of the existing inputs verified all pins,
 143 staged PRoot source files, the talloc source/header pair and a 69-object

@@ -23,7 +23,7 @@ import stat
 import tarfile
 
 import fdroid_proot_loader_source_build as loader
-from fdroid_proot_engine_elf import EngineElfError, inspect_engine
+from fdroid_proot_engine_elf import EngineElfError, certify_loader_wrapper, inspect_engine
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +41,12 @@ EVENT_AFTER_SHA256 = "5b6748648b751ab084c4d4a566cd327a455ea5231fae1eaab2f46b962b
 ENGINE = loader.NATIVE + "/libdroide_proot.so"
 ENGINE_SHA256 = "6a7babd8480adea03afba45a3cabd89a1387040a0cdc205a90f37185cb4f882b"
 ENGINE_BYTES = 265648
+# Independently measured embedded slices of the unchanged retained engine.
+# These are comparison pins, never bytes used to construct a source output.
+WRAPPED_LOADERS = {
+    "arm64": (17728, "cb5e5b6900e198ca8160e9d355ea5b98d646333887a769411ff74132c1cec5df"),
+    "arm32": (5860, "02c898c049ed1b6af243e4bc8bc8243c772799b7b2d5c9785b790cedf28512b0"),
+}
 NDK_REVISION = "28.2.13676358"
 HOST_TOOLS = {**loader.HOST_TOOLS, "patch": Path("/usr/bin/patch")}
 MAX_OUTPUT = 4 * 1024 * 1024
@@ -233,18 +239,31 @@ def snapshot_tree(directory):
     return result
 
 
-def compact_elf(report):
+def elf_contract(report):
+    return {key: report[key] for key in ("class", "type", "machine", "interpreter", "dynamicDependencies")}
+
+
+def compact_elf(report, contract, wrapping):
     # The full parsed ELF, exact symbol names and scope wording are preserved
     # independently in receipt.builds[].rawElf/postStripElf. The diagnostic
     # summary retains only proof-critical coupling values, avoiding repeated
     # fixed symbol-name dictionaries and scope strings across the two builds.
-    result = {key: report[key] for key in ("class", "type", "machine", "entryPoint", "interpreter",
-              "dynamicDependencies", "loadableSegmentsSha256", "textSha256")}
+    require(elf_contract(report) == contract, "Engine ELF images disagree on the shared validated contract")
+    result = {key: report[key] for key in ("entryPoint", "loadableSegmentsSha256", "textSha256")}
+    result["sharedContractVerified"] = True
     coupling = report["coupling"]
     result["coupling"] = {key: coupling[key] for key in ("verified", "constantVerified", "embeddedLoadersVerified",
                           "pokedataOffset", "constantFileOffset", "relocationsDoNotOverlap") if key in coupling}
-    result["coupling"]["loaders"] = {abi: {key: value[key] for key in ("sha256", "bytes", "start", "end", "fileOffset")}
-                                      for abi, value in coupling["loaders"].items()}
+    result["coupling"]["loaders"] = {}
+    for abi, value in coupling["loaders"].items():
+        require(abi in wrapping and value["sha256"] == wrapping[abi]["wrappedSha256"] and
+                value["bytes"] == wrapping[abi]["wrappedBytes"],
+                "Engine coupling evidence differs from the certified wrapper identities")
+        result["coupling"]["loaders"][abi] = {key: value[key] for key in ("start", "end", "fileOffset")}
+    if coupling["loaders"]:
+        # Same build object, indexed by ABI; no identity is dropped, just the
+        # duplicate of its already-verified loaderWrapping digest/byte count.
+        result["coupling"]["loaderIdentityRef"] = "loaderWrapping"
     return result
 
 
@@ -269,6 +288,7 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                "loaderSourceProofSucceeded": False, "sourceBuildSucceeded": False,
                "rawReproducible": False, "postStripReproducible": False,
                "matchesBundledBytes": False, "loaderCouplingVerified": False,
+               "loaderWrapperTransformsVerified": False,
                "inputsAndToolsUnchanged": False, "packagedPayloadsChanged": False,
                "targetOutputExecuted": False, "androidRuntimeCompatibilityVerified": False,
                "fdroidAcceptanceVerified": False, "ndkArchivesAuthenticated": False,
@@ -357,8 +377,8 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
         for name in ("cc", "linker", "strip", "ar", "ranlib", "objcopy", "objdump", "make", "patch"):
             versions[name] = run([tools[name], "--version"]).decode("utf-8", "replace")
         require("clang version" in versions["cc"], "Engine compiler did not identify itself as clang")
-        summary["compilerGeneration"] = versions["cc"].splitlines()[0][:512]
-        summary["linkerGeneration"] = versions["linker"].splitlines()[0][:256]
+        summary["compilerGenerationPreview"] = versions["cc"].splitlines()[0][:256]
+        summary["linkerGenerationPreview"] = versions["linker"].splitlines()[0][:128]
         objects = engine_objects(sources["src/GNUmakefile"])
         for label in ("first", "second"):
             unchanged()
@@ -388,7 +408,7 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
             talloc_expansion = run([tools["cc"], "-###", *compile_talloc[1:]], work)
             talloc_dependencies = run([tools["cc"], "-M", "-MT", "talloc.o", compile_talloc[2],
                                       *compile_talloc[5:]], work)
-            expected_loaders = {}
+            source_loaders = {}
             for abi, (name, digest) in loader.LOADERS.items():
                 raw_loader = read(nested_directory / label / "src/loader" /
                                   ("loader" if abi == "arm64" else "loader-m32"))
@@ -398,7 +418,7 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                 data = read(nested_directory / label / ("post-strip-" + name))
                 require(sha(data) == digest, "Fresh source-built loader differs from proved retained identity")
                 loader.inspect_loader(data, abi)
-                expected_loaders[abi] = data
+                source_loaders[abi] = data
                 destination = source_dir / ("loader/loader" if abi == "arm64" else "loader/loader-m32")
                 write_new(destination, data)
                 source_copies.append((destination, data))
@@ -406,19 +426,47 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
             write_new(source_dir / "loader/loader-info.c", generated)
             source_copies.append((source_dir / "loader/loader-info.c", generated))
             run(make_command(tools, work), source_dir)
-            wrapping = {}
+            wrapping, certificates, embedded_loaders = {}, {}, {}
+            summary["currentBuild"] = {"name": label, "loaderWrapping": wrapping}
             for abi, stem in (("arm64", "loader"), ("arm32", "loader-m32")):
                 executable = source_dir / (stem + ".exe")
                 executable.chmod(0o600)
                 wrapped_input = remember(executable)
-                require(wrapped_input == expected_loaders[abi], "Engine NDK strip changed source-built loader")
+                source_input = source_loaders[abi]
+                wrapping[abi] = {"sourceSha256": sha(source_input), "sourceBytes": len(source_input),
+                                 "wrappedSha256": sha(wrapped_input), "wrappedBytes": len(wrapped_input),
+                                 "metadataOnlyRewriteVerified": False, "matchesRecordedWrapperBytes": False}
+                certificate = certify_loader_wrapper(source_input, wrapped_input, abi,
+                                                      expected_pokedata_offset=offset if abi == "arm64" else None)
+                require(certificate.get("sourceSha256") == sha(source_input) and
+                        certificate.get("wrappedSha256") == sha(wrapped_input) and
+                        certificate.get("sourceBytes") == len(source_input) and
+                        certificate.get("wrappedBytes") == len(wrapped_input),
+                        "Wrapper transform certificate does not identify the provided bytes")
+                require(all(certificate.get(key) is True for key in
+                            ("metadataOnlyRewriteVerified", "programHeadersUnchanged", "allocatedSectionsUnchanged",
+                             "loadableBytesPreservedExceptSectionTableFields", "retainedNonallocatedPayloadsUnchanged")),
+                        "Wrapper metadata-only transformation was not certified")
+                wrapping[abi].update(metadataOnlyRewriteVerified=True,
+                                     # Exact values remain visible within the
+                                     # bounded summary. Widths/file offsets and
+                                     # per-byte deltas remain in the full receipt.
+                                     sectionTableChanges={field["name"]: [field["sourceValue"], field["wrappedValue"]]
+                                                          for field in certificate["changedSectionHeaderFields"]},
+                                     removedSections=certificate["removedSections"])
+                expected_size, expected_hash = WRAPPED_LOADERS[abi]
+                require(len(wrapped_input) == expected_size and sha(wrapped_input) == expected_hash,
+                        "Certified " + abi + " wrapper differs from the independently recorded embedded baseline: " +
+                        str(len(wrapped_input)) + " bytes SHA256 " + sha(wrapped_input))
+                wrapping[abi]["matchesRecordedWrapperBytes"] = True
                 wrapped_object = remember(source_dir / "loader" / (stem + "-wrapped.o"))
-                wrapping[abi] = {"inputSha256": sha(wrapped_input), "inputBytes": len(wrapped_input),
-                                 "wrappedObjectSha256": sha(wrapped_object)}
+                wrapping[abi]["wrappedObjectSha256"] = sha(wrapped_object)
+                certificates[abi] = certificate
+                embedded_loaders[abi] = wrapped_input
             binary = source_dir / "proot"
             binary.chmod(0o600)
             raw = remember(binary)
-            raw_elf = inspect_engine(raw, require_symbols=True, expected_loaders=expected_loaders,
+            raw_elf = inspect_engine(raw, require_symbols=True, expected_loaders=embedded_loaders,
                                      expected_pokedata_offset=offset)
             require(all(raw_elf["coupling"].get(key) is True for key in
                         ("verified", "constantVerified", "embeddedLoadersVerified")),
@@ -430,6 +478,11 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
             stripped = remember(stripped_path)
             stripped_elf = inspect_engine(stripped)
             require(raw_elf["textSha256"] == stripped_elf["textSha256"], "Engine strip changed executable .text")
+            contract = elf_contract(raw_elf)
+            require(elf_contract(stripped_elf) == contract and
+                    summary.get("engineElfContract", contract) == contract,
+                    "Engine ELF images disagree on the shared validated contract")
+            summary["engineElfContract"] = contract
             dependencies = {"talloc": dependency_closure(talloc_dependencies, work, work, ndk)}
             for name in objects:
                 if name.endswith("-wrapped.o"):
@@ -460,7 +513,8 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
             link_expansion = run([tools["cc"], "-###", "-o", "proot", *objects, *shlex.split(ldflags)], source_dir)
             item = {"name": label, "rawSha256": sha(raw), "postStripSha256": sha(stripped),
                     "rawBytes": len(raw), "postStripBytes": len(stripped), "matchesBundledBytes": stripped == baseline,
-                    "textUnchangedByStrip": True, "rawElf": compact_elf(raw_elf), "postStripElf": compact_elf(stripped_elf),
+                    "textUnchangedByStrip": True, "rawElf": compact_elf(raw_elf, contract, wrapping),
+                    "postStripElf": compact_elf(stripped_elf, contract, wrapping),
                     "tallocObjectSha256": sha(talloc_object), "tallocLibrarySha256": sha(talloc_library),
                     "loaderWrapping": wrapping, "headerClosureCount": len(closure),
                     "compileOnlyFeatureResults": feature_results,
@@ -468,12 +522,15 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                     "tallocDriverExpansionSha256": sha(talloc_expansion),
                     "engineDriverExpansionSha256": sha(engine_expansion), "linkDriverExpansionSha256": sha(link_expansion)}
             summary["builds"].append(item)
+            summary.pop("currentBuild")
             details.append({"name": label, "rawElf": raw_elf, "postStripElf": stripped_elf,
+                            "loaderWrapperCertificates": certificates,
                             "compilerDependencies": dependencies, "objectInventory": objects})
             pairs.append({"raw": raw, "postStrip": stripped})
             unchanged()
         summary["sourceBuildSucceeded"] = True
         summary["loaderCouplingVerified"] = True
+        summary["loaderWrapperTransformsVerified"] = True
         summary["rawReproducible"] = pairs[0]["raw"] == pairs[1]["raw"]
         summary["postStripReproducible"] = pairs[0]["postStrip"] == pairs[1]["postStrip"]
         summary["matchesBundledBytes"] = all(item["postStrip"] == baseline for item in pairs)
@@ -487,7 +544,9 @@ def build_proof(ndk_path, loader_ndk_path, output_dir, root=ROOT):
                    "sourceSha256": {name: sha(data) for name, data in sources.items()},
                    "tallocSourceSha256": {name: sha(data) for name, data in talloc.items()},
                    "trustLimits": ["The nested loader proof compiles both loaders twice from pinned source with NDK r29.",
-                                   "Each engine embeds its corresponding source-built pair; retained binaries are comparison inputs only.",
+                                   "Each engine embeds its corresponding source-built pair after the unchanged engine-NDK strip pass.",
+                                   "Only the observed .comment/section-table rewrite is certified; wrapper identities are independently pinned.",
+                                   "Retained engine/loader binaries are comparison inputs only, never source-output providers.",
                                    "The existing engine recipe, seccomp patch, talloc shim and native offload source remain unchanged.",
                                    "Installed SDK-manager tool hashes are not whole vendor ZIP authentication.",
                                    "No target output was executed, promoted into the APK, or proven accepted by F-Droid."]}

@@ -291,10 +291,29 @@ Android resource link, device QA or F-Droid acceptance is established. The
 bounded summary explicitly truncates individual constructor-instruction records;
 its matched gate is not a complete printed instruction audit.
 
-At the last recorded observation, the separate
+The separate
 [Android run 43372378207](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378207)
-was still `in_progress`; this checkpoint does not claim its completion or
-transfer prior Android results to the unintegrated View output. The original
+subsequently completed **4/4 jobs successfully** on the same tested merge.
+Its regular-release lane executed 112 critical application cases across
+thirteen classes, built and verified the unsigned release, then passed
+**552 Python tests without skips**, including twenty-one actual verified-engine
+fixture checks and five optimized-APK native-binding checks. The earlier
+repository-only lane's two fixture-availability skips are not passed artifact
+tests; those fixtures were exercised in the later release lane.
+
+The candidate lane passed its six consent/source guards, Canonical rootfs
+parity and final APK verifier. Its unsigned APK SHA-256 was
+`3587539a324327d524c70ca4fcfb56ae008349e8706df752ebb9996e713ae41a`,
+while the ordinary unsigned release was
+`777e0c108011ad5cae860fa3859c1a339d9e7ed68b07c72ba4e6456ca147d107`.
+The distinct APK hashes are expected for the candidate packaging/BuildConfig;
+the separate dependency-parity job verified an exact match of all 137 resolved
+components, 759 edges and 103 artifact-file hashes. The candidate lane did not
+separately execute the release lane's full Python artifact suite.
+
+These application jobs still used the existing production integration, not
+the isolated View/loader/engine proof outputs. Their results do not establish
+source-only dependency substitution or device equivalence. The original
 **33 scanner findings remain unresolved**.
 
 ## Subsequent loader-proof local checkpoint

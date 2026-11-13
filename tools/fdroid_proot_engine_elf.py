@@ -11,6 +11,8 @@ from __future__ import annotations
 import hashlib
 import struct
 
+from fdroid_proot_loader_elf import LoaderElfError, POKEDATA_STUB, inspect_loader
+
 
 MAX_BINARY_BYTES = 8 * 1024 * 1024
 MAX_PROGRAMS = 32
@@ -562,3 +564,142 @@ def inspect_engine(raw: bytes, *, expected_loaders: dict[str, bytes] | None = No
             "dynamicSymbolCount": len(elf.dynamic_symbols), "relocationCounts": counts, "coupling": coupling,
             "executed": False, "runtimeCompatibilityVerified": False,
             "inspectionScope": "Bounded Android PIE structure/dependencies and optional symbol-backed source-build data coupling, not instruction semantics or Android execution"}
+
+
+def certify_loader_wrapper(source_bytes: bytes, wrapped_bytes: bytes, abi: str,
+                           expected_pokedata_offset: int | None = None) -> dict:
+    """Certify only the observed second-strip .comment removal, without execution.
+
+    The caller must authenticate the independently source-built input and the
+    historical wrapper/final-engine byte identities separately. This function
+    accepts no symbol removal or generic ELF normalization. The three permitted
+    ELF header fields are section-table metadata *inside* the first PT_LOAD;
+    their alteration is reported, never called whole-load byte identity.
+    """
+    _require(type(source_bytes) is bytes and type(wrapped_bytes) is bytes and
+             type(abi) is str and abi in WRAPPERS, "expected source/wrapped bytes and exact loader ABI")
+    if abi == "arm64":
+        _require(type(expected_pokedata_offset) is int and 0 < expected_pokedata_offset <= 1024 * 1024
+                 and expected_pokedata_offset % 4 == 0, "ARM64 wrapper requires source-proved positive aligned pokedata offset")
+    else:
+        _require(expected_pokedata_offset is None, "ARM32 wrapper has no ARM64 pokedata expectation")
+    try:
+        before, after = inspect_loader(source_bytes, abi), inspect_loader(wrapped_bytes, abi)
+    except LoaderElfError as error:
+        raise EngineElfError("invalid wrapper loader: " + str(error)) from error
+    _require(before["symbolCount"] == after["symbolCount"] == 0, "wrapper certificate forbids symbols or symbol removal")
+    source_names = (["", ".text", ".comment", ".shstrtab"] if abi == "arm64" else
+                    ["", ".text", ".ARM.exidx", ".comment", ".ARM.attributes", ".shstrtab"])
+    wrapped_names = [name for name in source_names if name != ".comment"]
+    _require([s["name"] for s in before["sections"]] == source_names and
+             [s["name"] for s in after["sections"]] == wrapped_names,
+             "wrapper permits exactly the observed .comment removal and no other section changes")
+    source_sections = {s["name"]: s for s in before["sections"]}
+    wrapped_sections = {s["name"]: s for s in after["sections"]}
+    _require(before["programHeaders"] == after["programHeaders"], "wrapper changed program headers or mappings")
+    unit = 8 if abi == "arm64" else 4
+    fields = (("e_shoff", 40, 8), ("e_shnum", 60, 2), ("e_shstrndx", 62, 2)) if abi == "arm64" else (
+              ("e_shoff", 32, 4), ("e_shnum", 48, 2), ("e_shstrndx", 50, 2))
+    allowed_bytes = {position for _, start, size in fields for position in range(start, start + size)}
+    header_size = before["header"]["bytes"]
+    header_loads = [p for p in before["loadSegments"] if p["offset"] == 0 and p["fileBytes"] >= header_size]
+    _require(len(header_loads) == 1 and header_loads[0]["flags"] == 4,
+             "wrapper header must remain in the reviewed read-only LOAD")
+    _require(header_size == after["header"]["bytes"] and all(
+        source_bytes[position] == wrapped_bytes[position] for position in range(header_size)
+        if position not in allowed_bytes), "wrapper changed unsupported ELF header field")
+    # This includes every PT_LOAD payload and the gaps between them. No padding
+    # or mapped header bytes are silently discarded by a normalized hash.
+    image_end = max(p["offset"] + p["fileBytes"] for p in before["programHeaders"])
+    _require(all(source_bytes[position] == wrapped_bytes[position] for position in range(image_end)
+                 if position not in allowed_bytes), "wrapper changed mapped payload or pre-metadata file bytes")
+
+    def payload(raw, section):
+        return raw[section["offset"]:section["offset"] + section["size"]]
+
+    def shape(section, sections, *, may_move=False):
+        ignored = {"index", "sha256", "link"} | ({"offset"} if may_move else set())
+        result = {key: value for key, value in section.items() if key not in ignored}
+        result["linkedSectionName"] = sections[section["link"]]["name"] if section["link"] else None
+        return result
+
+    allocated, nonallocated = [], []
+    for name in wrapped_names[1:-1]:
+        original, wrapped = source_sections[name], wrapped_sections[name]
+        runtime = bool(original["flags"] & 2)
+        _require(shape(original, before["sections"], may_move=not runtime) ==
+                 shape(wrapped, after["sections"], may_move=not runtime) and
+                 payload(source_bytes, original) == payload(wrapped_bytes, wrapped),
+                 "wrapper changed retained section shape or payload: " + name)
+        (allocated if runtime else nonallocated).append(name)
+    if abi == "arm32":
+        attributes = source_sections[".ARM.attributes"]
+        _require(source_sections[".ARM.exidx"]["typeId"] == 0x70000001 and
+                 (attributes["typeId"], attributes["flags"], attributes["alignment"], attributes["entryBytes"]) ==
+                 (0x70000003, 0, 1, 0), "wrapper requires the reviewed ARM attributes/exception-index shapes")
+
+    def exact_tail(raw, report, names):
+        sections = {s["name"]: s for s in report["sections"]}
+        _require(report["header"]["sectionNameTableIndex"] == len(report["sections"]) - 1,
+                 "wrapper section-name table must be the final section")
+        cursor = image_end
+        for name in names:
+            section = sections[name]
+            _require(not section["flags"] & 2 and section["typeId"] != 8,
+                     "wrapper metadata unexpectedly mapped or without file bytes")
+            alignment = max(1, section["alignment"])
+            aligned = (cursor + alignment - 1) & ~(alignment - 1)
+            _require(section["offset"] == aligned and not any(raw[cursor:aligned]),
+                     "wrapper has unaccounted metadata gap or nonzero padding")
+            cursor = aligned + section["size"]
+        table = report["header"]["sectionHeaderOffset"]
+        _require(table == ((cursor + unit - 1) & ~(unit - 1)) and not any(raw[cursor:table]),
+                 "wrapper has unaccounted bytes before its section table")
+        _require(len(raw) == table + report["header"]["sectionHeaderEntryBytes"] * len(report["sections"]),
+                 "wrapper has trailing/unaccounted bytes after its section table")
+        strings = sections[".shstrtab"]
+        _require((strings["typeId"], strings["flags"], strings["virtualAddress"], strings["link"],
+                  strings["info"], strings["alignment"], strings["entryBytes"]) == (3, 0, 0, 0, 0, 1, 0),
+                 "wrapper changed the section-name table shape")
+        words = payload(raw, strings).split(b"\0")
+        expected = [s["name"].encode("ascii") for s in report["sections"][1:]]
+        _require(words[0] == words[-1] == b"" and sorted(words[1:-1]) == sorted(expected),
+                 "wrapper section-name table has unused, duplicate, or missing names")
+
+    exact_tail(source_bytes, before, [".comment"] + nonallocated + [".shstrtab"])
+    exact_tail(wrapped_bytes, after, nonallocated + [".shstrtab"])
+    stub_positions = []
+    if abi == "arm64":
+        for raw, report in ((source_bytes, before), (wrapped_bytes, after)):
+            address = report["entryPoint"] + expected_pokedata_offset
+            text = next(s for s in report["sections"] if s["name"] == ".text")
+            _require(text["virtualAddress"] <= address and address + len(POKEDATA_STUB) <= text["virtualAddress"] + text["size"],
+                     "source-proved pokedata offset is outside wrapper .text")
+            loads = [p for p in report["loadSegments"] if p["flags"] == 5 and
+                     p["virtualAddress"] <= address and address + len(POKEDATA_STUB) <= p["virtualAddress"] + p["fileBytes"]]
+            _require(len(loads) == 1, "wrapper pokedata stub lacks a unique executable file mapping")
+            position = loads[0]["offset"] + address - loads[0]["virtualAddress"]
+            _require(raw[position:position + len(POKEDATA_STUB)] == POKEDATA_STUB,
+                     "wrapper changed exact source-proved pokedata stub")
+            stub_positions.append(position)
+        _require(stub_positions[0] == stub_positions[1], "wrapper moved pokedata file mapping")
+    changed_fields = [{"name": name, "fileOffset": start, "bytes": size,
+                       "sourceValue": int.from_bytes(source_bytes[start:start + size], "little"),
+                       "wrappedValue": int.from_bytes(wrapped_bytes[start:start + size], "little")}
+                      for name, start, size in fields if source_bytes[start:start + size] != wrapped_bytes[start:start + size]]
+    changed_bytes = [{"fileOffset": position, "source": source_bytes[position], "wrapped": wrapped_bytes[position]}
+                     for position in range(header_size) if source_bytes[position] != wrapped_bytes[position]]
+    comment = source_sections[".comment"]
+    return {"abi": abi, "sourceSha256": _sha(source_bytes), "wrappedSha256": _sha(wrapped_bytes),
+            "sourceBytes": len(source_bytes), "wrappedBytes": len(wrapped_bytes), "metadataOnlyRewriteVerified": True,
+            "programHeadersUnchanged": True, "allocatedSectionsUnchanged": True, "allocatedSections": allocated,
+            "loadableBytesPreservedExceptSectionTableFields": True,
+            "loadableBytesIdentical": before["loadableSegmentsSha256"] == after["loadableSegmentsSha256"],
+            "sourceLoadableSegmentsSha256": before["loadableSegmentsSha256"],
+            "wrappedLoadableSegmentsSha256": after["loadableSegmentsSha256"],
+            "retainedNonallocatedPayloadsUnchanged": True, "retainedNonallocatedSections": nonallocated,
+            "changedSectionHeaderFields": changed_fields, "changedMappedHeaderBytes": changed_bytes,
+            "removedSections": [".comment"], "removedCommentBytes": comment["size"], "removedCommentSha256": comment["sha256"],
+            "pokedataOffset": expected_pokedata_offset, "pokedataFileOffset": stub_positions[0] if stub_positions else None,
+            "executed": False, "runtimeCompatibilityVerified": False,
+            "scope": "Exact observed .comment removal and bounded section-table reserialization; caller must pin source/wrapper/final-engine bytes; not Android execution or general semantic equivalence"}

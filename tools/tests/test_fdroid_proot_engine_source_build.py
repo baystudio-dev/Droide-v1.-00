@@ -156,9 +156,12 @@ class EngineBuildControlTests(unittest.TestCase):
             path = self.root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
-        self.loaders = {"arm64": b"SOURCE64", "arm32": b"SOURCE32"}
+        self.loaders = {"arm64": b"SOURCE64-COMMENT", "arm32": b"SOURCE32-COMMENT"}
         self.loader_pins = {abi: ("libproot-loader.so" if abi == "arm64" else "libproot-loader32.so", builder.sha(data))
                             for abi, data in self.loaders.items()}
+        self.wrapper_pairs = [{"arm64": b"SOURCE64", "arm32": b"SOURCE32"} for _ in range(2)]
+        self.wrapper_pins = {abi: (len(data), builder.sha(data)) for abi, data in self.wrapper_pairs[0].items()}
+        self.wrapper_calls, self.certificate_mutator = [], None
         self.calls, self.make_count, self.loader_calls = [], 0, 0
         self.raw_pairs = [b"RAW_ENGINE", b"RAW_ENGINE"]
         self.stripped_pairs = [self.baseline, self.baseline]
@@ -171,9 +174,11 @@ class EngineBuildControlTests(unittest.TestCase):
             patch.object(builder.loader, "build_proof", side_effect=self.fake_loader_proof),
             patch.object(builder.loader, "inspect_loader", side_effect=self.fake_loader_inspect),
             patch.object(builder.loader, "LOADERS", self.loader_pins),
+            patch.object(builder, "WRAPPED_LOADERS", self.wrapper_pins),
             patch.object(builder, "EVENT_AFTER_SHA256", builder.sha(self.after_event)),
             patch.object(builder, "run_tool", side_effect=self.fake_tool),
             patch.object(builder, "inspect_engine", side_effect=self.fake_inspect),
+            patch.object(builder, "certify_loader_wrapper", side_effect=self.fake_certificate),
         ):
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -210,7 +215,7 @@ class EngineBuildControlTests(unittest.TestCase):
 
     def fake_inspect(self, raw, *, require_symbols=False, expected_loaders=None, expected_pokedata_offset=None):
         if require_symbols:
-            self.assertEqual(self.loaders, expected_loaders)
+            self.assertEqual(self.wrapper_pairs[self.make_count - 1], expected_loaders)
             self.assertEqual(4, expected_pokedata_offset)
         else:
             self.assertIsNone(expected_loaders)
@@ -221,7 +226,7 @@ class EngineBuildControlTests(unittest.TestCase):
         if verified:
             coupling.update(constantFileOffset=0x40000, relocationsDoNotOverlap=True,
                             scope="Exact provided bytes/constant through unstripped symbols; not source authenticity or instruction-use equivalence")
-            for abi, data in self.loaders.items():
+            for abi, data in expected_loaders.items():
                 prefix = "_binary_loader_exe_" if abi == "arm64" else "_binary_loader_m32_exe_"
                 coupling["loaders"][abi] = {"sha256": builder.sha(data), "bytes": len(data),
                                              "start": 0x7FFFFFF000, "end": 0x7FFFFFF000 + len(data), "fileOffset": 0x48000,
@@ -233,6 +238,39 @@ class EngineBuildControlTests(unittest.TestCase):
                 "textSha256": "changed" if self.changed_text and raw == self.baseline else "stable",
                 "loadableSegmentsSha256": builder.sha(raw),
                 "coupling": coupling}
+
+    def fake_certificate(self, source, wrapped, abi, expected_pokedata_offset=None):
+        self.wrapper_calls.append((source, wrapped, abi, expected_pokedata_offset))
+        self.assertEqual(self.loaders[abi], source)
+        self.assertEqual(4 if abi == "arm64" else None, expected_pokedata_offset)
+        if self.changed_wrapper:
+            raise builder.EngineElfError("wrapper transform rejected")
+        self.assertEqual(self.wrapper_pairs[self.make_count - 1][abi], wrapped)
+        result = {"sourceSha256": builder.sha(source), "wrappedSha256": builder.sha(wrapped),
+                  "sourceBytes": len(source), "wrappedBytes": len(wrapped),
+                  "metadataOnlyRewriteVerified": True, "programHeadersUnchanged": True,
+                  "allocatedSectionsUnchanged": True, "loadableBytesPreservedExceptSectionTableFields": True,
+                  "retainedNonallocatedPayloadsUnchanged": True,
+                  "changedSectionHeaderFields": [
+                      {"name": "e_shoff", "fileOffset": 40 if abi == "arm64" else 32,
+                       "bytes": 8 if abi == "arm64" else 4, "sourceValue": 1048560, "wrappedValue": 1048240},
+                      {"name": "e_shnum", "fileOffset": 60 if abi == "arm64" else 48,
+                       "bytes": 2, "sourceValue": 6, "wrappedValue": 5},
+                      {"name": "e_shstrndx", "fileOffset": 62 if abi == "arm64" else 50,
+                       "bytes": 2, "sourceValue": 5, "wrappedValue": 4}],
+                  "removedSections": [".comment"], "pokedataOffset": expected_pokedata_offset}
+        result.update(abi=abi, allocatedSections=[".text"] + ([".ARM.exidx"] if abi == "arm32" else []),
+                      loadableBytesIdentical=False, sourceLoadableSegmentsSha256=builder.sha(b"before mapped bytes"),
+                      wrappedLoadableSegmentsSha256=builder.sha(b"after mapped bytes"),
+                      retainedNonallocatedSections=[".ARM.attributes"] if abi == "arm32" else [],
+                      changedMappedHeaderBytes=[{"fileOffset": 40 if abi == "arm64" else 32, "source": 240, "wrapped": 176}],
+                      removedCommentBytes=256, removedCommentSha256=builder.sha(b"compiler identity comment"),
+                      pokedataFileOffset=0x40000 if abi == "arm64" else None,
+                      executed=False, runtimeCompatibilityVerified=False,
+                      scope="Exact observed .comment removal and bounded section-table reserialization; caller must pin source/wrapper/final-engine bytes; not Android execution or general semantic equivalence")
+        if self.certificate_mutator:
+            self.certificate_mutator(result)
+        return result
 
     def fake_tool(self, command, cwd, environment, log, *, input_bytes=None, timeout=60):
         command = [str(item) for item in command]
@@ -274,8 +312,9 @@ class EngineBuildControlTests(unittest.TestCase):
             for abi, stem in (("arm64", "loader"), ("arm32", "loader-m32")):
                 fresh = (cwd / "loader" / stem).read_bytes()
                 self.assertEqual(self.loaders[abi], fresh)
-                (cwd / (stem + ".exe")).write_bytes(b"changed" if self.changed_wrapper else fresh)
-                (cwd / "loader" / (stem + "-wrapped.o")).write_bytes(b"WRAPPED-" + fresh)
+                wrapped = b"changed" if self.changed_wrapper else self.wrapper_pairs[self.make_count][abi]
+                (cwd / (stem + ".exe")).write_bytes(wrapped)
+                (cwd / "loader" / (stem + "-wrapped.o")).write_bytes(b"WRAPPED-" + wrapped)
             header = self.external_header or self.header
             for obj in builder.engine_objects(self.sources["src/GNUmakefile"]):
                 if obj.endswith("-wrapped.o"):
@@ -311,10 +350,13 @@ class EngineBuildControlTests(unittest.TestCase):
         report = self.build()
         self.assertEqual(1, self.loader_calls)
         self.assertEqual(2, self.make_count)
+        self.assertEqual(4, len(self.wrapper_calls))
+        self.assertTrue(all(source != wrapped for source, wrapped, *_ in self.wrapper_calls))
         self.assertEqual(builder.SUCCESS, report["status"])
         self.assertEqual(report, self.summary())
         for key in ("loaderSourceProofSucceeded", "sourceBuildSucceeded", "rawReproducible",
-                    "postStripReproducible", "matchesBundledBytes", "loaderCouplingVerified", "inputsAndToolsUnchanged"):
+                    "postStripReproducible", "matchesBundledBytes", "loaderCouplingVerified",
+                    "loaderWrapperTransformsVerified", "inputsAndToolsUnchanged"):
             self.assertTrue(report[key], key)
         for key in ("packagedPayloadsChanged", "targetOutputExecuted", "androidRuntimeCompatibilityVerified",
                     "fdroidAcceptanceVerified", "ndkArchivesAuthenticated"):
@@ -350,18 +392,39 @@ class EngineBuildControlTests(unittest.TestCase):
         self.assertEqual(4, len(report["proofCodeSha256"]))
         self.assertEqual(8, len(report["loaderInstalledToolSha256"]))
         self.assertEqual(13, len(report["engineInstalledToolSha256"]))
-        self.assertEqual(512, len(report["compilerGeneration"]))
-        self.assertEqual(256, len(report["linkerGeneration"]))
+        self.assertEqual(256, len(report["compilerGenerationPreview"]))
+        self.assertEqual(128, len(report["linkerGenerationPreview"]))
+        self.assertEqual({"class": "ELF64", "type": "ET_DYN", "machine": "AArch64",
+                          "interpreter": "/system/bin/linker64", "dynamicDependencies": ["libdl.so", "libc.so"]},
+                         report["engineElfContract"])
         for item in report["builds"]:
+            for stage in item["loaderWrapping"].values():
+                self.assertEqual([1048560, 1048240], stage["sectionTableChanges"]["e_shoff"])
+                self.assertEqual([6, 5], stage["sectionTableChanges"]["e_shnum"])
+                self.assertEqual([5, 4], stage["sectionTableChanges"]["e_shstrndx"])
+                self.assertNotIn("changedMappedHeaderBytes", stage)
             coupling = item["rawElf"]["coupling"]
+            self.assertTrue(item["rawElf"]["sharedContractVerified"])
+            self.assertTrue(item["postStripElf"]["sharedContractVerified"])
             self.assertTrue(coupling["relocationsDoNotOverlap"])
+            self.assertEqual("loaderWrapping", coupling["loaderIdentityRef"])
             self.assertNotIn("scope", coupling)
             self.assertIn("constantFileOffset", coupling)
             for evidence in coupling["loaders"].values():
                 self.assertIn("fileOffset", evidence)
                 self.assertNotIn("symbols", evidence)
         receipt = json.loads((self.output / "receipt.json").read_text())
+        self.assertGreater(len(receipt["engineToolVersions"]["cc"].splitlines()[0]), 256)
+        self.assertGreater(len(receipt["engineToolVersions"]["linker"].splitlines()[0]), 128)
         for item in receipt["builds"]:
+            self.assertEqual({"arm64", "arm32"}, set(item["loaderWrapperCertificates"]))
+            for cert in item["loaderWrapperCertificates"].values():
+                self.assertTrue(cert["programHeadersUnchanged"])
+                self.assertEqual([".comment"], cert["removedSections"])
+                self.assertEqual(3, len(cert["changedSectionHeaderFields"]))
+                self.assertTrue(all(set(field) == {"name", "fileOffset", "bytes", "sourceValue", "wrappedValue"}
+                                    for field in cert["changedSectionHeaderFields"]))
+                self.assertIn("changedMappedHeaderBytes", cert)
             coupling = item["rawElf"]["coupling"]
             self.assertIn("scope", coupling)
             for evidence in coupling["loaders"].values():
@@ -420,11 +483,60 @@ class EngineBuildControlTests(unittest.TestCase):
             self.build()
         self.assertEqual(0, self.make_count)
 
-    def test_compiled_loader_wrapping_must_preserve_fresh_exact_bytes(self):
+    def test_uncertified_wrapper_change_is_rejected_with_stage_fingerprints(self):
         self.changed_wrapper = True
-        with self.assertRaisesRegex(builder.SourceBuildError, "strip changed source-built loader"):
+        with self.assertRaisesRegex(builder.SourceBuildError, "wrapper transform rejected"):
+            self.build()
+        report = self.summary()
+        self.assertFalse(report["sourceBuildSucceeded"])
+        self.assertFalse(report["loaderWrapperTransformsVerified"])
+        evidence = report["currentBuild"]["loaderWrapping"]["arm64"]
+        self.assertEqual(builder.sha(self.loaders["arm64"]), evidence["sourceSha256"])
+        self.assertEqual(builder.sha(b"changed"), evidence["wrappedSha256"])
+        self.assertFalse(evidence["metadataOnlyRewriteVerified"])
+
+    def test_certificate_cannot_claim_different_input_or_output_bytes(self):
+        self.certificate_mutator = lambda certificate: certificate.update(wrappedSha256="0" * 64)
+        with self.assertRaisesRegex(builder.SourceBuildError, "does not identify the provided bytes"):
             self.build()
         self.assertFalse(self.summary()["sourceBuildSucceeded"])
+
+    def test_all_independent_certificate_properties_must_be_true(self):
+        self.certificate_mutator = lambda certificate: certificate.update(allocatedSectionsUnchanged=False)
+        with self.assertRaisesRegex(builder.SourceBuildError, "transformation was not certified"):
+            self.build()
+        self.assertFalse(self.summary()["loaderWrapperTransformsVerified"])
+
+    def test_shared_summary_contract_must_match_raw_and_stripped_inspections(self):
+        original = self.fake_inspect
+        def disagree(raw, **kwargs):
+            report = original(raw, **kwargs)
+            if kwargs.get("require_symbols"):
+                report["dynamicDependencies"] = ["unexpected.so"]
+            return report
+        with patch.object(builder, "inspect_engine", side_effect=disagree), \
+             self.assertRaisesRegex(builder.SourceBuildError, "shared validated contract"):
+            self.build()
+
+    def test_compact_coupling_reference_must_match_exact_wrapper_identity(self):
+        original = self.fake_inspect
+        def disagree(raw, **kwargs):
+            report = original(raw, **kwargs)
+            if kwargs.get("require_symbols"):
+                report["coupling"]["loaders"]["arm64"]["sha256"] = "0" * 64
+            return report
+        with patch.object(builder, "inspect_engine", side_effect=disagree), \
+             self.assertRaisesRegex(builder.SourceBuildError, "certified wrapper identities"):
+            self.build()
+
+    def test_structural_certificate_alone_cannot_replace_recorded_wrapper_identity(self):
+        self.wrapper_pairs[0]["arm64"] = b"OTHER_METADATA_LAYOUT"
+        with self.assertRaisesRegex(builder.SourceBuildError, "independently recorded embedded baseline"):
+            self.build()
+        evidence = self.summary()["currentBuild"]["loaderWrapping"]["arm64"]
+        self.assertTrue(evidence["metadataOnlyRewriteVerified"])
+        self.assertFalse(evidence["matchesRecordedWrapperBytes"])
+        self.assertEqual(builder.sha(b"OTHER_METADATA_LAYOUT"), evidence["wrappedSha256"])
 
     def test_raw_engine_must_certify_symbol_backed_coupling(self):
         self.bad_coupling = True
