@@ -81,7 +81,7 @@ def validate_bwrap(argv: list[str], source_root: str, git_kind: str | None) -> N
     }
     symlinks = {"/bin": "usr/bin", "/sbin": "usr/sbin", "/lib": "usr/lib", "/lib64": "usr/lib64"}
     fixed_binds = {"/usr": "/usr", "/etc/alternatives": "/etc/alternatives", "/etc/ld.so.cache": "/etc/ld.so.cache", "/src": source_root}
-    tool_destinations = {"/toolchain/ndk", "/toolchain/jdk", "/toolchain/jdk.tar.gz", "/toolchain/android.jar", "/toolchain/annotation.jar"}
+    tool_destinations = {"/toolchain/ndk", "/toolchain/loader-ndk", "/toolchain/jdk", "/toolchain/jdk.tar.gz", "/toolchain/android.jar", "/toolchain/annotation.jar"}
     seen: dict[str, int] = {}
     binds: dict[str, str] = {}
     bind_positions: dict[str, int] = {}
@@ -187,6 +187,10 @@ def validate_bwrap(argv: list[str], source_root: str, git_kind: str | None) -> N
         raise SetupError("required sandbox isolation is missing or overridden")
     if any(binds.get(k) != v for k, v in fixed_binds.items()) or links != symlinks or directories != {"/etc", "/toolchain"}:
         raise SetupError("required read-only filesystem layout is missing")
+    if "/toolchain/loader-ndk" in binds:
+        engine_ndk, loader_ndk = binds.get("/toolchain/ndk"), binds["/toolchain/loader-ndk"]
+        if engine_ndk is None or engine_ndk == loader_ndk or engine_ndk.startswith(loader_ndk + "/") or loader_ndk.startswith(engine_ndk + "/"):
+            raise SetupError("engine and loader NDK inputs must be separate non-overlapping directories")
     if any(environment.get(k) != v for k, v in expected_env.items()):
         raise SetupError("fixed target environment is missing")
     if pending_size is not None or pending_perms is not None or "/scratch" not in mounts:

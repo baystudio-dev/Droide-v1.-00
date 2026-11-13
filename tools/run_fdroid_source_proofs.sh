@@ -6,9 +6,9 @@ set -euo pipefail
 usage() {
   printf '%s\n' \
     'Usage: bash tools/run_fdroid_source_proofs.sh MODE [options]' \
-    'Modes: tests | cli | loaders | spake2 | termux | view' \
+    'Modes: tests | cli | loaders | proot | spake2 | termux | view' \
     'Options: --ndk DIR --jdk DIR --jdk-archive FILE --android-jar FILE' \
-    '         --annotation-jar FILE (view only)' \
+    '         --annotation-jar FILE (view only) --loader-ndk DIR (proot only)' \
     '         --sudo (CI namespace setup only) --show-command (do not execute)'
 }
 
@@ -16,7 +16,7 @@ fail() { printf 'SOURCE_PROOF_SANDBOX_FAILED: %s\n' "$*" >&2; exit 2; }
 [[ $# -ge 1 ]] || { usage >&2; exit 2; }
 mode=$1
 shift
-case "$mode" in tests|cli|loaders|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
+case "$mode" in tests|cli|loaders|proot|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
 
 use_sudo=false
 show_command=false
@@ -24,18 +24,20 @@ jdk_path=''
 archive_path=''
 android_path=''
 ndk_path=''
+loader_ndk_path=''
 annotation_path=''
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --sudo) [[ $use_sudo == false ]] || fail 'duplicate --sudo'; use_sudo=true; shift ;;
     --show-command) [[ $show_command == false ]] || fail 'duplicate --show-command'; show_command=true; shift ;;
-    --jdk|--jdk-archive|--android-jar|--ndk|--annotation-jar)
+    --jdk|--jdk-archive|--android-jar|--ndk|--annotation-jar|--loader-ndk)
       [[ $# -ge 2 && -n $2 && $2 != --* ]] || fail "missing value for $1"
       case "$1" in
         --jdk) [[ -z $jdk_path ]] || fail 'duplicate --jdk'; jdk_path=$2 ;;
         --jdk-archive) [[ -z $archive_path ]] || fail 'duplicate --jdk-archive'; archive_path=$2 ;;
         --android-jar) [[ -z $android_path ]] || fail 'duplicate --android-jar'; android_path=$2 ;;
         --ndk) [[ -z $ndk_path ]] || fail 'duplicate --ndk'; ndk_path=$2 ;;
+        --loader-ndk) [[ -z $loader_ndk_path ]] || fail 'duplicate --loader-ndk'; loader_ndk_path=$2 ;;
         --annotation-jar) [[ -z $annotation_path ]] || fail 'duplicate --annotation-jar'; annotation_path=$2 ;;
       esac
       shift 2 ;;
@@ -43,6 +45,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ $mode == view || -z $annotation_path ]] || fail '--annotation-jar is permitted only for view mode'
+[[ $mode == proot || -z $loader_ndk_path ]] || fail '--loader-ndk is permitted only for proot mode'
 
 script_path=$(/usr/bin/realpath -e -- "${BASH_SOURCE[0]}")
 source_root=$(/usr/bin/realpath -e -- "$(/usr/bin/dirname -- "$script_path")/..")
@@ -82,6 +85,16 @@ case "$mode" in
     else
       target+=(tools/fdroid_cli_source_build.py --ndk /toolchain/ndk --output-dir /scratch/proof)
     fi
+    ;;
+  proot)
+    [[ -n $ndk_path && -n $loader_ndk_path && -z $jdk_path && -z $archive_path && -z $android_path ]] || fail 'proot mode requires only --ndk and --loader-ndk'
+    ndk_path=$(external_path "$ndk_path" directory)
+    loader_ndk_path=$(external_path "$loader_ndk_path" directory)
+    [[ $ndk_path != "$loader_ndk_path" && $ndk_path != "$loader_ndk_path/"* && $loader_ndk_path != "$ndk_path/"* ]] || fail 'engine and loader NDK inputs must be separate non-overlapping directories'
+    [[ -f $ndk_path/source.properties && -f $loader_ndk_path/source.properties ]] || fail 'NDK source.properties missing'
+    tool_mounts+=(--ro-bind "$ndk_path" /toolchain/ndk --ro-bind "$loader_ndk_path" /toolchain/loader-ndk)
+    target+=(tools/fdroid_proot_engine_source_build.py --ndk /toolchain/ndk
+      --loader-ndk /toolchain/loader-ndk --output-dir /scratch/proof)
     ;;
   spake2|termux|view)
     [[ -n $jdk_path && -n $archive_path && -z $ndk_path ]] || fail 'Java proofs require --jdk and --jdk-archive, but not --ndk'

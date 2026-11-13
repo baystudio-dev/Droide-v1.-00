@@ -64,6 +64,35 @@ class ValidationTests(unittest.TestCase):
                 command[at:at] = ["--ro-bind", source, target]
                 ns.validate_bwrap(command, SOURCE, "directory")
 
+    def test_separate_engine_and_loader_ndk_readonly_mounts_are_allowed(self):
+        command = argv()
+        at = command.index("--proc")
+        command[at:at] = ["--ro-bind", "/opt/ndk28", "/toolchain/ndk",
+                         "--ro-bind", "/opt/ndk29", "/toolchain/loader-ndk"]
+        ns.validate_bwrap(command, SOURCE, "directory")
+
+    def test_loader_toolchain_cannot_overlap_or_override_mount_contract(self):
+        for mount in (["--bind", "/opt/ndk29", "/toolchain/loader-ndk"],
+                      ["--ro-bind", SOURCE, "/toolchain/loader-ndk"],
+                      ["--ro-bind", SOURCE + "/tools", "/toolchain/loader-ndk"],
+                      ["--ro-bind", "/workspace", "/toolchain/loader-ndk"],
+                      ["--ro-bind", "/opt/ndk28", "/toolchain/loader-ndk"],
+                      ["--ro-bind", "/opt/ndk28/nested", "/toolchain/loader-ndk"],
+                      ["--ro-bind", "/opt", "/toolchain/loader-ndk"],
+                      ["--ro-bind", "/opt/ndk29", "/toolchain/other-ndk"],
+                      ["--ro-bind", "/opt/ndk29", "/toolchain/loader-ndk",
+                       "--ro-bind", "/opt/ndk29", "/toolchain/loader-ndk"]):
+            command = argv()
+            at = command.index("--proc")
+            command[at:at] = ["--ro-bind", "/opt/ndk28", "/toolchain/ndk", *mount]
+            with self.subTest(mount=mount), self.assertRaises(ns.SetupError):
+                ns.validate_bwrap(command, SOURCE, "directory")
+        command = argv()
+        at = command.index("--proc")
+        command[at:at] = ["--ro-bind", "/opt/ndk29", "/toolchain/loader-ndk"]
+        with self.assertRaises(ns.SetupError):
+            ns.validate_bwrap(command, SOURCE, "directory")
+
     def test_host_ids_are_strict_nonzero_numbers(self):
         self.assertEqual(ns.host_id("1001"), 1001)
         self.assertEqual(ns.host_id("4294967294"), 4294967294)

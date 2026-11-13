@@ -12,6 +12,7 @@ findings have disappeared.
 | --- | --- | --- |
 | `tools/fdroid_cli_source_build.py` | The pinned existing C source and Android NDK 28.2.13676358 | Two independent builds; static ELF64/AArch64/ET_EXEC and 16 KiB layout checks; exact output comparison; separate comparison against the unchanged bundled CLI. Does not execute the ARM64 output or prove device compatibility. |
 | `tools/fdroid_proot_loader_source_build.py` | The pinned OpenMinis archive and reviewed loader/Makefile blobs; separately provisioned NDK 29.0.14206865 at API 24 | Two independent standalone ARM64/ARM32 loader builds, bounded ELF/symbol/stub inspection, header/driver evidence and separate raw/post-strip comparisons. Success requires both complete retained baseline bytes; no engine build, historical ELF-cleaner execution, APK substitution or device claim. |
+| `tools/fdroid_proot_engine_source_build.py` | The unchanged patched PRoot/talloc production recipe, NDK 28.2.13676358 at API 29 and two independently source-built loader pairs | Two full engine builds; symbol/relocation-backed offset and embedded-loader coupling; raw/post-strip reproducibility and exact retained engine bytes required. Separate dynamic ELF inspector; no target execution, production substitution or acceptance claim. |
 | `tools/fdroid_spake2_source_build.py` | Two pinned Java sources, notices, and the complete verified Temurin 17.0.20.1+1 JDK | Empty compiler classpath/sourcepath; deterministic reconstruction; exact class/entry comparison and separate API/whole-JAR comparison. Optional retained deterministic vector test is not a cryptographic audit or device-interoperability certification. |
 | `tools/fdroid_termux_source_build.py` | Thirteen upstream Java families, four Droide families, generated BuildConfig, the pinned JDK and API 36 android.jar | Eighteen source files produce an expected forty classes; latest overlay stage wins; no precompiled Termux classes on compiler classpath. Exact existing overlay hashes, retained accessible APIs including package-private members, and the owned-process JNI contract are checked separately. Not a terminal-view/AAR/native/APK rebuild. |
 | `tools/fdroid_termux_view_sources.py` | The original manifest, three XML resources and license from immutable Termux v0.118.0 source | Source-only provenance verification by default, with optional pinned-AAR comparison. Drawable bytes match; string XML is semantically equal; the built manifest adds only the verified SDK declaration. Does not compile the View or generate Android resources. |
@@ -183,8 +184,8 @@ run an output merely because it was successfully compiled.
 
 The isolated CI workflow `.github/workflows/fdroid-source-proofs.yml` first
 requires a no-compilation sandbox readiness job. Only after that succeeds does
-it provision trusted compiler tools and run the six independent contract,
-CLI, PRoot-loader, SPAKE2, emulator and View jobs. A separate data-only registry parity job downloads
+it provision trusted compiler tools and run the seven independent contract,
+CLI, PRoot-loader, PRoot-engine, SPAKE2, emulator and View jobs. A separate data-only registry parity job downloads
 the eight fixed ordinary Maven artifacts under external process supervision;
 it never extracts, executes, or substitutes them into an application build.
 See [registry parity scope](FDROID_MAVEN_REGISTRY_PARITY.md).
@@ -193,6 +194,12 @@ The loader experiment adds no sandbox mount or authority. It uses the same
 read-only NDK input and resource limits as the CLI proof, while provisioning
 its historical compiler generation separately. See the
 [loader recipe and evidence boundaries](FDROID_PROOT_LOADER_SOURCE_PROOF.md).
+
+The separate full-engine experiment adds exactly one allowlisted read-only
+mount for its source-loader NDK. Both toolchains are external and disjoint;
+the original sandbox limits and privileges are unchanged. It preserves the
+patched engine recipe and uses freshly source-built loader pairs as compiler
+inputs. See [engine proof and coupling gates](FDROID_PROOT_ENGINE_SOURCE_PROOF.md).
 
 View additionally provisions one existing, pinned AndroidX annotation compiler
 dependency from a fixed Google Maven URL with SHA-256 verification, no redirect
@@ -230,8 +237,10 @@ fall back to unsandboxed execution if isolation is unavailable.
 1. Investigate the remaining View class-byte differences and complete Android
    resource/link/runtime checks before production integration. The isolated
    raw/adapted proof results below are not blanket runtime-equivalence results.
-2. Complete source reconstruction for terminal-view, Kadb mDNS, JGit and native
-   PRoot/loaders; retain all current runtime capabilities.
+2. Complete production-ready source closure/integration for terminal-view,
+   Kadb mDNS, JGit and the PRoot engine/loader pair; the isolated loader byte
+   reproduction below does not complete engine integration. Retain all current
+   runtime capabilities.
 3. Integrate the verified ordinary Maven payloads only through a separately
    reviewed source-only build path, retaining versions and integrity checks;
    still establish R8 and custom-derivative provenance.
@@ -294,5 +303,50 @@ The expanded enforced-sandbox suite passed **357 tests**: the previous 297,
 three loader runner/workflow contracts, twenty-eight loader build/input
 contracts and twenty-nine bounded ELF tests. Both existing stripped loaders
 were parsed only as hash-pinned comparison data. Compiler orchestration used
-mocked tools; the actual NDK loader rebuild remains pending at this checkpoint.
+mocked tools; actual NDK compilation was still pending at that local checkpoint
+and is recorded separately below.
 No fixture result is counted as a native compilation or F-Droid acceptance.
+
+## PR12 actual isolated-loader checkpoint: 2026-11-13
+
+[Run 43374627049](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43374627049)
+completed **8/8 jobs successfully** on tested merge
+`f41850f2cfb03b63af422408c94cb34bb00f0785`, incorporating PR12 head
+`7d6a1a140d22579d1b7c1a453d0ef7151b589f87`. The readiness and source-contract
+jobs each reported **357 tests, OK**: two executions of the same suite, not
+714 unique tests. Their final probes and the loader probe passed the existing
+unprivileged, read-only, offline sandbox controls.
+
+[Loader job 131718212293](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43374627049/job/131718212293)
+compiled the pinned ARM64 and ARM32 loader source twice. Its complete
+7,882-character `SUMMARY.json` was independently retrieved from the actual
+log. Both raw and stripped outputs reproduced independently, with these
+identical values in each build:
+
+| ABI and stage | Bytes | SHA-256 |
+| --- | ---: | --- |
+| ARM64, unstripped | 18,520 | `9851ac9137c3053926ccce7cfe90ec489a839543f261bb19f5269d6a9cbfdabb` |
+| ARM64, stripped | 18,136 | `44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04` |
+| ARM32, unstripped | 6,504 | `4a1c0657c05577deee93ea1fde076828c5be0358f2477f006985141d677c9176` |
+| ARM32, stripped | 6,244 | `25f6bd90bc5a3d3088026289a0d3eaf3e502bd2b00e5cb74fadd9791132efa34` |
+
+The stripped outputs exactly match both unchanged bundled loader baselines in
+both builds. `.text` remained unchanged by stripping; all observed input,
+tool, staged-source, header and output integrity rereads passed. GNU gawk and
+independent ELF inspection agreed on the ARM64 pokedata offset **1,120 bytes**,
+including verification of the mapped store/trap stub before symbols were
+stripped. The exact result is
+`source-built-both-retained-loader-bytes-reproduced`.
+
+The historical cleaner was **not executed**, and the installed NDK r29/API 24
+toolchain was **not independently authenticated against its historical ZIP**.
+Exact final-byte equality is the narrower result; it does not recreate every
+historical Termux environment detail or assert that the cleaner is generally
+a no-op. No loader output was executed, packaged or promoted, and no PRoot
+engine build, Android runtime QA or F-Droid acceptance is established. See
+[loader recipe and actual evidence](FDROID_PROOT_LOADER_SOURCE_PROOF.md).
+
+The separate PR12 Android application workflow was still in progress at the
+last recorded observation. These isolated results do not establish its
+completion or a production source-only engine integration. The original
+**33 scanner findings remain unresolved**.
