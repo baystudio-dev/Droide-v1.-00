@@ -62,6 +62,68 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.add('third_party/upstream/NOTICE.md', marker)
         self.assertEqual(['docs/ARCHITECTURE.md: development milestone in public documentation'], policy.audit(self.root))
 
+    def test_ndk_release_provenance_is_public_documentation(self):
+        examples = (
+            'Historical Android NDK r29 recipe.',
+            'Record NDK version r29 and NDK release `r28`.',
+            '| Historical NDK version | `NDK r29` |',
+            '[NDK r29 setup](https://example.test/immutable/toolchain.sh)',
+            'NDK\trelease\t`r29`',
+            'ndk R29; NDK VERSION R28; NDK RELEASE r27',
+        )
+        for text in examples:
+            with self.subTest(text=text):
+                self.add('docs/ARCHITECTURE.md', text)
+                self.assertEqual([], policy.audit(self.root))
+
+    def test_ndk_archive_names_and_exact_source_urls_are_preserved(self):
+        examples = (
+            '`android-ndk-r29-linux.zip`',
+            'https://dl.google.com/android/repository/android-ndk-r29-linux.zip',
+            'https://dl.google.com/android/repository/android-ndk-r29-darwin.dmg',
+            '`android-ndk-r21-windows-x86_64.zip`',
+            '`android-ndk-r10-linux-x86.zip`',
+        )
+        for text in examples:
+            with self.subTest(text=text):
+                self.add('docs/ARCHITECTURE.md', text)
+                self.assertEqual([], policy.audit(self.root))
+
+    def test_bare_milestones_remain_rejected_case_insensitively(self):
+        for marker in ('CP1', 'cp123', 'R29', 'r29', 'R1234', 'F114', 'f1234'):
+            with self.subTest(marker=marker):
+                self.add('docs/ARCHITECTURE.md', marker)
+                self.assertEqual(['docs/ARCHITECTURE.md: development milestone in public documentation'], policy.audit(self.root))
+
+    def test_ndk_context_does_not_hide_other_milestones_on_same_line(self):
+        examples = (
+            'NDK r29; internal R29.',
+            'NDK r29 CP123',
+            'NDK release r29 F114',
+            'R30 android-ndk-r29-linux.zip',
+            'android-ndk-r29-linux.zip CP123 F114',
+            'NDK r29\nR29',
+            '[NDK r29 setup](https://example.test/internal/R29/recipe)',
+        )
+        for text in examples:
+            with self.subTest(text=text):
+                self.add('docs/ARCHITECTURE.md', text)
+                self.assertEqual(['docs/ARCHITECTURE.md: development milestone in public documentation'], policy.audit(self.root))
+
+    def test_ndk_exception_is_not_a_general_line_or_url_exemption(self):
+        examples = (
+            'NDK CP123',
+            'NDK F114',
+            'NDK\nr29',
+            'NDK unrelated-text r29',
+            'https://example.test/upstream/r29/source.zip',
+            'android-ndk-r29-internal.zip',
+        )
+        for text in examples:
+            with self.subTest(text=text):
+                self.add('docs/ARCHITECTURE.md', text)
+                self.assertEqual(['docs/ARCHITECTURE.md: development milestone in public documentation'], policy.audit(self.root))
+
     def test_comparison_prose_is_not_public_product_documentation(self):
         self.add('docs/ARCHITECTURE.md', 'Co' + 'dex')
         self.assertTrue(any('comparison platform' in item for item in policy.audit(self.root)))

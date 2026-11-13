@@ -8,7 +8,7 @@ usage() {
     'Usage: bash tools/run_fdroid_source_proofs.sh MODE [options]' \
     'Modes: tests | cli | spake2 | termux' \
     'Options: --ndk DIR --jdk DIR --jdk-archive FILE --android-jar FILE' \
-    '         --sudo (CI network setup only) --show-command (do not execute)'
+    '         --sudo (CI namespace setup only) --show-command (do not execute)'
 }
 
 fail() { printf 'SOURCE_PROOF_SANDBOX_FAILED: %s\n' "$*" >&2; exit 2; }
@@ -102,17 +102,17 @@ limits=(--as=6442450944 --cpu=120 --nproc=128 --nofile=256 --fsize=67108864 --co
 isolation=(--unshare-all --unshare-user --disable-userns)
 launch=(/usr/bin/timeout --signal=TERM --kill-after=3s 300s /usr/bin/prlimit "${limits[@]}" --)
 if [[ $use_sudo == true ]]; then
-  # sudo is ONLY for creating the empty outer network namespace. Return to the
-  # checkout owner's host UID before bwrap resolves/mounts private ancestor
-  # paths. Mapping host root into bwrap's user namespace loses host DAC bypass
-  # but does not acquire the checkout owner's permissions (GitHub runner homes
-  # are private). Do not chmod those homes, stage credentials, or relax mounts.
+  # The reviewed setup helper creates empty outer user/network namespaces and
+  # maps only the non-root checkout owner. Its two-way gate drops the mapping
+  # parent's host privilege before the child may execute bwrap. The final
+  # target cannot inherit host root, host network, or the setup capabilities.
+  # No host policy, home permissions, subordinate-ID files, or mounts change.
   caller_uid=$(/usr/bin/id -u)
   caller_gid=$(/usr/bin/id -g)
-  [[ $caller_uid =~ ^[0-9]+$ && $caller_gid =~ ^[0-9]+$ && $caller_uid != 0 ]] || fail '--sudo requires an unprivileged caller'
-  launch=(/usr/bin/sudo -n "${launch[@]}" /usr/bin/unshare --net --
-    /usr/bin/setpriv --reuid "$caller_uid" --regid "$caller_gid" --clear-groups
-    --inh-caps=-all --ambient-caps=-all --bounding-set=-all --no-new-privs)
+  [[ $caller_uid =~ ^[0-9]+$ && $caller_gid =~ ^[0-9]+$ && $caller_uid != 0 && $caller_gid != 0 ]] || fail '--sudo requires an unprivileged caller'
+  launch=(/usr/bin/sudo -n "${launch[@]}" /usr/bin/python3 -I -B -S
+    "$source_root/tools/fdroid_source_namespace.py"
+    --uid "$caller_uid" --gid "$caller_gid" --)
   isolation+=(--share-net)
 else
   # Share ONLY this newly-created, empty outer network namespace. This avoids
@@ -165,7 +165,7 @@ for name in ("receipt.json", "REBUILD.json", "build-manifest.json", "run-1/javac
 # The diagnostic program is our fixed, reviewed string, not an inherited var.
 # No shell expansion is applied to its contents.
 launch+=(--setenv PROOF_DIAGNOSTICS "$diagnostics"
-  /bin/bash -c 'set -e; umask 077; /usr/bin/mkdir -m 700 -- /scratch/home /scratch/tmp /scratch/cache; set +e; "$@"; result=$?; /usr/bin/python3 -B -c "$PROOF_DIAGNOSTICS"; exit "$result"' proof-runner "${target[@]}")
+  /bin/bash -c 'set -e; umask 077; /usr/bin/mkdir -m 700 -- /scratch/home /scratch/tmp /scratch/cache; /usr/bin/python3 -I -B -S /src/tools/fdroid_source_sandbox_probe.py; set +e; "$@"; result=$?; /usr/bin/python3 -B -c "$PROOF_DIAGNOSTICS"; exit "$result"' proof-runner "${target[@]}")
 
 if [[ $show_command == true ]]; then
   printf '%q ' "${launch[@]}"
@@ -177,7 +177,7 @@ for tool in /usr/bin/timeout /usr/bin/prlimit /usr/bin/bwrap /usr/bin/python3; d
 done
 if [[ $use_sudo == true ]]; then
   [[ -x /usr/bin/sudo ]] || fail 'sudo unavailable; no fallback is permitted'
-  [[ -x /usr/bin/unshare && -x /usr/bin/setpriv ]] || fail 'CI namespace/identity utilities unavailable; no fallback is permitted'
+  [[ -f $source_root/tools/fdroid_source_namespace.py ]] || fail 'CI namespace helper unavailable; no fallback is permitted'
 else
   [[ -x /usr/bin/unshare ]] || fail 'unshare unavailable; no fallback is permitted'
 fi

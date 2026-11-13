@@ -40,7 +40,7 @@ Rebuilding and comparing them remains the independent provenance test.
 | Termux source ZIP SHA-256, as pinned in recipe | `a72668607184f981e44181bfa47f86ef52d52bb237b4012ee94f0dc89cb39211` |
 | Droide/OpenMinis source commit | `8cf13e997cdc9472997aae19df8050c073c9a86c` |
 | Local `proot-openminis-8cf13e99-source.tar.gz` measured SHA-256 | `6c77863bbdddbaa2d8043a901fee61f0e40492bb3bebdc6cb31390ac71ffca47` |
-| Historical NDK version | `r29` |
+| Historical NDK version | `NDK r29` |
 | `android-ndk-r29-linux.zip` SHA-256, as pinned in Termux setup | `4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf` |
 | Historical default Android API for the Termux recipe | `24` |
 

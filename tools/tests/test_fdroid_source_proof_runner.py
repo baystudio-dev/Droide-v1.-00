@@ -1,6 +1,7 @@
 """Contract tests for the proof launcher; never start a sandbox or a compiler."""
 from pathlib import Path
 import os
+import importlib.util
 import shlex
 import subprocess
 import tempfile
@@ -58,18 +59,33 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("--share-net", arguments[bwrap:])
         self.assertNotIn("/usr/bin/sudo", arguments)
 
-    def test_sudo_only_creates_outer_network_then_returns_to_checkout_owner(self):
+    def test_sudo_only_runs_reviewed_mapping_helper_with_checkout_owner(self):
         arguments = self.args(self.invoke("tests", "--sudo"))
         self.assertEqual(["/usr/bin/sudo", "-n"], arguments[:2])
         self.assertIn("--unshare-all", arguments)
-        unshare = arguments.index("/usr/bin/unshare")
-        identity = arguments.index("/usr/bin/setpriv")
+        python = arguments.index("/usr/bin/python3")
         bwrap = arguments.index("/usr/bin/bwrap")
-        self.assertEqual(["--net", "--"], arguments[unshare + 1:identity])
-        self.assertEqual(["--reuid", str(os.getuid()), "--regid", str(os.getgid()), "--clear-groups",
-                          "--inh-caps=-all", "--ambient-caps=-all", "--bounding-set=-all",
-                          "--no-new-privs"], arguments[identity + 1:bwrap])
+        self.assertEqual(["-I", "-B", "-S", str(ROOT / "tools/fdroid_source_namespace.py"),
+                          "--uid", str(os.getuid()), "--gid", str(os.getgid()), "--"],
+                         arguments[python + 1:bwrap])
+        self.assertNotIn("/usr/bin/setpriv", arguments)
+        self.assertNotIn("/usr/bin/unshare", arguments)
         self.assertIn("--share-net", arguments[bwrap:])
+
+    def test_actual_sudo_command_satisfies_namespace_allowlist(self):
+        specification = importlib.util.spec_from_file_location(
+            "proof_namespace_validation", ROOT / "tools/fdroid_source_namespace.py")
+        module = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(module)
+        for options in (("tests",), ("cli", "--ndk", self.ndk),
+                        ("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive),
+                        ("termux", "--jdk", self.jdk, "--jdk-archive", self.archive,
+                         "--android-jar", self.android)):
+            with self.subTest(mode=options[0]):
+                arguments = self.args(self.invoke(*options, "--sudo"))
+                metadata = ROOT / ".git"
+                kind = "directory" if metadata.is_dir() else "file" if metadata.exists() else None
+                module.validate_bwrap(arguments[arguments.index("/usr/bin/bwrap"):], str(ROOT), kind)
 
     def test_sandbox_setup_does_not_widen_host_file_permissions_or_copy_secrets(self):
         source = RUNNER.read_text()
@@ -89,6 +105,7 @@ class ProofRunnerTests(unittest.TestCase):
 
     def test_privileges_dropped_before_fixed_target_command(self):
         arguments = self.args(self.invoke("tests", "--sudo"))
+        arguments = arguments[arguments.index("/usr/bin/bwrap"):]
         for flag, value in (("--uid", "65534"), ("--gid", "65534"), ("--cap-drop", "ALL")):
             self.assertEqual(value, arguments[arguments.index(flag) + 1])
         self.assertIn("--disable-userns", arguments)
@@ -114,6 +131,15 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("umask 077", program)
         self.assertIn("/usr/bin/mkdir -m 700 -- /scratch/home /scratch/tmp /scratch/cache", program)
         self.assertLess(program.index("/usr/bin/mkdir"), program.index('"$@"'))
+
+    def test_fixed_final_probe_must_pass_before_any_target_is_started(self):
+        arguments = self.args(self.invoke("tests"))
+        program = arguments[arguments.index("/bin/bash") + 2]
+        probe = "/usr/bin/python3 -I -B -S /src/tools/fdroid_source_sandbox_probe.py"
+        self.assertTrue(program.startswith("set -e;"))
+        self.assertLess(program.index("/usr/bin/mkdir"), program.index(probe))
+        self.assertLess(program.index(probe), program.index("set +e"))
+        self.assertLess(program.index(probe), program.index('"$@"'))
 
     def test_environment_is_allowlisted_and_scratch_local(self):
         arguments = self.args(self.invoke("tests"))
@@ -188,6 +214,11 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn("proof: [tests, cli, spake2, termux]", workflow)
+        self.assertIn("needs: sandbox-readiness", workflow)
+        self.assertIn("Require isolated source contracts before provisioning compilers", workflow)
+        self.assertIn("Official registry byte parity (data only)", workflow)
+        self.assertIn("--signal=TERM --kill-after=5s 540s", workflow)
+        self.assertIn("tools/fdroid_maven_registry_parity.py", workflow)
         self.assertIn("jdk-17.0.20.1+1", workflow)
         self.assertIn("ndk;28.2.13676358", workflow)
         self.assertNotIn("pull_request_target", workflow)

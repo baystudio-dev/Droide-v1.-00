@@ -38,12 +38,10 @@ are compared independently. No result is silently substituted into Gradle.
   Git-index-dependent checks are not silently interpreted as source-proof tests.
 - The first remote proof run stopped before compilation: bwrap's user namespace
   mapped host root rather than the checkout owner and could not traverse the
-  private runner home. The launcher now uses sudo only to create an isolated
-  outer network namespace, then drops back to the caller's host UID/GID with
-  no supplemental groups, inheritable/ambient/bounding capabilities, or privilege
-  escalation before bwrap. No host permissions, read-only mounts or target
-  isolation are relaxed. A further namespace-policy denial is a blocker, not
-  permission to run outside the sandbox.
+  private runner home. The second setup returned to the caller's host identity
+  before bwrap, but stopped at `setting up uid map: Permission denied`. Neither
+  run is evidence of a compiler or application failure. The exact LSM/kernel
+  cause is not established by that error alone.
 - The repository integrity guard also correctly rejected six new View source
   files absent from its manifest. Their measured SHA-256 values were added to
   the existing manifest, along with a regression test for coverage; the guard
@@ -51,7 +49,21 @@ are compared independently. No result is silently substituted into Gradle.
   any successful compilation claim.
 - With those setup and manifest regression checks, the local isolated test
   runner passed **117 tests**. This checks command construction, not execution
-  of the CI-only sudo branch, which remains subject to the next remote run.
+  of the CI-only sudo branch.
+- After the mapping-helper, final-probe and integration checks were added, the
+  local runner passed **191 tests** and the actual final probe reported
+  `SOURCE_PROOF_SANDBOX_READY`. The probe observed UID/GID 65534, empty capability
+  sets, no-new-privileges, read-only inputs, 512 MiB disposable scratch and only
+  loopback networking. The CI-only privileged mapping helper itself remains
+  mock-tested until the remote readiness job records an actual result.
+- The registry comparison helper passed **33 pure/mock tests** and verified the
+  eight current local pins offline. No registry download, source compilation or
+  application equivalence is implied by those local-only checks.
+- The documentation guard was separately corrected to distinguish an explicit
+  Android NDK release or archive name from an internal development milestone.
+  Its 15 mutation tests and the real repository check passed locally; unrelated
+  milestone tokens on the same line remain rejected. This does not change any
+  native source, compiler version, binary, or checksum.
 - Tests ran with source/toolchain read-only, a clean environment, no external
   network, disposable scratch (64 MiB for initial fixture runs, 512 MiB for the
   dedicated runner), and explicit resource and time limits. No generated target
@@ -73,9 +85,31 @@ scratch-local home/cache/temp, bounded writable scratch and resource/time
 limits. Fresh outputs must be outside the source and toolchain trees. Do not
 run an output merely because it was successfully compiled.
 
-The isolated CI workflow `.github/workflows/fdroid-source-proofs.yml` provisions
-trusted compiler/sandbox tools before running the offline proofs. Its four jobs
-cover the contracts, CLI, SPAKE2 and emulator independently. The runner uses a
+The isolated CI workflow `.github/workflows/fdroid-source-proofs.yml` first
+requires a no-compilation sandbox readiness job. Only after that succeeds does
+it provision trusted compiler tools and run the four independent contract,
+CLI, SPAKE2 and emulator jobs. A separate data-only registry parity job downloads
+the eight fixed ordinary Maven artifacts under external process supervision;
+it never extracts, executes, or substitutes them into an application build.
+See [registry parity scope](FDROID_MAVEN_REGISTRY_PARITY.md).
+
+The CI launcher uses a small reviewed setup helper to map exactly the non-root
+checkout owner into an outer user namespace and create an empty network
+namespace. A bounded two-way handshake keeps the child from executing bwrap
+until the mapping parent has permanently dropped host privileges. Host root
+is not mapped. No global AppArmor, sysctl, subordinate-ID or filesystem
+permission changes are made. This helper is not a general sudo policy and
+must not be granted privilege for unreviewed or concurrently modified source.
+Its mocked tests cannot establish that a particular CI kernel permits setup.
+
+Before any target test/compiler runs, a fixed probe must verify the final
+unprivileged identity, empty capabilities, no-new-privileges state, read-only
+inputs, bounded scratch, masked Git metadata, allowlisted environment and
+isolated network tables. Setup or probe failure stops execution; no fallback
+to a weaker environment is available. Diagnostic output contains only fixed
+non-secret process/kernel metadata, not the inherited environment.
+
+The runner uses a
 512 MiB disposable scratch filesystem, a 6 GiB address-space ceiling (JVM heap
 limits are smaller), 120 CPU seconds per process, 128 processes, 256 descriptors,
 a 64 MiB per-file limit and a 300-second wall-clock limit.

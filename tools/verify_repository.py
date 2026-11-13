@@ -18,9 +18,18 @@ PRIVATE_NAMES = {'local.properties', '.env', 'auth.json', 'signing-credentials.j
 PRIVATE_SUFFIXES = {'.p12', '.pfx', '.jks', '.keystore', '.apk', '.aab', '.idsig'}
 CACHE_NAMES = {'.gradle', '.kotlin', '.cxx', '.externalNativeBuild', '.idea', '__pycache__', '.pytest_cache', 'node_modules'}
 HISTORY = re.compile(r'\b(?:CP[0-9]{1,4}|R[0-9]{2,4}|F[0-9]{3,4})\b', re.IGNORECASE)
+NDK_RELEASE = re.compile(r'\bNDK(?:[ \t]+(?:version|release))?[ \t]+`?(?P<revision>r[0-9]{2,4})\b', re.IGNORECASE)
+NDK_ARCHIVE = re.compile(r'\bandroid-ndk-(?P<revision>r[0-9]{2,4})-(?:linux|darwin|windows)(?:-x86(?:_64)?)?\.(?:zip|dmg)\b', re.IGNORECASE)
 COMPARISON = re.compile(r'\b(?:VS\s*Code|Codex|ChatGPT|Acode|OpenCode)\b', re.IGNORECASE)
 SECRET = re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\r\n]+[A-Za-z0-9+/=]{40,}|\b(?:ghp_[A-Za-z0-9]{30,}|AIza[A-Za-z0-9_-]{30,}|sk-(?:proj-)?[A-Za-z0-9_-]{32,})\b')
 TEXT_SUFFIXES = {'.kt', '.kts', '.java', '.py', '.sh', '.gradle', '.groovy', '.json', '.yaml', '.yml', '.xml', '.md', '.txt', '.properties', '.ts', '.js', '.c', '.h'}
+
+
+def has_development_milestone(text: str) -> bool:
+    # Exempt only an NDK revision token, never its surrounding line, URL, or document.
+    ndk_revisions = {match.span('revision') for pattern in (NDK_RELEASE, NDK_ARCHIVE)
+                     for match in pattern.finditer(text)}
+    return any(match.span() not in ndk_revisions for match in HISTORY.finditer(text))
 
 
 def audit(root: Path, allow_build_output=False):
@@ -61,7 +70,7 @@ def audit(root: Path, allow_build_output=False):
             public_doc = relative.startswith('docs/') or ('/' not in relative and path.suffix == '.md')
             if public_doc:
                 text = raw.decode('utf-8')
-                if HISTORY.search(text):
+                if has_development_milestone(text):
                     failures.append(relative + ': development milestone in public documentation')
                 if COMPARISON.search(text):
                     failures.append(relative + ': comparison platform in public documentation')
