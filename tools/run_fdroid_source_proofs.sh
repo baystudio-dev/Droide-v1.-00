@@ -6,7 +6,7 @@ set -euo pipefail
 usage() {
   printf '%s\n' \
     'Usage: bash tools/run_fdroid_source_proofs.sh MODE [options]' \
-    'Modes: tests | cli | spake2 | termux | view' \
+    'Modes: tests | cli | loaders | spake2 | termux | view' \
     'Options: --ndk DIR --jdk DIR --jdk-archive FILE --android-jar FILE' \
     '         --annotation-jar FILE (view only)' \
     '         --sudo (CI namespace setup only) --show-command (do not execute)'
@@ -16,7 +16,7 @@ fail() { printf 'SOURCE_PROOF_SANDBOX_FAILED: %s\n' "$*" >&2; exit 2; }
 [[ $# -ge 1 ]] || { usage >&2; exit 2; }
 mode=$1
 shift
-case "$mode" in tests|cli|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
+case "$mode" in tests|cli|loaders|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
 
 use_sudo=false
 show_command=false
@@ -72,12 +72,16 @@ case "$mode" in
     # inventory/metadata guards remain in Android CI's repository job.
     target+=(-m unittest discover -s tools/tests -p 'test_fdroid_*source*.py' -v)
     ;;
-  cli)
-    [[ -n $ndk_path && -z $jdk_path && -z $archive_path && -z $android_path ]] || fail 'cli mode requires only --ndk'
+  cli|loaders)
+    [[ -n $ndk_path && -z $jdk_path && -z $archive_path && -z $android_path ]] || fail "$mode mode requires only --ndk"
     ndk_path=$(external_path "$ndk_path" directory)
     [[ -f $ndk_path/source.properties ]] || fail 'NDK source.properties missing'
     tool_mounts+=(--ro-bind "$ndk_path" /toolchain/ndk)
-    target+=(tools/fdroid_cli_source_build.py --ndk /toolchain/ndk --output-dir /scratch/proof)
+    if [[ $mode == loaders ]]; then
+      target+=(tools/fdroid_proot_loader_source_build.py --ndk /toolchain/ndk --output-dir /scratch/proof)
+    else
+      target+=(tools/fdroid_cli_source_build.py --ndk /toolchain/ndk --output-dir /scratch/proof)
+    fi
     ;;
   spake2|termux|view)
     [[ -n $jdk_path && -n $archive_path && -z $ndk_path ]] || fail 'Java proofs require --jdk and --jdk-archive, but not --ndk'

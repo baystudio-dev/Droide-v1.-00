@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        proof: [tests, cli, spake2, termux, view]
+        proof: [tests, cli, loaders, spake2, termux, view]
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -98,7 +98,7 @@ jobs:
         if: matrix.proof == 'spake2' || matrix.proof == 'termux' || matrix.proof == 'view'
         run: python3 -B tools/provision_build_jdk.py --output "$RUNNER_TEMP/source-proof-jdk"
       - name: Set up Android tools for trusted SDK provisioning
-        if: matrix.proof == 'cli' || matrix.proof == 'termux' || matrix.proof == 'view'
+        if: matrix.proof == 'cli' || matrix.proof == 'loaders' || matrix.proof == 'termux' || matrix.proof == 'view'
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           packages: platform-tools
@@ -106,6 +106,14 @@ jobs:
       - name: Provision the existing pinned NDK
         if: matrix.proof == 'cli'
         run: sdkmanager --install 'ndk;28.2.13676358'
+      - name: Provision the historical loader NDK and recipe utility
+        if: matrix.proof == 'loaders'
+        run: |
+          sdkmanager --install 'ndk;29.0.14206865'
+          sudo apt-get install --no-install-recommends --yes gawk
+          # Trusted provisioning precedes the empty-environment offline sandbox.
+          # The proof records installed identities; it does not claim that
+          # source.properties alone authenticates the historical NDK ZIP.
       - name: Provision API 36 (the proof checks the exact android.jar hash)
         if: matrix.proof == 'termux' || matrix.proof == 'view'
         run: sdkmanager --install 'platforms;android-36'
@@ -135,6 +143,9 @@ jobs:
       - name: Compile and inspect CLI twice offline (never execute ARM64 output)
         if: matrix.proof == 'cli'
         run: bash tools/run_fdroid_source_proofs.sh cli --sudo --ndk "$ANDROID_HOME/ndk/28.2.13676358"
+      - name: Rebuild and compare both PRoot loaders twice offline (never execute outputs)
+        if: matrix.proof == 'loaders'
+        run: bash tools/run_fdroid_source_proofs.sh loaders --sudo --ndk "$ANDROID_HOME/ndk/29.0.14206865"
       - name: Compile SPAKE2 twice and check retained deterministic vector offline
         if: matrix.proof == 'spake2'
         run: |

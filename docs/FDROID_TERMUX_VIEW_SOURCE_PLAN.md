@@ -1,11 +1,12 @@
 # Termux View source-build closure and validation plan
 
 Investigation date: 2026-11-13 (Asia/Jakarta). Current observed status: **two
-independent complete View source compilations succeeded with identical output;
-the strict metadata gate correctly failed on three paths in two constructors**.
+raw source builds and two separate exact-pin metadata adaptations are
+reproducible; the adapted output passes strict API/resource checks while the
+raw comparison retains its three-path metadata failure**.
 Android resource linking, device validation and production replacement remain
-unverified. The subsequent exact-pin compatibility experiment is described
-below; it does not reclassify the raw compiler result as a pass.
+unverified. The dated PR11 actual-results section below records the completed
+isolated experiment; it does not reclassify the raw compiler result as a pass.
 
 Subsequent implementation checkpoint: `tools/fdroid_termux_view_source_build.py`
 and the independent `tools/fdroid_termux_view_metadata.py` comparator now
@@ -327,7 +328,8 @@ separately from fixture tests. See the
 At the extension's local checkpoint, **297 source-proof tests passed** in the
 same enforced offline sandbox, including thirty-two new binding, adaptation
 and orchestration tests. Independent static review found no concrete blocker;
-this is not a successful fresh compiler/adaptation execution claim.
+that local checkpoint alone was not a fresh compiler/adaptation result. The
+subsequent actual execution is recorded in the dated PR11 section below.
 
 The fixed `view` runner mode adds only one read-only annotation JAR input and
 keeps the existing network, identity, filesystem and resource limits. A compact
@@ -366,7 +368,46 @@ local 265-test checkpoint and any subsequent fixture-only validation.
    F-Droid scanning, build execution, maintainer acceptance and signing/update
    channel review remain separate gates.
 
-This plan reports successful raw Java compilation but a strict raw metadata
-failure; it reports no resource link, Android device validation, replacement
-APK, or F-Droid acceptance. See
+This plan records successful raw Java compilation, its strict metadata failure,
+and the separately verified adapted proof below. It reports no resource link,
+Android device validation, replacement APK, or F-Droid acceptance. See
 [source proof scope](FDROID_SOURCE_PROOFS.md) for the broader boundaries.
+
+## 8. PR11 actual isolated results: 2026-11-13
+
+[Source-proof run 43372378186](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378186)
+passed **7/7 jobs** on tested merge
+`1a379ca95b8478bfb1c4649d436d94026fa4f36b`, incorporating head
+`426c79ce38c193cc7114c579a6eb68efb40caea0`. The readiness and source-contract
+jobs each reported **297 tests, OK**: two executions, not 594 unique tests.
+The final sandbox probes confirmed the required restrictions.
+
+[View job 131711037711](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378186/job/131711037711)
+rebuilt the complete emulator and View Java closure twice. Raw JAR/AAR hashes
+match the earlier failing checkpoint exactly; the raw strict comparison still
+reports three metadata paths and is not promoted to a pass. Both independent
+adaptations produced identical separate outputs:
+
+| Adapted proof output | SHA-256 |
+| --- | --- |
+| JAR | `d7bcf81c7fc03c27ec28d4acced3f708a5f0d64f7e07beb679002c79f8a974ce` |
+| AAR | `f2ab04a6ac29b5a3effc7dfded488a1b174124d4c60e772577b8357781aea5a7` |
+
+The adapted strict comparison reports zero metadata/API differences, nineteen
+expected classes, five matching resource GETSTATIC accesses and two matching
+constructor-binding checks. Exactly three metadata paths changed in two
+classes; seventeen classes were untouched. Complete Code attributes, existing
+constant-pool entries and unrelated class structure were preserved **relative
+to the raw output**, and inputs remained unchanged. No reference bytecode was
+copied into a candidate and no output was integrated into production.
+
+Both variants retain nineteen complete class-byte differences from the
+historical reference. Their receipts do not claim general method-body
+equivalence, resource linking, device validation or F-Droid acceptance. The
+bounded summary explicitly truncates individual constructor-instruction records;
+the reported two-constructor match is not a general or fully printed body audit.
+
+At the last recorded observation, separate
+[Android run 43372378207](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43372378207)
+was still `in_progress`. No completed Android integration result is inferred
+from these isolated jobs. The original **33 scanner findings remain unresolved**.
