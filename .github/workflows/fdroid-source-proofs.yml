@@ -30,6 +30,26 @@ jobs:
       # Opaque, non-executable comparison data only: no extraction, compilation,
       # dependency substitution, artifact publication, or application execution.
 
+  r8-registry-parity:
+    name: R8 official Google Maven byte parity (data only)
+    needs: sandbox-readiness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Checkout source without stored credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Compare only the two existing R8 pins at fixed official endpoints
+        run: |
+          /usr/bin/timeout --signal=TERM --kill-after=5s 180s \
+            /usr/bin/python3 -I -B tools/fdroid_r8_registry_parity.py \
+              --download-and-compare \
+              --output-dir "$RUNNER_TEMP/droide-r8-registry-parity-proof"
+      # This separate two-file inventory does not widen the eight ordinary
+      # dependency mirrors. No JAR execution/extraction, downloaded-POM parsing,
+      # production repository change, artifact upload or dependency replacement.
+
   sandbox-readiness:
     name: Sandbox readiness (no compilation)
     runs-on: ubuntu-24.04
