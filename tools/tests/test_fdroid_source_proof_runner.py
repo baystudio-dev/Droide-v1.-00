@@ -31,6 +31,8 @@ class ProofRunnerTests(unittest.TestCase):
         self.archive.write_bytes(b"not a real archive")
         self.android = self.scratch / "android.jar"
         self.android.write_bytes(b"not a real jar")
+        self.annotation = self.scratch / "annotation.jar"
+        self.annotation.write_bytes(b"not a real annotation jar")
 
     def invoke(self, *arguments, success=True):
         environment = {"PATH": "/usr/bin:/bin", "HOME": str(self.scratch),
@@ -80,7 +82,9 @@ class ProofRunnerTests(unittest.TestCase):
         for options in (("tests",), ("cli", "--ndk", self.ndk),
                         ("spake2", "--jdk", self.jdk, "--jdk-archive", self.archive),
                         ("termux", "--jdk", self.jdk, "--jdk-archive", self.archive,
-                         "--android-jar", self.android)):
+                         "--android-jar", self.android),
+                        ("view", "--jdk", self.jdk, "--jdk-archive", self.archive,
+                         "--android-jar", self.android, "--annotation-jar", self.annotation)):
             with self.subTest(mode=options[0]):
                 arguments = self.args(self.invoke(*options, "--sudo"))
                 metadata = ROOT / ".git"
@@ -182,6 +186,30 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertNotIn("--reference-engine", arguments)
         self.assertNotIn("--ndk", arguments)
 
+    def test_view_uses_only_fixed_readonly_tools_and_no_binary_termux_classpath(self):
+        arguments = self.args(self.invoke("view", "--jdk", self.jdk, "--jdk-archive", self.archive,
+                                          "--android-jar", self.android, "--annotation-jar", self.annotation))
+        self.assertIn("tools/fdroid_termux_view_source_build.py", arguments)
+        at = arguments.index(str(self.annotation))
+        self.assertEqual(["--ro-bind", str(self.annotation), "/toolchain/annotation.jar"], arguments[at - 1:at + 2])
+        self.assertEqual(["--annotation-jar", "/toolchain/annotation.jar", "--output", "/scratch/proof"], arguments[-4:])
+        self.assertNotIn("--reference-engine", arguments)
+        self.assertNotIn("--ndk", arguments)
+        self.assertFalse(any("kotlin" in arg or "app/libs" in arg for arg in arguments))
+
+    def test_annotation_is_required_only_for_view_and_cannot_be_repeated(self):
+        options = ("--jdk", self.jdk, "--jdk-archive", self.archive, "--android-jar", self.android)
+        self.invoke("view", *options, success=False)
+        self.invoke("view", *options, "--annotation-jar", self.annotation, "--annotation-jar", self.annotation, success=False)
+        for mode in ("tests", "cli", "spake2", "termux"):
+            with self.subTest(mode=mode):
+                self.invoke(mode, "--annotation-jar", self.annotation, success=False)
+
+    def test_annotation_cannot_mount_repository_or_directory(self):
+        options = ("view", "--jdk", self.jdk, "--jdk-archive", self.archive, "--android-jar", self.android)
+        self.invoke(*options, "--annotation-jar", ROOT / "tools/java_archive.py", success=False)
+        self.invoke(*options, "--annotation-jar", self.jdk, success=False)
+
     def test_missing_duplicate_and_unrecognized_inputs_fail_closed(self):
         self.invoke("unknown", success=False)
         self.invoke("cli", success=False)
@@ -213,7 +241,7 @@ class ProofRunnerTests(unittest.TestCase):
         self.assertIn("contents: read", workflow)
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("fail-fast: false", workflow)
-        self.assertIn("proof: [tests, cli, spake2, termux]", workflow)
+        self.assertIn("proof: [tests, cli, spake2, termux, view]", workflow)
         self.assertIn("needs: sandbox-readiness", workflow)
         self.assertIn("Require isolated source contracts before provisioning compilers", workflow)
         self.assertIn("Official registry byte parity (data only)", workflow)
@@ -228,6 +256,24 @@ class ProofRunnerTests(unittest.TestCase):
         for line in workflow.splitlines():
             if "uses:" in line:
                 self.assertRegex(line, r"uses: [\w/-]+@[0-9a-f]{40}(?:\s|$)")
+
+    def test_view_provisioning_is_one_pinned_bounded_download_before_offline_compile(self):
+        workflow = WORKFLOW.read_text()
+        start = workflow.index("- name: Provision only the existing pinned annotation compiler dependency")
+        end = workflow.index("- name: Run source proof contract tests offline", start)
+        step = workflow[start:end]
+        self.assertIn("if: matrix.proof == 'view'", step)
+        self.assertIn("--signal=TERM --kill-after=5s 90s", step)
+        self.assertIn('test ! -e "$annotation_input"', step)
+        self.assertIn('test ! -L "$annotation_input"', step)
+        self.assertIn("/usr/bin/curl --disable --fail --silent --show-error --proto '=https'", step)
+        self.assertIn("--max-time 60 --max-filesize 1048576", step)
+        self.assertIn("https://dl.google.com/dl/android/maven2/androidx/annotation/annotation-jvm/1.10.0/annotation-jvm-1.10.0.jar", step)
+        self.assertIn("ddd072ddbb553178e205517ce777b2f05aa9e412982d9ecb4eedc74f1212f697", step)
+        self.assertIn("/usr/bin/sha256sum --check --strict -", step)
+        for forbidden in ("--location", "--insecure", "kotlin-stdlib", "--netrc", "--user", "Authorization"):
+            self.assertNotIn(forbidden, step)
+        self.assertIn("bash tools/run_fdroid_source_proofs.sh view --sudo", workflow[end:])
 
 
 if __name__ == "__main__":

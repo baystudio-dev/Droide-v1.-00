@@ -1,14 +1,27 @@
 # Termux View source-build closure and validation plan
 
-Investigation date: 2026-11-13 (Asia/Jakarta). Status: **source closure and
-reference inventory inspected; View compilation and resource linking have not
-been demonstrated by this investigation**.
+Investigation date: 2026-11-13 (Asia/Jakarta). Current observed status: **two
+independent complete View source compilations succeeded with identical output;
+the strict metadata gate correctly failed on three paths in two constructors**.
+Android resource linking, device validation and production replacement remain
+unverified. The subsequent exact-pin compatibility experiment is described
+below; it does not reclassify the raw compiler result as a pass.
 
-This document does not change a dependency, production build, reference binary,
+Subsequent implementation checkpoint: `tools/fdroid_termux_view_source_build.py`
+and the independent `tools/fdroid_termux_view_metadata.py` comparator now
+implement the offline Java proof described below. **265 source-proof tests
+passed in the enforced local sandbox**, including 39 View builder tests, 31
+annotation/bytecode metadata tests, and the existing source/sandbox contracts.
+Both inspection APIs accepted all nineteen pinned reference classes as data,
+with exactly five resource GETSTATIC reads. That local-test checkpoint alone
+was not a compiler result; the later actual compiler evidence is recorded in
+section 7 and the [compiler metadata note](FDROID_TERMUX_COMPILER_METADATA.md).
+
+This document and its proof implementation do not change a dependency, production build, reference binary,
 integrity pin, runtime capability, release APK, or signing configuration. It
-records preparation for an isolated source-build proof, not an accepted F-Droid
-recipe or permission to replace the stable View AAR. No compiler, target class,
-native program, installer, or build command was executed for this investigation.
+records an isolated source-build proof, not an accepted F-Droid recipe or
+permission to replace the stable View AAR. Compilers ran only in the reviewed
+offline source-proof sandbox. No generated View target class was executed.
 
 ## 1. Source closure
 
@@ -91,15 +104,11 @@ matching a tag, source inventory, API, or dependency coordinate alone.
 
 `TerminalView.java` imports `androidx.annotation.RequiresApi` and uses
 `api = Build.VERSION_CODES.O` on three autofill methods, corresponding to API 26.
-The annotation JAR was not inspected or downloaded for this investigation.
-Whether compiling against the current annotation JAR additionally requires
-Kotlin annotation-metadata support types remains a compilation check, not an
-assumed new source dependency. No Kotlin compiler is required by the View source
-language itself. If those support types are required, the application already
-resolves `org.jetbrains.kotlin:kotlin-stdlib:2.4.0`, JAR SHA-256
-`ccb14ff83fabcb11458b798dbc9824748ccdffeec79c9aba789e6ed1cda86b1c`.
-Do not silently add it to the proof or application; record and justify the
-actual classpath needed by the compiler.
+The later CI proof separately provisioned and hash-verified the current
+annotation JAR before sandbox entry. Both compilations succeeded with Android,
+annotation and source-built emulator as the only compiler classpath entries.
+Warnings about Kotlin annotation-metadata types did not prevent compilation;
+no Kotlin compiler or stdlib was added to the proof or application.
 
 ## 3. Generated release configuration
 
@@ -240,6 +249,7 @@ The reference also contains debug information:
 | `LineNumberTable` | 153 |
 | `LocalVariableTable` | 151 |
 | `StackMapTable` | 73 |
+| `MethodParameters` | 119 |
 
 `SourceFile` attributes identify the seven original sources and generated
 `BuildConfig.java`. Using the emulator proof's `-g:none` option for View would
@@ -250,7 +260,80 @@ parity nor an explanation of debug metadata proves method-body equivalence.
 Compare complete classes, API/metadata, resource entries, JAR wrapping and AAR
 wrapping as distinct results, without changing any baseline hash to pass.
 
+A later bounded inspection of the pinned reference found the 119
+`MethodParameters` records above. They are distinct from local-variable debug
+tables: `-g` alone does not request parameter-name metadata. The View proof
+must preserve parameter names and modifier flags using an explicit
+`-parameters` compilation setting and a constant-pool-normalized comparator,
+or report an unresolved metadata difference. Synthetic enclosing-instance
+parameters must not disappear from this check merely because they are not
+written as explicit Java source parameters.
+
 ## 7. Bounded implementation and promotion gates
+
+The implemented proof uses the verified existing JDK, API 36 and pinned
+annotation-jvm 1.10.0. It first runs the complete emulator source proof in fresh
+scratch, then compiles the View twice with `-g`, `-parameters`, disabled
+annotation processors and an explicit closed classpath. Exactly three generated
+compile-symbol classes are excluded; no extra dependency class is silently
+stripped. The proof AAR additionally embeds the unchanged upstream license and
+preserves the source string XML rather than copying generated reference XML.
+These archive differences are explicitly reported.
+
+Its separate annotation-aware comparator resolves constant-pool indices,
+checks all non-private declarations, parameter names/flags and declaration
+annotation values, and decodes actual resource field instructions. Unsupported
+metadata fails closed. Strict metadata differences still fail the comparison
+even when the narrower declaration-ABI diagnostic matches. Parameter names are
+never sorted, inferred from descriptors or ignored by the comparator. Neither
+comparator is a JVM stack/type verifier or a method-body equivalence proof.
+
+### Actual raw compiler checkpoint and bounded follow-up
+
+[Run 43369448300](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43369448300)
+tested merge `233a52ed10fdd446bac7ddbd00880515dad91a87`, incorporating head
+`72d0e47f28db4aa6fefea8a239bfb17ffb004111`. Six source-proof jobs passed;
+the View job compiled twice successfully but failed its strict comparison.
+Both raw JARs have SHA-256
+`b66ee025ea84c1314dee858bc0c711db8b959d8ce04e24b01d5f0616e1519b00`;
+both raw AARs have SHA-256
+`e61c71cc8e94d06d944e107404fedb07990224aa5cf49a48fa27e793a03b54e0`.
+The nineteen-class inventory, narrower declaration ABI and five resource
+GETSTATIC reads match. The three metadata differences concern ordered
+MethodParameters in `TerminalView$1$1` and `TerminalView$2`, plus the added
+`()V` constructor Signature in the former. All nineteen full class hashes
+differ from the historical baseline; they are not assumed to be debug-only.
+
+The follow-up implementation adds a **separate metadata compatibility step**,
+not an exception to the strict comparator. It freezes the observed raw archive
+and two class hashes, requires exactly those three full-metadata differences,
+and checks the two constructors' resolved instructions and slot bindings.
+Only the two parameter-name records and the one Signature are eligible for
+adaptation. The helper preserves the old constant-pool prefix and indices,
+appends only fixed missing `x0`/`x1` strings, and independently verifies that
+every complete Code attribute and unrelated class structure is unchanged from
+the raw source build. The other seventeen classes must remain byte-identical
+to that raw build.
+
+Raw artifacts remain untouched under `run-1` and `run-2`; independently adapted
+proof artifacts use `compat-run-1` and `compat-run-2`. Their hashes and results
+are reported separately. The unchanged strict comparator must pass on the
+adapted output, and raw/adapted reproducibility, input integrity and Code
+preservation are additional mandatory gates. Any new discrepancy stops the
+experiment. Fresh end-to-end execution of this extension must be recorded
+separately from fixture tests. See the
+[exact metadata evidence and rationale](FDROID_TERMUX_COMPILER_METADATA.md).
+
+At the extension's local checkpoint, **297 source-proof tests passed** in the
+same enforced offline sandbox, including thirty-two new binding, adaptation
+and orchestration tests. Independent static review found no concrete blocker;
+this is not a successful fresh compiler/adaptation execution claim.
+
+The fixed `view` runner mode adds only one read-only annotation JAR input and
+keeps the existing network, identity, filesystem and resource limits. A compact
+`SUMMARY.json` is shown before the larger receipt; neither proof AAR nor JAR is
+promoted to a release. Actual compiler outcomes are distinct from the earlier
+local 265-test checkpoint and any subsequent fixture-only validation.
 
 1. Verify the exact source inventory, per-file identities, resources, notices,
    compiler tools and dependency hashes before and after each proof build.
@@ -283,6 +366,7 @@ wrapping as distinct results, without changing any baseline hash to pass.
    F-Droid scanning, build execution, maintainer acceptance and signing/update
    channel review remain separate gates.
 
-This plan reports no successful View compilation, resource link, Android device
-validation, replacement APK, or F-Droid acceptance. See
+This plan reports successful raw Java compilation but a strict raw metadata
+failure; it reports no resource link, Android device validation, replacement
+APK, or F-Droid acceptance. See
 [source proof scope](FDROID_SOURCE_PROOFS.md) for the broader boundaries.

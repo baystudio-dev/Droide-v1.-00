@@ -56,10 +56,13 @@ class ValidationTests(unittest.TestCase):
             ns.validate_bwrap(argv()[:-1] + target, SOURCE, "directory")
 
     def test_external_declared_toolchain_is_read_only(self):
-        command = argv()
-        at = command.index("--proc")
-        command[at:at] = ["--ro-bind", "/opt/public-ndk", "/toolchain/ndk"]
-        ns.validate_bwrap(command, SOURCE, "directory")
+        for source, target in (("/opt/public-ndk", "/toolchain/ndk"),
+                               ("/opt/public-annotation.jar", "/toolchain/annotation.jar")):
+            with self.subTest(target=target):
+                command = argv()
+                at = command.index("--proc")
+                command[at:at] = ["--ro-bind", source, target]
+                ns.validate_bwrap(command, SOURCE, "directory")
 
     def test_host_ids_are_strict_nonzero_numbers(self):
         self.assertEqual(ns.host_id("1001"), 1001)

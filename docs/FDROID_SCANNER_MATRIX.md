@@ -107,3 +107,35 @@ SPAKE2/Kadb/JGit artifacts; source-built native loader pair and PRoot/CLI;
 approved upstream resolution for ordinary libraries; scanner/lint; physical
 ARM64 regression; new release tag and maintainer review. Keep the regular
 release and signing credentials untouched throughout.
+
+## PR10 Android CI checkpoint: 2026-11-13
+
+[Android run 43367069506](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43367069506)
+completed all four jobs successfully: repository, regular release, F-Droid
+candidate and independent runtime-dependency parity. The tested merge was
+`b8c59e3b6fbf17ae88566dd0d4ae14a55a12b6cc`, incorporating PR10 head
+`2ba0111b2cd9d8eae49f0eb084b19af633854bba`.
+
+- The host-JVM critical suite executed **112 cases across 13 classes**. The
+  subsequent Python suite reported **446 tests, OK**, including 21 checks of
+  the current compiled engine and five real optimized-APK/JNI structure and
+  mutation checks. These are not physical-device tests.
+- Both unsigned APK builds and source-release verifiers passed. Their resolved
+  runtime manifests matched exactly: **137 components, 759 edges and 103
+  artifact hashes**. Canonical Ubuntu decompressed-TAR byte parity also passed.
+- The regular unsigned APK SHA-256 was
+  `76f3185f86156b1055fafbdbce5fdce967642ed069a15ae513d5bc76a4a1ef9d`;
+  the candidate unsigned APK SHA-256 was
+  `c11af454351df05943b56e5d705c5efaedc647e5c754be8600c409460eeced59`.
+  Dependency-manifest equality does not mean the two APKs are identical.
+
+The run retained `android-verification` (artifact 14011654046),
+`fdroid-candidate-verification` (14012551070), `runtime-graph-regular`
+(14012362246), `runtime-graph-fdroid` (14011698116), and
+`droide-release-unsigned` (14012407291). The candidate APK itself was not
+uploaded. These are internal verification artifacts, not a new signed release.
+
+**The 33 baseline scanner findings remain unresolved.** This checkpoint does
+not prove a source-only F-Droid recipe, Android runtime equivalence, physical
+device QA or maintainer acceptance, and does not promote a proof output into
+the production dependency graph.

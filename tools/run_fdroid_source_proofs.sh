@@ -6,8 +6,9 @@ set -euo pipefail
 usage() {
   printf '%s\n' \
     'Usage: bash tools/run_fdroid_source_proofs.sh MODE [options]' \
-    'Modes: tests | cli | spake2 | termux' \
+    'Modes: tests | cli | spake2 | termux | view' \
     'Options: --ndk DIR --jdk DIR --jdk-archive FILE --android-jar FILE' \
+    '         --annotation-jar FILE (view only)' \
     '         --sudo (CI namespace setup only) --show-command (do not execute)'
 }
 
@@ -15,7 +16,7 @@ fail() { printf 'SOURCE_PROOF_SANDBOX_FAILED: %s\n' "$*" >&2; exit 2; }
 [[ $# -ge 1 ]] || { usage >&2; exit 2; }
 mode=$1
 shift
-case "$mode" in tests|cli|spake2|termux) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
+case "$mode" in tests|cli|spake2|termux|view) ;; *) usage >&2; fail 'unknown proof mode' ;; esac
 
 use_sudo=false
 show_command=false
@@ -23,22 +24,25 @@ jdk_path=''
 archive_path=''
 android_path=''
 ndk_path=''
+annotation_path=''
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --sudo) [[ $use_sudo == false ]] || fail 'duplicate --sudo'; use_sudo=true; shift ;;
     --show-command) [[ $show_command == false ]] || fail 'duplicate --show-command'; show_command=true; shift ;;
-    --jdk|--jdk-archive|--android-jar|--ndk)
+    --jdk|--jdk-archive|--android-jar|--ndk|--annotation-jar)
       [[ $# -ge 2 && -n $2 && $2 != --* ]] || fail "missing value for $1"
       case "$1" in
         --jdk) [[ -z $jdk_path ]] || fail 'duplicate --jdk'; jdk_path=$2 ;;
         --jdk-archive) [[ -z $archive_path ]] || fail 'duplicate --jdk-archive'; archive_path=$2 ;;
         --android-jar) [[ -z $android_path ]] || fail 'duplicate --android-jar'; android_path=$2 ;;
         --ndk) [[ -z $ndk_path ]] || fail 'duplicate --ndk'; ndk_path=$2 ;;
+        --annotation-jar) [[ -z $annotation_path ]] || fail 'duplicate --annotation-jar'; annotation_path=$2 ;;
       esac
       shift 2 ;;
     *) fail "unknown option: $1" ;;
   esac
 done
+[[ $mode == view || -z $annotation_path ]] || fail '--annotation-jar is permitted only for view mode'
 
 script_path=$(/usr/bin/realpath -e -- "${BASH_SOURCE[0]}")
 source_root=$(/usr/bin/realpath -e -- "$(/usr/bin/dirname -- "$script_path")/..")
@@ -75,7 +79,7 @@ case "$mode" in
     tool_mounts+=(--ro-bind "$ndk_path" /toolchain/ndk)
     target+=(tools/fdroid_cli_source_build.py --ndk /toolchain/ndk --output-dir /scratch/proof)
     ;;
-  spake2|termux)
+  spake2|termux|view)
     [[ -n $jdk_path && -n $archive_path && -z $ndk_path ]] || fail 'Java proofs require --jdk and --jdk-archive, but not --ndk'
     jdk_path=$(external_path "$jdk_path" directory)
     archive_path=$(external_path "$archive_path" file)
@@ -86,11 +90,20 @@ case "$mode" in
       target+=(tools/fdroid_spake2_source_build.py --build --jdk /toolchain/jdk
         --jdk-archive /toolchain/jdk.tar.gz --output /scratch/proof --run-vector-test)
     else
-      [[ -n $android_path ]] || fail 'termux mode requires --android-jar'
+      [[ -n $android_path ]] || fail 'terminal proofs require --android-jar'
       android_path=$(external_path "$android_path" file)
       tool_mounts+=(--ro-bind "$android_path" /toolchain/android.jar)
-      target+=(tools/fdroid_termux_source_build.py --java-home /toolchain/jdk
-        --android-jar /toolchain/android.jar --vendor-archive /toolchain/jdk.tar.gz --output /scratch/proof)
+      if [[ $mode == view ]]; then
+        [[ -n $annotation_path ]] || fail 'view mode requires --annotation-jar'
+        annotation_path=$(external_path "$annotation_path" file)
+        tool_mounts+=(--ro-bind "$annotation_path" /toolchain/annotation.jar)
+        target+=(tools/fdroid_termux_view_source_build.py --java-home /toolchain/jdk
+          --android-jar /toolchain/android.jar --vendor-archive /toolchain/jdk.tar.gz
+          --annotation-jar /toolchain/annotation.jar --output /scratch/proof)
+      else
+        target+=(tools/fdroid_termux_source_build.py --java-home /toolchain/jdk
+          --android-jar /toolchain/android.jar --vendor-archive /toolchain/jdk.tar.gz --output /scratch/proof)
+      fi
     fi
     ;;
 esac
@@ -148,7 +161,7 @@ launch+=(/usr/bin/bwrap "${isolation[@]}"
 diagnostics='import os, stat
 from pathlib import Path
 remaining = 16384
-for name in ("receipt.json", "REBUILD.json", "build-manifest.json", "run-1/javac.stderr", "run-2/javac.stderr", "first/javac.log", "second/javac.log", "first/vector-test.log"):
+for name in ("SUMMARY.json", "receipt.json", "REBUILD.json", "build-manifest.json", "run-1/javac.stderr", "run-2/javac.stderr", "first/javac.log", "second/javac.log", "first/vector-test.log"):
     path = Path("/scratch/proof") / name
     if remaining <= 0 or not path.is_file() or path.is_symlink():
         continue

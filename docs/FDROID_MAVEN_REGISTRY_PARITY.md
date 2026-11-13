@@ -10,8 +10,23 @@ build the app, unpack archives, or execute any downloaded code.
 The tool's default is an **offline input check**, not a registry comparison.
 Adding this tool or passing its mocked tests is not evidence that a download has
 matched. Only a successful authorized `--download-and-compare` run, with its
-retained `PARITY.json`, can establish the byte-parity claim below. No such claim
-is made by this document alone.
+`PARITY.json` receipt, can establish the byte-parity claim below. The actual
+remote checkpoint is recorded here separately from mocked test coverage.
+
+On 2026-11-13, [job 131693882351 in run 43367069641](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43367069641/job/131693882351)
+reported `ALL_EIGHT_REGISTRY_BYTES_MATCH_PINS` from the actual JSON receipt.
+All eight exact payload hashes in the table below matched, with no redirects
+or errors and 12,952,218 downloaded bytes in total. Local input receipts before
+and after were identical. The checked-out PR merge was
+`b8c59e3b6fbf17ae88566dd0d4ae14a55a12b6cc`, containing head
+`2ba0111b2cd9d8eae49f0eb084b19af633854bba`. The job log records the outer
+`timeout 540s` command; the helper itself still does not claim to verify that
+supervisor. The downloaded files were not promoted to the application or
+published as artifacts.
+
+This establishes only the eight tested binary payloads' registry byte parity.
+It does not establish source compilation, POM/transitive dependency parity,
+R8 provenance, a source-only APK, Android device behavior or F-Droid acceptance.
 
 The five ordinary upstream JAR mirrors, two AAR mirrors, and the direct XZ JAR
 are deliberately separate from Droide's custom compatibility artifacts,

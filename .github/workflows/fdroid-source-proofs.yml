@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        proof: [tests, cli, spake2, termux]
+        proof: [tests, cli, spake2, termux, view]
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -95,10 +95,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes bubblewrap
       - name: Provision and verify the existing pinned vendor JDK
-        if: matrix.proof == 'spake2' || matrix.proof == 'termux'
+        if: matrix.proof == 'spake2' || matrix.proof == 'termux' || matrix.proof == 'view'
         run: python3 -B tools/provision_build_jdk.py --output "$RUNNER_TEMP/source-proof-jdk"
       - name: Set up Android tools for trusted SDK provisioning
-        if: matrix.proof == 'cli' || matrix.proof == 'termux'
+        if: matrix.proof == 'cli' || matrix.proof == 'termux' || matrix.proof == 'view'
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           packages: platform-tools
@@ -107,8 +107,28 @@ jobs:
         if: matrix.proof == 'cli'
         run: sdkmanager --install 'ndk;28.2.13676358'
       - name: Provision API 36 (the proof checks the exact android.jar hash)
-        if: matrix.proof == 'termux'
+        if: matrix.proof == 'termux' || matrix.proof == 'view'
         run: sdkmanager --install 'platforms;android-36'
+      - name: Provision only the existing pinned annotation compiler dependency
+        if: matrix.proof == 'view'
+        run: |
+          set -euo pipefail
+          # This public compiler input must be readable by sandbox UID 65534;
+          # the sandbox bind is read-only and no credentials are stored here.
+          umask 022
+          annotation_input="$RUNNER_TEMP/source-proof-annotation-jvm-1.10.0.jar"
+          test ! -e "$annotation_input"
+          test ! -L "$annotation_input"
+          /usr/bin/timeout --signal=TERM --kill-after=5s 90s \
+            /usr/bin/curl --disable --fail --silent --show-error --proto '=https' \
+              --max-time 60 --max-filesize 1048576 \
+              --output "$annotation_input" \
+              'https://dl.google.com/dl/android/maven2/androidx/annotation/annotation-jvm/1.10.0/annotation-jvm-1.10.0.jar'
+          printf '%s  %s\n' \
+            'ddd072ddbb553178e205517ce777b2f05aa9e412982d9ecb4eedc74f1212f697' \
+            "$annotation_input" | /usr/bin/sha256sum --check --strict -
+          # Fixed pinned opaque download only. No redirects, extraction,
+          # execution, Kotlin addition, or production dependency change here.
       - name: Run source proof contract tests offline
         if: matrix.proof == 'tests'
         run: bash tools/run_fdroid_source_proofs.sh tests --sudo
@@ -128,6 +148,14 @@ jobs:
             --jdk "$RUNNER_TEMP/source-proof-jdk/jdk-17.0.20.1+1" \
             --jdk-archive "$RUNNER_TEMP/source-proof-jdk/vendor.tar.gz" \
             --android-jar "$ANDROID_HOME/platforms/android-36/android.jar"
+      - name: Compile complete Terminal View twice against a source-built emulator offline
+        if: matrix.proof == 'view'
+        run: |
+          bash tools/run_fdroid_source_proofs.sh view --sudo \
+            --jdk "$RUNNER_TEMP/source-proof-jdk/jdk-17.0.20.1+1" \
+            --jdk-archive "$RUNNER_TEMP/source-proof-jdk/vendor.tar.gz" \
+            --android-jar "$ANDROID_HOME/platforms/android-36/android.jar" \
+            --annotation-jar "$RUNNER_TEMP/source-proof-annotation-jvm-1.10.0.jar"
       # No APK, compiled replacement JAR/ELF, signing credentials, or artifact
       # publication belongs in this workflow. Scratch outputs disappear when
       # the sandbox exits. Success is not F-Droid or Android-device acceptance.

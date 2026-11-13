@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DRAFT: trusted outer namespace setup for the fixed source-proof sandbox.
+"""Trusted outer namespace setup for the fixed source-proof sandbox.
 
 Invoke with the system Python's -I -B -S options. This is not
 a setuid program, sudo policy, general command runner, or replacement sandbox.
@@ -15,8 +15,9 @@ parent has dropped its own host privileges. Bubblewrap then performs the
 existing read-only mounts, scratch-only writes, capability drop, target UID
 65534, and nested-userns lockout. No host policy or subordinate-ID file changes.
 
-The implementation is pending independent review and a fixed CI setup smoke
-test. Mock tests cannot establish that the runner's LSM permits this setup.
+The reviewed setup passed the fixed GitHub CI readiness probe in run
+43367069641. That is evidence for that runner, not arbitrary host policies;
+mock tests alone cannot establish that another runner's LSM permits this setup.
 """
 
 from __future__ import annotations
@@ -80,7 +81,7 @@ def validate_bwrap(argv: list[str], source_root: str, git_kind: str | None) -> N
     }
     symlinks = {"/bin": "usr/bin", "/sbin": "usr/sbin", "/lib": "usr/lib", "/lib64": "usr/lib64"}
     fixed_binds = {"/usr": "/usr", "/etc/alternatives": "/etc/alternatives", "/etc/ld.so.cache": "/etc/ld.so.cache", "/src": source_root}
-    tool_destinations = {"/toolchain/ndk", "/toolchain/jdk", "/toolchain/jdk.tar.gz", "/toolchain/android.jar"}
+    tool_destinations = {"/toolchain/ndk", "/toolchain/jdk", "/toolchain/jdk.tar.gz", "/toolchain/android.jar", "/toolchain/annotation.jar"}
     seen: dict[str, int] = {}
     binds: dict[str, str] = {}
     bind_positions: dict[str, int] = {}
