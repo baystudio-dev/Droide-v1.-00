@@ -181,10 +181,33 @@ passed eight of nine jobs at head
 engine inspection or final byte-equality admission. That failed result is
 preserved; the wrapper correction requires a fresh actual CI result.
 
-Local fixture/mutation tests, historical-wrapper inspection and successful
-standalone loader CI are not this complete engine build's result. Actual
-successful evidence must identify the head, tested merge, run and job and
-include the complete compact summary before claiming byte reproduction.
+The corrected source-proof run
+[43379184089](https://github.com/baystudio-dev/Droide-v1.-00/actions/runs/43379184089)
+completed **9/9 jobs successfully** at head
+`9f370f255568f035a47e1a538f671bcd5ddb889b`, tested merge
+`5335da7e9fb4c48f1c5568c609c1aec19e25a136`. PRoot job
+`131732864350` passed the final enforced sandbox probe and reported
+`source-built-engine-and-both-loaders-retained-bytes-reproduced`.
+Both independent builds produced the following exact identities:
+
+| Stage | Bytes | SHA-256, identical in both builds |
+| --- | ---: | --- |
+| Raw engine | 301,472 | `2c70827992c5933b8799d95dfcffa15f05cb2171837c4488136c8321edde25db` |
+| Post-strip engine | 265,648 | `6a7babd8480adea03afba45a3cabd89a1387040a0cdc205a90f37185cb4f882b` |
+
+The final bytes equal the original retained engine without updating its pin.
+The nested two-ABI loader proof, both exact wrapper pins/certificates, all
+symbol-backed coupling gates and source/tool/header/output rereads passed.
+Both builds recorded 347 compiler dependency headers, and both compile-only
+`process_vm` and `seccomp_filter` probes succeeded. The pokedata offset is
+1120; its read-only compiled constant is at file offset 64592. The complete,
+untruncated compact summary was retrieved from the job: 10,147 bytes including
+its newline, within the unchanged 12 KiB limit.
+
+The corresponding separate Android run was not yet complete at this recorded
+observation. Local fixture/mutation tests, historical-wrapper inspection and
+prior application CI results are not substituted for this actual compiler
+result or for a still-unintegrated source-only application build.
 
 An enforced data-only inspection of the existing inputs verified all pins,
 143 staged PRoot source files, the talloc source/header pair and a 69-object

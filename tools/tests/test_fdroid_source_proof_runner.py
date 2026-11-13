@@ -331,6 +331,21 @@ class ProofRunnerTests(unittest.TestCase):
             if "uses:" in line:
                 self.assertRegex(line, r"uses: [\w/-]+@[0-9a-f]{40}(?:\s|$)")
 
+    def test_r8_registry_job_is_separate_supervised_data_only_after_sandbox_readiness(self):
+        workflow = WORKFLOW.read_text()
+        start = workflow.index("  r8-registry-parity:")
+        end = workflow.index("  sandbox-readiness:", start)
+        job = workflow[start:end]
+        self.assertIn("needs: sandbox-readiness", job)
+        self.assertIn("timeout-minutes: 4", job)
+        self.assertIn("persist-credentials: false", job)
+        self.assertIn("--signal=TERM --kill-after=5s 180s", job)
+        self.assertIn("/usr/bin/python3 -I -B tools/fdroid_r8_registry_parity.py", job)
+        self.assertIn("--download-and-compare", job)
+        self.assertIn('"$RUNNER_TEMP/droide-r8-registry-parity-proof"', job)
+        for forbidden in ("upload-artifact", "continue-on-error", "secrets.", "sdkmanager", "./gradlew", "java -jar"):
+            self.assertNotIn(forbidden, job)
+
     def test_loader_toolchain_provisioning_is_scoped_and_separate_from_cli(self):
         workflow = WORKFLOW.read_text()
         start = workflow.index("- name: Provision the historical loader NDK and recipe utility")
