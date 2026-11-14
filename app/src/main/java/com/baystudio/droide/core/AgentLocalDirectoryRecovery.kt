@@ -132,8 +132,8 @@ internal object AgentLocalDirectoryRecovery {
                         PermEffect.DENY -> throw ReadDenied("DENIED (policy): read $resource")
                         PermEffect.ASK -> if (index == 0 && relative.isNotEmpty()) {
                             if (!custodyTreeApproved) {
-                                // Root read ALLOW or a prior diagnostic read is not recursive consent. This explicit
-                                // selected-tree approval is local to this one request.
+                                // Root read ALLOW or a prior diagnostic read is not recursive consent.
+                                // This explicit selected-tree approval is local to this one request.
                                 val decision = c.approvals.requestApproval(
                                     "local_deleted_folder_tree", "Read retained folder for ${review.destination}",
                                     "Read this retained folder and all descendants, including hidden and sensitive files, to create the requested archive. " +
@@ -185,7 +185,8 @@ internal object AgentLocalDirectoryRecovery {
                 requireCurrent()
             })
         // The core records committed evidence even if ownership closes after publication.
-
+        // Do not imply rollback or replay when publication succeeded but this call is canceled.
+        // The core returned across Dispatchers.IO; recheck full policy before disclosure.
         requireCurrent()
         return buildJsonObject {
             put("success", true); put("committed", result.committed)

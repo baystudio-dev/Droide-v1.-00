@@ -32,8 +32,8 @@ internal class NativeAssistantRegistry(private val root: File, private val store
             if (j.state(binding.locator) != ToolCallHistoryJournal.State.SETTLED) return null
             val (_, arguments) = j.completedArguments(binding.locator)
             require(arguments.sha256 == binding.argumentsHash)
-            // Recovery receipts are summaries, not arguments/content. Preserve the private result unchanged
-            // and require explicit recovery if a legacy receipt cannot fit this envelope.
+            // Recovery receipts are summaries, not arguments/content. Preserve the private result
+            // unchanged and require explicit recovery if a legacy receipt cannot fit this envelope.
             val bytes = object : java.io.ByteArrayOutputStream() {
                 override fun write(value: Int) { require(count < 262144) { "Settled receipt exceeds safe recovery envelope; private result retained" };super.write(value) }
                 override fun write(data: ByteArray, offset: Int, length: Int) {
@@ -117,8 +117,8 @@ internal class NativeAssistantRegistry(private val root: File, private val store
         } finally { temp.delete() }
         return id
     }
-    /** A fork copies native source ownership only and never creates runtime approvals. */
-
+    /** Canonical envelope contains all admitted field data; redundant original auxiliary spools stay retained in source.
+     * A fork copies native source ownership only and never creates runtime approvals. */
     fun copyForFork(id: String, owner: OwnedResponseContentStore.Owner, targetIdentity: ProviderReplayTarget,
         target: NativeAssistantRegistry, targetOwner: OwnedResponseContentStore.Owner): String {
         require(targetOwner.sessionId != owner.sessionId)
@@ -162,8 +162,7 @@ internal class NativeAssistantRegistry(private val root: File, private val store
         val handle=OwnedResponseContentStore.Handle.parse(r.handle)
         val source=StreamedFileArgumentExtractor.Source(handle,r.bytes,r.chars,r.hash,OwnedResponseContentStore.Kind.PRIVATE_CONTINUATION)
         source.verify(session)
-        // Semantic association was durably admitted from OwnedChatResult, not reconstructed from model
-        // text.
+        // Semantic association was durably admitted from OwnedChatResult, not reconstructed from model text.
         val replay=OwnedNormalizedResponse.PrivateReplay.admit(session,handle,target) { StreamedJsonValidator.requireObject(it) }
         return BoundAssistant(owner,session,replay,r.calls,journal,r.sourceCalls)
     }

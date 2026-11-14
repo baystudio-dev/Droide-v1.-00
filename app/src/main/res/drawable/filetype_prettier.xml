@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Icon Theme, MIT. See third_party/material-document-icons/manifest.json.
+     Upstream path data is unchanged. Word fill is adjusted for dark/light contrast. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <path
+        android:fillColor="#f44336"
+        android:fillType="nonZero"
+        android:pathData="M2 8h4v1H2zm0 6h4v1H2zm9-10h3v1h-3zM2 2h3v1H2z" />
+    <path
+        android:fillColor="#f9a825"
+        android:fillType="nonZero"
+        android:pathData="M9 2h3v1H9zm1 4h4v1h-4zm-5 6h1v1H5zm-3-2h6v1H2z" />
+    <path
+        android:fillColor="#26a69a"
+        android:fillType="nonZero"
+        android:pathData="M2 12h3v1H2zm7-4h5v1H9zM2 4h4v1H2zm3-2h4v1H5z" />
+    <path
+        android:fillColor="#ba68c8"
+        android:fillType="nonZero"
+        android:pathData="M2 6h3v1H2zm7-2h2v1H9zm-1 6h4v1H8z" />
+</vector>

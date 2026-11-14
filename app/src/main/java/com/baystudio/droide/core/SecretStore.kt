@@ -10,6 +10,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+ 
 class SecretStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("droide_secrets_v1", Context.MODE_PRIVATE)
     private val alias = "droide_api_keys_v1"
@@ -36,6 +37,7 @@ class SecretStore(context: Context) {
             if (packed[0] == FORMAT_AAD_BOUND) {
                 decryptAadBound(providerId, packed)
             } else {
+                
 
                 val legacy = decryptLegacy(packed)
                 put(providerId, legacy)

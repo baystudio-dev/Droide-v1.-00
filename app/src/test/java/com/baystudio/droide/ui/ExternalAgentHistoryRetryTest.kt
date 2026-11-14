@@ -8,6 +8,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual controller on one dispatcher; receipt-bearing fake storage, no Android/SQLite or CLI. */
 class ExternalAgentHistoryRetryTest {
     private val spec = WorkspaceAgentPluginSpec("retry-a", "plugin.retry.a", "Retry A", "never-run", emptyList())
     private val other = WorkspaceAgentPluginSpec("retry-b", "plugin.retry.b", "Retry B", "never-run", emptyList())

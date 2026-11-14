@@ -1,0 +1,404 @@
+{
+  "artifactKind": "R46_ACTUAL_AAR_HOST_JVM_REGRESSIONS",
+  "deviceValidated": false,
+  "nativeRuntimeEvidence": null,
+  "productionSourceCompilationPerformed": false,
+  "rawEvidenceSha256ByPath": {
+    "admitted-artifact.json": "bb321f5889e18a18eade9a2d37ea8f4a535421742af45ce6defcd7e4869d4331",
+    "baseline/actual-aar-classes.jar": "57d86325ce93620e859e088cfbb82c23453365a30c026f280a5e907c2a0c6790",
+    "baseline/compile-fixtures-only.command.json": "483a3d456ebf812641d9cf43bec818c0d80fa674a87a08b2246845a6e13cc532",
+    "baseline/compile-fixtures-only.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline/compile-fixtures-only.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline/fixture-classes/com/termux/terminal/AarFixtureRunner$1.class": "6e7279800b0365a347411e86376f8877302b34c231f2b72295e9fa55b5bde038",
+    "baseline/fixture-classes/com/termux/terminal/AarFixtureRunner.class": "6e54bbf7d766bfc628901d479db242e04df09d6038b9ecdf631d9ca45e9310d7",
+    "baseline/fixture-classes/com/termux/terminal/ReaderHealthyOutputTiming$PipeReader.class": "ee855c5e35dac4ead9ec078fd9bfa9035d8e7aee6a4822b59fbdc4e5881f9c0d",
+    "baseline/fixture-classes/com/termux/terminal/ReaderHealthyOutputTiming.class": "7499420bade70c7445087ce145fe38cab5527a3628a6d4f98292b86c04497e33",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$1.class": "2d94b421f514c718838cc6b8032d79c0cc0ff481e756f29337c4bc5ef40043b7",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$2.class": "306dd3708e0f9a8b24462455a62c321b1cacb6de4dab05e497671e5a727e1e07",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$3.class": "659b2afa7e52e87ed941ee2ca8ca15bdd53918823beecdb45908e1d890181d40",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$4.class": "951d2cb0a7d63a5e926718223cac1ca5f1ea0582d6c51c443c4bd6b7795de510",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeIo.class": "0e77f76ca36bf1fd67b6182c443ed52e689c3d7b345a3f9e7fa81c6416dce329",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeOwner.class": "8cecca337d5df430351ece76736a679187e827c32ca8167066a0a48025110b0c",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeReader.class": "81334538320a91e83d57c09f29cc9a3a62b639915c47f5329ffc63b1c86933c8",
+    "baseline/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest.class": "5898a810c49a58e336e2426a3e5459e1d5835fe048fb0b14d5650bdc2ac9e94f",
+    "baseline/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$1.class": "46dea2585c7d45de88fff4b011c0ff375e6e61ae5c779e938b998e3a4ea53b31",
+    "baseline/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$2.class": "401ca2df01e2a75dab5684179a4038d45dc71086b1988a3057966eca9c7c320d",
+    "baseline/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$Attempt.class": "6e318e41862e3326097d0c496d949a740ae9fd1af7857881cf979cf9fdfcfcea",
+    "baseline/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$ScriptedReader.class": "266eb091204fc2178b9a23cae3caadc6bf1718e9926c1936cde7a32485824332",
+    "baseline/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest.class": "8f84d90d8d79d08cefa0e15e10c79500ce3e881920e1825425dd5d919f9969fb",
+    "baseline/fixture-sources/AarFixtureRunner.java": "609896f2d5f092000f2d5c3e4960924ca5e887f35a2b72c8407244f4d5e66d7b",
+    "baseline/fixture-sources/ReaderHealthyOutputTiming.java": "9ce8a622834b22864dc2723df75b7214a92d91a09f0d227d7f6f2bedff21d79d",
+    "baseline/fixture-sources/TerminalOwnedProcessTest.java": "6169fa33f12fc537490ee08f1cf2302489622c79a8cb2f85c16aa0e3065df52c",
+    "baseline/fixture-sources/TerminalPtyReadProgressTest.java": "c62c06cea093824dfd3977850350f6c2c56fa3452f5f255dbb91f8ec937be360",
+    "baseline/host-pipe-actual-aar.command.json": "bc327fc2222a5537e9b5b445e7845181a170571a23e8c2d760bebdbbd102e93e",
+    "baseline/host-pipe-actual-aar.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline/host-pipe-actual-aar.stdout.log": "984be13103c74590044e2420b3b74972a3b3cb403aa68ac1ba7436d2b112e7de",
+    "baseline/junit-actual-aar.command.json": "76de2243a278b92983ff6df321a2761685b1fb8b49035a904b5e0e357906d9fa",
+    "baseline/junit-actual-aar.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "baseline/junit-actual-aar.stdout.log": "9abdd3c1273d6379cb56e3620c1d1a4c11d418e001e3b41abe7a10b9233ad1a0",
+    "dependencies/hamcrest-core-1.3.jar": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9",
+    "dependencies/junit-4.13.2.jar": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3",
+    "independent/actual-aar-classes.jar": "2525048ffeb4e6729480d8e9628f33a55793b83caf02dd12fff91e741e72058a",
+    "independent/compile-fixtures-only.command.json": "34de8dc37af2b5f600551699323ca3171f24b2e8fde31593f00b1c63e62d3d52",
+    "independent/compile-fixtures-only.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent/compile-fixtures-only.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent/fixture-classes/com/termux/terminal/AarFixtureRunner$1.class": "6e7279800b0365a347411e86376f8877302b34c231f2b72295e9fa55b5bde038",
+    "independent/fixture-classes/com/termux/terminal/AarFixtureRunner.class": "6e54bbf7d766bfc628901d479db242e04df09d6038b9ecdf631d9ca45e9310d7",
+    "independent/fixture-classes/com/termux/terminal/ReaderHealthyOutputTiming$PipeReader.class": "ee855c5e35dac4ead9ec078fd9bfa9035d8e7aee6a4822b59fbdc4e5881f9c0d",
+    "independent/fixture-classes/com/termux/terminal/ReaderHealthyOutputTiming.class": "7499420bade70c7445087ce145fe38cab5527a3628a6d4f98292b86c04497e33",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$1.class": "2d94b421f514c718838cc6b8032d79c0cc0ff481e756f29337c4bc5ef40043b7",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$2.class": "306dd3708e0f9a8b24462455a62c321b1cacb6de4dab05e497671e5a727e1e07",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$3.class": "659b2afa7e52e87ed941ee2ca8ca15bdd53918823beecdb45908e1d890181d40",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$4.class": "951d2cb0a7d63a5e926718223cac1ca5f1ea0582d6c51c443c4bd6b7795de510",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeIo.class": "0e77f76ca36bf1fd67b6182c443ed52e689c3d7b345a3f9e7fa81c6416dce329",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeOwner.class": "8cecca337d5df430351ece76736a679187e827c32ca8167066a0a48025110b0c",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeReader.class": "81334538320a91e83d57c09f29cc9a3a62b639915c47f5329ffc63b1c86933c8",
+    "independent/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest.class": "5898a810c49a58e336e2426a3e5459e1d5835fe048fb0b14d5650bdc2ac9e94f",
+    "independent/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$1.class": "46dea2585c7d45de88fff4b011c0ff375e6e61ae5c779e938b998e3a4ea53b31",
+    "independent/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$2.class": "401ca2df01e2a75dab5684179a4038d45dc71086b1988a3057966eca9c7c320d",
+    "independent/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$Attempt.class": "6e318e41862e3326097d0c496d949a740ae9fd1af7857881cf979cf9fdfcfcea",
+    "independent/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$ScriptedReader.class": "266eb091204fc2178b9a23cae3caadc6bf1718e9926c1936cde7a32485824332",
+    "independent/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest.class": "8f84d90d8d79d08cefa0e15e10c79500ce3e881920e1825425dd5d919f9969fb",
+    "independent/fixture-sources/AarFixtureRunner.java": "609896f2d5f092000f2d5c3e4960924ca5e887f35a2b72c8407244f4d5e66d7b",
+    "independent/fixture-sources/ReaderHealthyOutputTiming.java": "9ce8a622834b22864dc2723df75b7214a92d91a09f0d227d7f6f2bedff21d79d",
+    "independent/fixture-sources/TerminalOwnedProcessTest.java": "6169fa33f12fc537490ee08f1cf2302489622c79a8cb2f85c16aa0e3065df52c",
+    "independent/fixture-sources/TerminalPtyReadProgressTest.java": "c62c06cea093824dfd3977850350f6c2c56fa3452f5f255dbb91f8ec937be360",
+    "independent/host-pipe-actual-aar.command.json": "a24942a8a3f295c9bb323155074ba11924b64e29084b30d20f6657e226b56e17",
+    "independent/host-pipe-actual-aar.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent/host-pipe-actual-aar.stdout.log": "134a24ce7a4236f19810f5f8190579764ed374e463277df2259b699516ccc98c",
+    "independent/junit-actual-aar.command.json": "a6c899380f24eececd35e9cae8c4b681c7c84977097815deb92417a7d49805bb",
+    "independent/junit-actual-aar.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "independent/junit-actual-aar.stdout.log": "04a159f1de622f19231dbc97c62034254f8c9085c8bb59b4963a4ada18f748e8",
+    "inputs-after.json": "02bad6dd59d49b9534d1e3966e2e7743aa8774dbc69c565f3fc3f49c7e0bc205",
+    "inputs-before.json": "02bad6dd59d49b9534d1e3966e2e7743aa8774dbc69c565f3fc3f49c7e0bc205",
+    "primary/actual-aar-classes.jar": "2525048ffeb4e6729480d8e9628f33a55793b83caf02dd12fff91e741e72058a",
+    "primary/compile-fixtures-only.command.json": "92116d73eac47d0f76991972ea2d2e255237260ba6e6a2929bf1219706e6abda",
+    "primary/compile-fixtures-only.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "primary/compile-fixtures-only.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "primary/fixture-classes/com/termux/terminal/AarFixtureRunner$1.class": "6e7279800b0365a347411e86376f8877302b34c231f2b72295e9fa55b5bde038",
+    "primary/fixture-classes/com/termux/terminal/AarFixtureRunner.class": "6e54bbf7d766bfc628901d479db242e04df09d6038b9ecdf631d9ca45e9310d7",
+    "primary/fixture-classes/com/termux/terminal/ReaderHealthyOutputTiming$PipeReader.class": "ee855c5e35dac4ead9ec078fd9bfa9035d8e7aee6a4822b59fbdc4e5881f9c0d",
+    "primary/fixture-classes/com/termux/terminal/ReaderHealthyOutputTiming.class": "7499420bade70c7445087ce145fe38cab5527a3628a6d4f98292b86c04497e33",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$1.class": "2d94b421f514c718838cc6b8032d79c0cc0ff481e756f29337c4bc5ef40043b7",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$2.class": "306dd3708e0f9a8b24462455a62c321b1cacb6de4dab05e497671e5a727e1e07",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$3.class": "659b2afa7e52e87ed941ee2ca8ca15bdd53918823beecdb45908e1d890181d40",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$4.class": "951d2cb0a7d63a5e926718223cac1ca5f1ea0582d6c51c443c4bd6b7795de510",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeIo.class": "0e77f76ca36bf1fd67b6182c443ed52e689c3d7b345a3f9e7fa81c6416dce329",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeOwner.class": "8cecca337d5df430351ece76736a679187e827c32ca8167066a0a48025110b0c",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest$FakeReader.class": "81334538320a91e83d57c09f29cc9a3a62b639915c47f5329ffc63b1c86933c8",
+    "primary/fixture-classes/com/termux/terminal/TerminalOwnedProcessTest.class": "5898a810c49a58e336e2426a3e5459e1d5835fe048fb0b14d5650bdc2ac9e94f",
+    "primary/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$1.class": "46dea2585c7d45de88fff4b011c0ff375e6e61ae5c779e938b998e3a4ea53b31",
+    "primary/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$2.class": "401ca2df01e2a75dab5684179a4038d45dc71086b1988a3057966eca9c7c320d",
+    "primary/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$Attempt.class": "6e318e41862e3326097d0c496d949a740ae9fd1af7857881cf979cf9fdfcfcea",
+    "primary/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest$ScriptedReader.class": "266eb091204fc2178b9a23cae3caadc6bf1718e9926c1936cde7a32485824332",
+    "primary/fixture-classes/com/termux/terminal/TerminalPtyReadProgressTest.class": "8f84d90d8d79d08cefa0e15e10c79500ce3e881920e1825425dd5d919f9969fb",
+    "primary/fixture-sources/AarFixtureRunner.java": "609896f2d5f092000f2d5c3e4960924ca5e887f35a2b72c8407244f4d5e66d7b",
+    "primary/fixture-sources/ReaderHealthyOutputTiming.java": "9ce8a622834b22864dc2723df75b7214a92d91a09f0d227d7f6f2bedff21d79d",
+    "primary/fixture-sources/TerminalOwnedProcessTest.java": "6169fa33f12fc537490ee08f1cf2302489622c79a8cb2f85c16aa0e3065df52c",
+    "primary/fixture-sources/TerminalPtyReadProgressTest.java": "c62c06cea093824dfd3977850350f6c2c56fa3452f5f255dbb91f8ec937be360",
+    "primary/host-pipe-actual-aar.command.json": "d48ca7e30b5f1726055026b0f3d89daba806871f3370fd5186e73d7f1f7cf2aa",
+    "primary/host-pipe-actual-aar.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "primary/host-pipe-actual-aar.stdout.log": "4b2a44ba3bd43902da38aa6186c4ad589fc1b3ee345e6d9d33f1735402fe7db8",
+    "primary/junit-actual-aar.command.json": "9fa724d4edaa5a352df1460de4a7656a446eb915d6e137ef8c293ea4c9ea4822",
+    "primary/junit-actual-aar.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "primary/junit-actual-aar.stdout.log": "6ecae9f48c5b687c7ed324ce5cc25881fb051ca86b418a189904bd755cd89cd3",
+    "tool-identities.json": "adbd73240d990abc06acf8ea60b6c5cad4ee2da12ecbe3a46781e7d56a95c894"
+  },
+  "releaseCompatible": false,
+  "results": {
+    "baseline": {
+      "aarPath": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/app/libs/terminal-emulator-v0.118.0-droide-input.aar",
+      "aarSha256": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+      "classesJarSha256": "57d86325ce93620e859e088cfbb82c23453365a30c026f280a5e907c2a0c6790",
+      "expectedFailureNames": [
+        "intermittentRetriesResetAfterEachSuccessfulDelivery(com.termux.terminal.TerminalPtyReadProgressTest)",
+        "sustainedSuccessfulDeliveryDoesNotBackoff(com.termux.terminal.TerminalPtyReadProgressTest)"
+      ],
+      "failures": 2,
+      "fixtureCompiledSha256ByPath": {
+        "com/termux/terminal/AarFixtureRunner$1.class": "6e7279800b0365a347411e86376f8877302b34c231f2b72295e9fa55b5bde038",
+        "com/termux/terminal/AarFixtureRunner.class": "6e54bbf7d766bfc628901d479db242e04df09d6038b9ecdf631d9ca45e9310d7",
+        "com/termux/terminal/ReaderHealthyOutputTiming$PipeReader.class": "ee855c5e35dac4ead9ec078fd9bfa9035d8e7aee6a4822b59fbdc4e5881f9c0d",
+        "com/termux/terminal/ReaderHealthyOutputTiming.class": "7499420bade70c7445087ce145fe38cab5527a3628a6d4f98292b86c04497e33",
+        "com/termux/terminal/TerminalOwnedProcessTest$1.class": "2d94b421f514c718838cc6b8032d79c0cc0ff481e756f29337c4bc5ef40043b7",
+        "com/termux/terminal/TerminalOwnedProcessTest$2.class": "306dd3708e0f9a8b24462455a62c321b1cacb6de4dab05e497671e5a727e1e07",
+        "com/termux/terminal/TerminalOwnedProcessTest$3.class": "659b2afa7e52e87ed941ee2ca8ca15bdd53918823beecdb45908e1d890181d40",
+        "com/termux/terminal/TerminalOwnedProcessTest$4.class": "951d2cb0a7d63a5e926718223cac1ca5f1ea0582d6c51c443c4bd6b7795de510",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeIo.class": "0e77f76ca36bf1fd67b6182c443ed52e689c3d7b345a3f9e7fa81c6416dce329",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeOwner.class": "8cecca337d5df430351ece76736a679187e827c32ca8167066a0a48025110b0c",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeReader.class": "81334538320a91e83d57c09f29cc9a3a62b639915c47f5329ffc63b1c86933c8",
+        "com/termux/terminal/TerminalOwnedProcessTest.class": "5898a810c49a58e336e2426a3e5459e1d5835fe048fb0b14d5650bdc2ac9e94f",
+        "com/termux/terminal/TerminalPtyReadProgressTest$1.class": "46dea2585c7d45de88fff4b011c0ff375e6e61ae5c779e938b998e3a4ea53b31",
+        "com/termux/terminal/TerminalPtyReadProgressTest$2.class": "401ca2df01e2a75dab5684179a4038d45dc71086b1988a3057966eca9c7c320d",
+        "com/termux/terminal/TerminalPtyReadProgressTest$Attempt.class": "6e318e41862e3326097d0c496d949a740ae9fd1af7857881cf979cf9fdfcfcea",
+        "com/termux/terminal/TerminalPtyReadProgressTest$ScriptedReader.class": "266eb091204fc2178b9a23cae3caadc6bf1718e9926c1936cde7a32485824332",
+        "com/termux/terminal/TerminalPtyReadProgressTest.class": "8f84d90d8d79d08cefa0e15e10c79500ce3e881920e1825425dd5d919f9969fb"
+      },
+      "loadedClasses": {
+        "com.termux.terminal.ByteQueue": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar!/com/termux/terminal/ByteQueue.class",
+          "sha256": "c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33"
+        },
+        "com.termux.terminal.TerminalProcessOwner": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar!/com/termux/terminal/TerminalProcessOwner.class",
+          "sha256": "1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0"
+        },
+        "com.termux.terminal.TerminalPtyIo": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar!/com/termux/terminal/TerminalPtyIo.class",
+          "sha256": "dad71a2616d8896baad01e244ac3548f014960822462961d7569a6e557b6ee51"
+        }
+      },
+      "measuredHostPipe": {
+        "backoffs": "64",
+        "bytes": "4194304",
+        "elapsedNanos": "678759292",
+        "nativePtyExecuted": "false",
+        "readerThreadCpuNanos": "16083884",
+        "reads": "1025",
+        "requestedBackoffMillis": "640",
+        "sha256": "ceb45b1f82c716b98b0e046907911c93cba2afd4c4c0e122c6493f5a4bfa7722"
+      },
+      "preservedHostPipeTrials": [
+        {
+          "backoffs": "4",
+          "bytes": "262144",
+          "elapsedMillis": "61.741",
+          "integrity": "exact",
+          "reads": "65",
+          "requestedBackoffMillis": "40",
+          "trial": "0",
+          "warmup": "true"
+        },
+        {
+          "backoffs": "64",
+          "bytes": "4194304",
+          "elapsedMillis": "678.237",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "640",
+          "trial": "1",
+          "warmup": "false"
+        },
+        {
+          "backoffs": "64",
+          "bytes": "4194304",
+          "elapsedMillis": "674.796",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "640",
+          "trial": "2",
+          "warmup": "false"
+        },
+        {
+          "backoffs": "64",
+          "bytes": "4194304",
+          "elapsedMillis": "675.161",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "640",
+          "trial": "3",
+          "warmup": "false"
+        }
+      ],
+      "tests": 25
+    },
+    "independent": {
+      "aarPath": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/build/independent/terminal-emulator-r46-private.aar",
+      "aarSha256": "e78fd1508f55a43d7e0a8de6a8b5fa4ce165b34c053d2c442b19d72d4c07463d",
+      "classesJarSha256": "2525048ffeb4e6729480d8e9628f33a55793b83caf02dd12fff91e741e72058a",
+      "expectedFailureNames": [],
+      "failures": 0,
+      "fixtureCompiledSha256ByPath": {
+        "com/termux/terminal/AarFixtureRunner$1.class": "6e7279800b0365a347411e86376f8877302b34c231f2b72295e9fa55b5bde038",
+        "com/termux/terminal/AarFixtureRunner.class": "6e54bbf7d766bfc628901d479db242e04df09d6038b9ecdf631d9ca45e9310d7",
+        "com/termux/terminal/ReaderHealthyOutputTiming$PipeReader.class": "ee855c5e35dac4ead9ec078fd9bfa9035d8e7aee6a4822b59fbdc4e5881f9c0d",
+        "com/termux/terminal/ReaderHealthyOutputTiming.class": "7499420bade70c7445087ce145fe38cab5527a3628a6d4f98292b86c04497e33",
+        "com/termux/terminal/TerminalOwnedProcessTest$1.class": "2d94b421f514c718838cc6b8032d79c0cc0ff481e756f29337c4bc5ef40043b7",
+        "com/termux/terminal/TerminalOwnedProcessTest$2.class": "306dd3708e0f9a8b24462455a62c321b1cacb6de4dab05e497671e5a727e1e07",
+        "com/termux/terminal/TerminalOwnedProcessTest$3.class": "659b2afa7e52e87ed941ee2ca8ca15bdd53918823beecdb45908e1d890181d40",
+        "com/termux/terminal/TerminalOwnedProcessTest$4.class": "951d2cb0a7d63a5e926718223cac1ca5f1ea0582d6c51c443c4bd6b7795de510",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeIo.class": "0e77f76ca36bf1fd67b6182c443ed52e689c3d7b345a3f9e7fa81c6416dce329",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeOwner.class": "8cecca337d5df430351ece76736a679187e827c32ca8167066a0a48025110b0c",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeReader.class": "81334538320a91e83d57c09f29cc9a3a62b639915c47f5329ffc63b1c86933c8",
+        "com/termux/terminal/TerminalOwnedProcessTest.class": "5898a810c49a58e336e2426a3e5459e1d5835fe048fb0b14d5650bdc2ac9e94f",
+        "com/termux/terminal/TerminalPtyReadProgressTest$1.class": "46dea2585c7d45de88fff4b011c0ff375e6e61ae5c779e938b998e3a4ea53b31",
+        "com/termux/terminal/TerminalPtyReadProgressTest$2.class": "401ca2df01e2a75dab5684179a4038d45dc71086b1988a3057966eca9c7c320d",
+        "com/termux/terminal/TerminalPtyReadProgressTest$Attempt.class": "6e318e41862e3326097d0c496d949a740ae9fd1af7857881cf979cf9fdfcfcea",
+        "com/termux/terminal/TerminalPtyReadProgressTest$ScriptedReader.class": "266eb091204fc2178b9a23cae3caadc6bf1718e9926c1936cde7a32485824332",
+        "com/termux/terminal/TerminalPtyReadProgressTest.class": "8f84d90d8d79d08cefa0e15e10c79500ce3e881920e1825425dd5d919f9969fb"
+      },
+      "loadedClasses": {
+        "com.termux.terminal.ByteQueue": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar!/com/termux/terminal/ByteQueue.class",
+          "sha256": "c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33"
+        },
+        "com.termux.terminal.TerminalProcessOwner": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar!/com/termux/terminal/TerminalProcessOwner.class",
+          "sha256": "1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0"
+        },
+        "com.termux.terminal.TerminalPtyIo": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar!/com/termux/terminal/TerminalPtyIo.class",
+          "sha256": "a862712e743f276925bfdc480e00dabd9e31a4cc54c68aae0af38eb0e84a3e1f"
+        }
+      },
+      "measuredHostPipe": {
+        "backoffs": "0",
+        "bytes": "4194304",
+        "elapsedNanos": "121882695",
+        "nativePtyExecuted": "false",
+        "readerThreadCpuNanos": "60521713",
+        "reads": "1025",
+        "requestedBackoffMillis": "0",
+        "sha256": "ceb45b1f82c716b98b0e046907911c93cba2afd4c4c0e122c6493f5a4bfa7722"
+      },
+      "preservedHostPipeTrials": [
+        {
+          "backoffs": "0",
+          "bytes": "262144",
+          "elapsedMillis": "30.550",
+          "integrity": "exact",
+          "reads": "65",
+          "requestedBackoffMillis": "0",
+          "trial": "0",
+          "warmup": "true"
+        },
+        {
+          "backoffs": "0",
+          "bytes": "4194304",
+          "elapsedMillis": "59.996",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "0",
+          "trial": "1",
+          "warmup": "false"
+        },
+        {
+          "backoffs": "0",
+          "bytes": "4194304",
+          "elapsedMillis": "55.779",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "0",
+          "trial": "2",
+          "warmup": "false"
+        },
+        {
+          "backoffs": "0",
+          "bytes": "4194304",
+          "elapsedMillis": "60.265",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "0",
+          "trial": "3",
+          "warmup": "false"
+        }
+      ],
+      "tests": 25
+    },
+    "primary": {
+      "aarPath": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/build/primary/terminal-emulator-r46-private.aar",
+      "aarSha256": "e78fd1508f55a43d7e0a8de6a8b5fa4ce165b34c053d2c442b19d72d4c07463d",
+      "classesJarSha256": "2525048ffeb4e6729480d8e9628f33a55793b83caf02dd12fff91e741e72058a",
+      "expectedFailureNames": [],
+      "failures": 0,
+      "fixtureCompiledSha256ByPath": {
+        "com/termux/terminal/AarFixtureRunner$1.class": "6e7279800b0365a347411e86376f8877302b34c231f2b72295e9fa55b5bde038",
+        "com/termux/terminal/AarFixtureRunner.class": "6e54bbf7d766bfc628901d479db242e04df09d6038b9ecdf631d9ca45e9310d7",
+        "com/termux/terminal/ReaderHealthyOutputTiming$PipeReader.class": "ee855c5e35dac4ead9ec078fd9bfa9035d8e7aee6a4822b59fbdc4e5881f9c0d",
+        "com/termux/terminal/ReaderHealthyOutputTiming.class": "7499420bade70c7445087ce145fe38cab5527a3628a6d4f98292b86c04497e33",
+        "com/termux/terminal/TerminalOwnedProcessTest$1.class": "2d94b421f514c718838cc6b8032d79c0cc0ff481e756f29337c4bc5ef40043b7",
+        "com/termux/terminal/TerminalOwnedProcessTest$2.class": "306dd3708e0f9a8b24462455a62c321b1cacb6de4dab05e497671e5a727e1e07",
+        "com/termux/terminal/TerminalOwnedProcessTest$3.class": "659b2afa7e52e87ed941ee2ca8ca15bdd53918823beecdb45908e1d890181d40",
+        "com/termux/terminal/TerminalOwnedProcessTest$4.class": "951d2cb0a7d63a5e926718223cac1ca5f1ea0582d6c51c443c4bd6b7795de510",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeIo.class": "0e77f76ca36bf1fd67b6182c443ed52e689c3d7b345a3f9e7fa81c6416dce329",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeOwner.class": "8cecca337d5df430351ece76736a679187e827c32ca8167066a0a48025110b0c",
+        "com/termux/terminal/TerminalOwnedProcessTest$FakeReader.class": "81334538320a91e83d57c09f29cc9a3a62b639915c47f5329ffc63b1c86933c8",
+        "com/termux/terminal/TerminalOwnedProcessTest.class": "5898a810c49a58e336e2426a3e5459e1d5835fe048fb0b14d5650bdc2ac9e94f",
+        "com/termux/terminal/TerminalPtyReadProgressTest$1.class": "46dea2585c7d45de88fff4b011c0ff375e6e61ae5c779e938b998e3a4ea53b31",
+        "com/termux/terminal/TerminalPtyReadProgressTest$2.class": "401ca2df01e2a75dab5684179a4038d45dc71086b1988a3057966eca9c7c320d",
+        "com/termux/terminal/TerminalPtyReadProgressTest$Attempt.class": "6e318e41862e3326097d0c496d949a740ae9fd1af7857881cf979cf9fdfcfcea",
+        "com/termux/terminal/TerminalPtyReadProgressTest$ScriptedReader.class": "266eb091204fc2178b9a23cae3caadc6bf1718e9926c1936cde7a32485824332",
+        "com/termux/terminal/TerminalPtyReadProgressTest.class": "8f84d90d8d79d08cefa0e15e10c79500ce3e881920e1825425dd5d919f9969fb"
+      },
+      "loadedClasses": {
+        "com.termux.terminal.ByteQueue": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/primary/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/primary/actual-aar-classes.jar!/com/termux/terminal/ByteQueue.class",
+          "sha256": "c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33"
+        },
+        "com.termux.terminal.TerminalProcessOwner": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/primary/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/primary/actual-aar-classes.jar!/com/termux/terminal/TerminalProcessOwner.class",
+          "sha256": "1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0"
+        },
+        "com.termux.terminal.TerminalPtyIo": {
+          "codeSource": "file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/primary/actual-aar-classes.jar",
+          "resource": "jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/primary/actual-aar-classes.jar!/com/termux/terminal/TerminalPtyIo.class",
+          "sha256": "a862712e743f276925bfdc480e00dabd9e31a4cc54c68aae0af38eb0e84a3e1f"
+        }
+      },
+      "measuredHostPipe": {
+        "backoffs": "0",
+        "bytes": "4194304",
+        "elapsedNanos": "69819994",
+        "nativePtyExecuted": "false",
+        "readerThreadCpuNanos": "41030241",
+        "reads": "1025",
+        "requestedBackoffMillis": "0",
+        "sha256": "ceb45b1f82c716b98b0e046907911c93cba2afd4c4c0e122c6493f5a4bfa7722"
+      },
+      "preservedHostPipeTrials": [
+        {
+          "backoffs": "0",
+          "bytes": "262144",
+          "elapsedMillis": "28.244",
+          "integrity": "exact",
+          "reads": "65",
+          "requestedBackoffMillis": "0",
+          "trial": "0",
+          "warmup": "true"
+        },
+        {
+          "backoffs": "0",
+          "bytes": "4194304",
+          "elapsedMillis": "64.075",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "0",
+          "trial": "1",
+          "warmup": "false"
+        },
+        {
+          "backoffs": "0",
+          "bytes": "4194304",
+          "elapsedMillis": "47.080",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "0",
+          "trial": "2",
+          "warmup": "false"
+        },
+        {
+          "backoffs": "0",
+          "bytes": "4194304",
+          "elapsedMillis": "44.347",
+          "integrity": "exact",
+          "reads": "1025",
+          "requestedBackoffMillis": "0",
+          "trial": "3",
+          "warmup": "false"
+        }
+      ],
+      "tests": 25
+    }
+  },
+  "runnerSha256": "d418c70dc83c8f58b5130067bc6f8babf8fc94f15d905bf86884e6452508c58f",
+  "schemaVersion": 1,
+  "scope": "Host JVM fixtures and stdout pipe only"
+}

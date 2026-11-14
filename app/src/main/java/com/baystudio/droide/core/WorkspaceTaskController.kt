@@ -38,8 +38,8 @@ class WorkspaceTaskController(
             message = "Preparing ${selected.first().label}…", error = null,
             results = _state.value.results - selected.map { it.label }.toSet())
         val operation = scope.async(start = CoroutineStart.LAZY) {
-            // Admission must precede preparation: saving/formatting can already mutate the selected
-            // workspace before the subprocess is started.
+            // Admission must precede preparation: saving/formatting can already mutate
+            // the selected workspace before the subprocess is started.
             val lease = acquireLease(selected.first().label) { stop() }
             try {
                 // Do not retain a disposed editor/panel through the entire build.
@@ -58,7 +58,7 @@ class WorkspaceTaskController(
             } finally { lease?.close() }
         }
         activeJob = operation
-
+        // Admission stays busy until coroutine and subprocess/foreground cleanup have completed.
         operation.invokeOnCompletion { failure ->
             synchronized(lock) {
                 if (activeJob === operation) {
@@ -74,7 +74,7 @@ class WorkspaceTaskController(
                 }
             }
         }
-
+        // async retains failures for the completion observer instead of an uncaught Android crash.
         operation.start()
         true
     }

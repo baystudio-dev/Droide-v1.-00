@@ -4,7 +4,7 @@ import java.io.File
 
 internal object LocalUbuntuNodeDistribution {
     const val VERSION = "Latest Node.js"
-
+    // Keep the authority recorded by existing Node22 receipts valid.
     const val AUTHORITY = "https://nodejs.org/download/release/latest-v22.x/SHASUMS256.txt"
     const val LIVE_AUTHORITY = "https://nodejs.org/download/release/latest/SHASUMS256.txt"
     fun resolve(text: String): VendorArtifactInstallRecipe {
@@ -51,8 +51,8 @@ internal object LocalUbuntuNodeDistribution {
         val bin = "$guestTree/node-v$version-linux-arm64/bin"
         return buildString {
             append("#!/bin/sh\nset -eu\n")
-            // npm defaults to the directory containing its interpreter. Keep user-installed global packages
-            // outside the byte-pinned publisher SDK; explicit prefixes still win.
+            // npm defaults to the directory containing its interpreter. Keep user-installed
+            // global packages outside the byte-pinned publisher SDK; explicit prefixes still win.
             if (command != "node") append("export npm_config_prefix=\"${'$'}{npm_config_prefix:-${'$'}{NPM_CONFIG_PREFIX:-/root/.local}}\"\n")
             append("exec ").append(q("$bin/node"))
             if (command != "node") append(' ').append(q("$bin/$command"))

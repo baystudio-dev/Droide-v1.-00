@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+ 
 enum class UniversalCapabilitySource { WORKSPACE, EXTENSION, MANAGED_PACKAGE, EXTERNAL_PATH }
 
 data class ExecutableCapability(
@@ -73,6 +74,7 @@ data class WorkspaceCapabilityManifest(
         }
     }
 }
+
 
 class UniversalCapabilityRegistry(
     private val workspaceKey: String,
@@ -163,6 +165,7 @@ class UniversalCapabilityRegistry(
     @Synchronized
     fun resolveExecutable(command: String): ExecutableCapability? {
 
+
         externalExecutables[command]?.let { path ->
             val owner = managedPackages
                 .asSequence()
@@ -174,7 +177,7 @@ class UniversalCapabilityRegistry(
                 ExecutableCapability(command, path, UniversalCapabilitySource.EXTERNAL_PATH)
             }
         }
-
+        
         managedPackages.asSequence()
             .filter { it.active }
             .sortedByDescending { it.installedAtEpochMs }
@@ -231,6 +234,7 @@ class UniversalCapabilityRegistry(
         }
     }
 
+     
     @Synchronized
     fun tool(toolId: String): ContributedToolCapability? {
         val all = tools()
@@ -239,6 +243,7 @@ class UniversalCapabilityRegistry(
         return matches.singleOrNull()
     }
 
+     
     @Synchronized
     fun toolPlan(toolId: String, relativePath: String? = null): RunPlan? {
         val tool = tool(toolId) ?: return null
@@ -248,6 +253,7 @@ class UniversalCapabilityRegistry(
         }
         return buildToolPlan(tool, relativePath)
     }
+
 
     @Synchronized
     fun runPlanFor(relativePath: String): RunPlan? {
@@ -309,6 +315,7 @@ class UniversalCapabilityRegistry(
         )
     }
 
+
     private fun buildToolPlan(tool: ContributedToolCapability, relativePath: String?): RunPlan? {
         val args = tool.args.map { argument ->
             argument
@@ -316,6 +323,7 @@ class UniversalCapabilityRegistry(
                 .replace("\${workspaceFolder}", ".")
         }
         // First-class IDE/Agent execution must be bound to a capability that Droide actually discovered.
+
 
         val executable = resolveExecutable(tool.command)?.resolvedPath ?: return null
         val argv = listOf(executable) + args

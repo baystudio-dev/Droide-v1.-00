@@ -87,8 +87,8 @@ internal class MirrorRetainedRecovery(private val source: File, private val work
         val context = currentCoroutineContext()
         val observed = MirrorRecoverySnapshot.observe(parent(item.role), name(item.operation, item.role), context)
         check(observed.node.type != MirrorMetadataAuthority.NodeType.ABSENT) { "Retained version disappeared; refresh recovery" }
-        // Preparing/transiting an operation need not advance the baseline revision. Compare membership
-        // as well, rather than interpreting a stable revision as quiescence.
+        // Preparing/transiting an operation need not advance the baseline revision.
+        // Compare membership as well, rather than interpreting a stable revision as quiescence.
         fun pendingSnapshot(): Pair<Int, String> {
             var count = 0
             val digest = java.security.MessageDigest.getInstance("SHA-256")
@@ -195,8 +195,8 @@ internal class MirrorRetainedRecovery(private val source: File, private val work
         }
     }
 
-    /** Reuse the verified export pipeline to rescue a complete folder, including hidden files, empty
-     * directories and links. Archive publication never overwrites a project entry. */
+    /** Reuse the verified export pipeline to rescue a complete folder, including hidden files,
+     * empty directories and links. Archive publication never overwrites a project entry. */
     suspend fun archive(item: Item, files: FileRepository, destination: String, cache: File,
                         requireCurrent: () -> Unit): Long = withContext(Dispatchers.IO) {
         require(item.kind == AnchoredWorkspaceFiles.Kind.DIRECTORY) { "Select a retained folder" }

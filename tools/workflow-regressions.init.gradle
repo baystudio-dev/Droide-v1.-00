@@ -1,0 +1,9 @@
+// One application-root singleton must not be rebound by unrelated Robolectric
+// application fixtures in a shared JVM. Execute this integration suite through
+// testDebugUiIsolated (forkEvery=1), not by weakening the production root guard.
+// Pair with agent-plugin-regressions and editor-lifecycle-regressions init scripts.
+gradle.projectsEvaluated {
+    gradle.rootProject.project(':app').tasks.named('testDebugUnitTest').configure {
+        filter.excludeTestsMatching('com.baystudio.droide.core.LocalManagedProjectionRefreshTest')
+    }
+}

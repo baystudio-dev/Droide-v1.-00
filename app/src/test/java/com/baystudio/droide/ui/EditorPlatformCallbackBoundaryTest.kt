@@ -98,7 +98,7 @@ class EditorPlatformCallbackBoundaryTest {
             editor.setText("accessible text")
             editor.layout(0, 0, 360, 640)
             val info = editor.createAccessibilityNodeInfo()
-
+            // Sora may still be computing layout on its worker; expose its actual state.
             assertEquals(editor.isEditable, info.isEditable)
             assertEquals("accessible text", info.text.toString())
             assertTrue(info.actionList.any { it.id == android.view.accessibility.AccessibilityNodeInfo.ACTION_COPY })

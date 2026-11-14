@@ -33,6 +33,7 @@ internal class GitHubAccountRemoteException(
     val httpStatus: Int,
 ) : IllegalStateException(code)
 
+ 
 internal class GitHubAccountOAuthClient {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -67,6 +68,7 @@ internal class GitHubAccountOAuthClient {
         parseCredential(body, requireRefreshRotation = false)
     }
 
+     
     suspend fun refresh(
         exchangeUrl: String,
         clientId: String,
@@ -81,9 +83,13 @@ internal class GitHubAccountOAuthClient {
             .add("refresh_token", refreshToken)
             .build()
         val body = postForm(endpoint, form)
-
+        
         parseCredential(body, requireRefreshRotation = true)
     }
+
+    
+
+
 
     suspend fun revokeAuthorization(
         exchangeUrl: String,
@@ -216,6 +222,7 @@ internal class GitHubAccountOAuthClient {
     }
 
     private fun requireToken(token: String) {
+        
 
         require(token.length in 20..4_096 && token.none(::isForbiddenControl) && token.none(Char::isWhitespace)) { "Invalid GitHub token" }
     }

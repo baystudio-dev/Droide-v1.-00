@@ -9,6 +9,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
+/** Resolve user startup once, then keep actual tool transports noninteractive. */
 internal object LocalUserToolchainEnvironment {
     private val cache = UserToolchainEnvironmentCache()
 
@@ -25,8 +26,8 @@ internal object LocalUserToolchainEnvironment {
         selections: Map<String, String>,
         captureShell: (suspend (TerminalLaunchSpec, String) -> UserToolchainEnvironmentCache.Capture)? = null,
     ): Resolution = withContext(Dispatchers.IO) {
-        // Only the ordinary Ubuntu env -i launcher is supported; specialized sealed health/runtime
-        // launches and host shells keep their existing environment.
+        // Only the ordinary Ubuntu env -i launcher is supported; specialized sealed
+        // health/runtime launches and host shells keep their existing environment.
         if (base.shell != "/bin/bash" || base.prefix.isEmpty()) return@withContext Resolution(base, false)
         val envIndex = base.prefix.indexOfLast { it == "/usr/bin/env" }
         if (envIndex < 0 || base.prefix.getOrNull(envIndex + 1) != "-i") return@withContext Resolution(base, false)
@@ -58,8 +59,8 @@ internal object LocalUserToolchainEnvironment {
         val cwdIndex = capturePrefix.indexOf("-w")
         require(cwdIndex >= 0 && cwdIndex + 1 < envIndex) { "Guest cwd is missing" }
         capturePrefix[cwdIndex + 1] = "/root"
-        // Working subdirectories do not change a HOME startup. Share one snapshot across lookup/run
-        // consumers in this workspace instead of sourcing rc again.
+        // Working subdirectories do not change a HOME startup. Share one snapshot
+        // across lookup/run consumers in this workspace instead of sourcing rc again.
         val keyData = (capturePrefix + base.environment.toSortedMap().map { "${it.key}=${it.value}" } +
             listOf(workspaceRoot.canonicalPath, stamp(rootfs), stamp(File(rootfs, "etc/profile")),
                 stamp(File(rootfs, "etc/profile.d")), stamp(File(rootfs, "root/.profile")),
@@ -70,7 +71,11 @@ internal object LocalUserToolchainEnvironment {
         val observed = cache.resolve(key, cwd.canonicalPath) capture@{ script ->
             requireCurrent()
             // Preserve the legacy login profile, then read the terminal's Bash rc without prompt hooks.
-
+            // The probe prints only allowlisted directory variables. All incidental
+            // startup output is confined to the bounded capture and never logged.
+            // Bootstrap in HOME, not in an arbitrary opened project. This observes
+            // persistent toolchain setup without deliberately triggering cwd-based
+            // project activation hooks. The actual tool retains the requested cwd.
             val captureBase = base.copy(prefix = capturePrefix)
             captureShell?.let { return@capture it(captureBase, script) }
             val lease = RemoteProcessLease.createLocal("toolchain-env")
@@ -97,7 +102,7 @@ internal object LocalUserToolchainEnvironment {
         if (observed.fallback != null) {
             // Preserve the existing standard/managed tool path. Never leak rc text.
             android.util.Log.w("DroideToolchain", "User shell environment unavailable (${observed.fallback}); using standard toolchain environment")
-            return@withContext Resolution(base, false)
+            return@withContext Resolution(base.copy(environmentOrigin = "Configured toolchain; user environment unavailable (${observed.fallback})"), false)
         }
         val protected = buildSet {
             val pack = LocalAndroidWorkstationPolicy.FAMILY in selections
@@ -112,6 +117,7 @@ internal object LocalUserToolchainEnvironment {
         } catch (_: IllegalArgumentException) { return@withContext Resolution(base, false) }
         ProcessSecurityPolicy.validateEnvironment(values)
         requireCurrent()
-        Resolution(base.copy(prefix = base.prefix + values.map { (key, value) -> "$key=$value" }), true)
+        Resolution(base.copy(prefix = base.prefix + values.map { (key, value) -> "$key=$value" },
+            environmentOrigin = "Workspace toolchain + user startup snapshot"), true)
     }
 }

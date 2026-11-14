@@ -7,7 +7,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CMakeAnalysisSelectionsTest {
-
+    // Authored fixture boundary. Production Android open/fstat behavior is tested separately.
     private class Probe: CMakeAnalysisSelections.Inspector {
         var reads=0
         var rejectReads=false

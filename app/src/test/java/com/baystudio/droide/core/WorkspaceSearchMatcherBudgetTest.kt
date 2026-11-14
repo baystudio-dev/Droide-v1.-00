@@ -73,6 +73,7 @@ class WorkspaceSearchMatcherBudgetTest {
         }
     }
 
+    /** Exact old translator, including a separate quote operation for each actual UTF-16 unit. */
     private fun original(glob: String): Regex = Regex("^" + buildString {
         var index = 0
         while (index < glob.length) when {

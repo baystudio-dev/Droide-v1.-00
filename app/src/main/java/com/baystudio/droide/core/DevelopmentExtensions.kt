@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+ 
 enum class ExtensionCategory(val label: String) {
     LANGUAGES("Languages"),
     SDKS("SDKs"),
@@ -20,11 +21,13 @@ enum class ExtensionCategory(val label: String) {
 }
 
 enum class ExecutionScope {
-
+     
     EDITOR,
 
+     
     LOCAL,
 
+     
     LOCAL_LINUX_ARM64,
 }
 
@@ -33,9 +36,9 @@ enum class ExtensionInstallKind {
     ANDROID_MANAGED_TOOLCHAIN,
     ANDROID_LOCAL_COMPONENT,
     MANAGED_PACKAGE,
-
+     
     GUEST_PACKAGE,
-
+     
     REVIEWED_RECIPE,
     USER_MANAGED,
     CATALOG_ONLY,
@@ -67,7 +70,7 @@ data class ExtensionFamily(
     val category: ExtensionCategory,
     val description: String,
     val versions: List<ExtensionVersion>,
-
+     
     val iconKey: String,
     val publisher: String = "",
     // Never used as executable input.
@@ -88,6 +91,7 @@ data class ExtensionVersionState(
     val state: ExtensionState,
     val detail: String,
 )
+
 
 object DevelopmentExtensionCatalog {
     private fun family(
@@ -248,6 +252,8 @@ object DevelopmentExtensionCatalog {
         externalFamily("toolchain.clojure", "Clojure CLI", ExtensionCategory.TOOLCHAINS, "Clojure CLI and JVM project tooling.", "language:clojure", "Clojure", setOf("clojure"), requires = setOf("java")),
         externalFamily("toolchain.zig", "Zig Toolchain", ExtensionCategory.TOOLCHAINS, "Zig compiler and build system.", "language:zig", "Zig Software Foundation", setOf("zig")),
         externalFamily("toolchain.nim", "Nim Toolchain", ExtensionCategory.TOOLCHAINS, "Nim compiler and Nimble ecosystem tooling.", "language:nim", "Nim", setOf("nim", "nimble")),
+        externalFamily("toolchain.goose", "Goose Compiler", ExtensionCategory.TOOLCHAINS, GooseLanguage.INSTALL_NOTE,
+            "language:goose", "aardappel/goose", setOf(GooseLanguage.COMMAND)),
         externalFamily("toolchain.solidity", "Solidity Compiler", ExtensionCategory.TOOLCHAINS, "Solidity compiler for smart-contract projects.", "language:solidity", "Solidity", setOf("solc"), keywords = arrayOf("ethereum", "solc")),
     )
 
@@ -410,9 +416,9 @@ object DevelopmentExtensionCatalog {
                 LspVueProfile.ID -> LocalUbuntuVuePolicy.FAMILY
                 else -> "lsp.${spec.id}"
             },
-            name = if (LspSolidityProfile.matches(spec)) "Solidity · Nomic Foundation" else if (LspScalaProfile.matches(spec)) "Scala · Metals" else if (LspAsmProfile.matches(spec)) "Assembly · asm-lsp" else if (LspElixirProfile.matches(spec)) "Elixir · ElixirLS" else if (LspHaskellProfile.matches(spec)) "Haskell · HLS" else if (LspRProfile.matches(spec)) "R · languageserver" else if (spec.id == "elp") "Erlang · ELP" else if (spec.id == "graphql-local-schema") "GraphQL local-schema intelligence" else if (spec.id == "taplo-toml-wasm") "TOML · Taplo WASM" else if (spec.id == "csharp-ls") "C# native project analysis" else if (spec.id == "vue-language-server") "Vue paired analysis" else if (spec.id == "nimlangserver") "Nim fixed-toolchain analysis" else if (spec.id == "powershell-editor-services") "PowerShell Editor Services" else if (spec.id == LspSqruffProfile.ID) "SQL · sqruff" else if (spec.id == LspPrismaProfile.ID) "Prisma legacy schemas" else if (spec.id == LspSvelteProfile.ID) "Svelte" else if (spec.id == "cmake-language-server") "CMake" else spec.id,
+            name = if (spec.id == "goose") "Goose" else if (spec.id == "mdx-language-server") "MDX" else if (LspSolidityProfile.matches(spec)) "Solidity · Nomic Foundation" else if (LspScalaProfile.matches(spec)) "Scala · Metals" else if (LspAsmProfile.matches(spec)) "Assembly · asm-lsp" else if (LspElixirProfile.matches(spec)) "Elixir · ElixirLS" else if (LspHaskellProfile.matches(spec)) "Haskell · HLS" else if (LspRProfile.matches(spec)) "R · languageserver" else if (spec.id == "elp") "Erlang · ELP" else if (spec.id == "graphql-local-schema") "GraphQL local-schema intelligence" else if (spec.id == "taplo-toml-wasm") "TOML · Taplo WASM" else if (spec.id == "csharp-ls") "C# native project analysis" else if (spec.id == "vue-language-server") "Vue paired analysis" else if (spec.id == "nimlangserver") "Nim fixed-toolchain analysis" else if (spec.id == "powershell-editor-services") "PowerShell Editor Services" else if (spec.id == LspSqruffProfile.ID) "SQL · sqruff" else if (spec.id == LspPrismaProfile.ID) "Prisma legacy schemas" else if (spec.id == LspSvelteProfile.ID) "Svelte" else if (spec.id == "cmake-language-server") "CMake" else spec.id,
             category = ExtensionCategory.LANGUAGE_SERVERS,
-            description = if (LspSolidityProfile.matches(spec)) LspSolidityProfile.FEATURE_NOTE else if (LspScalaProfile.matches(spec)) LspScalaProfile.FEATURE_NOTE else if (LspAsmProfile.matches(spec)) LspAsmProfile.FEATURE_NOTE else if (LspElixirProfile.matches(spec)) LspElixirProfile.FEATURE_NOTE else if (LspHaskellProfile.matches(spec)) LspHaskellProfile.FEATURE_NOTE else if (LspRProfile.matches(spec)) LspRProfile.FEATURE_NOTE else if (spec.id == "elp") "Original ELP 2026-10-14 for lowercase Erlang source/header editing. Selected compatible OTP/escript and optional Rebar remain provenance-unverified prerequisites. Explicit health approval and separate project-code permission; native transport readiness is not completed analysis."
+            description = if (spec.id == "goose") "Goose language features through the separately installed aardappel/goose compiler." else if (spec.id == "mdx-language-server") "MDX diagnostics, completion and navigation through the official MDX language server." else if (LspSolidityProfile.matches(spec)) LspSolidityProfile.FEATURE_NOTE else if (LspScalaProfile.matches(spec)) LspScalaProfile.FEATURE_NOTE else if (LspAsmProfile.matches(spec)) LspAsmProfile.FEATURE_NOTE else if (LspElixirProfile.matches(spec)) LspElixirProfile.FEATURE_NOTE else if (LspHaskellProfile.matches(spec)) LspHaskellProfile.FEATURE_NOTE else if (LspRProfile.matches(spec)) LspRProfile.FEATURE_NOTE else if (spec.id == "elp") "Original ELP 2026-10-14 for lowercase Erlang source/header editing. Selected compatible OTP/escript and optional Rebar remain provenance-unverified prerequisites. Explicit health approval and separate project-code permission; native transport readiness is not completed analysis."
                 else if (spec.id == "graphql-local-schema") "Exact graphql-language-service 5.7.0 / GraphQL 16.13.2 original public libraries and independent private Node 22.23.3. One approved inert .graphqlrc.json, bounded local SDL/fragments and dirty source snapshots. Completion, hover, source-owned validation and named-node outline; no remote schemas, project code, definitions, formatting, rename or query execution. Native/device acceptance remains separate."
                 else if (spec.id == "csharp-ls") "Exact csharp-ls 0.28.0 with private SDK 10.0.402 and independent Node helper. Save validates metadata; Enable authorizes native MSBuild targets and generators. Original/native/device acceptance remains separate."
                 else if (spec.id == "taplo-toml-wasm") "Exact original Taplo 0.8.0 library with private Node 22.23.3. Local schema-backed completion/hover, formatting, symbols, same-document rename and limited native tokens. Cursor/Unicode and schema restrictions apply; diagnostics are asynchronous advisory. Remote fetch is blocked. Original/device acceptance is separate."
@@ -428,7 +434,7 @@ object DevelopmentExtensionCatalog {
             publisher = "Upstream / user-managed",
             versions = listOf(
                 externalVersion(*(if (command.isBlank()) emptyArray() else arrayOf(command)),
-                    note = if (LspSolidityProfile.matches(spec)) LspSolidityProfile.INSTALL_NOTE else if (LspScalaProfile.matches(spec)) LspScalaProfile.INSTALL_NOTE else if (LspAsmProfile.matches(spec)) LspAsmProfile.INSTALL_NOTE else if (LspElixirProfile.matches(spec)) LspElixirProfile.INSTALL_NOTE else if (LspHaskellProfile.matches(spec)) LspHaskellProfile.INSTALL_NOTE else if (LspRProfile.matches(spec)) LspRProfile.INSTALL_NOTE else if (spec.id == "graphql-local-schema") "The managed command requires exact receipts, private runtime, typed owner and explicit local-source consent. Same-name/custom commands do not inherit managed authority; original/native/device acceptance is separate."
+                    note = if (spec.id == "goose") GooseLanguage.INSTALL_NOTE else if (spec.id == "mdx-language-server") "Install on demand in Extensions. Requires Node.js 22 or newer; opening an MDX file does not install packages." else if (LspSolidityProfile.matches(spec)) LspSolidityProfile.INSTALL_NOTE else if (LspScalaProfile.matches(spec)) LspScalaProfile.INSTALL_NOTE else if (LspAsmProfile.matches(spec)) LspAsmProfile.INSTALL_NOTE else if (LspElixirProfile.matches(spec)) LspElixirProfile.INSTALL_NOTE else if (LspHaskellProfile.matches(spec)) LspHaskellProfile.INSTALL_NOTE else if (LspRProfile.matches(spec)) LspRProfile.INSTALL_NOTE else if (spec.id == "graphql-local-schema") "The managed command requires exact receipts, private runtime, typed owner and explicit local-source consent. Same-name/custom commands do not inherit managed authority; original/native/device acceptance is separate."
                     else if (spec.id == "powershell-editor-services") "Detects user-managed `$command` only. A name or reported version does not establish managed receipts, exact runtime, private pipe/state or deny-safe prompting. Custom declarations do not inherit the reviewed managed integration."
                     else if (spec.id == LspSqruffProfile.ID) "Detects user-managed `$command` in local Ubuntu. Executable/build provenance remains unverified; command discovery does not establish reviewed 0.41.0 managed identity or grant LF/scalar/formatting repairs. Native configuration and outside-root reads require informed project consent."
                     else if (spec.id == LspPrismaProfile.ID) "Detects user-managed `$command` in local Ubuntu. Executable/package/runtime/prelude provenance remains unverified; command discovery does not establish the managed 31.13.0 pin, debug redirection or zero-document health guarantees."
@@ -436,7 +442,7 @@ object DevelopmentExtensionCatalog {
                     else if (spec.id == "cmake-language-server") "Same-name commands are provenance-unverified and do not receive managed UTF-32 repair, private state or build ownership. Use the exact reviewed five-wheel integration and explicitly enable analysis for the selected source/build."
                     else if (command.isBlank()) "No command candidate is registered."
                     else "Detects user-managed `$command` in local Ubuntu; install a managed language server to enable verified editor integration.",
-                    requires = if (spec.id == LspSvelteProfile.ID) setOf("node", "npm") else emptySet()),
+                    requires = if (spec.id == LspSvelteProfile.ID || spec.id == "mdx-language-server") setOf("node", "npm") else emptySet()),
             ),
             keywords = arrayOf(spec.id, *spec.languageIds.toTypedArray(), "lsp", "language-server"),
         )
@@ -574,6 +580,7 @@ data class WorkspaceEnvironmentSnapshot(
     val markerFiles: List<String>,
 )
 
+ 
 object WorkspaceEnvironmentDetector {
     fun detect(root: File, activeFile: String? = null): WorkspaceEnvironmentSnapshot {
         val markers = mutableListOf<String>()

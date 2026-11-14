@@ -49,7 +49,7 @@ class GlobalReasoningEffortsTest {
             listOf(ReasoningEffort.LOW, ReasoningEffort.HIGH, ReasoningEffort.ULTRA),
             ReasoningSupport.supported("anthropic", "claude-sonnet-4-6"),
         )
-
+        
         assertEquals(
             listOf(ReasoningEffort.LOW, ReasoningEffort.HIGH),
             ReasoningSupport.supported("anthropic", "claude-sonnet-4-5-20250929"),
@@ -110,6 +110,7 @@ class GlobalReasoningEffortsTest {
     }
 
     @Test fun geminiExposesOnlyExactSupportedDroideTiersAndNativeAdapterTranslatesThem() {
+        
 
         assertEquals(
             listOf(ReasoningEffort.LOW, ReasoningEffort.HIGH),

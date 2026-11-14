@@ -37,8 +37,8 @@ class BrowserOutputConsent private constructor(
             candidate === observation() && owner.validConsumed()
     }
 
-    // Never call controller/run/policy predicates while holding the token lock. Native capture owns
-    // the controller lock when it consumes this token.
+    // Never call controller/run/policy predicates while holding the token lock.
+    // Native capture owns the controller lock when it consumes this token.
     private fun valid(): Boolean {
         if (synchronized(lock) { state == State.INVALID }) return false
         val current = permissions.browserOutputAuthorityCurrent(policy, request.permissionScope) &&
@@ -98,7 +98,7 @@ class BrowserOutputConsent private constructor(
     internal fun invalidate() = synchronized(lock) { state = State.INVALID }
 
     companion object {
-
+        // Versioned with the actual renderer limits; changing capture parameters needs fresh consent.
         internal val CAPTURE_CONTRACT = "vertical-v1:${AgentBrowserCapture.MAX_BITMAP_BYTES}:${AgentBrowserCapture.MAX_OUTPUT_WIDTH}:${AgentBrowserCapture.MAX_OUTPUT_HEIGHT}:${AgentBrowserCapture.MAX_SOURCE_HEIGHT}:${AgentBrowserCapture.MAX_TILES}:${AgentBrowserCapture.MAX_CAPTURE_MS}"
         const val DISCLOSURE = "This one output may contain content from other or unknown frames or sources. Their origins cannot all be verified. This is not site isolation and does not grant future access."
         internal const val WITHHELD = "DENIED: this browser output consent is missing, stale or revoked. Output was withheld; do not replay the operation automatically."

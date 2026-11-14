@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 
 // The process owns work. An Activity/ViewModel owns only a view of this single runtime.
 
+
 internal class WorkspaceRuntimeHost(
     private val application: Application,
     coordinatorFactory: (Context, CoroutineScope, BrowserApplicationTimers) -> WorkspaceCoordinator = { context, scope, timers ->
@@ -56,6 +57,7 @@ internal class WorkspaceRuntimeHost(
     private val failureBoundary = WorkspaceFailureBoundary(::reportWorkspaceFailure)
     private val runtimeJob = SupervisorJob()
     internal val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.Main.immediate + failureBoundary.handler)
+    internal val environmentSetup = com.baystudio.droide.core.UbuntuEnvironmentSetup.create(application, runtimeScope)
     private var initJob: Job? = null
     internal val uiWorkOwner = com.baystudio.droide.core.ExitUiWorkOwner()
 
@@ -69,10 +71,12 @@ internal class WorkspaceRuntimeHost(
     private val _initError = MutableStateFlow<String?>(null)
     val initError: StateFlow<String?> = _initError
 
+
     private var editorRuntime: WorkspaceRuntime? = null
     private var exitEditorCheckpoint: com.baystudio.droide.ui.EditorExitCheckpoint? = null
     private var exitNativeRetirementFailure: Throwable? = null
 
+    /** Called synchronously before the original Activity disposes its native surfaces. */
     internal fun beforeExitActivityDestroyed() {
         if (editorRuntime == null) return
         try {
@@ -185,11 +189,13 @@ internal class WorkspaceRuntimeHost(
         return checkNotNull(retainedEditorRecoveryStore)
     }
 
+     
     fun explorerStateFor(runtime: WorkspaceRuntime): ExplorerWorkspaceState {
         val key = runtime.project.id
         retainedExplorerStates[key]?.let { return it }
         val created = ExplorerWorkspaceState()
         retainedExplorerStates[key] = created
+        
 
         while (retainedExplorerStates.size > 12) {
             retainedExplorerStates.remove(retainedExplorerStates.keys.first())
@@ -230,7 +236,7 @@ internal class WorkspaceRuntimeHost(
         runtimeScope.launch {
             coordinator.runtime.collect { runtime ->
                 runtime?.agentBrowser?.setApplicationVisible(browserVisibility.isVisible)
-
+                // Fence before replacement; the shared lane remains held until old IO really drains.
                 if (explorerRuntime != null && explorerRuntime !== runtime) {
                     closeExplorerRefresh()
                     activeExplorerRefresh = null
@@ -273,6 +279,7 @@ internal class WorkspaceRuntimeHost(
         }
     }
 
+     
     fun persistTerminalRecovery() {
         runtimeScope.launch {
             runSuspendCatching { coordinator.runtime.value?.terminals?.flushReviveState() }
@@ -299,6 +306,7 @@ internal class WorkspaceRuntimeHost(
             return ExitOwnerBarrier(exitScope, listOf(
                 ApplicationExitSequence.Step("CLI tool server") { com.baystudio.droide.core.DroideCliServer.stopAndAwaitForExit() },
                 ApplicationExitSequence.Step("Hosted processes") { ExitHostedProcessRegistry.stopAndAwaitAll() },
+                ApplicationExitSequence.Step("Environment setup") { environmentSetup.closeAndJoin() },
                 ApplicationExitSequence.Step("Device connection") { coordinator.deviceBridge.stopAndAwaitForExit() },
             ) + if (rt == null) emptyList() else listOf(
                 ApplicationExitSequence.Step("Imports") { rt.imports.closeAndJoin() },
@@ -309,8 +317,8 @@ internal class WorkspaceRuntimeHost(
                 ApplicationExitSequence.Step("Debugger") { rt.debugger.shutdown() },
                 ApplicationExitSequence.Step("Language servers") { rt.lsp.shutdown() },
                 ApplicationExitSequence.Step("Local model server") { coordinator.stopLocalModelForExit() },
-                // History finalizers can await these processes. Start their exact stop requests with the other
-                // owners, before joining either history finalizer.
+                // History finalizers can await these processes. Start their exact stop
+                // requests with the other owners, before joining either history finalizer.
                 ApplicationExitSequence.Step("Terminals") { rt.terminals.stopAndAwaitForExit() },
             )).also { stops = it }
         }
@@ -337,8 +345,8 @@ internal class WorkspaceRuntimeHost(
             },
             ApplicationExitSequence.Step("Preserving unsent chat drafts") {
                 retainedAgentUiState?.preserveDraftsForExit(nativeDrafts())
-                // Drafts are safe. Fan out independent cancellation now instead of letting one slow owner leave
-                // agents/builds running behind a closing Activity.
+                // Drafts are safe. Fan out independent cancellation now instead of letting
+                // one slow owner leave agents/builds running behind a closing Activity.
                 ownedStops().requestStop()
                 historyStops().requestStop()
             },
@@ -364,7 +372,7 @@ internal class WorkspaceRuntimeHost(
                 val rt = owned
                 retainedAgentUiState?.closeForExit()
                 if (rt != null) {
-
+                    // History has been acknowledged before these methods revoke publication.
                     rt.retireApprovalAuthority().invoke()
                     rt.agent.shutdown(); rt.agentPlugins.close(); rt.extensionPlatform.close(); rt.capabilities.close()
                 }
@@ -386,8 +394,8 @@ internal class WorkspaceRuntimeHost(
                 browserTimers.close()
                 coordinator.finishExitOwnership(owned)
             },
-            // Close only after the original surfaces and all workspace owners retired. No pending frame or
-            // Activity destruction is needed to unblock cleanup.
+            // Close only after the original surfaces and all workspace owners retired.
+            // No pending frame or Activity destruction is needed to unblock cleanup.
             ApplicationExitSequence.Step("Closing workspace") { closeUi() },
         )
     }

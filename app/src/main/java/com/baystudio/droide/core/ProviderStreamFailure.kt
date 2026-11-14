@@ -4,8 +4,8 @@ import kotlinx.serialization.json.*
 
 enum class ProviderStreamFailureKind { QUOTA, RATE_LIMIT, TEMPORARY_SERVICE, AUTHENTICATION, INVALID_REQUEST, UNKNOWN }
 
-/** A failed HTTP-200 generation is deliberately distinct from an HTTP rejection. It must never
- * enter ProviderRetryPolicy or certify partially received tool calls. */
+/** A failed HTTP-200 generation is deliberately distinct from an HTTP rejection.
+ * It must never enter ProviderRetryPolicy or certify partially received tool calls. */
 class LlmProviderStreamException internal constructor(
     val kind: ProviderStreamFailureKind,
     val logicalStatus: Int?,
@@ -17,8 +17,8 @@ class LlmProviderStreamException internal constructor(
     fun isQuotaFailure() = kind == ProviderStreamFailureKind.QUOTA
 }
 
-/** Safe message before the request boundary has the actual resolved credentials. Retain only
- * error fields, never a failed response's partial native output. */
+/** Safe message before the request boundary has the actual resolved credentials.
+ * Retain only error fields, never a failed response's partial native output. */
 internal class ProviderErrorPayloadException(error: JsonElement) : IllegalStateException("Provider returned an error payload") {
     val payload: JsonElement = if (error is JsonObject) JsonObject(error.filterKeys {
         it in setOf("type", "code", "status", "message", "details", "param", "error_type")
@@ -30,8 +30,8 @@ internal class ProviderErrorPayloadException(error: JsonElement) : IllegalStateE
 internal object ProviderStreamFailure {
     fun fromPayload(error: ProviderErrorPayloadException, secrets: Collection<String>, httpStatus: Int? = 200, snapshot: ProviderFailureSnapshot? = null): LlmProviderStreamException {
         val body = buildJsonObject { put("error", error.payload) }.toString()
-        // Redact the whole error before presentation bounds: slicing first could expose an unrecognized
-        // prefix of a resolved OAuth token or escaped credential.
+        // Redact the whole error before presentation bounds: slicing first could expose
+        // an unrecognized prefix of a resolved OAuth token or escaped credential.
         val safe = ProviderFailure.redact(body, secrets)
         val status = logicalStatus(error.payload as? JsonObject)
         val limit = ProviderLimitPolicy.diagnose(status ?: 0, safe)

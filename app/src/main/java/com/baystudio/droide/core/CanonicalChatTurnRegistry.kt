@@ -61,8 +61,8 @@ internal class CanonicalChatTurnRegistry(private val root: File, private val sto
         } finally { temp.delete() }
         return id
     }
-    /** A fork copies both source ownership and call journal records, never runtime approvals. */
-
+    /** Canonical envelope contains all admitted field data; redundant original auxiliary spools stay retained in source.
+     * A fork copies both source ownership and call journal records, never runtime approvals. */
     fun copyForFork(id: String, owner: OwnedResponseContentStore.Owner, targetIdentity: ProviderReplayTarget,
         target: CanonicalChatTurnRegistry, targetOwner: OwnedResponseContentStore.Owner): String {
         require(targetOwner.sessionId != owner.sessionId)
@@ -94,8 +94,7 @@ internal class CanonicalChatTurnRegistry(private val root: File, private val sto
         val handle=OwnedResponseContentStore.Handle.parse(r.handle)
         val source=StreamedFileArgumentExtractor.Source(handle,r.bytes,r.chars,r.hash,OwnedResponseContentStore.Kind.PRIVATE_CONTINUATION)
         source.verify(session)
-        // Semantic association was durably admitted from OwnedChatResult, not reconstructed from model
-        // text.
+        // Semantic association was durably admitted from OwnedChatResult, not reconstructed from model text.
         val replay=OwnedNormalizedResponse.PrivateReplay.admit(session,handle,target) { StreamedJsonValidator.requireObject(it) }
         return BoundTurn(session,replay,journal,r.calls)
     }

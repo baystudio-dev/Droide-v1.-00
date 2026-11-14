@@ -99,7 +99,7 @@ private class KadbDeviceBridgeTransport(override val kadb: Kadb) : DeviceBridgeT
                     append(buffer.readByteArray(), false)
                 }
             }
-            0
+            0 // Legacy ADB shell has no framed exit status.
         }
         return BridgeShellResult(exit, stdout.readUtf8(), stderr.readUtf8())
     }

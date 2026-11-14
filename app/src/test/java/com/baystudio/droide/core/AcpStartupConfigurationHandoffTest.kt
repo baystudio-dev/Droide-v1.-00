@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Tests the real handoff component, with explicit lifecycle inputs instead of an Android host. */
 class AcpStartupConfigurationHandoffTest {
     private fun json(text: String) = Json.parseToJsonElement(text).jsonObject
     private fun mode(value: String) = json("{\"sessionUpdate\":\"current_mode_update\",\"currentModeId\":\"$value\"}")
@@ -130,8 +131,8 @@ class AcpStartupConfigurationHandoffTest {
 
     @Test(timeout = 5_000) fun concurrentUpdateWaitsForSnapshotAndThenReachesInstalledListener() {
         val f = Fixture(); f.handoff.retainStartupConfiguration("session/new", null, response()); f.openLifecycle()
-        // Observe the actual private production monitor without adding a production test hook. Monitor
-        // ownership is a deterministic assertion; transient Thread.State sampling is not.
+        // Observe the actual private production monitor without adding a production test hook.
+        // Monitor ownership is a deterministic assertion; transient Thread.State sampling is not.
         val monitor = f.handoff.javaClass.getDeclaredField("lock").apply { isAccessible = true }.get(f.handoff)
         val entered = CountDownLatch(1); val release = CountDownLatch(1); val attempted = CountDownLatch(1)
         val order = Collections.synchronizedList(mutableListOf<String>())

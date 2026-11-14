@@ -11,6 +11,7 @@ data class CSharpResourcePolicy private constructor(val health: Boolean) {
     val helperArguments: List<String> get() = listOf("--max-old-space-size=64")
     val dotnetEnvironment: Map<String, String> get() = mapOf("DOTNET_GCHeapHardLimit" to "0x20000000", "DOTNET_gcServer" to "0")
 
+    /** Bash uses 1024-byte file units. Set soft AND hard, then read every value back before exec. */
     fun shellPrefix(): List<String> {
         val controls = linkedMapOf("c" to 0L, "t" to cpuSeconds.toLong(), "f" to fileSizeBytes / 1024,
             "n" to openFiles.toLong(), "u" to realUidTasks.toLong(), "v" to addressSpaceKiB)

@@ -19,6 +19,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.Buffer
 
+ 
 internal object ProviderRequestAuthorizer {
     private const val MAX_SECRET_BYTES = 96 * 1024
     private const val MAX_TOKEN_RESPONSE_BYTES = 512 * 1024L
@@ -389,8 +390,8 @@ internal object ProviderRequestAuthorizer {
                 require(source.buffer.size <= MAX_TOKEN_RESPONSE_BYTES) { "Credential endpoint response is too large" }
                 val body = source.buffer.readUtf8()
                 if (!response.isSuccessful) throw ProviderCredentialResponsePolicy.httpFailure(response.code, body)
-                // Validate before returning a raw success body to OAuth/Copilot parsers, while the received HTTP
-                // status is still available. Token fields stay intact.
+                // Validate before returning a raw success body to OAuth/Copilot parsers,
+                // while the received HTTP status is still available. Token fields stay intact.
                 ProviderCredentialResponsePolicy.parseObject(body, "Credential endpoint", response.code)
                 body
             }

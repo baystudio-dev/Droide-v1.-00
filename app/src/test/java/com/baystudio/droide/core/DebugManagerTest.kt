@@ -58,6 +58,7 @@ class DebugManagerTest {
         assertEquals(12, relocated.line)
     }
 
+
     @Test fun oversizedWatchIsRejectedWithoutSavingExecutablePrefix() {
         debugger.addWatch("existing")
         val expression = "x".repeat(20_000) + " + suffix"

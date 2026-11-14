@@ -48,8 +48,8 @@ internal object AgentRequestScope {
         AgentMode.BUILD -> "BUILD mode permits authorized implementation and verification; it does not itself request changes. Prefer apply_patch for multi-file changes."
     }
 
-    // ACP session/prompt uses user content blocks. This is honestly labeled client guidance, never a
-    // fabricated system message, a fresh session, or an alternate tool surface.
+    // ACP session/prompt uses user content blocks. This is honestly labeled client guidance,
+    // never a fabricated system message, a fresh session, or an alternate tool surface.
     fun forCliPrompt(userText: String): String =
         "[Droide client conversation guidance]\n${INSTRUCTIONS.trimIndent()}\n" +
             "[/Droide client conversation guidance]\n\n[User message]\n$userText\n[/User message]"

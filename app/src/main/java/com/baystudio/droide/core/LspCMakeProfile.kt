@@ -54,8 +54,7 @@ internal object LspCMakeProfile {
         }
         require(native.completion && native.hover) { "CMake completion/hover contract unavailable" }
         require(native.completionTriggerCharacters.containsAll(setOf("{", "("))) { "CMake native completion triggers changed" }
-        // An installed formatter can advertise a provider, but cannot acquire an executable client
-        // route.
+        // An installed formatter can advertise a provider, but cannot acquire an executable client route.
     }
     const val PRIVATE_BUILD_DISCLOSURE = "Builtin documentation mode selects no project build. It uses a private per-session build directory and checks that no CMake cache is present. These checks do not prevent another process from changing that directory between checks. CMake runs with the Ubuntu user's file and network access; the project root is not a sandbox. If an unexpected cache appears, CMake may execute project scripts before it is detected."
     const val APPROVAL_EXPLANATION = "CMake completion and hover run the selected CMake executable for builtin documentation. For an explicitly selected configured build, initialization and later refreshes may reconfigure that build, write CMake file-API files, and execute project or generated CMake scripts. Scripts can read, write or delete files outside this folder and use the network with the Ubuntu user's permissions. Revocation stops ordinary app-owned processes; it cannot undo file or network effects. The project root is not a sandbox. Independent external writers and deliberately escaped descendants are not contained. Formatting is disabled."

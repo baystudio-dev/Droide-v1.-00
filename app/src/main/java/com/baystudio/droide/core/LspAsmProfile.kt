@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
+/** User-installed asm-lsp; upstream positional/update limitations are explicit. */
 internal object LspAsmProfile {
     const val ID = "asm-lsp"
     const val IDENTITY = "asm-user-managed-readonly-snapshot-v1"
@@ -23,6 +24,7 @@ internal object LspAsmProfile {
         candidate.id == ID || "assembly" in candidate.languageIds ||
             candidate.extensions.any { it in extensions } || path?.let(::supportsPath) == true
 
+    /** The opened workspace is the Assembly session boundary; no recursive scan or tool probe. */
     fun projectRoot(workspace: File, document: File): File {
         val root = workspace.canonicalFile
         require(PathSecurity.contains(root, document.canonicalFile)) { "Assembly document escaped the workspace" }

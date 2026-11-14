@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+
 internal object AnthropicMessagesAdapter {
     private const val DEFAULT_MAX_TOKENS = 8_192
     internal const val PRIVATE_CONTENT_FIELD = "_droide_anthropic_private_content"
@@ -50,6 +51,7 @@ internal object AnthropicMessagesAdapter {
             }
             thinking?.let { put("thinking", it) }
             (root["output_config"] as? JsonObject)?.let { put("output_config", it) }
+            
 
             if (thinking == null) {
                 (root["temperature"] as? JsonPrimitive)?.let { put("temperature", it) }
@@ -92,7 +94,9 @@ internal object AnthropicMessagesAdapter {
             stopReason = stopReason,
             usage = root["usage"] as? JsonObject,
             hasNativeToolBlocks = content.any { (it as? JsonObject)?.get("type") == JsonPrimitive("tool_use") },
-
+            // Incomplete/rejected native blocks are not replayable. Match the
+            // streaming path so their private validation cannot discard public
+            // partial text and reported usage before outcome admission.
             privateContent = if (stopReason == "tool_use") privateContinuationContent(content, toolCalls, json) else null,
         )
     }
@@ -271,8 +275,8 @@ internal object AnthropicMessagesAdapter {
 
         private fun captureUsage(snapshot: JsonObject?) {
             if (snapshot == null) return
-            // message_delta usage is cumulative. Replace reported fields and retain earlier input/cache
-            // fields without manufacturing absent counts as zero.
+            // message_delta usage is cumulative. Replace reported fields and retain
+            // earlier input/cache fields without manufacturing absent counts as zero.
             snapshot.forEach { (key, value) ->
                 capacity.replace("usage:$key", key.length.toLong() + ProviderPayloadLimits.retainedJsonUnits(value))
             }
@@ -563,7 +567,8 @@ internal object AnthropicMessagesAdapter {
     }.toString()
 
     internal fun normalizeUsage(usage: JsonObject): JsonObject = buildJsonObject {
-
+        // Native input_tokens excludes cache reads and writes; canonical prompt_tokens
+        // includes them, matching the subset semantics used by the generic tracker.
         val input = usageCount(usage, "input_tokens")
         val output = usageCount(usage, "output_tokens")
         val cacheRead = usageCount(usage, "cache_read_input_tokens", optional = true)

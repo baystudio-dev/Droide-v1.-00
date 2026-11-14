@@ -5,8 +5,9 @@ import java.nio.file.Files
 
 object ProjectWorkspacePolicy {
     fun projectsRoot(appFilesDir: File): File {
-        // Android's app files path may itself have a platform alias (/data/data). Resolve that parent,
-        // but never bless a user-replaced projects symlink as the app-private workspace container.
+        // Android's app files path may itself have a platform alias (/data/data).
+        // Resolve that parent, but never bless a user-replaced projects symlink as
+        // the app-private workspace container.
         val root = File(appFilesDir.canonicalFile, "projects")
         require(!Files.isSymbolicLink(root.toPath())) {
             "Project storage container is a symbolic link; project catalog and files were preserved"
@@ -31,8 +32,12 @@ object ProjectWorkspacePolicy {
         return child
     }
 
-    /** Registry IDs own runtime/editor recovery state; canonical roots own bytes. */
-
+    /**
+     * Registry IDs own runtime/editor recovery state; canonical roots own bytes. They must
+     * remain one-to-one. Never merge aliases or invent replacement directories here: either
+     * action could strand a project's retained edits or give another ID deletion authority.
+     * This only checks registered paths, not their contents or a recursive project tree.
+     */
     fun requireDistinctRoots(projectsRoot: File, projects: List<DroideProject>) {
         val ids = mutableSetOf<String>()
         val owners = mutableMapOf<File, String>()
@@ -55,8 +60,8 @@ object ProjectWorkspacePolicy {
     fun restoreRoot(projectsRoot: File, projectId: String, storedRoot: String?): File {
         val restored = storedRoot?.let { value ->
             val candidate = File(value)
-            // An alias or an in-flight deletion tree is not a legacy path to silently "repair" into a new
-            // empty project. Preserve the catalog for explicit recovery.
+            // An alias or an in-flight deletion tree is not a legacy path to silently
+            // "repair" into a new empty project. Preserve the catalog for explicit recovery.
             require(!Files.isSymbolicLink(candidate.absoluteFile.toPath().normalize())) {
                 "Saved project workspace is a symbolic link; project catalog and files were preserved"
             }

@@ -1,0 +1,11 @@
+LOADED_AAR_CLASS name=com.termux.terminal.TerminalPtyIo codeSource=file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar resource=jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar!/com/termux/terminal/TerminalPtyIo.class sha256=a862712e743f276925bfdc480e00dabd9e31a4cc54c68aae0af38eb0e84a3e1f
+LOADED_AAR_CLASS name=com.termux.terminal.TerminalProcessOwner codeSource=file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar resource=jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar!/com/termux/terminal/TerminalProcessOwner.class sha256=1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0
+LOADED_AAR_CLASS name=com.termux.terminal.ByteQueue codeSource=file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar resource=jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/independent/actual-aar-classes.jar!/com/termux/terminal/ByteQueue.class sha256=c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33
+....................READER_METRIC mixed bytes=8224 polls=321 backoffs=0 requestedBackoffMillis=0
+....READER_METRIC sustained bytes=1048576 polls=257 backoffs=0 requestedBackoffMillis=0
+.
+Time: 0.032
+
+OK (25 tests)
+
+ACTUAL_AAR_JUNIT tests=25 failures=0

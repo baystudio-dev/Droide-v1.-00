@@ -1,0 +1,214 @@
+--- a/com/termux/terminal/TerminalBuffer.java
++++ b/com/termux/terminal/TerminalBuffer.java
+@@ -11,6 +11,43 @@
+ public final class TerminalBuffer {
+ 
+     TerminalRow[] mLines;
++    private long mRetainedBytes;
++    private final long mByteLimit;
++    private boolean mHistoryEvictedForMemory;
++
++    public long getRetainedBytes() { return mRetainedBytes; }
++    public boolean wasHistoryEvictedForMemory() { return mHistoryEvictedForMemory; }
++
++    private TerminalRow newRow(long style) {
++        reserveBytes(96L + 2L * (int) (1.5f * mColumns) + 8L * mColumns);
++        return new TerminalRow(mColumns, style, this);
++    }
++
++    void releaseBytes(long bytes) { mRetainedBytes -= bytes; }
++
++    private void dropRow(int index) {
++        TerminalRow row = mLines[index];
++        if (row != null) { mRetainedBytes -= row.retainedBytes(); mLines[index] = null; }
++    }
++
++    /** All mutations occur on this buffer's existing owner. Never evict another session's rows. */
++    void reserveBytes(long bytes) {
++        if (mRetainedBytes + bytes > mByteLimit) {
++            // Remove only inactive recycled storage first; it has no visible/history content.
++            for (int i = 0; i < mTotalRows; i++) {
++                int distance = (i - mScreenFirstRow + mTotalRows) % mTotalRows;
++                if (distance >= mScreenRows && distance < mTotalRows - mActiveTranscriptRows) dropRow(i);
++            }
++            while (mRetainedBytes + bytes > mByteLimit && mActiveTranscriptRows > 0) {
++                dropRow(externalToInternalRow(-mActiveTranscriptRows));
++                mActiveTranscriptRows--;
++                mHistoryEvictedForMemory = true;
++            }
++        }
++        if (mRetainedBytes + bytes > mByteLimit)
++            throw new IllegalStateException("Visible terminal exceeded its reviewed memory budget");
++        mRetainedBytes += bytes;
++    }
+     /** The length of {@link #mLines}. */
+     int mTotalRows;
+     /** The number of rows and columns visible on the screen. */
+@@ -29,10 +66,19 @@
+      *                   the top of the screen.
+      */
+     public TerminalBuffer(int columns, int totalRows, int screenRows) {
++        this(columns, totalRows, screenRows, TerminalMemoryBudget.BUFFER_BYTES);
++    }
++
++    // Small budgets permit deterministic accounting tests without memory-pressure/stress fixtures.
++    TerminalBuffer(int columns, int totalRows, int screenRows, long byteLimit) {
++        if (byteLimit < 1 || byteLimit > TerminalMemoryBudget.BUFFER_BYTES)
++            throw new IllegalArgumentException("Invalid terminal byte budget");
++        mByteLimit = byteLimit;
+         mColumns = columns;
+         mTotalRows = totalRows;
+         mScreenRows = screenRows;
+         mLines = new TerminalRow[totalRows];
++        mRetainedBytes = 64L + 8L * totalRows;
+ 
+         blockSet(0, 0, columns, screenRows, ' ', TextStyle.NORMAL);
+     }
+@@ -199,9 +245,11 @@
+      */
+     public void resize(int newColumns, int newRows, int newTotalRows, int[] cursor, long currentStyle, boolean altScreen) {
+         // newRows > mTotalRows should not normally happen since mTotalRows is TRANSCRIPT_ROWS (10000):
+-        if (newColumns == mColumns && newRows <= mTotalRows) {
++        if (newColumns == mColumns && newRows <= mTotalRows && newTotalRows == mTotalRows) {
+             // Fast resize where just the rows changed.
+             int shiftDownOfTopRow = mScreenRows - newRows;
++            final int oldVisibleEnd = (mScreenFirstRow + mScreenRows) % mTotalRows;
++            int blankRowsToAdd = 0;
+             if (shiftDownOfTopRow > 0 && shiftDownOfTopRow < mScreenRows) {
+                 // Shrinking. Check if we can skip blank rows at bottom below cursor.
+                 for (int i = mScreenRows - 1; i > 0; i--) {
+@@ -215,9 +263,10 @@
+                 // Negative shift down = expanding. Only move screen up if there is transcript to show:
+                 int actualShift = Math.max(shiftDownOfTopRow, -mActiveTranscriptRows);
+                 if (shiftDownOfTopRow != actualShift) {
+-                    // The new lines revealed by the resizing are not all from the transcript. Blank the below ones.
+-                    for (int i = 0; i < actualShift - shiftDownOfTopRow; i++)
+-                        allocateFullLineIfNecessary((mScreenFirstRow + mScreenRows + i) % mTotalRows).clear(currentStyle);
++                    // These slots are outside the old visible/history range. Drop stale capacity
++                    // before publishing the expanded geometry, then allocate fresh blank rows below.
++                    blankRowsToAdd = actualShift - shiftDownOfTopRow;
++                    for (int i = 0; i < blankRowsToAdd; i++) dropRow((oldVisibleEnd + i) % mTotalRows);
+                     shiftDownOfTopRow = actualShift;
+                 }
+             }
+@@ -227,12 +276,14 @@
+             mActiveTranscriptRows = altScreen ? 0 : Math.max(0, mActiveTranscriptRows + shiftDownOfTopRow);
+             cursor[1] -= shiftDownOfTopRow;
+             mScreenRows = newRows;
++            // Budget reclamation now sees every prospective visible row as protected.
++            for (int i = 0; i < blankRowsToAdd; i++)
++                allocateFullLineIfNecessary((oldVisibleEnd + i) % mTotalRows).clear(currentStyle);
+         } else {
+             // Copy away old state and update new:
+             TerminalRow[] oldLines = mLines;
+             mLines = new TerminalRow[newTotalRows];
+-            for (int i = 0; i < newTotalRows; i++)
+-                mLines[i] = new TerminalRow(newColumns, currentStyle);
++            mRetainedBytes = 64L + 8L * newTotalRows;
+ 
+             final int oldActiveTranscriptRows = mActiveTranscriptRows;
+             final int oldScreenFirstRow = mScreenFirstRow;
+@@ -242,6 +293,8 @@
+             mScreenRows = newRows;
+             mActiveTranscriptRows = mScreenFirstRow = 0;
+             mColumns = newColumns;
++            // Allocate only the visible rows; preserve lazy history allocation on resize.
++            for (int i = 0; i < newRows; i++) mLines[i] = newRow(currentStyle);
+ 
+             int newCursorRow = -1;
+             int newCursorColumn = -1;
+@@ -295,13 +348,17 @@
+ 
+                 int currentOldCol = 0;
+                 long styleAtCol = 0;
++                int hyperlinkAtCol = 0;
+                 for (int i = 0; i < lastNonSpaceIndex; i++) {
+                     // Note that looping over java character, not cells.
+                     char c = oldLine.mText[i];
+                     int codePoint = (Character.isHighSurrogate(c)) ? Character.toCodePoint(c, oldLine.mText[++i]) : c;
+                     int displayWidth = WcWidth.width(codePoint);
+                     // Use the last style if this is a zero-width character:
+-                    if (displayWidth > 0) styleAtCol = oldLine.getStyle(currentOldCol);
++                    if (displayWidth > 0) {
++                        styleAtCol = oldLine.getStyle(currentOldCol);
++                        hyperlinkAtCol = oldLine.getHyperlinkId(currentOldCol);
++                    }
+ 
+                     // Line wrap as necessary:
+                     if (currentOutputExternalColumn + displayWidth > mColumns) {
+@@ -317,7 +374,7 @@
+ 
+                     int offsetDueToCombiningChar = ((displayWidth <= 0 && currentOutputExternalColumn > 0) ? 1 : 0);
+                     int outputColumn = currentOutputExternalColumn - offsetDueToCombiningChar;
+-                    setChar(outputColumn, currentOutputExternalRow, codePoint, styleAtCol);
++                    setChar(outputColumn, currentOutputExternalRow, codePoint, styleAtCol, hyperlinkAtCol);
+ 
+                     if (displayWidth > 0) {
+                         if (oldCursorRow == externalOldRow && oldCursorColumn == currentOldCol) {
+@@ -396,7 +453,7 @@
+         // Blank the newly revealed line above the bottom margin:
+         int blankRow = externalToInternalRow(bottomMargin - 1);
+         if (mLines[blankRow] == null) {
+-            mLines[blankRow] = new TerminalRow(mColumns, style);
++            mLines[blankRow] = newRow(style);
+         } else {
+             mLines[blankRow].clear(style);
+         }
+@@ -442,14 +499,24 @@
+     }
+ 
+     public TerminalRow allocateFullLineIfNecessary(int row) {
+-        return (mLines[row] == null) ? (mLines[row] = new TerminalRow(mColumns, 0)) : mLines[row];
++        return (mLines[row] == null) ? (mLines[row] = newRow(0)) : mLines[row];
+     }
+ 
+     public void setChar(int column, int row, int codePoint, long style) {
++        setChar(column, row, codePoint, style, 0);
++    }
++
++    void setChar(int column, int row, int codePoint, long style, int hyperlinkId) {
+         if (row >= mScreenRows || column >= mColumns)
+             throw new IllegalArgumentException("row=" + row + ", column=" + column + ", mScreenRows=" + mScreenRows + ", mColumns=" + mColumns);
+         row = externalToInternalRow(row);
+-        allocateFullLineIfNecessary(row).setChar(column, codePoint, style);
++        allocateFullLineIfNecessary(row).setChar(column, codePoint, style, hyperlinkId);
++    }
++
++    int getHyperlinkId(int row, int column) {
++        if (row < -mActiveTranscriptRows || row >= mScreenRows || column < 0 || column >= mColumns) return 0;
++        TerminalRow line = mLines[externalToInternalRow(row)];
++        return line == null ? 0 : line.getHyperlinkId(column);
+     }
+ 
+     public long getStyleAt(int externalRow, int column) {
+@@ -459,6 +526,12 @@
+     /** Support for http://vt100.net/docs/vt510-rm/DECCARA and http://vt100.net/docs/vt510-rm/DECCARA */
+     public void setOrClearEffect(int bits, boolean setOrClear, boolean reverse, boolean rectangular, int leftMargin, int rightMargin, int top, int left,
+                                  int bottom, int right) {
++        top = Math.max(0, Math.min(top, mScreenRows));
++        bottom = Math.max(top, Math.min(bottom, mScreenRows));
++        left = Math.max(0, Math.min(left, mColumns));
++        right = Math.max(left, Math.min(right, mColumns));
++        leftMargin = Math.max(0, Math.min(leftMargin, mColumns));
++        rightMargin = Math.max(leftMargin, Math.min(rightMargin, mColumns));
+         for (int y = top; y < bottom; y++) {
+             TerminalRow line = mLines[externalToInternalRow(y)];
+             int startOfLine = (rectangular || y == top) ? left : leftMargin;
+@@ -482,13 +555,10 @@
+     }
+ 
+     public void clearTranscript() {
+-        if (mScreenFirstRow < mActiveTranscriptRows) {
+-            Arrays.fill(mLines, mTotalRows + mScreenFirstRow - mActiveTranscriptRows, mTotalRows, null);
+-            Arrays.fill(mLines, 0, mScreenFirstRow, null);
+-        } else {
+-            Arrays.fill(mLines, mScreenFirstRow - mActiveTranscriptRows, mScreenFirstRow, null);
+-        }
+-        mActiveTranscriptRows = 0;
++        while (mActiveTranscriptRows > 0) {
++            dropRow(externalToInternalRow(-mActiveTranscriptRows));
++            mActiveTranscriptRows--;
++        }
+     }
+ 
+ }

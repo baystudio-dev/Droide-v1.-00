@@ -4,6 +4,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Fixed primary-registry test vectors, independently copied from the reviewed metadata snapshot. */
 class LocalUbuntuPerlNavigatorPolicyTest {
     private val records = """
 perlnavigator-server|0.8.20|https://registry.npmjs.org/perlnavigator-server/-/perlnavigator-server-0.8.20.tgz|sha512-whXoAEQwavV2GF/KuzzJ/yg5x9q3XUccMNrA06N0kvmi53BcySburu3Y/YEhPpNjJe0NNxpK7kOj80PE9vRu/g==

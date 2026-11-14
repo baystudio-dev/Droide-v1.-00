@@ -10,6 +10,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Composer actions keep their normal density and grow with accessible text sizes. */
 @Composable
 internal fun AgentModelControl(providerId: String, model: String, height: Dp, logoSize: Dp, compact: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     TextButton(

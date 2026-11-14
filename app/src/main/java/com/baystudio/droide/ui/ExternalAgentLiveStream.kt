@@ -25,8 +25,8 @@ internal fun ExternalAgentLiveStream(
     modifier: Modifier = Modifier,
     renderTranscript: Boolean = true,
 ) {
-    // Only rendered inputs, including the selected transcript branch. Visibility of the disclosure
-    // itself is intentionally excluded from this stream key.
+    // Only rendered inputs, including the selected transcript branch. Visibility
+    // of the disclosure itself is intentionally excluded from this stream key.
     val activity = state.progress.presentation(waitingForApproval)
     val transcriptKey = if (!renderTranscript) null else if (state.streamParts.isNotEmpty())
         state.streamParts else listOf(state.liveText, streamId, state.progress.finished)
@@ -54,9 +54,10 @@ internal fun ExternalAgentLiveStream(
             }
         }
         if (renderTranscript) {
-            state.streamParts.forEach { part -> AgentStreamPartItem(part, showDetails) }
+            visibleAgentStreamParts(state.streamParts, showDetails).forEach { part -> AgentStreamPartItem(part, showDetails) }
             if (state.streamParts.isEmpty() && state.liveText.isNotBlank()) {
-                AgentStreamingMarkdownContent(state.liveText, streamId, completed = state.progress.finished, modifier = Modifier.fillMaxWidth())
+                AgentStreamingMarkdownContent(state.liveText, streamId, completed = state.progress.finished,
+                    modifier = Modifier.fillMaxWidth(), bodyStyle = MaterialTheme.typography.bodyMedium.copy(color = DroideColors.Text))
             }
         }
     }

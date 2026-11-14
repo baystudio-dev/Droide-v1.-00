@@ -32,6 +32,7 @@ import com.baystudio.droide.core.ExtensionCategory
 import com.baystudio.droide.core.ExtensionFamily
 import com.baystudio.droide.core.LanguageRegistry
 
+
 private data class ExtensionBrandAsset(@DrawableRes val resource: Int, val adaptiveMonochrome: Boolean = false)
 
 private fun languageIconProbe(languageId: String): String {

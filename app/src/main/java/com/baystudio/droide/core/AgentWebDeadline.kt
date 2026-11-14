@@ -37,8 +37,7 @@ internal suspend fun <T> withAgentWebDeadline(
                 deadline.checkActive()
                 val result = coroutineScope { block(deadline) }
                 currentCoroutineContext().ensureActive()
-                // Completion and expiration share the same state lock; expired work cannot win a race with the
-                // timer.
+                // Completion and expiration share the same state lock; expired work cannot win a race with the timer.
                 deadline.complete()
                 result
             } finally {

@@ -4,8 +4,10 @@ import java.io.InputStreamReader
 import java.io.Reader
 import java.nio.charset.CodingErrorAction
 
-/** Read-only materialization of the EXISTING bounded patch consumer input, not a patch executor. */
-
+/** Read-only materialization of the EXISTING bounded patch consumer input, not a patch executor.
+ * No full escaped JSON String or synthetic write_file arguments are created. No new spool is made.
+ * Current consumer limit remains 2,000,000 decoded UTF16 units, for both patch dialects.
+ */
 internal object StreamedPatchArgumentExtractor {
     const val MAX_PATCH_UTF16 = 2_000_000
     class Prepared internal constructor(
@@ -35,8 +37,8 @@ internal object StreamedPatchArgumentExtractor {
             original.utf16Length, original.sha256, original.kind)
         return guarded(source) {
             val text = decode(session, source, checkCancelled)
-            // Whole-batch admission must reject later malformed syntax before earlier effects. Parsed ops
-            // and decoded text are transient: neither is retained in Prepared.
+            // Whole-batch admission must reject later malformed syntax before earlier effects.
+            // Parsed ops and decoded text are transient: neither is retained in Prepared.
             PatchTool.parse(text)
             checkCancelled()
             Prepared(callId, source)

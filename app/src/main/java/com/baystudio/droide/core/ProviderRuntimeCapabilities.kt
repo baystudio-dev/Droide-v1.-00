@@ -2,8 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
-// Retain only explicitly advertised live capabilities; missing metadata is not a capability
-// claim.
+// Retain only explicitly advertised live capabilities; missing metadata is not a capability claim.
 internal object ProviderRuntimeCapabilities {
     fun parse(provider: AiProvider, entry: ProviderModelCatalog.Entry): ModelCapabilities? {
         val metadata = entry.metadata ?: return null

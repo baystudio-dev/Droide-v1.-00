@@ -6,6 +6,9 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Invokes the actual manager parser, with a non-live generic state fixture.
+ * Constructor bypass deliberately avoids unrelated process/native-manager lifecycle.
+ */
 class LspCallHierarchyPositionTest {
     private fun allocate(type: Class<*>): Any {
         val unsafeType=Class.forName("sun.misc.Unsafe")

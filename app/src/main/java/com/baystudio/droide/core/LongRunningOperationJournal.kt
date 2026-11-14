@@ -85,8 +85,9 @@ internal class LongRunningOperationJournal(
         prune()
     }
 
-    // Preserve the persisted ordering without preventing completion or recovery.
-
+    // Wall time can move backwards after a clock correction or across process restarts.
+    // Preserve the persisted ordering without preventing completion or recovery. This is
+    // a journal timestamp; process deadlines must continue to use a monotonic clock.
     private fun transitionTime(record: Record): Long = maxOf(clock(), record.updatedAtEpochMs)
 
     private fun write(record: Record) {

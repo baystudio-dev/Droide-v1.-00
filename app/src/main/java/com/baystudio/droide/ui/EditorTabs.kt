@@ -16,6 +16,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
+ 
 @Composable
 internal fun DroideEditorTabs(
     openFiles: List<String>,
@@ -38,6 +41,13 @@ internal fun DroideEditorTabs(
         edgePadding = 0.dp,
         containerColor = DroideColors.Surface,
         contentColor = DroideColors.Text,
+        indicator = { positions ->
+            // Selection can recompose before SubcomposeLayout measures newly opened/restored tabs.
+            // Keep the default indicator, but wait for geometry that includes this selection.
+            positions.getOrNull(selected)?.let { position ->
+                TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(position))
+            }
+        },
         divider = { HorizontalDivider(color = DroideColors.Border) },
     ) {
         openFiles.forEach { path ->

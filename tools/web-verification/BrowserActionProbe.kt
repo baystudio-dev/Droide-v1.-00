@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Line protocol for the isolated Chromium regression harness; no Android or production runtime changes. */
 object BrowserActionProbe {
     @JvmStatic fun main(args: Array<String>) {
         generateSequence(::readlnOrNull).forEach { line ->

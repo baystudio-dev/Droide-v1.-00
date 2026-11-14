@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Last model request in this conversation, independent of the cumulative billing ledger. */
 data class AgentContextUsage(
     val sessionId: String,
     val providerId: String,

@@ -27,8 +27,11 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okio.BufferedSink
 
-/** Independent, memory-only HTTPS session for the official public form. */
-
+/**
+ * Independent, memory-only HTTPS session for the official public form. No browser, account/client
+ * reuse, global cookie jar, project diagnostics, logging, credentials, cache or POST retries.
+ * The optional interceptor is an in-process JVM fixture boundary; production uses the default.
+ */
 internal class OfficialBugReportTransport(
     private val dispatchGuard: (block: () -> Unit) -> Unit = { it() },
     testInterceptor: Interceptor? = null,
@@ -116,8 +119,8 @@ internal class OfficialBugReportTransport(
         val request = Request.Builder().url(BugReportPolicy.SUBMIT_URL)
             .header("Accept", "application/json")
             .header("Cache-Control", "no-store")
-            // The official form validates its origin in addition to the session/CSRF pair. Native requests
-            // must supply the same fixed form origin; redirects stay disabled.
+            // The official form validates its origin in addition to the session/CSRF pair.
+            // Native requests must supply the same fixed form origin; redirects stay disabled.
             .header("Origin", BugReportPolicy.ORIGIN)
             .header("Referer", BugReportPolicy.FORM_URL)
             .header("X-Droide-CSRF", current.token)

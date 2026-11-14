@@ -2,6 +2,8 @@ package com.baystudio.droide.core
 
 /** No fallback to pipes when a real TTY was explicitly requested. Check after tab pinning. */
 internal object AgentTtyPolicy {
+    fun keepStdinOpen(requiresTty: Boolean, requested: Boolean? = null): Boolean = requested ?: requiresTty
+
     fun unsupportedReason(requiresTty: Boolean, supportsVisiblePty: Boolean = false): String? =
         if (requiresTty && !supportsVisiblePty) {
             "ERROR: Interactive TTY was requested but the selected backend only supports supervised pipes. " +

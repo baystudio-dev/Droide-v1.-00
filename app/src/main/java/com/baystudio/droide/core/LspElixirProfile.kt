@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
+/** Upstream user-installed launcher; no runtime provisioning or exact-version admission. */
 internal object LspElixirProfile {
     const val ID = "elixir-ls"
     const val IDENTITY = "elixirls-user-managed-configured-before-build-v1"
@@ -27,8 +28,8 @@ internal object LspElixirProfile {
     }
     fun projectAvailable(project: File): Boolean = Files.isDirectory(project.toPath(), NOFOLLOW_LINKS)
 
-    // ElixirLS waits for configuration before starting builds. Keep native compiler diagnostics on,
-    // without automatic project dependency downloads or Dialyzer PLTs.
+    // ElixirLS waits for configuration before starting builds. Keep native compiler
+    // diagnostics on, without automatic project dependency downloads or Dialyzer PLTs.
     fun settings(): JsonObject = buildJsonObject {
         put("autoBuild", true)
         put("fetchDeps", false)

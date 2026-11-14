@@ -6,6 +6,15 @@ import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+
+
+
+
+
+
+
+
+
 object AgentProjectInstructions {
     private const val MAX_BRIEF_FILE_BYTES = 50_000L
     private const val MAX_RULE_FILE_BYTES = 12_000L
@@ -62,8 +71,8 @@ object AgentProjectInstructions {
             body.append(part.take(remaining))
         }
 
-        // Request-local exact-text reuse only. Never skip a scoped tool read based on a previous load:
-        // files may have changed, or that brief may no longer be active.
+        // Request-local exact-text reuse only. Never skip a scoped tool read based on
+        // a previous load: files may have changed, or that brief may no longer be active.
         val sameInstructionRoot = runCatching { files.root.canonicalFile == workDir.canonicalFile }.getOrDefault(false)
         var completeRootAgents: String? = null
         var interveningDroideSource = false
@@ -79,7 +88,8 @@ object AgentProjectInstructions {
             val text = runSuspendCatching { files.readText(rel, maxBytes = MAX_BRIEF_FILE_BYTES) }.getOrNull()
             if (text == null) incomplete[rel] = "unreadable"
             else {
-                // Preserve source order and identity; do not collapse identical bodies across a .droide source,
+                // These two names are in the SAME directory. Preserve source order and
+                // identity; do not collapse identical bodies across a .droide source,
                 // different directory, incomplete read, normalization or intervening rule.
                 val reference = "[Exact full-text duplicate in this request: GEMINI.md has the same verbatim body as AGENTS.md above. " +
                     "Apply that body independently as GEMINI.md at the project root, in this source position; preserve its source-relative meaning.]"
@@ -116,8 +126,8 @@ object AgentProjectInstructions {
         if (body.length + ruleNotice.length > MAX_TOTAL_CHARS) incomplete["plugin rule diagnostics"] = "total_limit"
         if (incomplete.isEmpty()) return@withContext ruleNotice + body.take((MAX_TOTAL_CHARS - ruleNotice.length).coerceAtLeast(0))
 
-        // The notice precedes the bounded excerpt, so truncation cannot hide it. List all sources:
-        // reserving space for this notice can also shorten the last complete part.
+        // The notice precedes the bounded excerpt, so truncation cannot hide it. List all
+        // sources: reserving space for this notice can also shorten the last complete part.
         val notice = buildString {
             appendLine("[DROIDE_PROJECT_INSTRUCTIONS incomplete=true]")
             appendLine("Limits: ${incomplete.entries.joinToString { "${it.key} (${it.value})" }}")
@@ -169,8 +179,8 @@ object AgentProjectInstructions {
         val frontmatter = prefix.substring(3, end)
         val trigger = Regex("(?im)^\\s*trigger\\s*:\\s*([^#\\r\\n]+)")
             .find(frontmatter)?.groupValues?.get(1)?.trim()?.lowercase() ?: return false
-        // A quoted YAML scalar has the same activation value as its plain spelling. Remove only one
-        // matching pair; malformed/mismatched quotes must not activate.
+        // A quoted YAML scalar has the same activation value as its plain spelling.
+        // Remove only one matching pair; malformed/mismatched quotes must not activate.
         val activation = if (trigger.length >= 2 && trigger.first() in "\"'" && trigger.last() == trigger.first())
             trigger.substring(1, trigger.length - 1) else trigger
         return activation == "always_on" || activation == "always-on" || activation == "always"

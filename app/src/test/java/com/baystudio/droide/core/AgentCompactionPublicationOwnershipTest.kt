@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Direct current-API final-publication regression; no Agent, terminal or process backend is created. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AgentCompactionPublicationOwnershipTest {
@@ -31,7 +32,7 @@ class AgentCompactionPublicationOwnershipTest {
         try {
             withProviderStreamFixture(ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS, authRequired = false) { provider ->
                 provider.secret = ""
-
+                // This bounds the retained history and forces exactly one 20 KB historical chunk.
                 ModelContextRegistry.remember(provider.provider.id, provider.model, 16_384)
                 provider.response = { _, _, streaming ->
                     assertFalse(streaming)
@@ -62,8 +63,9 @@ class AgentCompactionPublicationOwnershipTest {
                             ensureCurrent = {
                                 synchronized(admissionLock) { requireOwner(); checks++ }
                                 if (checks == 2 && revoke) synchronized(admissionLock) {
-                                    // This happens after the last successful owner read, before returning to the old helper's
-                                    // unguarded clear/add sequence.
+                                    // Model shutdown/load admission exactly: revoke the ticket but retain
+                                    // the visible list. This happens after the last successful owner read,
+                                    // before returning to the old helper's unguarded clear/add sequence.
                                     history.beginRestore()
                                 }
                             },
@@ -85,7 +87,7 @@ class AgentCompactionPublicationOwnershipTest {
                         assertEquals("Revoked compaction must preserve the retained active history", originalBytes,
                             history.active.map(JsonObject::toString))
                         assertTrue(outcome.exceptionOrNull() is CancellationException)
-                        assertEquals(1, commits)
+                        assertEquals(1, commits) // The already-authorized disk commit remains valid.
                     } else {
                         assertEquals(true, outcome.getOrThrow())
                         assertEquals(saved.apiHistory, history.active)

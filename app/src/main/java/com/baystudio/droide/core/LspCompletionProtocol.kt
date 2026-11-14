@@ -2,10 +2,12 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** One-based UTF-16 caret for manager-authored captured completion edits. */
 data class LspCompletionCaret(val line: Int, val column: Int)
 
 /** One manager-authored immutable guard shared by a response. Never parsed from server JSON.
- * isCurrent must be a bounded pure admission check; no I/O or suspension at editor acceptance. */
+ * isCurrent must be a bounded pure admission check; no I/O or suspension at editor acceptance.
+ */
 class LspCompletionApplicationGuard(
     val capturedText: String,
     val requiredCaret: LspCompletionCaret? = null,
@@ -44,6 +46,7 @@ data class LspCompletionItem(
     val nativeSnippetPolicy: LspNativeSnippetPolicy? = null,
 )
 
+ 
 internal object LspCompletionProtocol {
     fun parse(
         result: JsonElement,
@@ -81,8 +84,9 @@ internal object LspCompletionProtocol {
         val textEdit = o["textEdit"] as? JsonObject
         if (requirePrimaryEdit && textEdit == null) return null
         if (o.containsKey("textEdit") && textEdit == null) return null
-        // Never combine one field's text with another field's range or fall back from a malformed
-        // explicit edit.
+        // LSP specifies that textEdit.newText overrides insertText, including an
+        // intentionally empty replacement. Never combine one field's text with
+        // another field's range or fall back from a malformed explicit edit.
         val insertText = if (textEdit != null) string(textEdit["newText"]) ?: return null
             else string(o["insertText"]) ?: wireLabel
         if (insertText.length > ProfessionalSnippets.MAX_SNIPPET_CHARS) return null
@@ -142,8 +146,9 @@ internal object LspCompletionProtocol {
             if (!completionRange(insert, line, column) || !completionRange(replace, line, column)) return null
             if (insert.startLine != replace.startLine || insert.startColumn != replace.startColumn ||
                 insert.endLine != replace.endLine || insert.endColumn > replace.endColumn) return null
-            // The existing editor accepts completion by replacement only.
-
+            // The existing editor accepts completion by replacement only. Normalize
+            // this optional server form to that behavior; do not advertise a dual
+            // insert/replace UI or silently choose the shorter insertion range.
             replace
         }
         return range.takeIf { completionRange(it, line, column) }
@@ -180,14 +185,14 @@ internal object LspCompletionProtocol {
 
     private fun overlaps(a: TextRangeEdit, b: TextRangeEdit): Boolean {
         fun compare(al: Int, ac: Int, bl: Int, bc: Int) = if (al == bl) ac.compareTo(bc) else al.compareTo(bl)
-
+        // Identical insertion positions conflict too, even though both ranges are empty.
         if (a.startLine == b.startLine && a.startColumn == b.startColumn) return true
         return compare(a.startLine, a.startColumn, b.endLine, b.endColumn) < 0 &&
             compare(b.startLine, b.startColumn, a.endLine, a.endColumn) < 0
     }
 
-    // Index the request snapshot once. Completion validation must not construct and discard a whole
-    // edited document for every candidate in the response.
+    // Index the request snapshot once. Completion validation must not construct
+    // and discard a whole edited document for every candidate in the response.
     private class DocumentBounds(private val text: String) {
         private val starts = IntArray(1 + text.indices.count { index ->
             text[index] == '\r' || (text[index] == '\n' && (index == 0 || text[index - 1] != '\r'))

@@ -5,9 +5,11 @@ import com.baystudio.droide.core.FileRepository
 import com.baystudio.droide.core.runSuspendCatching
 import kotlinx.coroutines.CancellationException
 
+ 
 internal object EditorTabRetention {
     const val MAX_TABS = 32
 
+     
     fun open(
         tabs: List<String>,
         path: String,
@@ -73,8 +75,9 @@ internal object EditorTabRetention {
                     state.retainRecoveryConflict(path, dirtyText, null, snapshot.diskVersions[path])
                 }
             }
+            // A checkpoint can finish loading after the user has edited this file,
+            // or the same deferred buffer can already be retained after rotation.
             // The live buffer wins; do not overwrite it or abort other recoveries.
-
             if (!state.canRestoreDocument(admission, path) || current?.dirty == true) {
                 preserveConflictingRecovery()
                 continue

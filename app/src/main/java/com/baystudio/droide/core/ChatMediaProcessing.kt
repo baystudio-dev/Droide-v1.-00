@@ -66,6 +66,7 @@ object ChatMediaProcessing {
             }
         }
 
+    /** Give every attachment a slot before allocating remaining slots to videos. */
     internal fun frameAllocation(videos: List<Boolean>): List<Int> {
         require(videos.size <= MAX_IMAGES)
         val counts = IntArray(videos.size) { 1 }
@@ -87,7 +88,7 @@ object ChatMediaProcessing {
     internal fun sampleTimes(durationMillis: Long, count: Int): List<Long> {
         require(durationMillis in 1..(Long.MAX_VALUE / 1000) && count in 1..MAX_IMAGES) { "Video duration is unavailable or invalid" }
         val durationMicros = durationMillis * 1000
-
+        // Reuse the same four positions when another message gives this video a different slot budget.
         return listOf(1, 3, 0, 2).take(count).sorted().map { index ->
             (durationMicros / 8L) * (2L * index + 1L)
         }
@@ -102,7 +103,7 @@ object ChatMediaProcessing {
             decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             decoder.setTargetColorSpace(ColorSpace.get(ColorSpace.Named.SRGB))
             decoder.setTargetSize(width, height)
-
+            // JPEG has no alpha; preserve dark diagram/text visibility against a white background.
             decoder.setPostProcessor { canvas ->
                 canvas.drawColor(Color.WHITE, PorterDuff.Mode.DST_OVER)
                 PixelFormat.OPAQUE
@@ -126,7 +127,7 @@ object ChatMediaProcessing {
             val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
                 ?: error("This video has no readable dimensions.")
             val rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull()
-
+            // The platform already rotates the returned frame; request bounds in its displayed orientation.
             val (targetWidth, targetHeight) = if (rotation == 90 || rotation == 270) {
                 targetSize(height, width, VIDEO_EDGE)
             } else targetSize(width, height, VIDEO_EDGE)

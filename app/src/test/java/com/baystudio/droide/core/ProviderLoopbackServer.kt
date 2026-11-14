@@ -7,8 +7,9 @@ import java.net.URI
 import java.lang.reflect.Proxy
 import java.util.concurrent.Executor
 
-/** Public JDK HTTP APIs through reflection: Android's compile stubs omit jdk.httpserver. The
- * local unit tests run on a full JDK; a missing server is a failure, never a skip. */
+/** Public JDK HTTP APIs through reflection: Android's compile stubs omit jdk.httpserver.
+ * The local unit tests run on a full JDK; a missing server is a failure, never a skip.
+ */
 internal class ProviderLoopbackServer private constructor(private val server: Any) {
     private val api = Class.forName("com.sun.net.httpserver.HttpServer")
     val address: InetSocketAddress get() = api.getMethod("getAddress").invoke(server) as InetSocketAddress
@@ -47,9 +48,6 @@ internal class ProviderLoopbackServer private constructor(private val server: An
     }
 
     class Headers(private val headers: Any) {
-        fun add(name: String, value: String) {
-            Class.forName("com.sun.net.httpserver.Headers").getMethod("add", String::class.java, String::class.java).invoke(headers, name, value)
-        }
         fun set(name: String, value: String) {
             Class.forName("com.sun.net.httpserver.Headers").getMethod("set", String::class.java, String::class.java).invoke(headers, name, value)
         }

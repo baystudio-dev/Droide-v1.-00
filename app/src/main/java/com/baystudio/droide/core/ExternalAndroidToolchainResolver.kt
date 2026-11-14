@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.Json
 
+
 internal class ExternalAndroidToolchainResolver(
     private val bridge: DeviceBridgeManager,
 ) {
@@ -12,9 +13,11 @@ internal class ExternalAndroidToolchainResolver(
 
     private val json = Json { ignoreUnknownKeys = false }
 
+     
     suspend fun read(): Candidate? = readAll().firstOrNull()
 
     // The legacy marker is first for compatibility.
+
 
     suspend fun readAll(): List<Candidate> {
         val result = mutableListOf<Candidate>()
@@ -79,8 +82,7 @@ internal class ExternalAndroidToolchainResolver(
     }
 
     private fun validateExplicitUserManifest(manifest: AndroidDevelopmentManager.ToolchainManifest) {
-        // A user marker describes an already-installed workstation toolchain and must not impersonate
-        // release evidence.
+        // A user marker describes an already-installed workstation toolchain and must not impersonate release evidence.
 
         require(manifest.schema in 1..2) { "User Android toolchain marker must use schema 1 or 2" }
         require(manifest.candidateId == null && manifest.sourceLockSha256 == null && manifest.buildRecipeVersion == null) {

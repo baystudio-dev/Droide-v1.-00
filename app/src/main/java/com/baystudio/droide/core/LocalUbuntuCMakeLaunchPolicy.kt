@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Finite CMake-specific launch, deliberately separate from old process wrappers. */
 object LocalUbuntuCMakeLaunchPolicy {
     const val SUPERVISOR_SHA256 = "454f4f7c56ee86a280414d776fa69d1d83412238cb961d77daf14f95b4b0cee8"
     const val EDITOR_POLICY = "cmake-editor-bounded-owner-v1"

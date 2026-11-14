@@ -20,7 +20,7 @@ internal object AgentWebUrl {
         require(raw.length in 1..8_192) { "Web URL must be between 1 and 8192 characters" }
         val parsed = raw.trim().toHttpUrlOrNull() ?: error("Invalid HTTP(S) web URL")
         require(parsed.username.isEmpty() && parsed.password.isEmpty()) { "Credentials in web URLs are not allowed" }
-
+        // Public legacy links are attempted over HTTPS; Android's cleartext policy stays intact.
         val url = parsed.newBuilder().apply {
             if (parsed.scheme == "http") {
                 require(parsed.port == 80 || parsed.port == 443) { "Use an explicit HTTPS URL for nonstandard ports" }
@@ -53,6 +53,7 @@ internal data class AgentWebResponse(
     val isImage: Boolean get() = VisionSupport.sniff(bytes) != null
 }
 
+/** The callback runs before DNS/network I/O on every hop, including redirects. */
 internal fun interface AgentWebTransport {
     suspend fun get(url: String, beforeRequest: suspend (String) -> Unit): AgentWebResponse
 

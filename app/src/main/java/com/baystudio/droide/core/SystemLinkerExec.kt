@@ -5,6 +5,7 @@ import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
+ 
 object SystemLinkerExec {
     private const val LINKER = "/system/bin/linker64"
 
@@ -25,6 +26,7 @@ object SystemLinkerExec {
         return wrap(executable.path, command.drop(1))
     }
 
+     
     internal fun requireAndroidArm64DynamicElf(file: File) {
         require(file.isFile) { "Local PRoot launcher is not installed" }
         RandomAccessFile(file, "r").use { input ->

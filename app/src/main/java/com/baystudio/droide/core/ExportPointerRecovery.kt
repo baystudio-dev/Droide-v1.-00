@@ -44,7 +44,9 @@ internal class ExportPointerRecovery private constructor(
             root.openDirectory(name).use { transaction ->
                 when (transaction.kind(INTENT)) {
                     AnchoredWorkspaceFiles.Kind.ABSENT -> {
-
+                        // No durable intent and no evidence: no move was authorized by this
+                        // protocol. Preserve this artifact as diagnostic only, never as proof
+                        // of recovered output or permission to clean old staging.
                         check(transaction.kind(EVIDENCE) == AnchoredWorkspaceFiles.Kind.ABSENT) {
                             "Unfinished export recovery needs review; data preserved"
                         }
@@ -156,8 +158,8 @@ internal class ExportPointerRecovery private constructor(
         // Identity/IO failure is not evidence of malformed content and must propagate.
         val bytes = readSmall(files, name, allowOversize = true) ?: return Current.INCOMPATIBLE
         val p = ExportStateProperties()
-        // Syntax damage may hide escaped/continued future declarations. Preserve and block rather than
-        // guessing a schema. Valid syntax with version=broken remains recoverable.
+        // Syntax damage may hide escaped/continued future declarations. Preserve and block
+        // rather than guessing a schema. Valid syntax with version=broken remains recoverable.
         try { p.load(ByteArrayInputStream(bytes)) } catch (_: IllegalArgumentException) { return Current.INCOMPATIBLE }
         val numeric = Regex("[+-]?[0-9]+")
         if (p.declaredVersions.size > 1 || p.declaredVersions.any { it != "1" && numeric.matches(it.trim()) })
@@ -208,8 +210,8 @@ internal class ExportPointerRecovery private constructor(
         private val owners = mutableSetOf<String>()
         fun open(base: File): ExportPointerRecovery {
             val root = AnchoredWorkspaceFiles(base)
-            // Registry identity precedes EVERY owner-inode open, including alias paths. Merely opening
-            // another alias must not establish a second owner in this runtime.
+            // Registry identity precedes EVERY owner-inode open, including alias paths. Merely
+            // opening another alias must not establish a second owner in this runtime.
             val key = try { root.directoryKey() } catch (failure: Throwable) { root.close(); throw failure }
             synchronized(owners) {
                 if (!owners.add(key)) {

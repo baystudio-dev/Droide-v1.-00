@@ -232,8 +232,8 @@ class InstallerOperationCoordinatorTest {
             fail("Failure must propagate")
         } catch (actual: IllegalStateException) {
             assertRetainsFailure(original, actual)
-            // Coroutine stack recovery can wrap the original in a copy whose cause retains the suppressed
-            // publication failure.
+            // Coroutine stack recovery can wrap the original in a copy whose
+            // cause retains the suppressed publication failure.
             val suppressed = generateSequence(actual as Throwable) { it.cause }
                 .filter { it.javaClass == original.javaClass && it.message == original.message }
                 .flatMap { it.suppressed.asSequence() }.distinct().toList()

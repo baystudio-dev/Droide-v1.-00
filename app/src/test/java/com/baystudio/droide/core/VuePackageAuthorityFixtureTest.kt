@@ -9,8 +9,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Complete authored plaintext physical-layout fixtures. These exercise package-file and journal
- * authorities, not authenticity of unopened original archives or native health. */
+/** Complete authored plaintext physical-layout fixtures. These exercise package-file and
+ * journal authorities, not authenticity of unopened original archives or native health. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = android.app.Application::class, shadows = [VueHostFileStat::class])
 class VuePackageAuthorityFixtureTest {

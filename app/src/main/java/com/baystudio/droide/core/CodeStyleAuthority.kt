@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.math.abs
 
+ 
 enum class IndentStyle { SPACES, TABS }
 
 data class CodeStyleDefaults(
@@ -33,6 +34,13 @@ data class CodeStyleProfile(
     val continuationUnit: String get() = if (useTabs) "\t".repeat(((continuationIndent + tabWidth - 1) / tabWidth).coerceIn(1, 4)) else " ".repeat(continuationIndent.coerceIn(1, 16))
     val label: String get() = if (useTabs) "Tabs:$tabWidth" else "Spaces:$indentSize"
 }
+
+
+
+
+
+
+
 
 class CodeStyleAuthority(private val projectRoot: File) {
     companion object {
@@ -111,6 +119,8 @@ class CodeStyleAuthority(private val projectRoot: File) {
             }
         }
 
+        
+
         if (config == null && source == "User default" && languageId.lowercase() in setOf("go", "makefile")) {
             style = IndentStyle.TABS
             tabWidth = base.tabWidth
@@ -158,8 +168,8 @@ class CodeStyleAuthority(private val projectRoot: File) {
                 }
             }
         }
-        // EditorConfig derives an unspecified tab width from numeric indent_size. Resolve after
-        // inheritance; explicit/unset tab_width must retain user intent.
+        // EditorConfig derives an unspecified tab width from numeric indent_size.
+        // Resolve after inheritance; explicit/unset tab_width must retain user intent.
         if ("tab_width" !in result && !tabWidthUnset) {
             result["indent_size"]?.takeIf { it.toIntOrNull() != null }?.let { result["tab_width"] = it }
         }
@@ -170,8 +180,8 @@ class CodeStyleAuthority(private val projectRoot: File) {
     private data class Parsed(val root: Boolean, val sections: List<Section>)
 
     private fun parse(file: File): Parsed? {
-        // A project file can disappear or grow after stat. Never let optional style configuration crash
-        // composition or allocate an unbounded input line.
+        // A project file can disappear or grow after stat. Never let optional style
+        // configuration crash composition or allocate an unbounded input line.
         val text = try {
             if (!file.isFile || file.length() !in 1..MAX_EDITORCONFIG_BYTES) return null
             file.inputStream().use { input ->
@@ -220,7 +230,7 @@ class CodeStyleAuthority(private val projectRoot: File) {
 }
 
 object CodeStyleSnippets {
-
+     
     fun normalize(source: String, profile: CodeStyleProfile): String {
         if (!source.contains('\n')) return source
         val lines = source.split('\n')

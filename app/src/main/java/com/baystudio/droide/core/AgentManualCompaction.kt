@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.JsonObject
 
+ 
 object AgentManualCompaction {
     suspend fun run(
         sessionId: String?, sessions: SessionManager, messages: List<AgentMessage>, apiHistory: List<JsonObject>,

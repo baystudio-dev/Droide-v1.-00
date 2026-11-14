@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual manager/transport with authored byte-stream peers; no original Metals/JVM or Android execution. */
 class LspScalaIntegrationTest {
     @Test(timeout=10000) fun openingScalaDoesNotInstallProbeOrAskForTrust() = runBlocking<Unit> {
         Fixture().use { f ->

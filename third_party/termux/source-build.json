@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "upstream": {
+    "repository": "https://github.com/termux/termux-app",
+    "tag": "v0.118.0",
+    "commit": "6e2689f55295fa444be8ac8592c527c2c5ef3253",
+    "rootLicenseGitBlobSha1": "36cd48f8710cc1e2552b5bfacff730d064415b92",
+    "licenseScope": "terminal-view and terminal-emulator are the modules named by the upstream Apache-2.0 Terminal Emulator exception"
+  },
+  "files": {
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/ByteQueue.java": {
+      "sha256": "a331e76e385e77db85c6434b3c4c787ae4aefaab81afc9b76ea42138e7903d9c",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/ByteQueue.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/JNI.java": {
+      "sha256": "7b9bd2fd066d3ccc861827b946c27abd19958efb52a7445c6878fd299212a9d5",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/JNI.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/KeyHandler.java": {
+      "sha256": "543043c05d38450a4a805422b02ac77085bfa727e0cdb088353b7996c0b1856f",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/KeyHandler.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalBuffer.java": {
+      "sha256": "7ca819ab4a5a31a33665ccc7410b00809f39b8f9434c832aa8e379bc5aa05a2e",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalBuffer.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalColorScheme.java": {
+      "sha256": "22828d348df0dbcd1b1c940003735ed7a3094d129c9dba31c0bb8d85ba6a2548",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalColorScheme.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalColors.java": {
+      "sha256": "144f6bad8b6158f77145ccc98c6f29021232669a0045f075e3e137c4999826be",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalColors.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalEmulator.java": {
+      "sha256": "65e38d48618afaac26997d2d5004193aabdd3f457fd2c5b71c535062740faafa",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalEmulator.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalOutput.java": {
+      "sha256": "f844b820e8a344e97bdbf421251daf9312dbf3f69a367b084bd920ed8a4898bc",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalOutput.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalRow.java": {
+      "sha256": "95cc09fdeff519f955a39677fa76998d04b5072dc315070dd59b3b1aed6d2a88",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalRow.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalSession.java": {
+      "sha256": "932c7bc65cfed44337096a6048a91c26ff696c381ac5ff2cbd3865752656fae3",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalSession.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TerminalSessionClient.java": {
+      "sha256": "853c3816ea1fc827895cea8191628482e1845e888a33d6c7da7e7ddac63af1b9",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TerminalSessionClient.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/TextStyle.java": {
+      "sha256": "234faa9646aca6b04329998106d9b29aac757abdc7e0400f2a3ed90c95a07297",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/TextStyle.java"
+    },
+    "third_party/termux/source-build/emulator/java/com/termux/terminal/WcWidth.java": {
+      "sha256": "af8b58be28e68a5782ecbc6cd36eadf05764c19b72641fa1b44e452fb2d498f1",
+      "origin": "third_party/termux/terminal-emulator-v0.118.0-sources.jar!/com/termux/terminal/WcWidth.java"
+    },
+    "third_party/termux/source-build/emulator/R.txt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "app/libs/terminal-emulator-v0.118.0-java.aar!/R.txt"
+    },
+    "third_party/termux/source-build/emulator/AndroidManifest.xml": {
+      "sha256": "6ad93df13f3fc6fb00484438cd5f0bb9a9b77a122e223ee92447bb53becf956e",
+      "origin": "app/libs/terminal-emulator-v0.118.0-java.aar!/AndroidManifest.xml"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/GestureAndScaleRecognizer.java": {
+      "sha256": "0df6451d1187ffe2d4c9aa5496cdcc04c96f75839cc990e70b40afaf0bd6e071",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/GestureAndScaleRecognizer.java"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/TerminalRenderer.java": {
+      "sha256": "52db93a02a856e3da3fb79d296d200f5dab2167c97101e46633ed558331f76b7",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/TerminalRenderer.java"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/TerminalView.java": {
+      "sha256": "04ca7b03cd225bd6c7b54fe7377b239f6b6ce3724d6c5acc5491ec8dab28d59e",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/TerminalView.java"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/TerminalViewClient.java": {
+      "sha256": "8f8e647e734e7a888104511979f00084e2e5fc0a887ebbd56c601fd4c314a795",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/TerminalViewClient.java"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/textselection/CursorController.java": {
+      "sha256": "6a7331f375881be9b24d34467900ec84a232ca07feeff69575b3b642abdc3e60",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/textselection/CursorController.java"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/textselection/TextSelectionCursorController.java": {
+      "sha256": "14c01f42c82ae891687139088b802442b0a8121b502e7ca21fddceeb51ad6f2a",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/textselection/TextSelectionCursorController.java"
+    },
+    "third_party/termux/source-build/view/java/com/termux/view/textselection/TextSelectionHandleView.java": {
+      "sha256": "1f7258ebbd5ab29f7b8ef9ce74c5191a86a6b04cd5806bcb05cf5065843e16fe",
+      "origin": "third_party/termux/terminal-view-v0.118.0-sources.jar!/com/termux/view/textselection/TextSelectionHandleView.java"
+    },
+    "third_party/termux/source-build/view/R.txt": {
+      "sha256": "bd0303912b9d87e083922f16d45e67e7d931ab0482d8d40dd7959eeaac35cd11",
+      "origin": "app/libs/terminal-view-v0.118.0.aar!/R.txt"
+    },
+    "third_party/termux/source-build/view/AndroidManifest.xml": {
+      "sha256": "8e538c67b1172f478670b9b8841cc3e4cb2ccc4f91e5bc3d4e20300bccde94b8",
+      "origin": "app/libs/terminal-view-v0.118.0.aar!/AndroidManifest.xml"
+    },
+    "third_party/termux/source-build/view/res/drawable/text_select_handle_left_material.xml": {
+      "sha256": "3ce66a831646933bea6adc67ed8d4b8dfd3bb86b992b1ea789b0ba577add4551",
+      "origin": "app/libs/terminal-view-v0.118.0.aar!/res/drawable/text_select_handle_left_material.xml"
+    },
+    "third_party/termux/source-build/view/res/drawable/text_select_handle_right_material.xml": {
+      "sha256": "977579c11e9c28ef74af25ab61b8f39f812006e8ac5d2a9c5bf185a2456d522f",
+      "origin": "app/libs/terminal-view-v0.118.0.aar!/res/drawable/text_select_handle_right_material.xml"
+    },
+    "third_party/termux/source-build/view/res/values/values.xml": {
+      "sha256": "702e1b8c415fbf37b4228a28f6b38532b50e8893fba05e59f868a23945ea8522",
+      "origin": "app/libs/terminal-view-v0.118.0.aar!/res/values/values.xml"
+    }
+  },
+  "emulatorOverlays": {
+    "ByteQueue": {
+      "path": "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java",
+      "sha256": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3"
+    },
+    "JNI": {
+      "path": "third_party/termux/patches/src/com/termux/terminal/JNI.java",
+      "sha256": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3"
+    },
+    "TerminalBuffer": {
+      "path": "third_party/termux/links/src/com/termux/terminal/TerminalBuffer.java",
+      "sha256": "5746cdd795c11beb65f6e04ed1798c38d385fc93d6c367af8c84b4476a3fafa9"
+    },
+    "TerminalEmulator": {
+      "path": "third_party/termux/links/src/com/termux/terminal/TerminalEmulator.java",
+      "sha256": "9588f1eeab1ddada6b41fdc44354457c325158c619d79e82dc980c5631fbf5b5"
+    },
+    "TerminalMemoryBudget": {
+      "path": "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java",
+      "sha256": "6b397797ed186229fc6709bd1391dbe3b04277edd92ab8c53e7ddecbf0ebe72e"
+    },
+    "TerminalProcessOwner": {
+      "path": "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java",
+      "sha256": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f"
+    },
+    "TerminalPtyIo": {
+      "path": "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java",
+      "sha256": "01c470e72e74106426d494849f61d42d9fdb456546b506b393895316148f48c4"
+    },
+    "TerminalRow": {
+      "path": "third_party/termux/links/src/com/termux/terminal/TerminalRow.java",
+      "sha256": "746f83433bcb7381cc869b492795fc93c7d67796aa2fa95168262cce6035c02b"
+    },
+    "TerminalSession": {
+      "path": "third_party/termux/recording/resize/com/termux/terminal/TerminalSession.java",
+      "sha256": "f1b5ae92ead85655db8d9d8b6e0eb0b5d9356fd0b0f646fe2a98612babc59910"
+    },
+    "TerminalResizeState": {
+      "path": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java",
+      "sha256": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3"
+    },
+    "TerminalSessionClient": {
+      "path": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java",
+      "sha256": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2"
+    }
+  },
+  "license": "app/src/main/assets/legal/licenses/Termux-upstream-LICENSE.md",
+  "androidJarSha256": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a",
+  "annotations": {
+    "coordinate": "androidx.annotation:annotation-jvm:1.10.0",
+    "sha256": "ddd072ddbb553178e205517ce777b2f05aa9e412982d9ecb4eedc74f1212f697"
+  }
+}

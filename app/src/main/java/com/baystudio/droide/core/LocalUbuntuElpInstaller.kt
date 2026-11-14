@@ -43,8 +43,7 @@ internal class LocalUbuntuElpInstaller(context:Context,private val authority:Loc
                         LocalUbuntuElpLaunchAuthority.acquireInstaller(root)
                     }
                 }
-                // Only bounded journal/generation publication is serialized. No download/probe/UI wait occurs
-                // here.
+                // Only bounded journal/generation publication is serialized. No download/probe/UI wait occurs here.
                 LocalPackageInstallJournal.transactionMutex.withLock {
                     active();LocalUbuntuElpLaunchAuthority.requireNoActivity(root,requireNotNull(installerClaim))
                     check(authority.isElpPackageGenerationCurrent(generation))
@@ -96,8 +95,7 @@ internal class LocalUbuntuElpInstaller(context:Context,private val authority:Loc
                     cleanup=health.cleanup
                     check(health.healthPassed&&health.cleanup.complete) { "ELP remains inactive: health or cleanup failed; exact stage is retained" }
                     LocalPackageInstallJournal.requireNoElpHealthHold(paths)
-                    // Original archive, extracted bytes, licenses and helper identity are re-proved after native
-                    // execution.
+                    // Original archive, extracted bytes, licenses and helper identity are re-proved after native execution.
                     proveStaged(paths.stage,identity,active)
                     write(paths.stage,HEALTH,buildJsonObject{
                         put("schema",1);put("policy",LocalUbuntuElpPolicy.POLICY);put("selectionIdentity",approved.request.selectionIdentity)

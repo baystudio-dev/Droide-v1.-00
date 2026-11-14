@@ -14,6 +14,7 @@ class WorkspaceCommandInvocationTest {
 
     @get:Rule val temp = TemporaryFolder()
 
+    /** The real process inherits the human's directory, as the production PTY delegate does. */
     private class InheritedDirectoryTerminal(val humanDirectory: File) : ITerminalSession {
         override val output = MutableStateFlow("")
         val calls = mutableListOf<List<String>>()

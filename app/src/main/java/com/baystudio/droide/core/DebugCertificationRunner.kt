@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 
+ 
 @Serializable
 data class DebugCertificationStep(
     val id: String,
@@ -64,6 +65,7 @@ data class DebugCertificationReport(
             "terminate-clean",
         )
 
+         
         fun computeEvidenceDigest(report: DebugCertificationReport): String = evidenceDigest(report)
 
         fun evidenceDigest(report: DebugCertificationReport): String {
@@ -91,6 +93,13 @@ data class DebugCertificationReport(
         }
     }
 }
+
+
+
+
+
+
+
 
 class DebugCertificationRunner(
     private val androidDevelopment: AndroidDevelopmentManager,

@@ -245,7 +245,7 @@ class MirrorProcessCustodyTest {
         try {
             LocalLinuxProcessHost(working, scope).startAdmitted(listOf("/bin/sh"), emptyMap(), null,
                 prepareStart = {
-
+                    // Preparation may capture a toolchain probe outside the CLI mirror.
                     assertEquals(0, LocalProcessSupervisor.capture(listOf("/bin/sh", "-c", "exit 0"), source).exitCode)
                     assertTrue(owners().isEmpty())
                     val factory: () -> LocalHostedProcess = {

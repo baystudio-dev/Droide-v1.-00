@@ -84,7 +84,7 @@ class DevelopmentExtensionRefreshAdmissionTest {
         var snapshot = "initial"
         val old = requireNotNull(gate.begin())
         assertTrue(gate.publish(old) { snapshot = "old" })
-        requireNotNull(gate.begin())
+        requireNotNull(gate.begin()) // The later read fails before final admission.
         assertFalse(gate.publish(old) { snapshot = "resurrected old" })
         assertEquals("old", snapshot)
         assertTrue(gate.publish(requireNotNull(gate.begin())) { snapshot = "retry" })

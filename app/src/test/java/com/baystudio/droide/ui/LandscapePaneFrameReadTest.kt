@@ -25,6 +25,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
+/** Compare original eager width reads against deferred measurement with the same animation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w1280dp-h800dp-land-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -42,7 +43,7 @@ class LandscapePaneFrameReadTest {
         val index = if (deferred) 1 else 0
         val focus = rememberDroideLandscapeImeFocusLayout(
             droideWorkbenchLayout(1280.dp, 800.dp, 210.dp), 1280.dp, DroideRailTool.Files,
-            droideImePresentation(true, ime.value, true, true, true), true, true, true, requested.value,
+            droideImePresentation(true, false, ime.value, true, true), ime.value, true, true, requested.value,
         )
         // These boundary reads mirror browser ownership and approval visibility in IdeScreen.
         val sidebarVisible = focus.sidebarRegionVisible
@@ -90,7 +91,8 @@ class LandscapePaneFrameReadTest {
         compose.runOnIdle {
             val bitmap = Bitmap.createBitmap(1280, 400, Bitmap.Config.ARGB_8888)
             hostView.draw(Canvas(bitmap))
-
+            // Fixed 1280x200 mdpi crops: original top row y=0; deferred bottom row y=200.
+            // Identical labels allow exact comparison of every pixel, including native text.
             val before = Bitmap.createBitmap(bitmap, 0, 0, 1280, 200)
             val after = Bitmap.createBitmap(bitmap, 0, 200, 1280, 200)
             assertTrue("$name whole-pane pixel parity", before.sameAs(after))

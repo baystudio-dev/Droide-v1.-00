@@ -17,8 +17,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-/** Every operation rechecks the conversation's original; a lease never extends its ownership or
- * seven-day TTL. */
+/**
+ * Short-lived access through the existing, same-UID Droide CLI socket. No media directory is
+ * mounted in Linux and no binary payload is duplicated in the model's prompt. Every operation
+ * rechecks the conversation's original; a lease never extends its ownership or seven-day TTL.
+ */
 internal object AcpAttachmentAccess {
     private val leases = ConcurrentHashMap<String, Lease>()
     private val workspacePattern = Regex("[A-Za-z0-9._-]{1,160}")
@@ -102,14 +105,14 @@ internal object AcpAttachmentAccess {
             var syncPending = false
             var syncDetail: String? = null
             try {
-                // The derived turn identity is fixed at bind. Null original admission cannot consume a recovery
-                // permit; neither tool invocation nor retry mints fresh authority.
+                // The derived turn identity is fixed at bind. Null original admission cannot consume a
+                // recovery permit; neither tool invocation nor retry mints fresh authority.
                 copy = try {
                     copyJournal.begin(ProjectCopyJournal.Owner(ProjectCopyJournal.Kind.AGENT_MEDIA,
                         ownerId, journalRunId, ref.id), destination, requestAdmittedAtNanos, planStage = true)
                 } catch (historical: ProjectCopyJournal.AlreadyCommitted) {
-                    // Only the trusted admission call can supply a historical journal receipt. Copy/observer
-                    // callbacks below cannot substitute an embedded foreign record.
+                    // Only the trusted admission call can supply a historical journal receipt.
+                    // Copy/observer callbacks below cannot substitute an embedded foreign record.
                     return receipt(ref, historical.record.intent.id, requireNotNull(historical.record.receipt),
                         syncPending = true, available = false, historical = true)
                 }
@@ -121,8 +124,8 @@ internal object AcpAttachmentAccess {
                             requireActiveTurn()
                             admitted.beforePublish(preparation)
                         }
-                        // Publication may finish under NonCancellable after Stop. Record its exact receipt even when the
-                        // turn has just ended; never erase the commit.
+                        // Publication may finish under NonCancellable after Stop. Record its
+                        // exact receipt even when the turn has just ended; never erase the commit.
                         override fun onPublished(receipt: StreamPublicationReceipt) = admitted.onPublished(receipt)
                     },
                     beforePublication = {
@@ -135,8 +138,8 @@ internal object AcpAttachmentAccess {
             } catch (committed: ProjectFileSyncException) {
                 val exact = copy?.committedReceipt
                 if (exact == null) throw outcomeFailure(destination, copy, committed)
-                // Preserve the typed path/byte contract, but never accept it without this transaction's actual
-                // mandatory publication receipt.
+                // Preserve the typed path/byte contract, but never accept it without this
+                // transaction's actual mandatory publication receipt.
                 syncPending = true
                 if (committed.relativePath != destination || committed.bytes != ref.bytes ||
                     exact.preparation.relativePath != destination || exact.preparation.bytes != ref.bytes) {

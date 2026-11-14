@@ -118,8 +118,8 @@ internal object LocalUbuntuAptIntegration {
             if (!matchesFile(File(root, "payload/bin/$name"), guestWrapper(recipe, name)) ||
                 !matchesFile(File(root, "payload/host-bin/$name"), hostWrapper(recipe, name, launcher))) return null
         }
-        // No cached success here: dpkg changes, modified payloads or a failing executable are still
-        // detected. Cancellation propagates before any new staging/activation is started.
+        // No cached success here: dpkg changes, modified payloads or a failing executable are
+        // still detected. Cancellation propagates before any new staging/activation is started.
         return record.takeIf { verify(it) }
     }
 

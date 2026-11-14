@@ -5,7 +5,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
-/** User-installed Solidity server; availability does not establish package or version approval. */
+/** User-installed server used by Nomic Foundation's VS Code extension; no bundle/version admission. */
 internal object LspSolidityProfile {
     const val ID = "nomicfoundation-solidity-language-server"
     const val IDENTITY = "solidity-user-managed-initial-telemetry-off-v1"
@@ -23,6 +23,7 @@ internal object LspSolidityProfile {
         candidate.id == ID || "solidity" in candidate.languageIds ||
             candidate.extensions.any { it in extensions } || path?.let(::supportsPath) == true
 
+    /** The opened workspace is the Solidity session boundary; no recursive scan or tool probe. */
     fun projectRoot(workspace: File, document: File): File {
         val root = workspace.canonicalFile
         require(PathSecurity.contains(root, document.canonicalFile)) { "Solidity document escaped the workspace" }
@@ -39,6 +40,7 @@ internal object LspSolidityProfile {
         ))
     ))
 
+    // Consumed by onInitialize before indexing or compiler/framework startup. No machine ID.
     fun initializationOptions(): JsonObject = buildJsonObject {
         put("telemetryEnabled", false)
     }

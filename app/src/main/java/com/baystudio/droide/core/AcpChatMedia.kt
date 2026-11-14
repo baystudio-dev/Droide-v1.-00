@@ -35,7 +35,7 @@ internal data class AcpPromptCapabilities(val image: Boolean = false, val embedd
 }
 
 internal object AcpChatMedia {
-
+    /** Pixels, rather than a path mentioned in prose, become native ACP image blocks. */
     fun prompt(prompt: String, imagePaths: List<String>, files: List<Pair<ChatMediaRef, File>>,
                workDir: File, capabilities: AcpPromptCapabilities, attachmentAccess: AcpAttachmentAccess.Lease? = null,
                media: List<ChatMediaRef> = files.map { it.first }): JsonArray {
@@ -79,8 +79,8 @@ internal object AcpChatMedia {
                 })
             }
             files.forEach { (ref, file) ->
-                // A local CLI reads or promotes the authorized original through Droide's socket. Do not inline
-                // base64 archives/documents or pretend an excerpt is the source file.
+                // A local CLI reads or promotes the authorized original through Droide's socket.
+                // Do not inline base64 archives/documents or pretend an excerpt is the source file.
                 if (attachmentAccess != null && (!capabilities.embeddedContext || !textFile(ref))) return@forEach
                 require(file.isFile && !Files.isSymbolicLink(file.toPath()) && file.length() == ref.bytes) { "CLI file attachment is unavailable" }
                 val text = if (textFile(ref)) textExcerpt(file) else null

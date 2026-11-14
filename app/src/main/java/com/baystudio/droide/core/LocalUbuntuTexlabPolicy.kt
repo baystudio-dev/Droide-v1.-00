@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Exact official release metadata; archive/ELF admission and target acceptance remain separate. */
 internal object LocalUbuntuTexlabPolicy {
     const val FAMILY = "lsp.texlab"
     const val VERSION = "5.26.0"

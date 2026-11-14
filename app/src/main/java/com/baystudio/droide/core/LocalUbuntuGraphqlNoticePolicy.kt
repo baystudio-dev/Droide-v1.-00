@@ -28,8 +28,7 @@ internal object LocalUbuntuGraphqlNoticePolicy {
             val file=File(root,"payload/npm/$full");val measured=NimRuntimeClosure.measure(file,8_388_608,active)
             require(measured.second==record.jsonObject.getValue("sha256").jsonPrimitive.content&&measured.first==record.jsonObject.getValue("size").jsonPrimitive.long)
             val text=runCatching{LocalUbuntuGraphqlPolicy.read(file,8_388_608,active)}.getOrNull()
-            // Every byte is preserved even when not identified as a notice. Text markers trigger
-            // conservative review.
+            // Every byte is preserved even when not identified as a notice. Text markers trigger conservative review.
             if(Regex("(?i)(license|notice|copying|copyright|readme)").containsMatchIn(path)||text?.contains("opyright")==true||text?.contains("SPDX-License-Identifier:")==true)witnesses[full]=record
             if(text!=null)Regex("SPDX-License-Identifier:[ \\t]*([^\\r\\n*]{1,200})").findAll(text).forEach {
                 require(it.groupValues[1].trim()=="MIT") { "Unreviewed original GraphQL SPDX notice in $full" }

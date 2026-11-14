@@ -26,6 +26,7 @@ internal object InstallerExecutionPolicy {
         if (phase == ManagedExtensionInstaller.Phase.INSTALLING || phase == ManagedExtensionInstaller.Phase.REPAIRING) INSTALL_OPERATION_DEADLINE_MS
         else 30L * 60_000L
 
+    /** Preserve a provider-specific success message already verified by the installer. */
     fun finalMessage(alreadyReady: Boolean, verifiedMessage: String, fallback: String): String =
         if (alreadyReady && verifiedMessage.isNotBlank()) verifiedMessage else fallback
 

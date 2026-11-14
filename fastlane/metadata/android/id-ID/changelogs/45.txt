@@ -1,0 +1,1 @@
+Instalasi Ubuntu bersifat opsional dan hasilnya dipakai kembali. Terminal, Git dan komponen native dibangun dari source. Mencakup perbaikan editor, landscape, SSH/PTY, sinkronisasi agent dan recovery, serta pembatalan dan percobaan ulang pemasangan environment yang lebih aman.

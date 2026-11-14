@@ -6,6 +6,7 @@ import android.os.Bundle
 import java.util.Collections
 import java.util.IdentityHashMap
 
+/** STARTED means visible, including multi-window. The process runtime may outlive every Activity. */
 internal class BrowserApplicationVisibility(private val onVisibilityChanged: (Boolean) -> Unit) :
     Application.ActivityLifecycleCallbacks {
     private val visibleActivities = Collections.newSetFromMap(IdentityHashMap<Activity, Boolean>())

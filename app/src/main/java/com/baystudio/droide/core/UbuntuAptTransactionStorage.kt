@@ -60,8 +60,8 @@ internal class UbuntuAptTransactionStorage(private val guestRoot: File) {
         val directory = File(cacheRoot, layerId)
         if (!directory.exists()) return
         safe(directory)
-        // A surviving native APT process may still own the archive lock after an app restart. Leave its
-        // cache for the next idle cleanup.
+        // A surviving native APT process may still own the archive lock after
+        // an app restart. Leave its cache for the next idle cleanup.
         clean(directory)
     }
 

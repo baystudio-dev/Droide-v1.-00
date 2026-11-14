@@ -3,7 +3,7 @@
 import argparse, base64, hashlib, io, json, re, subprocess, tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import struct
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'third_party/models-dev-logos'
@@ -27,10 +27,10 @@ def main():
             assert digest(ASSETS / 'svg' / (entry['id']+'.svg')) == entry['svg_sha256'], entry['id']
             png = OUT / (entry['resource']+'.png')
             assert digest(png) == entry['png_sha256'], entry['id']
-            data = png.read_bytes()
-            assert data[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR', entry['id']
-            width, height, depth, color = struct.unpack('>IIBB', data[16:26])
-            assert 0 < width <= 192 and 0 < height <= 192 and (depth, color) == (8, 6), entry['id']
+            with Image.open(png) as pixels:
+                pixels.verify()
+            with Image.open(png) as pixels:
+                assert pixels.mode == 'RGBA' and max(pixels.size) <= 192 and pixels.getbbox(), entry['id']
         binding = (ROOT/'app/src/main/java/com/baystudio/droide/ui/ProviderCatalogBrand.kt').read_text()
         actual = dict(re.findall(r'"([^"]+)" -> R\.drawable\.([a-z0-9_]+)', binding))
         expected = {entry['id']:entry['resource'] for entry in manifest['assets']}
@@ -39,7 +39,6 @@ def main():
         assert actual == expected, 'Kotlin provider ID/resource mapping is stale'
         print(f"PROVIDER_LOGOS_OK originals={len(manifest['assets'])}")
         return
-    from PIL import Image
     if not args.only:
         for old in OUT.glob('provider_catalog_*.png'):
             old.unlink()

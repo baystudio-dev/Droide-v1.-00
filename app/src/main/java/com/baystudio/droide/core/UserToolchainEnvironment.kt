@@ -27,11 +27,13 @@ internal object UserToolchainEnvironment {
         "if [ \"\${$key+x}\" = x ]; then export $key; fi"
     }
 
+    /** A single admitted process chain: legacy login profile first, terminal Bash rc second. */
     fun captureArgv(script: String): List<String> = listOf(
         "/bin/sh", "-lc", exportDefinedLoginVariables() + "; exec /usr/bin/env HOME=/root /bin/bash --noprofile --rcfile /root/.bashrc -ic \"\$1\"",
         "droide-user-environment", script,
     )
 
+    /** If observation failed, retain the exact old Android login-probe behavior. */
     fun probeArgv(userEnvironmentLoaded: Boolean, shell: String, script: String): List<String> =
         if (userEnvironmentLoaded) listOf(shell, "-c", script) else listOf("/bin/sh", "-lc", script)
 
@@ -70,8 +72,8 @@ internal object UserToolchainEnvironment {
         return values.filterValues { it.isNotEmpty() }.mapValues { (key, value) ->
             if (key == "PATH" || key == "GOPATH") {
                 value.split(':').map { part ->
-                    // Pin relative user paths to the observed guest cwd. Never let a later launch in another
-                    // directory silently reinterpret the same snapshot.
+                    // Pin relative user paths to the observed guest cwd. Never let a later
+                    // launch in another directory silently reinterpret the same snapshot.
                     Paths.get(observedCwd).resolve(part.ifEmpty { "." }).normalize().toString()
                 }.distinct().joinToString(":")
             } else {
@@ -136,8 +138,8 @@ internal class UserToolchainEnvironmentCache(
                 } catch (_: IllegalArgumentException) { Observation(emptyMap(), Fallback.INVALID_OUTPUT) }
             }
         } catch (failure: UserEnvironmentCleanupUnconfirmed) {
-            // Parent cancellation remains cancellation; our own timeout must not disguise unknown process
-            // cleanup as an ordinary fallback.
+            // Parent cancellation remains cancellation; our own timeout must not
+            // disguise unknown process cleanup as an ordinary fallback.
             try { currentCoroutineContext().ensureActive() }
             catch (cancelled: CancellationException) {
                 cancelled.addSuppressed(failure)

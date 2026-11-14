@@ -12,9 +12,12 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** Native media tools keep temporary chat copies separate from explicitly saved project assets. */
 internal object AgentMediaTools {
     private val videoMimeTypes = mapOf(
         "mp4" to "video/mp4", "m4v" to "video/mp4", "mov" to "video/quicktime",
@@ -67,11 +70,31 @@ internal object AgentMediaTools {
         permission: suspend (String, String) -> String?,
     ): String {
         val path = requestedPath(args)
+        val referenceValue = args["reference_only"]
+        val referenceOnly = if (referenceValue == null || referenceValue == JsonNull) false else
+            requireNotNull((referenceValue as? JsonPrimitive)?.takeUnless { it.isString }?.booleanOrNull) {
+                "reference_only must be a boolean"
+            }
+        if (referenceOnly) {
+            require(AgentSessionResults.safePath(path) && AgentWorkspacePathPolicy.visible(path)) {
+                "Result references require a visible project-relative file"
+            }
+        }
         val owner = owner(c)
         val publish = requireNotNull(c.onMediaReady) { "Conversation attachment delivery is unavailable in this Agent context" }
         permission("read", path)?.let { return it }
         permission("edit", "chat_media:$owner:$path")?.let { return it }
         return withContext(Dispatchers.IO) {
+            if (referenceOnly) {
+                val metadata = AgentWorkspaceArtifacts.requireRegular(c.workDir, File(c.workDir, path))
+                currentCoroutineContext().ensureActive()
+                c.onProgress(AgentToolProgress(producedFiles = listOf(path)))
+                return@withContext "PROJECT_RESULT " + buildJsonObject {
+                    put("path", path); put("bytes", metadata.size()); put("scope", "current_conversation")
+                    put("reference_only", true); put("content_copied", false)
+                    put("note", "Available in /results. Opening or exporting uses the current project file; this is not a frozen copy.")
+                }
+            }
             val source = source(c.workDir, path, owner)
             val type = mimeType(source)
             val store = ChatMediaStore(c.workDir)
@@ -79,8 +102,7 @@ internal object AgentMediaTools {
             val ref = noFollowInput(source).use { store.import(owner, source.name, type, it) }
             try {
                 currentCoroutineContext().ensureActive()
-                // The Agent service buffers this durable reference and publishes after successful tool
-                // completion.
+                // The Agent service buffers this durable reference and publishes after successful tool completion.
                 publish(ref)
                 "MEDIA_SENT " + buildJsonObject {
                     put("id", ref.id)
@@ -162,8 +184,8 @@ internal object AgentMediaTools {
                 },
                 beforePublication = {
                     check(c.mediaRequestCurrent()) { "This media request is no longer current" }
-                    // Late read-only admission narrows the long-copy window. The authority has no atomic
-                    // editor/publication reservation; postcommit reconciliation keeps dirty buffers.
+                    // Late read-only admission narrows the long-copy window. The authority has no
+                    // atomic editor/publication reservation; postcommit reconciliation keeps dirty buffers.
                     require(c.documentAuthority?.snapshot(destination)?.dirty != true) {
                         "An unsaved editor document appeared; choose another asset path"
                     }
@@ -180,8 +202,8 @@ internal object AgentMediaTools {
                 })
         } catch (committed: ProjectFileSyncException) {
             val receipt = lease?.committedReceipt
-            // Preserve E's exact typed-receipt checks and additionally require this transaction's mandatory
-            // canonical receipt. An identical preMutation exception is not a commit.
+            // Preserve E's exact typed-receipt checks and additionally require this transaction's
+            // mandatory canonical receipt. An identical preMutation exception is not a commit.
             if (receipt != null && committed.relativePath == destination && committed.bytes == ref.bytes &&
                 receipt.preparation.relativePath == destination && receipt.preparation.bytes == ref.bytes) {
                 syncPending = true

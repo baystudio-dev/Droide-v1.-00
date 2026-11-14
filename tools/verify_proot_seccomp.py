@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Exercise real native PRoot under an additional kernel seccomp RET_TRAP filter."""
+"""Exercise real native PRoot under an additional kernel seccomp RET_TRAP filter.
+
+This is a Linux x86_64 host check, not Android/ARM64 device certification.
+Supply original and patched host builds made from the vendored PRoot archive.
+"""
 import argparse
 import hashlib
 import json
@@ -25,8 +29,9 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     work = out / "workspace with spaces 日本語"
     work.mkdir(exist_ok=True)
-
-
+    # The old x86 handler can reinterpret the positive getcwd byte count as
+    # another syscall number. Bind to a fixed 58-byte guest path so the exact
+    # ENOSYS reproduction is independent of the host output directory length.
     guest_work = "/workspace/droide regression with spaces 日本語"
     guest_work += "x" * (58 - len(guest_work.encode("utf-8")))
     assert len(guest_work.encode("utf-8")) == 58

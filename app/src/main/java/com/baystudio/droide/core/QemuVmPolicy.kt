@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import java.security.MessageDigest
 
+
 data class QemuVmImageSpec(
     val id: String,
     val version: String,
@@ -112,7 +113,8 @@ internal object QemuVmCommandBuilder {
                 "Invalid VM path"
             }
         }
-
+        // Linux AF_UNIX pathname sockets have a much smaller sun_path budget than normal files.
+        // Keep margin for the terminating NUL rather than relying on QEMU/Android truncation.
         require(paths.qmpSocket.absolutePath.toByteArray(Charsets.UTF_8).size <= 100) {
             "QMP socket path is too long for a filesystem Unix socket"
         }
@@ -149,6 +151,7 @@ internal object QemuVmBootHealthPolicy {
     }
 }
 
+
 internal object AndroidToolchainFallbackPolicy {
     fun <T> select(
         candidates: List<T>,
@@ -162,3 +165,4 @@ internal object AndroidToolchainFallbackPolicy {
             ?: eligible.firstOrNull { mode(it) == AndroidToolchainExecutionMode.LINUX_X86_64_PROOT_QEMU }
     }
 }
+

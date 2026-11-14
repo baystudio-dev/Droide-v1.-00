@@ -45,8 +45,8 @@ internal class JavascriptDebugServerProcessHost(
             check(!closed.get() && server == null) { "JavaScript debug server already started or closed" }
             require(argv.takeLast(2) == listOf("0", LOOPBACK)) { "JavaScript debug server must request an ephemeral IPv4 loopback port" }
             val process = delegate.start(argv, environment, resourceLimits)
-            // Keep ownership even if Stop wins before endpoint publication, or close() has already detached
-            // the active server from its sockets.
+            // Keep ownership even if Stop wins before endpoint publication, or
+            // close() has already detached the active server from its sockets.
             ownedServer = process
             synchronized(sockets) {
                 if (closed.get() || !hostScope.isActive) {
@@ -142,7 +142,8 @@ internal class JavascriptDebugServerProcessHost(
         withContext(NonCancellable) {
             close()
             val settled = withTimeoutOrNull(timeoutMs) {
-
+                // A delegate spawn may finish after close() saw no server. Its
+                // startup guard closes that peer before releasing this mutex.
                 val owned = startupMutex.withLock { ownedServer }
                 owned?.awaitExit()
                 true
@@ -160,7 +161,7 @@ internal class JavascriptDebugServerProcessHost(
     }
 
     companion object {
-        const val MAX_CONNECTIONS = 9
+        const val MAX_CONNECTIONS = 9 // Parent plus eight targets.
         private const val LOOPBACK = "127.0.0.1"
         private val ENDPOINT = Regex("^Debug server listening at 127\\.0\\.0\\.1:(\\d{1,5})$")
     }

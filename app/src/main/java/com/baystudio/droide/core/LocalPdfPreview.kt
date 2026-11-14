@@ -18,6 +18,7 @@ import kotlin.coroutines.resumeWithException
 internal data class PdfPreviewPage(val pages: Int, val bitmap: Bitmap?, val text: String?,
     val textSupported: Boolean, val truncated: Boolean)
 
+/** Shared app-wide admission bounds native work, even across fast tab switches. */
 internal object LocalPdfPreview {
     private val admission = Semaphore(1)
     private val retirement = PdfPreviewRetirement()
@@ -114,12 +115,14 @@ internal object LocalPdfPreview {
         } finally {
             // Non-suspending cleanup runs even when canceled; each request has its own isolated instance.
             if (bound) connection?.let { runCatching { context.unbindService(it) } }
-            // Hold the single native-work permit until Binder confirms process death. Never overlap a stuck
-            // native parser with replacement work. Watchdog remains independent of parsing.
+            // Hold the single native-work permit until Binder confirms process death. Never overlap
+            // a stuck native parser with replacement work. Watchdog remains independent of parsing.
             if (remote != null) withContext(NonCancellable) {
                 withTimeoutOrNull(DocumentPreviewPolicy.TIMEOUT_MS + 1_000) { retired.await() }
-
+                // If death remains unconfirmed, retirement stays active. Both new previews and
+                // the explicit Exit confirmation step fail closed until a Binder death arrives.
             }
         }
     }
 }
+

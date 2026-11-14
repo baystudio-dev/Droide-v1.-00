@@ -14,6 +14,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Unwired core: real host private bytes/forces and deterministic faults, no provider effects. */
 class SafStructuralEvidenceCoreTest {
     private val roots = arrayListOf<File>()
     private val sentinel = byteArrayOf(0, -1, 42, 13, 10, 127)

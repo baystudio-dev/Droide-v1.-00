@@ -44,7 +44,7 @@ internal const val MAX_AGENT_PREVIEW_LAYOUT_PX = 8_000
 internal const val MAX_AGENT_CODE_PREVIEW_HEIGHT_PX = 4_000
 private val LocalAgentOpenLink = staticCompositionLocalOf<((String) -> Unit)?> { null }
 private val LocalAgentPreviewLimited = staticCompositionLocalOf<() -> Unit> { {} }
-
+// Null preserves the legacy renderer exactly; typed public text opts into theme-readable body text.
 private val LocalAgentMarkdownBodyStyle = staticCompositionLocalOf<TextStyle?> { null }
 
 // Native, bounded Markdown renderer for durable assistant transcript messages.
@@ -116,7 +116,8 @@ internal fun AgentStreamingMarkdownContent(
                 AgentMarkdownBodyBounds(onClipped = { bodyLimited = it }) {
                     AgentMarkdownBlocks(projection.stableBlocks, keyPrefix = "stable", shortenedResponse = preview.shortened || sourceShortened)
                     if (projection.tail.isNotBlank()) {
-
+                        // Compose 1.7 clears a selection when its Text changes. Select text opens
+                        // an immutable native snapshot instead of resetting handles on each token.
                         DisableSelection {
                             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                                 if (liveTailBlocks.isNotEmpty()) {
@@ -141,6 +142,7 @@ internal fun AgentStreamingMarkdownContent(
     }
 }
 
+/** A message is one lazy item. Bound its actual measured body as well as its source size. */
 @Composable
 internal fun AgentMarkdownBodyBounds(onClipped: (Boolean) -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val maxHeight = with(LocalDensity.current) { MAX_AGENT_PREVIEW_LAYOUT_PX.toDp() }
@@ -289,7 +291,9 @@ private fun AgentMarkdownInlineText(
     val readableColor = LocalAgentMarkdownBodyStyle.current?.color
     val annotated = remember(text, gatedLink, readableColor) { markdownAnnotatedString(text, gatedLink, readableColor) }
     val hasLinks = remember(annotated) { annotated.getLinkAnnotations(0, annotated.length).isNotEmpty() }
-
+    // The host regression selected a link label but also opened it on long-press release.
+    // Observe the pointer before the native link processes it, then reset after that event.
+    // Native link hit testing, accessibility actions, styling and selection remain in place.
     val interaction = if (!hasLinks) Modifier else Modifier.pointerInput(gate) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -435,3 +439,4 @@ private fun compactCodePreview(code: String): CodePreview {
     val preview = code.substring(0, cut).trimEnd() + "\n\n… ${code.length - cut} more characters"
     return CodePreview(preview, true)
 }
+

@@ -42,7 +42,7 @@ class TermuxInputOwnershipTest {
         assertEquals("x", String(writes[2]))
         assertArrayEquals(byteArrayOf(1, 2), writes[3])
         assertTrue(runCatching { terminal.setInputHandler { _, _, _ -> } }.isFailure)
-
+        // Hooked sessions reject direct blocking queue access on main, including before spawn.
         assertTrue(runCatching { terminal.writeToPty(byteArrayOf(1), 0, 1) }.isFailure)
         val failed = CompletableDeferred<Boolean>()
         val worker = Thread { failed.complete(terminal.writeToPty(byteArrayOf(1), 0, 1)) }

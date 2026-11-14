@@ -52,6 +52,7 @@ internal class DroideEditorAutoCompletion(private val target: DroideCodeEditor) 
         place(wanted)
     }
 
+    // The publisher sizes the list again after attaching its results. Apply the same bounds there.
     override fun setSize(width: Int, height: Int) { place(height) }
 
     override fun show() {
@@ -105,7 +106,7 @@ internal class DroideEditorAutoCompletion(private val target: DroideCodeEditor) 
         if (!localVisible.intersect(visibleFrame)) return null
         val insets = ViewCompat.getRootWindowInsets(target)
         if (Build.VERSION.SDK_INT >= 30 && insets?.isVisible(WindowInsetsCompat.Type.ime()) == true) {
-
+            // Window metrics use the full window, avoiding a second IME subtraction from an already resized view.
             val bounds = windowBounds ?: runCatching {
                 target.context.getSystemService(WindowManager::class.java)?.currentWindowMetrics?.bounds?.let(::Rect)
             }.getOrNull()?.also { windowBounds = it }
@@ -133,7 +134,7 @@ internal class DroideEditorAutoCompletion(private val target: DroideCodeEditor) 
             val fullWidth = completionWndPositionMode == WINDOW_POS_MODE_FULL_WIDTH_ALWAYS
             val next = viewport.let {
                 CompletionViewportPolicy.place(
-
+                    // Sora clamps its anchor during horizontal caret-reveal animation; retain that behavior.
                     it, target.updateCursorAnchor().coerceIn(it.left.toFloat(), it.right.toFloat()), bottom - target.rowHeight, bottom,
                     if (fullWidth) it.right - it.left else (320 * dp).toInt(),
                     requestedHeight.coerceAtMost((240 * dp).toInt()),

@@ -20,6 +20,7 @@ import com.baystudio.droide.core.ModelsDevCatalog
 import com.baystudio.droide.core.ProviderConnectionBackend
 import com.baystudio.droide.core.ProviderRegistry
 
+ 
 @Composable
 fun ModelPickerSheet(
     providerId: String,

@@ -37,7 +37,7 @@ internal object TomlHealthCapture {
             if(!process.isAlive)exit=process.exitValue()
         }catch(t:Throwable){failure=t}
         finally{withContext(NonCancellable){
-
+            // Exact group signalling is independent of every pipe monitor and the reader.
             attempt("group-stop",terminate).await(deadline.limited(2000))
             if(process.isAlive){attempt("destroy"){process.destroy()}.await(deadline.limited(250));if(process.isAlive)attempt("kill"){process.destroyForcibly()}.await(deadline.limited(250))}
             // Give a naturally closed stdout a bounded drain before forcing pipe closure.

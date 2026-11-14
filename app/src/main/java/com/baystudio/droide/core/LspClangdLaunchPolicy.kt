@@ -11,8 +11,8 @@ internal object LspClangdLaunchPolicy {
     fun command(spec: LanguageServerSpec, argv: List<String>, root: File, mapper: WorkspacePathMapper): List<String> {
         if (spec.id != "clangd" || spec.source != "built-in" || argv.isEmpty()) return argv
         if (argv.any { it == "--" || it.matches(Regex("--?compile-commands-dir(?:=.*)?")) }) return argv
-        // Any root entry is intentional project configuration, including an invalid or dangling link: do
-        // not silently replace it with generated build state.
+        // Any root entry is intentional project configuration, including an invalid
+        // or dangling link: do not silently replace it with generated build state.
         val rootDatabase = File(root, "compile_commands.json").toPath()
         if (Files.exists(rootDatabase, LinkOption.NOFOLLOW_LINKS)) return argv
         val directory = runCatching { SourceRunPreparation.checkedGeneratedPath(root, GENERATED_DIRECTORY) }.getOrNull() ?: return argv

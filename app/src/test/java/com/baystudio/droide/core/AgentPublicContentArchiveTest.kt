@@ -22,7 +22,7 @@ class AgentPublicContentArchiveTest {
     }
     private fun answer(archive: AgentPublicContentArchive, text: String, complete: Boolean = true): ArchivedPublicAnswer =
         archive.begin("run", "answer").use { capture ->
-
+            // Deliberately split surrogate pairs across appends.
             text.forEach { capture.append(it.toString()) }
             if (complete) capture.finishAfterProviderCompletion() else capture.finishIncomplete()
         }

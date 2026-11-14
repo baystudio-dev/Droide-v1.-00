@@ -8,11 +8,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+ 
 val Context.agentPreferences by preferencesDataStore(name = "agent_cfg")
 
 object AgentPreferences {
     private val PROVIDER = stringPreferencesKey("provider_id")
-    private val BASE_URL = stringPreferencesKey("base_url")
+    private val BASE_URL = stringPreferencesKey("base_url") 
     private val MODEL = stringPreferencesKey("model")
     private val REASONING = stringPreferencesKey("reasoning_effort")
 

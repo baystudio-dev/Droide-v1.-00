@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Current-API regression assertions, frozen before the D1 production change. */
 class FileRepositoryDependencyDiscoveryBaselineTest {
     private val authored = setOf(
         "src/main.js",

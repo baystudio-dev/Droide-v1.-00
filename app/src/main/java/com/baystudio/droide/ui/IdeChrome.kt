@@ -35,10 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// Width and height are classified independently so short landscape phones do not inherit tablet
-// chrome.
+// Width and height are classified independently so short landscape phones do not inherit tablet chrome.
 enum class DroideWindowClass { Compact, Medium, Expanded }
-
+ 
 enum class DroideWidthTier { Compact, Medium, Expanded, Large, ExtraLarge }
 enum class DroideHeightClass { Compact, Medium, Expanded }
 
@@ -77,6 +76,7 @@ fun droideWindowClass(width: Dp): DroideWindowClass = when {
     else -> DroideWindowClass.Expanded
 }
 
+ 
 fun droideWidthTier(width: Dp): DroideWidthTier = when {
     width < 600.dp -> DroideWidthTier.Compact
     width < 840.dp -> DroideWidthTier.Medium
@@ -95,6 +95,7 @@ fun droideWindowProfile(width: Dp, height: Dp): DroideWindowProfile {
     val widthClass = droideWindowClass(width)
     val widthTier = droideWidthTier(width)
     val heightClass = droideHeightClass(height)
+    
 
     val layoutClass = if (heightClass == DroideHeightClass.Compact && widthClass == DroideWindowClass.Expanded) {
         DroideWindowClass.Medium
@@ -134,8 +135,10 @@ fun droideWorkbenchLayout(
         (availableHeight * .42f).coerceAtLeast(DroideDimensions.BottomPanelMin))
     val panelMin = minOf(DroideDimensions.BottomPanelMin, panelMax)
     val panelRequest = requestedBottomPanelHeight.takeIf { it.value.isFinite() } ?: DroideDimensions.BottomPanel
+    
 
     val landscape = physicalLandscape
+
 
     val sidebarWidth = when (profile.widthTier) {
         DroideWidthTier.Large -> if (landscape) 284.dp else 272.dp
@@ -184,7 +187,7 @@ fun droideWorkbenchLayout(
         expanded = profile.layoutClass == DroideWindowClass.Expanded,
         landscape = landscape,
         shortHeight = profile.shortHeight,
-
+        
         wideHeader = width >= 1_040.dp && !profile.shortHeight,
         sidebarWidth = sidebarWidth,
         wideSidebarWidth = wideSidebarWidth,
@@ -197,6 +200,7 @@ fun droideWorkbenchLayout(
     )
 }
 
+
 data class DroidePaneFit(
     val sidebarWidth: Dp,
     val agentWidth: Dp,
@@ -208,6 +212,7 @@ data class DroidePaneFit(
     val workbenchOverflowWidth: Dp,
     val editorUnderPressure: Boolean,
 )
+
 
 fun droidePaneFit(
     layout: DroideWorkbenchLayout,
@@ -492,10 +497,11 @@ fun DroideEditorToolbar(
     markdownPreviewMode: MarkdownPreviewMode? = null,
     onMarkdownPreviewModeChange: ((MarkdownPreviewMode) -> Unit)? = null,
     onResetZoom: (() -> Unit)? = null,
+    onRestoreSize: (() -> Unit)? = null,
 ) {
     val breadcrumbStyle = if (path.isBlank()) MaterialTheme.typography.labelSmall else LocalTextStyle.current
     BoxWithConstraints(Modifier.fillMaxWidth().height(textControlHeight(breadcrumbStyle, 38.dp))) {
-        val availableWidth = maxWidth
+        val availableWidth = (maxWidth - if (onRestoreSize != null) 34.dp else 0.dp).coerceAtLeast(0.dp)
         val showNavigation = availableWidth >= 180.dp
         val showContextActions = availableWidth >= 286.dp
         val zoomMinWidth = if (markdownPreviewMode != null && onMarkdownPreviewModeChange != null) 220.dp else 126.dp
@@ -546,6 +552,7 @@ fun DroideEditorToolbar(
                 }
             }
             DroideIconButton(Icons.Default.Save, "Save", onSave, size = 34.dp)
+            if (onRestoreSize != null) DroideIconButton(Icons.Default.Close, "Restore editor size", onRestoreSize, size = 34.dp)
         }
     }
     HorizontalDivider(color = DroideColors.Border.copy(alpha = .65f))

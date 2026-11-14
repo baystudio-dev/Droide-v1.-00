@@ -78,8 +78,9 @@ internal class UbuntuAptMetadataCache(
         }
         for (path in listOf("etc/apt/sources.list", "etc/apt/sources.list.d", "etc/apt/apt.conf", "etc/apt/apt.conf.d",
             "etc/apt/trusted.gpg", "etc/apt/trusted.gpg.d", "etc/apt/keyrings", "usr/share/keyrings")) if (!add(path)) return null
-        // Keep APT doing its normal refresh in that case instead of reusing a checkpoint that cannot
-        // detect the custom key changing.
+        // User repositories can reference a key outside these conventional
+        // directories. Keep APT doing its normal refresh in that case instead
+        // of reusing a checkpoint that cannot detect the custom key changing.
         for (source in sources) for (setting in Regex("(?im)\\bsigned-by\\s*[=:]\\s*([^\\r\\n]+)").findAll(source)) {
             for (path in Regex("/[^\\s,\\]\\[\\\"']+").findAll(setting.groupValues[1].substringBefore(']'))) {
                 if (path.value !in captured) return null

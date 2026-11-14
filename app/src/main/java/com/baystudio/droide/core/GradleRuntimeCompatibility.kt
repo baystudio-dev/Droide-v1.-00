@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 internal object GradleRuntimeCompatibility {
     data class Version(val major: Int, val minor: Int) : Comparable<Version> {
         override fun compareTo(other: Version): Int = compareValuesBy(this, other, Version::major, Version::minor)
@@ -53,6 +54,7 @@ internal object GradleRuntimeCompatibility {
         else -> null
     }
 }
+
 
 internal object AndroidGradlePluginJdkCompatibility {
     fun problem(javaMajor: Int, versions: Set<String>): String? {

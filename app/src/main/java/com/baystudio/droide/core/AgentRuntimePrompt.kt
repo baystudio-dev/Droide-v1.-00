@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+ 
 internal object AgentRuntimePrompt {
     fun compose(
         mode: AgentMode,
@@ -25,16 +26,16 @@ internal object AgentRuntimePrompt {
             "\n\nACTIVE TOOL SURFACE (${names.size}): ${names.joinToString(", ")}. " +
                 "Only these tools are callable in this step. This proves Agent-tool advertisement/callability only; external binaries and runtime dependencies may still be absent. Mode-hidden tools must not be requested."
         }
-        // Help is normally deferred by AgentToolSelection. Keep the routing instruction visible before
-        // discovery; otherwise the agent must already know to load the guide.
+        // Help is normally deferred by AgentToolSelection. Keep the routing instruction
+        // visible before discovery; otherwise the agent must already know to load the guide.
         val handbook = when {
             "droide_help" in names -> DroideHandbookPolicy.BOOTSTRAP
             "tool_search" in names -> DroideHandbookPolicy.DISCOVERY_BOOTSTRAP
             else -> ""
         }.takeIf { it.isNotBlank() }?.let { "\n\n$it" }.orEmpty()
         val intent = if (greetingOnly) "\n\nThis is an initial standalone greeting. Reply conversationally; no project task has been requested." else ""
-        // This reuses the existing classified greeting only; null tools alone is not conversational
-        // intent. Final/model-limited responses retain authority, evidence and lifecycle guidance.
+        // This reuses the existing classified greeting only; null tools alone is not conversational intent.
+        // Final/model-limited responses retain authority, evidence and lifecycle guidance.
         val base = if (greetingOnly && tools == null && !finalStep && !stepBudgetReached)
             AgentSystemPrompt.GREETING_TEXT else AgentSystemPrompt.forTools(names.toSet())
         return base + overlay + "\n\nCurrent mode: $mode. " + modeInstruction + projectBrief +

@@ -1,12 +1,13 @@
 package com.baystudio.droide.core
 
+ 
 enum class CompletionOrigin { CONTEXT, KEYWORD, SNIPPET, DOCUMENT, LSP }
 
 data class CompletionCandidate(
     val label: String,
     val insertText: String = label,
     val detail: String? = null,
-
+     
     val kind: Int? = null,
     val filterText: String? = null,
     val sortText: String? = null,
@@ -14,6 +15,13 @@ data class CompletionCandidate(
     val origin: CompletionOrigin,
     val isSnippet: Boolean = false,
 )
+
+
+
+
+
+
+
 
 object ProfessionalCompletion {
     const val LSP_DEBOUNCE_MS = 110L
@@ -33,7 +41,12 @@ object ProfessionalCompletion {
     private val DEFAULT_TRIGGER_CHARACTERS = setOf(".", ":", ">", "<", "/", "@", "#")
     private val defaultProfile = Profile()
 
+    
+
+
+
     private val profiles: Map<String, Profile> = mapOf(
+        "goose" to p(GooseLanguage.KEYWORDS, triggers = ".:"),
         "python" to p("and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield match case", triggers = ".@"),
         "javascript" to p("async await break case catch class const continue debugger default delete do else export extends false finally for function if import in instanceof let new null of return static super switch this throw true try typeof undefined var void while with yield", triggers = ".?@"),
         "typescript" to p("abstract any as asserts async await bigint boolean break case catch class const constructor continue declare default delete do else enum export extends false finally for from function get if implements import in infer instanceof interface keyof let module namespace never new null number object of override private protected public readonly require return satisfies set static string super switch symbol this throw true try type typeof undefined unique unknown var void while with yield", triggers = ".?:@"),
@@ -130,8 +143,8 @@ object ProfessionalCompletion {
             var dollarsStart = end - 2
             while (dollarsStart > 0 && line[dollarsStart - 1] == '$') dollarsStart--
             val dollars = end - 1 - dollarsStart
-            // Odd runs retain preceding escaped pairs; even runs filter native one-dollar labels out instead
-            // of consuming an escape or appending.
+            // Odd runs retain preceding escaped pairs; even runs filter native
+            // one-dollar labels out instead of consuming an escape or appending.
             return line.substring(if (dollars % 2 == 1) end - 2 else dollarsStart, end)
         }
         var start = end
@@ -168,6 +181,8 @@ object ProfessionalCompletion {
         val profile = profiles[languageId.lowercase()] ?: defaultProfile
         val contextualItems = profile.contextual[triggerCharacter].orEmpty().asSequence()
             .map { CompletionCandidate(it, detail = "context", kind = 12, origin = CompletionOrigin.CONTEXT) }
+
+        
 
         if (prefix.isEmpty() && contextualItems.none()) return emptyList()
 
@@ -219,8 +234,8 @@ object ProfessionalCompletion {
     }
 
     fun filterLsp(items: List<LspCompletionItem>, prefix: String): List<LspCompletionItem> {
-        // Keep the exact native item with its score. Label/insertText are not identities: imports,
-        // replacement ranges and request guards may differ.
+        // Keep the exact native item with its score. Label/insertText are not
+        // identities: imports, replacement ranges and request guards may differ.
         return items.zip(fromLsp(items)).mapNotNull { (item, candidate) ->
             score(prefix, candidate)?.let { (it to candidate) to item }
         }.sortedWith { a, b -> candidateComparator.compare(a.first, b.first) }

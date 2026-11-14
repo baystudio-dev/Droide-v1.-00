@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 enum class PackageBackendId { LOCAL_APP, DEVICE_ADB }
 
 object PackageBackendContract {

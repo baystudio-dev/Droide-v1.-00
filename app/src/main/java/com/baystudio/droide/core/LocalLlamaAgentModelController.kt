@@ -10,6 +10,15 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
+
+
+
+
+
+
+
+
+
 class LocalLlamaAgentModelController(
     context: Context,
     private val bridge: DeviceBridgeManager,
@@ -69,6 +78,7 @@ class LocalLlamaAgentModelController(
         }
     }
 
+     
     suspend fun selectLocal(modelId: String): AgentConfig = operationMutex.withLock {
         requireModelId(modelId)
         requireAgentCompatibility()
@@ -120,6 +130,7 @@ class LocalLlamaAgentModelController(
         }
     }
 
+     
     suspend fun ensureReady(modelId: String, reasoningEffort: ReasoningEffort? = null): AgentConfig = operationMutex.withLock {
         requireModelId(modelId)
         requireAgentCompatibility()
@@ -151,12 +162,13 @@ class LocalLlamaAgentModelController(
         }
     }
 
+     
     private fun requireAgentCompatibility() {
         val reason = LocalAgentCompatibility.incompatibilityReason() ?: return
         _state.value = _state.value.copy(
             phase = Phase.FAILED, activeModelId = null, message = reason, copiedBytes = 0L, totalBytes = null,
         )
-
+        // Reject before inventory reads, server start, credential access or saved-selection changes.
         LocalAgentCompatibility.requireCompatible()
     }
 

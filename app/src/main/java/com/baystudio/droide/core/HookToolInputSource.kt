@@ -2,8 +2,10 @@ package com.baystudio.droide.core
 
 import java.io.OutputStream
 
-/** Construction is internal, from completed validated TOOL_ARGUMENTS only. */
-
+/** Exact local tool arguments for lifecycle hooks; no descriptor is serialized to the hook.
+ * Construction is internal, from completed validated TOOL_ARGUMENTS only. This does not grant
+ * permission to invoke a hook or execute a tool. Captured owner checks remain mandatory.
+ */
 class HookToolInputSource private constructor(
     private val session: OwnedResponseContentStore.Session,
     private val reference: OwnedNormalizedResponse.Reference,

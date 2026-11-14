@@ -3,6 +3,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exercises whole production adapters, with unrelated host boundaries documented separately. */
 class NativeEstimatorReproductionTest {
     private val json=Json
     private fun obj(s:String)=json.parseToJsonElement(s).jsonObject
@@ -63,7 +64,7 @@ class NativeEstimatorReproductionTest {
         }
     }
     @Test fun malformedNativeFieldHasProtocolSpecificSelectionRules() {
-
+        // These two adapters cast to JsonArray and fall back; Responses rejects nonarray.
         for(p in listOf("anthropic","google")) assertFalse(encode(p,messages(assistant(p,JsonPrimitive("invalid")))).toString().contains("opaque-preserve-exactly"))
         assertThrows(IllegalArgumentException::class.java) {encode("responses",messages(assistant("responses",JsonPrimitive("invalid"))))}
     }

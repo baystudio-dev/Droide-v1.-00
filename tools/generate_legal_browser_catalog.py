@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build/check the offline legal browser from shipped dependency/runtime inventories."""
+"""Build/check the offline legal browser from shipped dependency/runtime inventories.
+
+This copies selected notices byte-for-byte; it never extracts executable rootfs files,
+downloads packages, changes a license, or certifies distribution/release readiness.
+"""
 from __future__ import annotations
 
 import argparse
@@ -43,7 +47,7 @@ def build():
         entries.append(e)
         linked.update([e["licenseTextAsset"], *e.get("noticeTextAssets", [])])
 
-
+    # Make retained standalone notices reachable too, without exposing internal JSON receipts.
     for path in sorted((LEGAL / "licenses").iterdir()):
         asset = path.relative_to(ASSETS).as_posix()
         if not path.is_file() or path.suffix not in {".txt", ".md", ".html"} or asset in linked:

@@ -8,6 +8,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Core adapter tests. The host evidence lane separately binds the unchanged UI fallback edit. */
 class ProfessionalMakeCompletionTest {
     private val automaticSymbols = "@<^+?*%|"
     private fun prefix(line: String, column: Int = line.length) =

@@ -4,12 +4,13 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
+ 
 internal data class LspTextSyncPolicy(
     val openClose: Boolean = false,
     val change: ChangeKind = ChangeKind.NONE,
     val save: Boolean = false,
     val saveIncludeText: Boolean = false,
-
+    // Native ELP accepts range-less replacements while truthfully negotiating INCREMENTAL.
     val rangeLessReplacement: Boolean = false,
 ) {
     enum class ChangeKind { NONE, FULL, INCREMENTAL }
@@ -148,6 +149,7 @@ internal data class LspNegotiatedCapabilities(
     }
 }
 
+ 
 internal object LspProtocolContract {
     fun positionParams(uri: String, line: Int, col: Int): JsonObject = buildJsonObject {
         put("textDocument", buildJsonObject { put("uri", uri) })
@@ -265,8 +267,8 @@ internal object LspProtocolContract {
         trackedUris: MutableSet<String>,
     ) {
         if (uri in trackedUris) return
-        // Once a synchronization notification starts, caller cancellation must not split the wire event
-        // from the local ledger.
+        // Once a synchronization notification starts, caller cancellation must not split the wire event from the local ledger.
+
 
         withContext(NonCancellable) {
             if (uri in trackedUris) return@withContext
@@ -310,7 +312,7 @@ internal object LspProtocolContract {
                 put("textDocument", buildJsonObject { put("uri", uri); put("version", next) })
                 put("contentChanges", changes)
             })
-
+            
             versions[uri] = next
         }
     }
@@ -371,7 +373,7 @@ internal object LspProtocolContract {
         var newEnd = newText.length - suffix
         oldEnd = safeEndBoundary(oldText, oldEnd)
         newEnd = safeEndBoundary(newText, newEnd)
-
+        
         val adjustedSuffix = minOf(oldText.length - oldEnd, newText.length - newEnd)
         oldEnd = oldText.length - adjustedSuffix
         newEnd = newText.length - adjustedSuffix
@@ -403,6 +405,7 @@ internal object LspProtocolContract {
         return value
     }
 
+     
     private fun positionAt(text: String, offset: Int): Pair<Int, Int> {
         val end = offset.coerceIn(0, text.length)
         var line = 0

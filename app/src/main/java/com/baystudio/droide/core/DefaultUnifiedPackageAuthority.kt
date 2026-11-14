@@ -114,7 +114,7 @@ class DefaultUnifiedPackageAuthority(
                 require(plan is ExtensionInstallPlan.LocalVendor)
                 requireNotNull(plan.elpHealthPermit) { "ELP runtime health requires explicit Extensions approval" }.requireCurrent()
             }
-
+            // Execute the exact resolved plan shown in the approval preview.
             requireNotNull(extensionInstaller) { "Installer dependencies not wired" }.install(plan)
         }
 
@@ -182,7 +182,7 @@ class DefaultUnifiedPackageAuthority(
     override suspend fun health(familyId: String): UnifiedPackageHealthStatus {
         val record = installedRecords().find { it.familyId == familyId && it.active }
             ?: return UnifiedPackageHealthStatus(familyId, false, listOf("Not installed or active"))
-
+            
         val local = extensionInstaller?.localPackageAuthority
         val isHealthy = if (local?.owns(record) == true) local.verify(record) else installer.verify(record)
         return UnifiedPackageHealthStatus(familyId, isHealthy, if(familyId==LocalUbuntuElpPolicy.FAMILY)
@@ -225,9 +225,10 @@ class DefaultUnifiedPackageAuthority(
             result
         }
 
+    /** Production status and selection use the same normalized Ubuntu receipts as the catalog. */
     private fun installedRecords(): List<ManagedPackageRecord> {
         val records = registry.list()
-        val local = extensionInstaller?.localPackageAuthority ?: return records
+        val local = extensionInstaller?.localPackageAuthority ?: return records // Unbound generic authority.
         return DevelopmentExtensionProjection.recordsForUbuntuSnapshot(
             records, recoveryProblem = null, appRoot = local.appRoot,
             ownsLocal = local::owns, normalize = local::normalizeReceipt,

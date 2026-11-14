@@ -112,8 +112,8 @@ class EditorRecoveryCopiesUiTest {
         compose.runOnIdle { assertFalse(visible); assertEquals(0, opens); assertTrue(state.allDocuments().isEmpty()) }
     }
 
-    // SDK35 modal roots require a real owner traversal, as in RetainedWorkUiTest. Do not disable
-    // Compose idling: require five final quiet frames with no manual layout.
+    // SDK35 modal roots require a real owner traversal, as in RetainedWorkUiTest.
+    // Do not disable Compose idling: require five final quiet frames with no manual layout.
     private fun settleNativeDialog() {
         assertTrue(compose.mainClock.autoAdvance)
         var quietFrames = 0

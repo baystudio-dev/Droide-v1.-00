@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import org.junit.rules.ExternalResource
 
+/** Isolated open state for workflow tests; production admission checks remain active. */
 internal class ApplicationWorkAdmissionFixture : ExternalResource() {
     private val ownerField = ApplicationWorkAdmission::class.java.getDeclaredField("owner").apply { isAccessible = true }
     private val stateField = ApplicationWorkAdmission::class.java.getDeclaredField("state").apply { isAccessible = true }

@@ -8,6 +8,7 @@ object WorkspaceSearchInput {
     fun admitted(value: String): Boolean = value.length <= MAX_RAW_INPUT_CHARS
 }
 
+/** Search work is separate from directory-entry accounting. */
 enum class WorkspaceSearchStopReason {
     INPUT_LIMIT, EXCLUSION_LIMIT, UNSUPPORTED_AUTHORITY, DOCUMENT_LIMIT, SNAPSHOT_LIMIT,
     SNAPSHOT_PATH_LIMIT, SNAPSHOT_TEXT_LIMIT, DIRTY_COMPARISON_LIMIT,

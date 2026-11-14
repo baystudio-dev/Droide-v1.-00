@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Buf regression fixtures: production manager/transport, no executable server. */
 class LspBufIntegrationTest {
     @Test(timeout=10000) fun passiveEditingNeverPromptsDiscoversOrUsesCliFallback() = runBlocking<Unit> {
         Fixture().use { f ->

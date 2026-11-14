@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object QuickOpenMatcher {
     fun score(query: String, path: String): Int? {
         val q = query.trim().lowercase()

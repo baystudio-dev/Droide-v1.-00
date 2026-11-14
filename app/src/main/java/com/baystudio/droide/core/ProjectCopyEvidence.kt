@@ -188,7 +188,7 @@ internal object ProjectCopyEvidence {
             current = File(current, part)
             val identity = identityOrAbsent(current)
             if (identity == null) {
-
+                // Missing parents are evidence too. A new folder invalidates the confirmation.
                 parents += relative to "absent"
                 continue
             }

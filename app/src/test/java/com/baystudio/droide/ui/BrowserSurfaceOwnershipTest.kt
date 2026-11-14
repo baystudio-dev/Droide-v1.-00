@@ -59,6 +59,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
 
+/** Mount real BrowserPane hosts through the main-region routing used by IdeScreen. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w1280dp-h800dp")
 class BrowserSurfaceOwnershipTest {
@@ -241,8 +242,8 @@ class BrowserSurfaceOwnershipTest {
         val second = "https://history.example.test/second"
         compose.runOnIdle {
             val initial = views.single()
-            // Robolectric's public WebView shadow supplies the history entries. The production controller
-            // must transfer them via real saveState/restoreState calls during the move.
+            // Robolectric's public WebView shadow supplies the history entries. The production
+            // controller must transfer them via real saveState/restoreState calls during the move.
             shadowOf(initial).pushEntryToHistory(first)
             shadowOf(initial).pushEntryToHistory(second)
             initial.loadUrl(second)
@@ -279,7 +280,9 @@ class BrowserSurfaceOwnershipTest {
         compose.setContent { DroideTheme { SurfaceHost(surface) } }
         val page = controller.htmlPreviewUrl("index.html")
         compose.runOnIdle {
-
+            // ActivityScenario attaches this host, but Robolectric leaves its shared window
+            // AttachInfo at GONE. Model the window-manager visibility event in the fixture;
+            // keep the production check and the actual WebView visibility getter intact.
             val decor = compose.activity.window.decorView
             val attachInfo = ReflectionHelpers.getField<Any>(decor, "mAttachInfo")
             ReflectionHelpers.setField(attachInfo, "mWindowVisibility", View.VISIBLE)

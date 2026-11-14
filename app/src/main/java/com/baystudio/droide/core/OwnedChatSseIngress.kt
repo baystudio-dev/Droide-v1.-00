@@ -3,8 +3,10 @@ package com.baystudio.droide.core
 import okhttp3.Response
 import okio.BufferedSource
 
-/** Caller retains normal request auth/network policy and must cancel its OkHttp Call to interrupt
- * a blocked read. */
+/** Actual HTTP-response ingress seam. Caller retains normal request auth/network policy and must
+ * cancel its OkHttp Call to interrupt a blocked read. No request is retried or tool executed here.
+ * Only Chat SSE is migrated; buffered responses and other protocols use their explicit routes.
+ */
 internal object OwnedChatSseIngress {
     fun readResponse(
         response: Response,
@@ -75,8 +77,8 @@ internal object OwnedChatSseIngress {
         val idleDeadline = idle.deadlineNanos()
         val effective = if (hadDeadline && previousDeadline - now < idleDeadline - now) previousDeadline else idleDeadline
         return try {
-            // Match the tested provider transport: body event-idle policy owns this read, while an earlier
-            // explicit caller deadline remains authoritative.
+            // Match the tested provider transport: body event-idle policy owns this read,
+            // while an earlier explicit caller deadline remains authoritative.
             timeout.timeout(idle.timeoutMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
             timeout.deadlineNanoTime(effective)
             ProviderPayloadLimits.readLine(source)

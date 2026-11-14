@@ -11,6 +11,7 @@ import kotlinx.serialization.json.put
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.ensureActive
 
+
 class ExploreAgent(
     private val files: FileRepository,
     private val git: GitManager,
@@ -22,6 +23,7 @@ class ExploreAgent(
     companion object {
         val ALLOWED = setOf("list_files", "read_file", "glob", "search_files")
 
+         
         internal fun initialMessages(query: String): List<JsonObject> = listOf(
             buildJsonObject {
                 put("role", "system")
@@ -49,6 +51,7 @@ class ExploreAgent(
         )
     }
 
+     
     private object MuteTerminal : ITerminalSession {
         override val output = MutableStateFlow("")
         override fun start() {}
@@ -65,6 +68,7 @@ class ExploreAgent(
             ?: throw IllegalArgumentException("Unknown provider: ${config.providerId}")
         require(!selectedProvider.needsKey || config.apiKey.isNotBlank()) { "API key empty" }
         val apiMessages = initialMessages(query).toMutableList()
+
 
         val todosNoop = TodoManager()
         val ctx = AgentTools.Ctx(files, MuteTerminal, git, ApprovalManager(), QuestionManager(),
@@ -95,7 +99,7 @@ class ExploreAgent(
             val msg = choice["message"] as? JsonObject
                 ?: return "Explore failed: assistant choice has no message object"
             val content = (msg["content"] as? JsonPrimitive)?.contentOrNull.orEmpty()
-
+            // Admission precedes history retention, result allocation and any tool execution.
             val toolCalls = admittedToolCalls(msg["tool_calls"] as? JsonArray ?: JsonArray(emptyList()))
 
             if (toolCalls.isEmpty()) {

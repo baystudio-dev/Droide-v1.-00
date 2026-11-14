@@ -104,8 +104,8 @@ class ProjectCopyJournalTest {
         assertNull(lease.committedReceipt)
         assertTrue(lease.isUncertain)
         assertEquals(ProjectCopyJournal.Status.UNKNOWN, newJournal().recovery(agent).records.single().status)
-        // A later process can only infer the receipt/data/parent barriers causally preceding seal
-        // creation. It must not infer that the seal's own force returned successfully.
+        // A later process can only infer the receipt/data/parent barriers causally preceding
+        // seal creation. It must not infer that the seal's own force returned successfully.
         assertTrue(directory(lease.intent.id).resolve("seal.json").exists())
     }
 
@@ -359,7 +359,7 @@ class ProjectCopyJournalTest {
             journal = newJournal()
             elapsed++
             fails { journal.begin(owner(run = "new-$replacement"), "new-$replacement.bin", elapsed * 1_000_000L) }
-
+            // Use a separate project for each replacement variant.
             if (replacement != "transaction") {
                 PathSecurity.deleteTreeNoFollow(root)
                 root = Files.createTempDirectory("copy-journal-test-").toFile()

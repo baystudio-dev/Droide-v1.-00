@@ -6,6 +6,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
+ 
 class WorkspaceToolchainPreferences(
     context: Context,
     projectRoot: File,
@@ -145,14 +146,15 @@ class WorkspaceToolchainPreferences(
     }
 
     private fun mutate(block: () -> Unit) {
-        // Lock order is always lifecycle admission -> preference RMW. A refresh already owns lifecycle
-        // admission when it prunes; never acquire that gate while holding this lock.
+        // Lock order is always lifecycle admission -> preference RMW. A refresh already owns
+        // lifecycle admission when it prunes; never acquire that gate while holding this lock.
         admitMutation { synchronized(preferenceLock) { block() } }
     }
 
     private companion object {
-        // Hold one bounded, process-wide monitor across the whole RMW, including apply, for every
-        // instance.
+        // SharedPreferences.apply publishes to memory before returning. Hold one bounded,
+        // process-wide monitor across the whole RMW, including apply, for every instance.
+        // This does not make asynchronous disk persistence durable or coordinate processes.
         val preferenceLock = Any()
         val elpGeneration = java.util.concurrent.atomic.AtomicReference<Any>(Any())
         val graphqlGeneration = java.util.concurrent.atomic.AtomicReference<Any>(Any())

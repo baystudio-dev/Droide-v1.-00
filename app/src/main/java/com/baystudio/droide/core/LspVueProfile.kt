@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
+/** One explicitly consented workspace, with no nearest-marker or position-dependent routing. */
 internal object LspVueProfile {
     const val ID = "vue-language-server"
     const val COMMAND = "vue-language-server"

@@ -1,10 +1,12 @@
 package com.baystudio.droide.core;
 
+
 public enum CodingKeyboardMode {
     COMPACT("compact", true, false),
     NO_CORRECTIONS("no_corrections", false, false),
     NORMAL("normal", false, true);
 
+    
     public static final CodingKeyboardMode DEFAULT = COMPACT;
 
     private final String storageValue;

@@ -14,7 +14,8 @@ internal class TerminalOutputBuffer(private val capacity: Int) {
         val buffer = data ?: CharArray(capacity).also { data = it }
         if (text.length >= capacity) {
             var acceptedStart = terminalTextTailStart(text, capacity)
-
+            // A decoder may deliver a pair in separate appends. If the new chunk
+            // exactly fills the buffer, its first unit can pair with the old tail.
             if (acceptedStart == 0 && size > 0 &&
                 Character.isHighSurrogate(buffer[(start + size - 1) % capacity]) &&
                 Character.isLowSurrogate(text[0])) {

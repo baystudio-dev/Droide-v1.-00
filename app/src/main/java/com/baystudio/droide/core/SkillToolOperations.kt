@@ -4,6 +4,7 @@ import kotlinx.serialization.json.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/** One contract for the built-in agent and the terminal/chat external-CLI MCP bridge. */
 internal object SkillToolOperations {
     private val operations = setOf("list", "load", "list_resources", "read_resource", "copy_resource", "save", "import")
     private val fields = setOf("operation", "name", "query", "path", "destination", "scope", "content", "expected_sha256", "offset")

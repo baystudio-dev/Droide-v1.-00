@@ -1,22 +1,50 @@
-// Host tests compile real application sources; packaging and device tasks are rejected.
+// Applied only by the explicit, false-by-default host JVM mode in app/build.gradle.kts.
+// These checks reject unsupported work; they never disable tasks or replace production sources.
 def allowedRoots = [
-    ':app:testDebugUnitTest'
+    ':app:testDebugUnitTest',
+    ':app:testDebugUiIsolated',
+    ':app:testDebugJdk17Health'
 ] as Set
+// StartParameter retains task-specific options as well as task paths. Recognize
+// only the --tests option; never treat its value as another task or accept aliases.
 def arguments = gradle.startParameter.taskNames
 def requested = []
+// Gradle also accepts simple class names; those can match across packages.
+// Restrict this route to fully qualified Droide class/method selectors and the two
+// exact JGit-package classes below, whose package-private API checks need that package.
+// Kotlin backtick method names may contain literal single ASCII spaces/hyphens between words; no glob syntax is accepted.
 def exactJGitSelections = [
     'org.eclipse.jgit.transport.JGitAndroidAuthCompatibilityTest',
     'org.eclipse.jgit.transport.DroideTransportConfigTest'
 ] as Set
+// Only reviewed mock ownership and exact bounded completion methods; no broad terminal suite.
 def exactTerminalSelections = [
     'com.termux.terminal.TerminalOwnedProcessTest',
+    // Reviewed emulator/queue/drain fixtures; no native owner or child process.
     'com.termux.terminal.TerminalSourceSafetyTest',
     'com.termux.terminal.TerminalSourceSafetyTest.inputWriterAcknowledgementIsRequiredBeforeCleanCompletion',
     'com.termux.terminal.TerminalSourceSafetyTest.absentWriterAcknowledgementProducesUnconfirmedInputAtDeadline'
 ] as Set
+// These reviewed recovery fixtures live directly in the application package.
+// Admit only these exact classes and their exact method names; no wildcard or
+// general root-package expansion. Per-method runs can isolate process owners.
+def exactRecoverySelections = [
+    // Source-text contracts only; never instantiates Activity or Compose.
+    'com.baystudio.droide.ExitOpenRearmSourceR64Test',
+    'com.baystudio.droide.WorkspaceApplicationOwnershipTest',
+    'com.baystudio.droide.WorkspaceStartupRecoveryUiTest',
+    'com.baystudio.droide.WorkspaceRuntimeHostRecoveryTest',
+    // R112: reviewed host-only Activity/Service exit fixtures, no native launch.
+    'com.baystudio.droide.ExitActivityLifecycleR64Test',
+    'com.baystudio.droide.CompletedExitProcessTest',
+    'com.baystudio.droide.ForcedExitDeadlineProcessTest'
+] as Set
 def isExactSelection = { value ->
-    exactJGitSelections.contains(value) || exactTerminalSelections.contains(value) ||
-        value ==~ /com\.baystudio\.droide\.(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*[A-Za-z_$][A-Za-z0-9_$]*(?:[- ][A-Za-z0-9_$]+)*/
+    exactRecoverySelections.contains(value) ||
+        exactRecoverySelections.any { name -> value.startsWith(name + '.') &&
+            value.substring(name.length() + 1) ==~ /[A-Za-z_$][A-Za-z0-9_$]*/ } ||
+        exactJGitSelections.contains(value) || exactTerminalSelections.contains(value) ||
+        value ==~ /com\.baystudio\.droide\.(?:[A-Za-z_$][A-Za-z0-9_$]*\.)+[A-Za-z_$][A-Za-z0-9_$]*(?:[- ][A-Za-z0-9_$]+)*/
 }
 for (int i = 0; i < arguments.size(); i++) {
     def argument = arguments[i]
@@ -44,6 +72,8 @@ if (gradle.startParameter.buildCacheEnabled) {
 if (gradle.startParameter.projectProperties['android.builder.sdkDownload'] != 'false') {
     throw new GradleException('Host JVM mode requires -Pandroid.builder.sdkDownload=false; provision only approved SDK packages separately')
 }
+// The reviewed application has no shader source. If that changes, review the
+// native tool requirement rather than silently dropping those sources.
 if (!fileTree('src') { include '**/shaders/**' }.files.empty) {
     throw new GradleException('Host JVM mode needs review because shader inputs are present')
 }
@@ -63,24 +93,19 @@ def allowedNames = [
     'generateDebugAssets', 'mergeDebugAssets', 'packageDebugUnitTestForUnitTest',
     'processDebugUnitTestManifest', 'generateDebugUnitTestConfig',
     'processDebugJavaRes', 'processDebugUnitTestJavaRes',
-    'testDebugUnitTest'
+    'testDebugUnitTest', 'testDebugUiIsolated', 'testDebugJdk17Health'
 ] as Set
 
 tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
     maxParallelForks = 1
+    // Verification must execute its selected tests, rather than reuse a prior test outcome.
     outputs.upToDateWhen { false }
-    def runtime = providers.gradleProperty('DROIDE_HOST_TEST_RUNTIME_DIR').orNull
-    if (runtime != null) {
-        // Robolectric sandboxes and ordinary JVM tests cannot share a loaded JNI library.
-        forkEvery = 1
-        def directory = new File(runtime)
-        if (!directory.isAbsolute() || !new File(directory, 'receipt.json').isFile()) {
-            throw new GradleException('Provision the host test runtime before selecting its directory')
-        }
-        systemProperty 'robolectric.offline', 'true'
-        systemProperty 'robolectric.dependency.dir', new File(directory, 'robolectric').absolutePath
-        jvmArgs '-Djava.library.path=' + new File(directory, 'native').absolutePath
-    }
+}
+
+if (gradle.startParameter.projectProperties['DROIDE_FDROID_BUILD'] == 'true') {
+    // This recipe compiles Java only; it cannot launch a guest or build an APK.
+    allowedNames.add('buildFdroidTerminalSources')
+    allowedNames.add('buildFdroidJgitSources')
 }
 
 gradle.taskGraph.whenReady { graph ->
@@ -94,6 +119,7 @@ gradle.taskGraph.whenReady { graph ->
         if (!requested.contains(test.path)) {
             throw new GradleException('Unrequested test task in host JVM graph: ' + test.path)
         }
+        // Gradle 8.13's DefaultTestFilter exposes the CLI selection separately.
         def selections = test.filter.includePatterns + test.filter.commandLineIncludePatterns
         if (selections.empty || selections.any { !isExactSelection(it) }) {
             throw new GradleException('Fully qualified Droide selectors or an exact admitted JGit/terminal source test class, without wildcards, are required for ' + test.path)
@@ -102,5 +128,7 @@ gradle.taskGraph.whenReady { graph ->
             throw new GradleException('Host JVM tests must fail normally, including an empty selection: ' + test.path)
         }
     }
+    // Only JVM class JARs and Robolectric resource archives are allowed above.
+    // No application APK/AAR/AAB, instrumentation, signing, native, or device task is allowed.
     logger.lifecycle('Reviewed host JVM graph: ' + graph.allTasks*.path.join(', '))
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
+import androidx.compose.ui.unit.height
 import androidx.compose.ui.viewinterop.AndroidView
 import org.junit.Assert.*
 import org.junit.Rule
@@ -40,7 +41,7 @@ class LandscapeEditorAreaTest {
     private var viewport by mutableStateOf(720.dp to 360.dp)
     private var requestedPanelHeight by mutableStateOf(160.dp)
     private var draft by mutableStateOf("")
-    private var terminalState: LandscapeTerminalImeFocusState? = null
+    private var terminalState: LandscapeInputExpansion? = null
     private var editor: EditText? = null
     private var terminal: EditText? = null
     private val mounts = IntArray(2)
@@ -78,24 +79,37 @@ class LandscapeEditorAreaTest {
         compose.setContent {
             CompositionLocalProvider(LocalSoftwareKeyboardController provides keyboard) {
                 DroideTheme {
-                    val editorTyping = ime && focus.activeTarget == AccessoryInputTarget.EDITOR
-                    val state = rememberLandscapeTerminalImeFocus("fixture", true, ime,
-                        focus.activeTarget == AccessoryInputTarget.TERMINAL_NATIVE,
-                        otherInputFocused = focus.activeTarget != AccessoryInputTarget.TERMINAL_NATIVE && (editorTyping || agentFocused))
+                    val state = rememberLandscapeInputExpansion("fixture", true, ime,
+                        when {
+                            agentFocused -> LandscapeInputTarget.NONE
+                            focus.activeTarget == AccessoryInputTarget.EDITOR -> LandscapeInputTarget.EDITOR
+                            focus.activeTarget == AccessoryInputTarget.TERMINAL_NATIVE -> LandscapeInputTarget.TERMINAL
+                            else -> LandscapeInputTarget.NONE
+                        })
+                    val editorTyping = state.editorExpanded
                     SideEffect { terminalState = state }
                     val layout = droideWorkbenchLayout(viewport.first, viewport.second, requestedPanelHeight, true)
+                    val motion = rememberLandscapeWorkbenchMotion(editorTyping, state.terminalExpanded, panelVisible)
                     Column(Modifier.size(viewport.first, viewport.second)) {
-                        if (!droideHideLandscapeHeader(true, editorTyping, state.active)) {
-                            Box(Modifier.fillMaxWidth().height(52.dp).testTag("header")) { Text("Workspace header") }
+                        LandscapeChromeReveal({ motion.normal.value }, !editorTyping && !state.terminalExpanded,
+                            modifier = Modifier.testTag("header")) {
+                            Box(Modifier.fillMaxWidth().height(52.dp)) { Text("Workspace header") }
                         }
                         Row(Modifier.weight(1f).fillMaxWidth()) {
                             LandscapeEditorArea("fixture", DroideBottomTool.Terminal, panelVisible,
                                 layout.effectiveBottomPanelHeight, layout.bottomPanelMaxHeight,
-                                editorTyping, state.active, onPanelHeightChange = { requestedPanelHeight = it },
+                                editorTyping, state.terminalExpanded, onPanelHeightChange = { requestedPanelHeight = it },
                                 onSelectTool = {}, onOpenPanel = { panelVisible = true },
-                                onClosePanel = { panelVisible = false }, onRestoreTerminal = state.exit,
+                                onClosePanel = { panelVisible = false }, onRestoreTerminal = state.restore,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                editor = { NativeInput(0) }, panel = { NativeInput(1) })
+                                motion = motion,
+                                editor = {
+                                    Column {
+                                        DroideEditorToolbar("main.kt", false, false, {}, {}, {}, {}, {},
+                                            onRestoreSize = state.restore.takeIf { state.editorExpanded })
+                                        Box(Modifier.weight(1f)) { NativeInput(0) }
+                                    }
+                                }, panel = { NativeInput(1) })
                             Box(Modifier.width(180.dp).fillMaxHeight().testTag("chat-pane")) {
                                 BasicTextField(draft, { draft = it }, modifier = Modifier.testTag("chat-input")
                                     .onFocusChanged { agentFocused = it.isFocused; focus.onFocusChanged(agentOwner, it.isFocused) })
@@ -111,7 +125,7 @@ class LandscapeEditorAreaTest {
         mount()
         val previousBounds = compose.onNodeWithTag("landscape-panel-region").getUnclippedBoundsInRoot()
         compose.runOnIdle { requireNotNull(terminal).requestFocus(); ime = true }
-        compose.onNodeWithTag("header").assertDoesNotExist()
+        compose.onNodeWithTag("header").assertHeightIsEqualTo(0.dp)
         compose.onNodeWithTag("landscape-panel-region").assertHeightIsEqualTo(360.dp)
         compose.onNodeWithTag("native-editor").assertDoesNotExist()
         val native = terminal
@@ -126,38 +140,42 @@ class LandscapeEditorAreaTest {
             assertArrayEquals(intArrayOf(1, 1), mounts)
             assertArrayEquals(intArrayOf(0, 0), releases)
             assertEquals(1, keyboardHides)
-            assertFalse(requireNotNull(terminalState).active)
+            assertFalse(requireNotNull(terminalState).terminalExpanded)
         }
     }
 
-    @Test fun editorTypingUsesHeaderSpaceAndChatTypingDoesNotExpandEitherPane() {
+    @Test fun chatTypingDoesNotChangeTheExistingEditorExpansionOrChatWidth() {
         mount()
         val chatWidth = compose.onNodeWithTag("chat-pane").getUnclippedBoundsInRoot().width
         compose.runOnIdle { editor!!.requestFocus(); ime = true }
-        compose.onNodeWithTag("header").assertDoesNotExist()
+        compose.onNodeWithTag("header").assertHeightIsEqualTo(0.dp)
         compose.onNodeWithTag("native-terminal").assertDoesNotExist()
         compose.onNodeWithTag("native-editor").assertIsDisplayed()
         compose.onNodeWithTag("chat-input").performTextInput("Keep this chat draft")
-        compose.onNodeWithTag("header").assertIsDisplayed()
-        compose.onNodeWithTag("native-terminal").assertIsDisplayed()
+        compose.onNodeWithTag("header").assertHeightIsEqualTo(0.dp)
+        compose.onNodeWithTag("native-terminal").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Restore editor size").assertIsDisplayed()
         compose.onNodeWithContentDescription("Restore terminal size").assertDoesNotExist()
         assertEquals(chatWidth, compose.onNodeWithTag("chat-pane").getUnclippedBoundsInRoot().width)
         compose.runOnIdle {
             assertEquals("Keep this chat draft", draft)
             assertEquals(0, keyboardHides)
-            assertFalse(requireNotNull(terminalState).active)
+            assertFalse(requireNotNull(terminalState).terminalExpanded)
         }
     }
 
-    @Test fun movingFromTerminalToAgentOrEditorReleasesTerminalExpansionWithoutHidingKeyboard() {
+    @Test fun movingFromTerminalToChatKeepsUserExpansionUntilRestore() {
         mount()
         compose.runOnIdle { terminal!!.requestFocus(); ime = true }
         compose.onNodeWithContentDescription("Restore terminal size").assertIsDisplayed()
         compose.onNodeWithTag("chat-input").performTextInput("agent")
-        compose.onNodeWithContentDescription("Restore terminal size").assertDoesNotExist()
-        compose.runOnIdle { editor!!.requestFocus() }
-        compose.onNodeWithTag("header").assertDoesNotExist()
-        compose.runOnIdle { assertEquals(0, keyboardHides); assertArrayEquals(intArrayOf(1, 1), mounts) }
+        compose.onNodeWithContentDescription("Restore terminal size").assertIsDisplayed()
+        compose.onNodeWithTag("header").assertHeightIsEqualTo(0.dp)
+        compose.runOnIdle { ime = false }
+        compose.onNodeWithTag("landscape-panel-region").assertHeightIsEqualTo(360.dp)
+        compose.onNodeWithContentDescription("Restore terminal size").performClick()
+        compose.onNodeWithTag("header").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, keyboardHides); assertArrayEquals(intArrayOf(1, 1), mounts) }
     }
 
     @Test fun anInitiallyClosedPanelIsNotStartedAndAHiddenMountedPanelLosesItsHitTargets() {
@@ -185,4 +203,64 @@ class LandscapeEditorAreaTest {
             assertEquals(160.dp, requestedPanelHeight)
         }
     }
+
+    @Test fun focusTransitionHasIntermediateFramesAndReversesWithoutReplacingNativeInputs() {
+        compose.mainClock.autoAdvance = false
+        mount()
+        val original = compose.onNodeWithTag("landscape-panel-region").getUnclippedBoundsInRoot()
+        compose.runOnIdle { terminal!!.requestFocus(); ime = true }
+        repeat(6) { compose.mainClock.advanceTimeByFrame(); compose.waitForIdle() }
+        val halfway = compose.onNodeWithTag("landscape-panel-region").getUnclippedBoundsInRoot()
+        val header = compose.onNodeWithTag("header").getUnclippedBoundsInRoot()
+        assertTrue(halfway.height > original.height && halfway.height < viewport.second)
+        assertTrue(header.height > 0.dp && header.height < 52.dp)
+        compose.runOnIdle { requireNotNull(terminalState).restore() }
+        compose.mainClock.advanceTimeByFrame()
+        val reversed = compose.onNodeWithTag("landscape-panel-region").getUnclippedBoundsInRoot()
+        assertTrue(reversed.height > original.height && reversed.height < viewport.second)
+        compose.mainClock.advanceTimeBy(350)
+        assertEquals(original, compose.onNodeWithTag("landscape-panel-region").getUnclippedBoundsInRoot())
+        compose.runOnIdle {
+            assertArrayEquals(intArrayOf(1, 1), mounts)
+            assertArrayEquals(intArrayOf(0, 0), releases)
+            assertEquals("terminal draft", terminal!!.text.toString())
+            assertEquals(3, terminal!!.selectionStart)
+        }
+    }
+
+    @Test fun panelToggleAnimatesButDividerDragAppliesItsSizeImmediately() {
+        compose.mainClock.autoAdvance = false
+        mount()
+        compose.runOnIdle { panelVisible = false }
+        repeat(6) { compose.mainClock.advanceTimeByFrame(); compose.waitForIdle() }
+        val closing = compose.onNodeWithTag("landscape-panel-region").getUnclippedBoundsInRoot().height
+        assertTrue(closing > 0.dp && closing < 160.dp)
+        compose.onNodeWithTag("native-terminal").assertDoesNotExist()
+        compose.runOnIdle { panelVisible = true }
+        compose.mainClock.advanceTimeBy(350)
+        compose.runOnIdle { requestedPanelHeight = 140.dp }
+        // Drain snapshot/recomposition without advancing a full panel animation.
+        repeat(2) { compose.mainClock.advanceTimeByFrame(); compose.waitForIdle() }
+        compose.onNodeWithTag("landscape-panel-region").assertHeightIsEqualTo(140.dp)
+        compose.runOnIdle { assertEquals(1, mounts[1]); assertEquals(0, releases[1]) }
+    }
+    @Test fun editorStaysExpandedAfterKeyboardDismissalAndXPreservesItsNativeCursor() {
+        mount()
+        val original = editor
+        compose.runOnIdle { editor!!.requestFocus(); ime = true }
+        compose.onNodeWithContentDescription("Restore editor size").assertIsDisplayed()
+        compose.runOnIdle { ime = false }
+        compose.onNodeWithTag("header").assertHeightIsEqualTo(0.dp)
+        compose.onNodeWithContentDescription("Restore editor size").performClick()
+        compose.onNodeWithTag("header").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Restore editor size").assertDoesNotExist()
+        compose.runOnIdle {
+            assertSame(original, editor)
+            assertEquals("editor draft", editor!!.text.toString())
+            assertEquals(3, editor!!.selectionStart)
+            assertEquals(160.dp, requestedPanelHeight)
+            assertArrayEquals(intArrayOf(1, 1), mounts)
+        }
+    }
+
 }

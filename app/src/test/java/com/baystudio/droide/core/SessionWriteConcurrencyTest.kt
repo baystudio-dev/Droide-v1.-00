@@ -9,6 +9,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Deterministic real-file/HTTP interleavings; no sleeps or Android/PRoot claims. */
 class SessionWriteConcurrencyTest {
     @Test(timeout = 30_000) fun pendingAdmissionWaitsForTheLatestConversationTransactionAcrossManagers() = workspace { root -> runBlocking {
         val first = SessionManager(root)

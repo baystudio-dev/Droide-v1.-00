@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+ 
 data class AndroidProcessProfile(
     val packageName: String,
     val pid: Int,
@@ -82,6 +83,10 @@ object AndroidInspectionParsers {
         require("<hierarchy" in xml) { "UI hierarchy root is missing" }
     }
 }
+
+
+
+
 
 class AndroidInspectionManager(private val bridge: DeviceBridgeManager) {
     suspend fun profilePackage(packageName: String): AndroidProcessProfile = withContext(Dispatchers.IO) {

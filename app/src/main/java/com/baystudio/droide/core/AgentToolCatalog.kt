@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+ 
 internal object AgentToolCatalog {
     val definitions: JsonArray = buildJsonArray {
         add(tool("list_files", "List immediate children. Default discovery skips child node_modules directories; an explicitly requested directory remains accessible.",
@@ -48,8 +49,11 @@ internal object AgentToolCatalog {
             buildJsonObject { put("path", buildJsonObject { put("type", "string") }) }, listOf("path")))
         add(tool("view_video", "Inspect a workspace video through at most four sampled frames. Copies a <=64 MiB video into conversation-owned storage and attaches actual bounded frame images after all tool results. Available only for image-capable models with media support. Samples do not include audio and cannot prove the contents of unsampled intervals; use only when video inspection is needed. Read permission applies.",
             buildJsonObject { put("path", buildJsonObject { put("type", "string"); put("description", "Workspace-relative MP4/M4V/MOV/WebM/MKV/3GP video path") }) }, listOf("path")))
-        add(tool("send_media", "Share an existing workspace file, image or video as a downloadable attachment in the current Agent conversation only. Creates a bounded conversation-owned copy without deleting or changing the original. BUILD mode, source read and conversation attachment edit permissions are required. Does not fetch URLs, generate media, or send to any external person/service. Copies expire after seven days; the user can export a copy to keep it.",
-            buildJsonObject { put("path", buildJsonObject { put("type", "string"); put("description", "Workspace-relative file path; <=64 MiB") }) }, listOf("path")))
+        add(tool("send_media", "Share an existing workspace file, image or video in the current Agent conversation. By default creates a bounded downloadable copy without changing the original. reference_only=true records a visible project file in /results without reading/copying its contents; useful for large APK/binary outputs. BUILD mode, source read and conversation edit permissions apply. No URL fetch, generation, or external recipient. Copies expire after seven days; references depend on the current project file.",
+            buildJsonObject {
+                put("path", buildJsonObject { put("type", "string"); put("description", "Workspace-relative file path; copies are limited to 64 MiB") })
+                put("reference_only", buildJsonObject { put("type", "boolean"); put("description", "Default false. Register the current project file in session results without creating an attachment copy.") })
+            }, listOf("path")))
         add(tool("save_media_to_project", "Copy any original attachment from this conversation into an independent permanent project file: ZIP archives, PDF/documents, source code, datasets, images or videos. All file types are supported; no image capability or text decoding is needed. For example imports/project.zip, docs/spec.pdf or assets/logo.png. Use for user uploads or original managed paths returned by web, browser, send_media or generate_image when the task requires a project file. Streams exact original bytes (no re-encoding), creates parent folders, never overwrites an existing file. BUILD mode, source read and destination edit permission apply. The saved project asset survives chat deletion and seven-day expiry; the chat copy keeps its own retention. No download, environment setup or automatic promotion of every attachment.",
             buildJsonObject {
                 put("path", buildJsonObject { put("type", "string"); put("description", "Original .droide/chat-media/blobs/... managed attachment path, not a thumbnail, URL or ordinary shell path") })
@@ -136,13 +140,13 @@ internal object AgentToolCatalog {
                 })
                 put("job_id", buildJsonObject { put("type", "string") })
             }, listOf("action")))
-        add(tool("exec_command", "Start a supervised shell process in the project root and return output or a resumable session. Uses pipes by default; requires_tty=true requests an owned native PTY in the selected visible terminal tab. Normal commands close stdin; keep_stdin_open requires a backend that supports stdin. Completion must be checked before claiming success.",
+        add(tool("exec_command", "Start a supervised shell process and return output or a resumable session. Pipes close stdin by default; requires_tty=true opens an owned PTY with input available in the selected terminal tab. Continue the same session with write_stdin; a yield does not end it. Completion must be checked before claiming success.",
             buildJsonObject {
                 put("cmd", buildJsonObject { put("type", "string") })
-                put("yield_time_ms", buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 30_000) })
-                put("timeout_ms", buildJsonObject { put("type", "integer"); put("minimum", 1_000); put("maximum", 86_400_000) })
-                put("keep_stdin_open", buildJsonObject { put("type", "boolean") })
-                put("requires_tty", buildJsonObject { put("type", "boolean"); put("description", "Set true for full TTY, not line-based stdin. Supported native tabs display an owned PTY while preserving the human shell; busy or unsupported backends refuse without launching.") })
+                put("yield_time_ms", buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 30_000); put("description", "Wait for output before returning; does not stop the process. Default 1000.") })
+                put("timeout_ms", buildJsonObject { put("type", "integer"); put("minimum", 1_000); put("maximum", 86_400_000); put("description", "Optional lifetime deadline measured from launch, never reset by polling. Omit for a persistent interactive shell. Use yield_time_ms to limit only the tool wait.") })
+                put("keep_stdin_open", buildJsonObject { put("type", "boolean"); put("description", "Default true for PTY, false for pipe. Explicit false disables agent input even for PTY.") })
+                put("requires_tty", buildJsonObject { put("type", "boolean"); put("description", "Use true for interactive SSH login, password/fingerprint prompts, or a TUI. Use a bounded SSH ConnectTimeout; poll with write_stdin and inspect the prompt before answering. Supported native tabs display an owned PTY while preserving the human shell; busy or unsupported backends refuse without launching.") })
             }, listOf("cmd")))
         add(tool("write_stdin", "Resume a command session: poll incremental output with its next_output_cursor, send approved input to its open pipe or owned visible PTY, close stdin, or interrupt the owned process. wait_for_completion=true streams progress and waits for the final exit in one cancellable tool call with no caller deadline; use when waiting for a long build and no independent work remains. The process still honors its explicit timeout_ms. Empty chars only observes output. Pipe input is raw stdin. Owned PTY input shares the visible terminal queue; output is bounded screen snapshots, not lossless stdout. close_stdin sends Ctrl+D to a PTY and raw-mode TUIs may interpret it differently. interrupt=true terminates only the supervised job.",
             buildJsonObject {
@@ -151,7 +155,7 @@ internal object AgentToolCatalog {
                 put("chars", buildJsonObject { put("type", "string") })
                 put("output_cursor", buildJsonObject { put("type", "integer"); put("minimum", 0) })
                 put("yield_time_ms", buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 30_000) })
-                put("close_stdin", buildJsonObject { put("type", "boolean") })
+                put("close_stdin", buildJsonObject { put("type", "boolean"); put("description", "Pipe: permanently close stdin after accepted input. PTY: send Ctrl+D once; later input remains possible if the process stays alive.") })
                 put("interrupt", buildJsonObject { put("type", "boolean") })
             }, listOf("session_id")))
         add(tool("environment_probe", "Prove which Agent tools are advertised and which executable names are present in the current execution environment. Presence is not execution success.",
@@ -416,7 +420,7 @@ internal object AgentToolCatalog {
                 put("type", buildJsonObject { put("type", "string") })
                 put("content", buildJsonObject { put("type", "string") })
             }, listOf("type", "content")))
-
+        
         add(tool("bash", "Run shell command in foreground or as a non-blocking background job",
             buildJsonObject {
                 put("command", buildJsonObject { put("type", "string") })

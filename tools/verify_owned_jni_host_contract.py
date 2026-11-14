@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run unchanged owned-token JNI C against a selected real engine JNI.class."""
+"""Run unchanged owned-token JNI C against a selected real engine JNI.class.
+
+Supplementary Linux host proof only: not Android loading, APK admission, complete
+race/fault coverage, or evidence that a historical build used current sources.
+No production classes are generated or compiled by this fixture.
+"""
 from __future__ import annotations
 
 import argparse

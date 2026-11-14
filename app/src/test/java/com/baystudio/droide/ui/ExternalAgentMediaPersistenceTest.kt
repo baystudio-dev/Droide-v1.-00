@@ -167,8 +167,8 @@ class ExternalAgentMediaPersistenceTest {
         val id = PluginConversationHistory.newId()
         val file = File(root, ".droide/sessions/plugins.sqlite").apply { parentFile.mkdirs() }
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            // Build the historical v1 schema directly. Relabeling a current database would leave newer
-            // columns behind and would not test an actual upgrade.
+            // Build the historical v1 schema directly. Relabeling a current database
+            // would leave newer columns behind and would not test an actual upgrade.
             db.execSQL("""CREATE TABLE conversations (
                 id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, title TEXT NOT NULL,
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, native_id TEXT,

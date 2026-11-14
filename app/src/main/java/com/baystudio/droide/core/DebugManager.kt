@@ -7,16 +7,16 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
-
+ 
 enum class DebugState { IDLE, STARTING, RUNNING, STOPPED, TERMINATED, ERROR }
 data class DebugBreakpoint(
     val path: String,
-
+     
     val line: Int,
     val verified: Boolean = false,
     val id: Int? = null,
     val message: String? = null,
-
+     
     val requestedLine: Int = line,
 )
 data class DebugThread(val id: Int, val name: String)
@@ -52,6 +52,7 @@ data class DebugConfiguration(
 )
 
 data class AndroidDebugProcess(val pid: Int, val processName: String?)
+
 
 class DebugManager(
     private val scope: CoroutineScope,
@@ -205,6 +206,7 @@ class DebugManager(
         }
     }
 
+     
     suspend fun androidJdwpProcesses(): List<AndroidDebugProcess> = withContext(Dispatchers.IO) {
         val bridge = deviceBridge ?: return@withContext emptyList()
         if (bridge.state.value.connected == null) return@withContext emptyList()
@@ -223,6 +225,7 @@ class DebugManager(
             }.toMap()
         pids.map { AndroidDebugProcess(it, names[it]) }
     }
+
 
     suspend fun hasAndroidAttachProvider(activeFile: String): Boolean =
         androidAttachConfigurations(activeFile, 1).isNotEmpty()
@@ -262,8 +265,7 @@ class DebugManager(
         val custom = loadCustomConfigurations(activeFile, androidPid = null, androidOnly = false)
         val builtIn = mutableListOf<DebugConfiguration>()
         for (spec in DebugAdapterRegistry.forPath(activeFile, extraDebugAdapters())) {
-            // Never prefer an app-local binary: workspace/debugger code must not inherit Droide's
-            // application UID.
+            // Never prefer an app-local binary: workspace/debugger code must not inherit Droide's application UID.
 
             val remote = remoteProcessHost ?: continue
             val candidate = resolveRemoteCommand(spec.commandCandidates, remote) ?: continue
@@ -392,8 +394,8 @@ class DebugManager(
             reverseRequestHandler = { command, arguments -> handleReverseRequest(command, arguments, process) },
         )
         try {
-            // Keep startup ownership even if the hosted peer is created but cancellation wins before DAP
-            // publishes its streams.
+            // Keep startup ownership even if the hosted peer is created but
+            // cancellation wins before DAP publishes its streams.
             rootDap = process
             process.start()
             dap = process
@@ -426,6 +428,7 @@ class DebugManager(
             capabilities = initResponse["body"] as? JsonObject ?: buildJsonObject {}
             rootCapabilities = capabilities
 
+            
             launchJob = process.requestAsync(effectiveConfig.request, effectiveConfig.arguments)
             withTimeout(12_000) { initializedSignal.await() }
             _breakpoints.value.keys.toList().forEach { syncBreakpoints(it) }
@@ -443,6 +446,7 @@ class DebugManager(
                 process.request("configurationDone", buildJsonObject {}, timeoutMs = 8_000)
             }
             withTimeout(20_000) { launchJob?.await() }
+            
 
             when (_state.value) {
                 DebugState.STARTING -> {
@@ -832,8 +836,8 @@ class DebugManager(
     }
 
     private suspend fun handleEvent(event: DapProcess.Event, owner: DapProcess) {
-        // Protocol readiness must not queue behind another target's stack/variable requests. Bind the
-        // signal to its owner so an old adapter cannot initialize a replacement.
+        // Protocol readiness must not queue behind another target's stack/variable requests.
+        // Bind the signal to its owner so an old adapter cannot initialize a replacement.
         if (event.name == "initialized") {
             val ready = rootReadiness
             if (rootDap === owner && ready?.process === owner) {
@@ -905,8 +909,7 @@ class DebugManager(
                 _threads.value = emptyList()
                 _frames.value = emptyList()
                 _variables.value = emptyList()
-                // Tear the transport down outside this collector so cancelling eventJob cannot cancel the
-                // collector itself mid-event.
+                // Tear the transport down outside this collector so cancelling eventJob cannot cancel the collector itself mid-event.
 
                 scope.launch {
                     sessionMutex.withLock {
@@ -1076,8 +1079,8 @@ class DebugManager(
             }
             childSessions[id] = child
         }
-        // js-debug waits for this successful response before releasing the target. Handshake therefore
-        // runs separately, never inside the protocol reader.
+        // js-debug waits for this successful response before releasing the target.
+        // Handshake therefore runs separately, never inside the protocol reader.
         child.startupJob = ownedScope.launch {
             try {
                 check(rootDap === parent && ownedScope.isActive) { "Debug session changed before child startup" }
@@ -1137,8 +1140,9 @@ class DebugManager(
         try {
             process.request(command, arguments, timeoutMs = 3_000)
         } catch (_: Exception) {
-            // The adapter may emit terminated before its disconnect response, or never respond.
-
+            // The adapter may emit terminated before its disconnect response, or
+            // never respond. Neither may prevent owned cleanup from completing.
+            // Cancellation by the real caller must still propagate after cleanup.
             currentCoroutineContext().ensureActive()
         }
     }
@@ -1172,8 +1176,8 @@ class DebugManager(
                     rootReadiness = null
                     (listOfNotNull(process, dap) + childSessions.values.map { it.process }).distinct()
                 }
-                // JS server spawn can precede publication of the root DAP socket. Keep its owner until cleanup
-                // completes even when no DAP peer exists.
+                // JS server spawn can precede publication of the root DAP socket.
+                // Keep its owner until cleanup completes even when no DAP peer exists.
                 val ownedServer = multiSessionHost as? JavascriptDebugServerProcessHost
                 closeChildSessions()
                 debugSessionScope?.cancel(); debugSessionScope = null

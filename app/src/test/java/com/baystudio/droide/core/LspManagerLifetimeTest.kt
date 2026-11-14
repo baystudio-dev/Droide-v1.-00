@@ -144,7 +144,8 @@ class LspManagerLifetimeTest {
             fixture.manager.didClose("main.py")
             fixture.host.publish("file:///workspace/main.py", "late without version")
             fixture.manager.completionItems("other.py", 1, 1)
-
+            // The marker follows all rejected diagnostics on the same notification stream.
+            // Wait for observable consumption rather than relying on a timing sleep.
             fixture.host.publish("file:///workspace/other.py", "marker", version = 1)
             awaitUntil { fixture.manager.diagnostics.value[fixture.localUri("other.py")]?.singleOrNull()?.message == "marker" }
             assertEquals(setOf(fixture.localUri("other.py")), fixture.manager.diagnostics.value.keys)

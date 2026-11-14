@@ -152,6 +152,13 @@ private data class OpenVsxExtensionDto(
     val error: String? = null,
 )
 
+
+
+
+
+
+
+
 class OpenVsxRegistryClient(context: Context) {
     private val appContext = context.applicationContext
     private val json = Json { ignoreUnknownKeys = true }
@@ -377,6 +384,9 @@ class OpenVsxRegistryClient(context: Context) {
         .filter { it.key in SUPPORTED_FILE_KEYS && safeOptionalHttpsUrl(it.value) }
         .take(SUPPORTED_FILE_KEYS.size)
         .associate { it.key to it.value }
+
+    
+
 
     private fun safeOptionalHttpsUrl(raw: String): Boolean = runCatching {
         val uri = URI(raw)

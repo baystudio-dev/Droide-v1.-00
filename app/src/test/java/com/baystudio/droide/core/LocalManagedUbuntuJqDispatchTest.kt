@@ -41,11 +41,12 @@ import org.robolectric.shadow.api.Shadow
 )
 class LocalManagedUbuntuJqDispatchTest {
     companion object {
-        // As in LocalManagedProjectionParentGuardTest: Robolectric replaces its Application per method,
-        // while the process-owned substrate must keep one exact app files root.
+        // As in LocalManagedProjectionParentGuardTest: Robolectric replaces its Application
+        // per method, while the process-owned substrate must keep one exact app files root.
         private val applicationRoot = Files.createTempDirectory("r37-jq-application-").toFile().canonicalFile
     }
 
+    // TestRule wraps @Before, the test method and @After, including runBlocking setup.
     @get:Rule val timeout: Timeout = Timeout.seconds(30)
     private lateinit var context: Context
     private lateinit var root: File
@@ -54,8 +55,8 @@ class LocalManagedUbuntuJqDispatchTest {
     private val ownedFamilies = listOf("cli.jq", "cli.git", "runtime.ubuntu-deps.r37-jq", "runtime.ubuntu-deps.r37-git", "cli.r37-raw")
 
     @Before fun prepare() = runBlocking {
-        // Check both shadows before any call that could reach a process API. An unmatched supervisor
-        // method is a no-op/null, never the real ProcessBuilder implementation.
+        // Check both shadows before any call that could reach a process API. An unmatched
+        // supervisor method is a no-op/null, never the real ProcessBuilder implementation.
         assertTrue(Shadow.extract<Any>(LocalExecutionSubstrate) is R37AllowlistedLocalShell)
         assertTrue(Shadow.extract<Any>(LocalProcessSupervisor) is R37NoLocalProcess)
         val actual = LocalExecutionSubstrate::class.java.declaredMethods.single { it.name == "shellBounded" }
@@ -465,7 +466,7 @@ class LocalManagedUbuntuJqDispatchTest {
             R37AllowlistedLocalShell.expect(emptyList())
             val failure = runCatching { observedAuthority.reconcile() }.exceptionOrNull()
             R37AllowlistedLocalShell.assertNoAttempts()
-
+            // Show the concrete custody mutation on the old code before checking its error.
             assertEquals("Foreign historical-root custody, aliased=$aliased, durable=$durable", before, retirementEvidence())
             assertTrue("Historical-root conflict must be explicit", failure is IllegalStateException)
             if (aliased) assertEquals(root.toPath(), Files.readSymbolicLink(alias.toPath()))
@@ -648,8 +649,8 @@ class LocalManagedUbuntuJqDispatchTest {
         R37AllowlistedLocalShell.assertNoAttempts()
     }
 
-    // custody cases model restored/corrupt/unsupported durable claims. Current sealed installers
-    // emit canonical roots; no test treats these claims as valid producer output.
+    // R38 custody cases model restored/corrupt/unsupported durable claims. Current sealed
+    // installers emit canonical roots; no test treats these claims as valid producer output.
     @Test fun rejectedCurrentAliasKeepsOwnedRemovalEvidenceWithSourcePresent() = runBlocking {
         assertRejectedCurrentAliasRemovalPreserved(sourceMissing = false)
     }
@@ -903,7 +904,9 @@ class LocalManagedUbuntuJqDispatchTest {
     }
 
     // BASELINE SEAM: exact current recovery composition used by the local installers.
-
+    // This is deliberately not a claim that full provisioning/download/install was executed.
+    // After baseline measurement, only this helper's ownedReceipt call is intended to be
+    // wired to the approved production recovery preflight. All custody assertions stay fixed.
     private suspend fun recoverUsingCurrentInstallerComposition(observedAuthority: LocalManagedPackageAuthority,
         record: ManagedPackageRecord, kind: String = record.metadata.getValue(LocalManagedPackageMetadata.KIND_KEY),
     ): ManagedPackageRecord? = LocalPackageInstallJournal.transactionMutex.withLock {

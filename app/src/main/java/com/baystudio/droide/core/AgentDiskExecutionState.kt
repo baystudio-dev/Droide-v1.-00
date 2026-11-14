@@ -1,5 +1,12 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
 data class AgentDiskExecutionState(
     val dirtyDocuments: List<DirtyDocument>,
     val omittedCount: Int = 0,

@@ -13,6 +13,7 @@ class WorkspaceViewModel(application: Application) : AndroidViewModel(applicatio
     val coordinator get() = host.coordinator
     val startupRecovery get() = host.startupRecovery
     val initError get() = host.initError
+    internal val environmentSetup get() = host.environmentSetup
     internal val runtimeFailure get() = host.runtimeFailure
     internal fun consumeRuntimeFailure(event: WorkspaceFailureEvent) = host.consumeRuntimeFailure(event)
 

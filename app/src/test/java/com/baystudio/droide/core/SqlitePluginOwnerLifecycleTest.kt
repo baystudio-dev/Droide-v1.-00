@@ -187,8 +187,8 @@ class SqlitePluginOwnerLifecycleTest {
         val root = root(); val id = PluginConversationHistory.newId()
         val file = File(root, ".droide/sessions/plugins.sqlite").apply { parentFile.mkdirs() }
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            // Genuine version 4 schema, not a current version 6 database relabeled with an older number
-            // while retaining new receipt columns.
+            // Genuine version 4 schema, not a current version 6 database relabeled
+            // with an older number while retaining new receipt columns.
             db.execSQL("""CREATE TABLE conversations (
                 id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, title TEXT NOT NULL,
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, native_id TEXT,

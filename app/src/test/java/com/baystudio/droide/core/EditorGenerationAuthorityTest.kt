@@ -44,7 +44,7 @@ class EditorGenerationAuthorityTest {
             }, ctx)
             assertTrue(result, result.startsWith("OK:"))
         }
-
+        /** Recreate precisely the numeric counter tuple using actual editor operations. */
         suspend fun replaceOwner(old: WorkspaceDocumentSnapshot, text: String): WorkspaceDocumentSnapshot {
             state.forgetAtOrUnder(old.path)
             val replacement = state.document(old.path)

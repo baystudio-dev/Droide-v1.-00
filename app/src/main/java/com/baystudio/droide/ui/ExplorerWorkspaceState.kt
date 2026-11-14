@@ -15,6 +15,14 @@ import com.baystudio.droide.core.DirectoryListingOptions
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
+
+
+
+
+
+
+
+
 class ExplorerWorkspaceState {
     internal var moveNotice by mutableStateOf<String?>(null)
     internal var pendingReveal by mutableStateOf<String?>(null)
@@ -30,7 +38,7 @@ class ExplorerWorkspaceState {
         val expanded = expandedPaths.map(::remap).toMutableSet()
         var parent = to.substringBeforeLast('/', "")
         while (parent.isNotEmpty()) { expanded += parent; parent = parent.substringBeforeLast('/', "") }
-
+        // Refresh parents before descendants so the existing visibility/admission checks stay authoritative.
         expandedPaths = expanded.sortedWith(compareBy({ it.count { char -> char == '/' } }, { it }))
         query = ""
         selectedPath = to
@@ -44,8 +52,8 @@ class ExplorerWorkspaceState {
             1 -> redoMoves.lastOrNull() ?: return
             else -> null
         }
-        // Accept each completed reverse receipt once, for exactly the selected edit. A duplicate or a
-        // delayed receipt must not pop a different history entry.
+        // Accept each completed reverse receipt once, for exactly the selected edit.
+        // A duplicate or a delayed receipt must not pop a different history entry.
         if (!token.claimPublication(inverse)) return
         fun rebase(tokens: List<FileRepository.MoveUndoToken>) = tokens.map { it.rebasedAfter(token) }
         when (historyDirection) {
@@ -285,6 +293,7 @@ internal fun flattenExplorerRows(
     }
     return rows
 }
+
 
 internal enum class ExplorerRefreshOutcome { IDLE, PENDING, COMPLETE, INCOMPLETE }
 

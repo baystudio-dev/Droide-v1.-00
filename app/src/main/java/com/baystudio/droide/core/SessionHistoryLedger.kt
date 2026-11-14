@@ -77,6 +77,7 @@ internal class BoundedSessionInput(private val delegate: InputStream, private va
     }
 }
 
+/** Shared lexical depth accounting, including quotes/escapes split across I/O chunks. */
 private class SessionJsonNesting(private val limit: Int) {
     init { require(limit > 0) }
     private var depth = 0
@@ -100,8 +101,8 @@ private class SessionJsonNesting(private val limit: Int) {
 
 internal class SessionHistoryLedger(workDir: File) {
     private val workspaceRoot = workDir.canonicalFile
-    // An unavailable original binding stays unavailable; metadata-only construction must neither
-    // throw here nor adopt a later workspace on the first page write.
+    // An unavailable original binding stays unavailable; metadata-only construction
+    // must neither throw here nor adopt a later workspace on the first page write.
     private val workspaceBinding: Pair<File, String>? = try { ProjectCopyEvidence.root(workspaceRoot) }
         catch (_: Exception) { null }
     private val root = PathSecurity.resolveWithin(workDir, ".droide/sessions/.history-pages")
@@ -156,8 +157,9 @@ internal class SessionHistoryLedger(workDir: File) {
         } else 0
         val batch = mutableListOf<JsonObject>()
         var batchChars = 0L
-        // Repeated complete turns can exhaust descriptors long before byte/entry limits.
-
+        // A checkpoint seals even a tiny tail. Repeated complete turns can exhaust
+        // descriptors long before byte/entry limits. Repack only at that boundary;
+        // normal appends keep their existing immutable pages and write cost.
         fun plannedPageCount(): Int {
             var count = pages.size
             var batchBytes = 0L
@@ -183,8 +185,9 @@ internal class SessionHistoryLedger(workDir: File) {
         }
         var plannedPages = plannedPageCount()
         if (plannedPages > MAX_HISTORY_PAGES && start > 0 && history is Snapshot) {
-            // Never use the caller's decoded cache as evidence of the files that will be repacked.
-
+            // Never use the caller's decoded cache as evidence of the files that
+            // will be repacked. A fresh bounded snapshot verifies every old page
+            // in the full admission pass before any replacement page is written.
             source = snapshot(history.pages, history.tail)
             pages.clear()
             start = 0
@@ -253,11 +256,11 @@ internal class SessionHistoryLedger(workDir: File) {
             require(Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS) && file.length() == page.bytes) { "Missing or resized history page" }
             val hash = MessageDigest.getInstance("SHA-256")
             val decoded = file.inputStream().use { input ->
-
+                // Authenticate the exact descriptor decoded, with admission before parser allocation.
                 val bounded = BoundedSessionInput(java.security.DigestInputStream(input, hash), page.bytes, SessionJsonSize.PAGE_NESTING_DEPTH)
                 val value = json.decodeFromStream(serializer, bounded)
                 val remainder = ByteArray(8 * 1024)
-                while (bounded.read(remainder) >= 0) {   }
+                while (bounded.read(remainder) >= 0) { /* Include parser read-ahead and trailing bytes. */ }
                 require(bounded.bytesRead == page.bytes) { "History page length changed" }
                 value
             }
@@ -311,11 +314,13 @@ internal class SessionHistoryLedger(workDir: File) {
 
 /** Conservative UTF-8/JSON size count without allocating String/byte copies of the document. */
 internal object SessionJsonSize {
-
+    // Match the established estimator: root entry depth zero, including scalar
+    // leaves and empty containers at depth 128. Wire containers need headroom.
     const val MAX_ENTRY_DEPTH = 128
     const val PAGE_NESTING_DEPTH = MAX_ENTRY_DEPTH + 2
     const val SESSION_NESTING_DEPTH = MAX_ENTRY_DEPTH + 3
 
+    /** Iterative preflight runs before the recursive serializer or any publication. */
     fun requireSupportedDepth(value: kotlinx.serialization.json.JsonElement) {
         val pending = ArrayDeque<Pair<kotlinx.serialization.json.JsonElement, Int>>()
         pending.addLast(value to 0)
@@ -362,7 +367,7 @@ internal object SessionJsonSize {
             ch < ' ' -> 6
             ch.code < 128 -> 1
             ch.code < 2048 -> 2
-            else -> 3
+            else -> 3 // Two UTF-16 surrogates cost six here, conservatively exceeding UTF-8's four.
         }
         return total
     }

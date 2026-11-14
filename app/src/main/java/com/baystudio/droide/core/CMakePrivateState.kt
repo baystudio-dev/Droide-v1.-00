@@ -50,8 +50,8 @@ object CMakeSelectionInspector : CMakeAnalysisSelections.Inspector {
                 bytes.size.toLong() == after.st_size) { "CMake cache changed during observation" }
             bytes
         } } finally {
-            // Android's FileInputStream(FileDescriptor) does not own the supplied descriptor. JVM fixture
-            // streams may close it; never close an already invalid descriptor twice.
+            // Android's FileInputStream(FileDescriptor) does not own the supplied descriptor.
+            // JVM fixture streams may close it; never close an already invalid descriptor twice.
             if (descriptor.valid()) Os.close(descriptor)
         }
     }
@@ -174,8 +174,8 @@ class CMakePrivateState private constructor(
             durableWrite(target, reason)
             File(registry, "${localRoot.name}.allocation").delete()
         } else {
-            // Already admitted owners keep their original allocation slot. Never evict residue or
-            // manufacture a 33rd quarantine record when simultaneous cleanup fails.
+            // Already admitted owners keep their original allocation slot. Never evict residue
+            // or manufacture a 33rd quarantine record when simultaneous cleanup fails.
             durableWrite(File(registry, "${localRoot.name}.allocation"), "Private quarantine capacity exhausted; $reason; ${localRoot.path}")
         }
         syncDirectory(registry)
@@ -220,8 +220,8 @@ class CMakePrivateState private constructor(
             syncDirectory(file.parentFile)
         }
         internal fun syncDirectory(directory: File) {
-            // O_DIRECTORY is not exposed by the public Android SDK. Inspect the opened descriptor, retaining
-            // no-follow and avoiding a blocking open of a replaced FIFO.
+            // O_DIRECTORY is not exposed by the public Android SDK. Inspect the opened
+            // descriptor, retaining no-follow and avoiding a blocking open of a replaced FIFO.
             val fd = Os.open(directory.absolutePath, OsConstants.O_RDONLY or OsConstants.O_NOFOLLOW or OsConstants.O_NONBLOCK, 0)
             try {
                 check(OsConstants.S_ISDIR(Os.fstat(fd).st_mode)) { "CMake durability target is not a directory" }

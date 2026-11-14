@@ -35,8 +35,8 @@ internal fun TerminalTabs(
     if (snapshot.tabs.isEmpty() && onCreate == null) return
     val tabHeight = textControlHeight(MaterialTheme.typography.labelLarge, DroideDimensions.EditorTabBar)
     Column(Modifier.fillMaxWidth().testTag("terminal-tab-strip").background(DroideColors.Surface)) {
-        // One row keeps creation within reach without taking another terminal line. Fixed bounds avoid
-        // intrinsic measurements and indicator indices while tabs change.
+        // One row keeps creation within reach without taking another terminal line.
+        // Fixed bounds avoid intrinsic measurements and indicator indices while tabs change.
         Row(Modifier.fillMaxWidth().height(tabHeight), verticalAlignment = Alignment.CenterVertically) {
           Row(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
             snapshot.tabs.forEach { tab ->

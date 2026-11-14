@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Local installer choices are shared by startup and refreshed catalog projections. */
 internal object DevelopmentExtensionProjection {
     data class RecordViews(
         val catalogRecords: List<ManagedPackageRecord>,
@@ -136,6 +137,7 @@ internal object DevelopmentExtensionProjection {
             note = "Detected from the shared Ubuntu PATH; version is owned by the user's package manager.")
     }
 
+    /** Mirrors the packaged Linux engine's execution admission, before a download is offered. */
     fun platformProblem(supportedAbis: List<String>, is64Bit: Boolean): String? =
         if (is64Bit && supportedAbis.firstOrNull() == "arm64-v8a") null
         else "This installer requires a 64-bit ARM64 Android process and local Ubuntu; this device cannot run the packaged Linux engine"
@@ -176,6 +178,7 @@ internal object DevelopmentExtensionProjection {
         return ExtensionVersionState(family, version, ExtensionState.INSTALLED, "Installed Device Workstation · $detail")
     }
 
+    /** Remove obsolete absent target placeholders while preserving real receipts and detections. */
     fun visibleStates(states: List<ExtensionVersionState>): List<ExtensionVersionState> {
         val installerFamilies = states.asSequence().filter { it.version.installKind in setOf(
             ExtensionInstallKind.REVIEWED_RECIPE, ExtensionInstallKind.ANDROID_LOCAL_COMPONENT,

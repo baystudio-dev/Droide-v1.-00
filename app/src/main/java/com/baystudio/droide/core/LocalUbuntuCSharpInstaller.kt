@@ -144,7 +144,7 @@ internal class LocalUbuntuCSharpInstaller(context:Context,private val authority:
             return inventoryAt(recipe,root,active)
         }
         private fun inventoryAt(recipe:CSharpInstallRecipe,root:File,active:()->Unit)=CSharpRuntimeClosure.inspectTree(recipe,File(root,"payload/tree"),LocalUbuntuCSharpArchive.decode(NimRuntimeClosure.readText(File(root,TREE_MANIFEST),16_777_216,active)),active)
-
+        /** Re-inspect all three original trees. Receipt selection remains a separate registry admission obligation. */
         private fun completeDataProof(appRoot:String,root:File,recipe:CSharpInstallRecipe,a:JsonObject,active:()->Unit):NimRuntimeClosure.Closure {
             val own=inventoryAt(recipe,root,active)
             require(own.treeSha256==text(a,"treeSha256")&&own.configSha256==text(a,"configSha256"))

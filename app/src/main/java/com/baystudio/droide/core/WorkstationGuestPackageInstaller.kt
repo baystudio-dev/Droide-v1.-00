@@ -64,15 +64,15 @@ data class WorkstationGuestPackageRecipe(
     val familyId: String,
     val version: String = WorkstationGuestEnvironmentSpec.VERSION,
     val packages: List<String>,
-
+     
     val commands: Map<String, String>,
-
+     
     val commandArgs: Map<String, List<String>> = emptyMap(),
     val healthCommand: String? = null,
     val healthArgs: List<String> = emptyList(),
-
+     
     val additionalHealthChecks: List<ManagedPackageHealthCheck> = emptyList(),
-
+     
     val admissionProbes: List<WorkstationGuestAdmissionProbe> = emptyList(),
     val provenanceUrl: String = "https://pkgs.alpinelinux.org/packages?branch=v3.24&arch=aarch64",
 ) {
@@ -102,6 +102,7 @@ data class WorkstationGuestPackageRecipe(
         admissionProbes.forEach(WorkstationGuestAdmissionProbe::validate)
         NetworkSecurity.validatePublicHttpsUrl(provenanceUrl)
     }
+
 
     fun requiredManagedHealthChecks(): List<ManagedPackageHealthCheck> = buildList {
         healthCommand?.let { add(ManagedPackageHealthCheck("bin/$it", healthArgs)) }
@@ -137,6 +138,7 @@ data class WorkstationGuestPackageRecipe(
     }
 }
 
+ 
 object WorkstationGuestPackageCatalog {
     private fun recipe(
         familyId: String,
@@ -175,7 +177,7 @@ object WorkstationGuestPackageCatalog {
         recipe("runtime.node", listOf("nodejs", "npm"), mapOf("node" to "/usr/bin/node", "npm" to "/usr/bin/npm"), "node"),
         recipe("runtime.php", listOf("php84", "php84-dom", "php84-mbstring", "php84-phar", "php84-xmlwriter"), mapOf("php" to "/usr/bin/php84"), "php"),
         recipe("runtime.java", listOf("openjdk21-jre-headless"), mapOf("java" to "/usr/lib/jvm/java-21-openjdk/bin/java"), "java", listOf("-version")),
-
+        
         recipe("runtime.jvm-shell", listOf("bash", "openjdk21-jre-headless"), mapOf("bash" to "/bin/bash", "java" to "/usr/lib/jvm/java-21-openjdk/bin/java"), "bash", listOf("--version")),
         recipe("runtime.ruby", listOf("ruby"), mapOf("ruby" to "/usr/bin/ruby", "gem" to "/usr/bin/gem"), "ruby"),
         recipe("runtime.lua", listOf("lua5.4"), mapOf("lua" to "/usr/bin/lua5.4"), "lua"),
@@ -202,6 +204,7 @@ object WorkstationGuestPackageCatalog {
         recipe("toolchain.clojure", listOf("clojure"), mapOf("clojure" to "/usr/bin/clojure"), "clojure"),
         recipe("toolchain.zig", listOf("zig"), mapOf("zig" to "/usr/bin/zig"), "zig"),
         recipe("toolchain.nim", listOf("nim"), mapOf("nim" to "/usr/bin/nim"), "nim"),
+        
 
         recipe("toolchain.ruby-native-build", listOf("ruby-dev", "build-base"), mapOf("gcc" to "/usr/bin/gcc", "make" to "/usr/bin/make"), "gcc", listOf("--version")),
 
@@ -298,6 +301,7 @@ private data class GuestPackageRecipeLock(
     val installedAtEpochMs: Long,
 )
 
+/** The old receipt format and recipe identities above remain readable; new mutations are retired. */
 @Suppress("UNUSED_PARAMETER")
 class WorkstationGuestPackageInstaller(
     context: Context,

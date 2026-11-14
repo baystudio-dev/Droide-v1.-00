@@ -44,6 +44,7 @@ internal class ArtifactTransferWaiterRegistry {
         if (canceled && group.cancellationReason == null) cancelLast()
     }
 
+    /** User and Android stop actions still stop the worker for all current callers. */
     fun cancelAll(transferId: String, reason: String, stop: () -> Unit) = synchronized(lock) {
         groups[transferId]?.let { group ->
             if (group.cancellationReason == null) group.cancellationReason = reason

@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.net.URI
 
+ 
 object AgentRepairCompletionPolicy {
     enum class BrowserTargetClass { HTTPS_CANDIDATE, LOOPBACK_HTTP, BLOCKED }
 

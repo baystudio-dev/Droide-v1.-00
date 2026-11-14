@@ -9,6 +9,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
+ 
 internal object LspResultRenderer {
     fun render(op: String, result: JsonElement): String {
         if (result is JsonNull) return "(no result)"

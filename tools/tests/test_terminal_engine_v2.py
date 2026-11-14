@@ -1,9 +1,9 @@
-"""Mutation checks against classes produced by the current terminal build."""
+"""Pure contract negatives using explicit current or historical build fixtures."""
 import copy
 import importlib.util
 import io
-import os
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -23,11 +23,10 @@ class TerminalEngineRecipeTest(unittest.TestCase):
         cls.recipe = V.contract(cls.root)
         cls.base = V.data(cls.root / cls.recipe['baseAar'])
         cls.replacement = {}
-        engine = os.environ.get('DROIDE_TERMINAL_ENGINE')
-        if not engine:
-            raise unittest.SkipTest('Set DROIDE_TERMINAL_ENGINE to the current verified engine directory')
-        for stage in cls.recipe['stages']:
-            directory = Path(engine) / 'primary' / stage['name'] / 'compiled'
+        current_output = os.environ.get('DROIDE_TERMINAL_ENGINE_TEST_OUTPUT')
+        for stage, folder in zip(cls.recipe['stages'], ['r46', 'r63']):
+            directory = (Path(current_output) / 'primary' / stage['name'] / 'compiled' if current_output else
+                         cls.root / 'third_party/termux/derivatives' / folder / 'build/primary/compiled')
             cls.replacement[stage['name']] = {name: V.data(directory / name) for name in stage['compiledClasses']}
 
     def first(self):
@@ -35,7 +34,8 @@ class TerminalEngineRecipeTest(unittest.TestCase):
         return V.merge(self.base, self.replacement[stage['name']], stage)
 
     def test_pinned_source_inputs(self):
-        result = V.source_inputs(self.root, self.recipe)
+        with patch.object(V.inspect, 'run_baseline_gate', side_effect=AssertionError('historical gate must not run')):
+            result = V.source_inputs(self.root, self.recipe)
         self.assertEqual(result[V.CONTRACT], V.CONTRACT_SHA)
 
     def test_exact_two_stage_composition_and_jni(self):
@@ -95,11 +95,11 @@ class TerminalEngineRecipeTest(unittest.TestCase):
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, 'w') as z:
             z.writestr('a', b'1'); z.writestr('a', b'2')
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SystemExit):
             V.archive(stream.getvalue())
 
     def test_traversal_zip_entry_rejected(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SystemExit):
             V.archive(V.inspect.deterministic_zip({'../escape': b'bad'}))
 
     def test_wrong_source_pin_rejected(self):
@@ -129,7 +129,7 @@ class TerminalEngineRecipeTest(unittest.TestCase):
                 V.contract(Path(temporary))
 
     def test_selected_source_cannot_borrow_inspection_helper(self):
-        with patch.object(V.inspect, '__file__', '/unrelated/java_archive.py'):
+        with patch.object(V.inspect, '__file__', '/unrelated/verify_termux_pty_derivative.py'):
             with self.assertRaisesRegex(ValueError, 'inspection helper'):
                 V.contract(self.root)
 

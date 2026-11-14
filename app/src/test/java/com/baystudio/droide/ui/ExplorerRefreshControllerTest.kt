@@ -65,12 +65,13 @@ class ExplorerRefreshControllerTest {
         fun close() { owner.close(); current() }
     }
 
+
     @Test fun repositoryAndWatchInvalidationsCannotReuseAnAppendVersion() = runTest {
         val h = Harness(this)
         val cursor = DirectoryPageCursor("first", false, h.state.options)
         h.disk[""] = DirectoryPage(listOf(file("first")), cursor)
         h.show(); h.current(); h.tick(2_000)
-
+        // A repository event advances the page before the first platform event.
         h.owner.requestWorkspaceChange(); h.current(); h.tick(200)
         h.tick(2_000)
         val appended = CompletableDeferred<DirectoryPage>()
@@ -87,6 +88,7 @@ class ExplorerRefreshControllerTest {
         assertEquals(listOf("fresh-first"), h.state.children[""]!!.map { it.path })
         h.close()
     }
+
 
     @Test fun watchThenRepositoryInvalidationAlsoRejectsAnInflightAppend() = runTest {
         val h = Harness(this)
@@ -185,7 +187,7 @@ class ExplorerRefreshControllerTest {
         val unwatched = paths.last()
         h.disk[unwatched] = page(file("$unwatched/index.js"))
         h.owner.requestExpansion(h.lease, unwatched)
-
+        // Existing appearance targets are finite and share four-candidate drains.
         repeat(30) { h.tick(2_000) }
         assertEquals("$unwatched/index.js", state.children[unwatched]!!.single().path)
         h.owner.updateVisibility(h.lease, false, true, true)
@@ -546,7 +548,7 @@ class ExplorerRefreshControllerTest {
         val h = Harness(this, ioDispatcher = io)
         h.show(); h.current() // Worker has dispatched registration but IO has not executed it.
         assertTrue(h.watches.all.isEmpty())
-        io.runQueued()
+        io.runQueued() // A live handle now awaits its return to the distinct Main dispatcher.
         assertEquals(1, h.watches.live.size)
         h.owner.close()
         h.current(); io.runQueued(); h.current()
@@ -561,7 +563,7 @@ class ExplorerRefreshControllerTest {
         }
         val h = Harness(this, state)
         h.disk[""] = page(dir("a"), dir("b")); h.show(); h.current()
-        h.owner.updateViewport(h.lease, setOf("a"))
+        h.owner.updateViewport(h.lease, setOf("a")) // Stale page demand is held by cooldown.
         h.current()
         h.owner.updateViewport(h.lease, setOf("b"))
         h.tick(2_000)
@@ -613,7 +615,7 @@ class ExplorerRefreshControllerTest {
         h.disk[""] = page(dir("quiet")); h.show(setOf("quiet")); h.current(); h.tick(2_000)
         h.loader = { path, _, _, _ ->
             if (path.isEmpty()) {
-                h.watches.event("")
+                h.watches.event("") // Every complete root read remains dirty, with no new success timestamp.
                 page(dir("quiet"))
             } else page(file("quiet/fresh"))
         }

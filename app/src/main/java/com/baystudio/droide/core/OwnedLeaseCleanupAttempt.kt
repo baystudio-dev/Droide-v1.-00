@@ -4,8 +4,10 @@ import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-/** One callback invocation owned by its capture/host. */
-
+/** One callback invocation owned by its capture/host. Observation can expire, but
+ * the worker is neither interrupted nor replayed and never becomes a success receipt
+ * while unfinished. This is not a proof of descendant or external-writer quiescence.
+ */
 internal class OwnedLeaseCleanupAttempt(private val cleanup: (() -> Unit)?) {
     companion object { internal const val OBSERVATION_MS = 6_000L }
     private val done = CountDownLatch(1)
@@ -20,8 +22,8 @@ internal class OwnedLeaseCleanupAttempt(private val cleanup: (() -> Unit)?) {
                 startNanos = System.nanoTime()
                 if (cleanup == null) done.countDown()
                 else try {
-                    // A running thread retains this attempt and callback even if the caller has already reported
-                    // uncertainty to its custody owner.
+                    // A running thread retains this attempt and callback even if the
+                    // caller has already reported uncertainty to its custody owner.
                     Thread({
                         try { cleanup.invoke() }
                         catch (error: Throwable) { failure = error }

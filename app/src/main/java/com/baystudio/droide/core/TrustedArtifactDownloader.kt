@@ -50,6 +50,7 @@ interface TrustedArtifactDescriptor {
     val digestAlgorithm: String
     val digestHex: String
 
+    
     fun validateStructure() {
         require(id.matches(Regex("[A-Za-z0-9._-]{1,100}"))) { "Invalid artifact id" }
         require(fileName.matches(Regex("[A-Za-z0-9._+-]{1,180}"))) { "Invalid artifact filename" }
@@ -66,11 +67,13 @@ interface TrustedArtifactDescriptor {
         val uri = runCatching { URI(url.trim()) }.getOrElse { error("Invalid trusted-artifact URL") }
         require(!uri.isOpaque && uri.scheme.equals("https", ignoreCase = true)) { "Trusted artifact URL must use HTTPS" }
         require(!uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null) { "Invalid trusted-artifact URL" }
-        // Admission and local cache verification must never perform hostname DNS.
-
+        // Admission and local cache verification must never perform hostname DNS. This
+        // validates URL syntax, ports and unsafe literals; all resolved addresses are
+        // still checked and pinned immediately before each real network hop.
         NetworkSecurity.validatePublicHttpsUrl(url)
     }
 
+    
     fun validateDescriptor() {
         validateStructure()
         NetworkSecurity.validatePublicHttpsTarget(url)
@@ -97,6 +100,7 @@ data class TrustedArtifactSpec(
         const val MAX_TRUSTED_ARTIFACT_BYTES = 1_500_000_000L
     }
 }
+
 
 data class TrustedSha512ArtifactSpec(
     override val id: String,
@@ -405,7 +409,8 @@ class TrustedArtifactDownloader internal constructor(context: Context, private v
                         totalHint?.let { require(nextTotal <= it) { "Artifact exceeds expected representation size" } }
                         out.write(buffer, 0, read)
                         total = nextTotal
-
+                        // Show the first bytes before another read can stall, then bound
+                        // updates by elapsed time or bytes, rather than requiring 512 KiB.
                         if (lastReported == initialBytes || total - lastReported >= PROGRESS_REPORT_BYTES ||
                             System.nanoTime() - lastReportNs >= PROGRESS_REPORT_INTERVAL_NS ||
                             (totalHint != null && total == totalHint)) {
@@ -415,8 +420,8 @@ class TrustedArtifactDownloader internal constructor(context: Context, private v
                 }
             }
         } catch (failure: Throwable) {
-            // Keep the last accepted bytes visible on a short read, network failure or Stop. A progress sink
-            // failure must not replace the original transfer error.
+            // Keep the last accepted bytes visible on a short read, network failure or
+            // Stop. A progress sink failure must not replace the original transfer error.
             if (total != lastReported) {
                 try { reportBytes() } catch (progressFailure: Throwable) { failure.addSuppressed(progressFailure) }
             }

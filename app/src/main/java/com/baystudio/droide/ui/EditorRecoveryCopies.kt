@@ -57,7 +57,7 @@ internal class EditorRecoveryCopies(private val state: EditorWorkspaceState, pri
                 return path
             }
             val path = validateDestination()
-
+            // The original reference retains its original path/AAD and authenticated loader.
             val text = copy.text ?: requireNotNull(copy.deferred).readText()
             currentCoroutineContext().ensureActive()
             EditorStateStore.requireAdditionalCopyCapacity(before, text.toByteArray(Charsets.UTF_8).size.toLong())
@@ -146,7 +146,7 @@ internal fun EditorRecoveryCopiesDialog(
         }
     }
     val actionBusy = busy || preparationBusy || discardStatus.blocksNewAction
-
+    // Revoke the prepared-copy capability immediately; disposal happens on a later frame.
     val dismiss = { closed = true; revokePreview(); recovery.close(); onDismiss() }
     AlertDialog(
         onDismissRequest = dismiss,

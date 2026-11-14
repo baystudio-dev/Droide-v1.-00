@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual manager/transport with authored byte-stream peers; no original R or Android execution. */
 class LspRIntegrationTest {
     @Test(timeout=10000) fun openingRDoesNotInstallProbeOrAskForTrust() = runBlocking<Unit> {
         Fixture().use { f ->

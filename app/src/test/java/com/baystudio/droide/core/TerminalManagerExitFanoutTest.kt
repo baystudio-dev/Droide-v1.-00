@@ -111,7 +111,10 @@ class TerminalManagerExitFanoutTest {
         children.forEach { it.receipt.complete(Unit) }
         repeat(3) { manager.createLocal() }
         val failure = runCatching { withTimeout(3_000) { manager.stopAndAwaitForExit() } }.exceptionOrNull()
-        assertTrue(failure is IllegalStateException); assertSame(fatal, failure!!.cause)
+        assertTrue(failure is IllegalStateException)
+        assertEquals("Terminal cleanup failed before verified completion", failure!!.message)
+        // Coroutine stack recovery can add a wrapper; the original cause must survive intact.
+        assertTrue(generateSequence(failure) { it.cause }.any { it === fatal })
         assertTrue(children.all { !it.child.isAlive && it.stops.get() == 1 })
         assertEquals(3, manager.tabs.value.size)
         children.first().failure = null

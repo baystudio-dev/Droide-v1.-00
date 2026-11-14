@@ -7,6 +7,13 @@ import java.io.OutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+
+
+
+
+
+
+
 class AndroidJdwpTransport(private val bridge: DeviceBridgeManager) {
     data class ProbeResult(val pid: Int, val handshakeAccepted: Boolean)
 
@@ -23,6 +30,7 @@ class AndroidJdwpTransport(private val bridge: DeviceBridgeManager) {
 
     fun connect(pid: Int): Connection = Connection(bridge.openJdwp(pid))
 
+     
     suspend fun probe(pid: Int): ProbeResult = withContext(Dispatchers.IO) {
         connect(pid).use { connection ->
             connection.output.write(HANDSHAKE)

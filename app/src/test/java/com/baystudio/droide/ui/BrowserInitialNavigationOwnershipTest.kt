@@ -33,6 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+// Exercises the production host and pane with a controlled renderer.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class BrowserInitialNavigationOwnershipTest {

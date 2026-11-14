@@ -16,6 +16,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
+/** Native-agent folder rescue: copy an observed retained tree to an ordinary TAR. The
+ * deletion's original inode stays in custody, including unknown writers' later changes. */
 internal class LocalDirectoryRecovery(private val repository: FileRepository,
     private val custody: LocalDirectoryDeleteCustody = LocalDirectoryDeleteCustody(repository.root),
     private val checkpoint: (String) -> Unit = {}) {
@@ -52,8 +54,8 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
             receipt?.preparation?.bytes, receipt?.preparation?.sha256, detail = observed.detail)
     }
 
-    /** Constant page-sized selection heap, no global operation cap. A cursor binds the directory
-     * membership observation; additions/removals require an explicit refresh. */
+    /** Constant page-sized selection heap, no global operation cap. A cursor binds the
+     * directory membership observation; additions/removals require an explicit refresh. */
     suspend fun list(cursor: String? = null): Page = withContext(Dispatchers.IO) {
         val caller = currentCoroutineContext()
         WorkspaceFileMutationLocks.withCaptureRoot(root) { guard ->
@@ -105,7 +107,7 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
         WorkspaceFileMutationLocks.withCaptureRoot(root) { guard ->
             val inspection = requireArchivable(token)
             val previous = journal.inspect(token, path)
-
+            // Historical receipt is independent of what now occupies its former destination.
             val parents = if (previous?.sealed == true) previous.intent.parents else journal.parents(ordinaryDestination(path)).also {
                 AnchoredWorkspaceFiles(root).use { files ->
                     check(files.kind(path) == AnchoredWorkspaceFiles.Kind.ABSENT) { "Recovery destination is occupied; choose a new .tar name" }
@@ -120,8 +122,8 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
         }
     }
 
-    /** Policy preflight only. Every suspend boundary has no metadata lease or root mutex. Names are
-     * enumerated through no-follow anchored directories, never link targets. */
+    /** Policy preflight only. Every suspend boundary has no metadata lease or root mutex.
+     * Names are enumerated through no-follow anchored directories, never link targets. */
     suspend fun authorizeReadEntries(review: Review, authorize: suspend (relativePath: String) -> Unit) = withContext(Dispatchers.IO) {
         requireReview(review)
         if (review.historical != null) return@withContext
@@ -173,15 +175,15 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
                 try { current() }
                 catch (cancelled: CancellationException) { throw cancelled }
                 catch (revoked: Exception) {
-                    // FileRepository isolates ordinary progress failures. An actual policy revocation must cross
-                    // that boundary and stop further work promptly.
+                    // FileRepository isolates ordinary progress failures. An actual policy
+                    // revocation must cross that boundary and stop further work promptly.
                     if (repositoryProgress) throw RecoveryProgressRevoked(revoked)
                     throw revoked
                 }
             }
             requireActive()
-            // A failed display callback is not cancellation or transaction authority. A real caller
-            // cancellation or changed request still wins after the callback.
+            // A failed display callback is not cancellation or transaction authority.
+            // A real caller cancellation or changed request still wins after the callback.
             try { onProgress(value) } catch (_: Exception) { /* Display failure only. */ }
             requireActive()
         }
@@ -237,7 +239,7 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
                 progress(LocalDirectoryRecoveryProgress(LocalDirectoryRecoveryPhase.CAPTURING))
                 captured = ExportCaptureStore(File(staging, "capture")).capture(permit, control)
                 lease.validate(); current(); checkpoint("captured")
-            }
+            } // Release the nonreentrant canonical-root mutex before FileRepository.writeStream.
             val archive = File(staging, "folder.tar")
             ExportEngine().transfer(checkNotNull(captured), ExportFormat.TAR, object : ExportDestination {
                 override fun createDirectory(relativePath: String) = error("TAR is one archive output")
@@ -263,8 +265,8 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
                 override fun revalidateBeforePublication() {
                     current(); checkNotNull(custodyLease).validate(); lease.validate()
                     journal.requireParents(review.parents, review.destination)
-                    // The route binds its full policy snapshot in current(); payload entry reads were admitted
-                    // during capture. Keep this commit check bounded.
+                    // The route binds its full policy snapshot in current(); payload entry
+                    // reads were admitted during capture. Keep this commit check bounded.
                     current()
                 }
                 override fun onPublished(receipt: StreamPublicationReceipt) { lease.onPublished(receipt) }
@@ -283,7 +285,8 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
                             progress(LocalDirectoryRecoveryProgress(phase, bytes = observed.completedBytes,
                                 totalBytes = observed.totalBytes), repositoryProgress = true)
                         } catch (fatal: Error) {
-
+                            // Preserve fatal failures through FileRepository's best-effort
+                            // callback boundary, then rethrow the original outside it.
                             throw RecoveryProgressFatal(fatal)
                         }
                     },
@@ -300,15 +303,15 @@ internal class LocalDirectoryRecovery(private val repository: FileRepository,
                 // synchronization/callback error cannot turn that into a safe automatic retry.
                 result(review, receipt, false, true)
             }
-            // Repository progress is best effort; its callback isolation must not suppress the request's
-            // final authority check after a committed synchronization stage.
+            // Repository progress is best effort; its callback isolation must not suppress
+            // the request's final authority check after a committed synchronization stage.
             current()
             completed
         } finally {
             try { archiveLease?.close() } finally { try { custodyLease?.close() } finally {
                 captured?.close()
-                // Only our private, externally staged capture is disposed; never originals, archive authority,
-                // or FileRepository's retained destination sibling stage.
+                // Only our private, externally staged capture is disposed; never originals,
+                // archive authority, or FileRepository's retained destination sibling stage.
                 PathSecurity.deleteTreeNoFollow(staging)
             } }
         }

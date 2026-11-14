@@ -21,8 +21,13 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
-/** Real production action adapter -> plugin host -> local recovery -> metadata authority. */
-
+/** Real production action adapter -> plugin host -> local recovery -> metadata authority.
+ * The existing-retained-workspace fixture enrolls through the real production enrollment API,
+ * then reopens through forWorkspace. Native SQLite creates the initial authority. The journal is a supported synthetic one-page
+ * fixture, not evidence of crash coherence or writer exclusion. No process is launched.
+ * Reflection only obtains the host's actual turn gate/session-owner map to control scheduling.
+ * Every fixture and raw/candidate evidence tree remains on disk after the test.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = android.app.Application::class, sdk = [35], manifest = Config.NONE)
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
@@ -138,7 +143,7 @@ class SqliteForensicHostActionReuseTest {
             check(it != "metadata-before-database-open") { "Forensic action must not open live SQLite" }
             if (it == "forensic-after-report-publication") error("Injected lost return after completed report")
         })
-
+        // Real authority with the existing fault checkpoint; no replacement action or fake host.
         field.set(recovery, injected)
         val lost = runCatching { f.host.retainedRecoveryActions().buildSqliteCandidate() }
         assertTrue("Fault must occur after actual report publication: ${lost.exceptionOrNull()}",

@@ -3,8 +3,9 @@ package com.baystudio.droide.core
 import java.io.File
 import kotlinx.serialization.json.*
 
-/** Independent Vue-only receipt/tree for the accepted original Node artifact. npm/npx/corepack
- * stay data. */
+/** Independent Vue-only receipt/tree for the accepted original Node artifact. npm/npx/corepack stay data.
+ * NimRuntimeClosure is reused solely as a pure bounded file/ELF/config validator; no Nim launch,
+ * process, health, identity, receipt or selection authority is borrowed. */
 internal object LocalUbuntuVueHelperPolicy {
     const val FAMILY = "runtime.vue-helper"
     const val VERSION = "22.23.3"

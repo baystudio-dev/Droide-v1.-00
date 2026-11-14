@@ -55,8 +55,8 @@ class AgentBrowserDialogs internal constructor() {
         require(promptText == null || promptText.length <= MAX_RESPONSE_CHARACTERS) { "Dialog response exceeds $MAX_RESPONSE_CHARACTERS characters" }
         if (accept && pending.dialog.type == "prompt") requireNotNull(promptText) { "Accepting a prompt requires explicit dialog_text" }
         if (pending.dialog.type != "prompt") require(promptText == null) { "Only prompt dialogs accept dialog_text" }
-        // Remove ownership before invoking Android. A reentrant callback cannot resolve this id twice,
-        // and a failed renderer callback never leaves a zombie dialog.
+        // Remove ownership before invoking Android. A reentrant callback cannot resolve
+        // this id twice, and a failed renderer callback never leaves a zombie dialog.
         current = null
         state.value = null
         notifyChangedLocked()
@@ -108,8 +108,8 @@ class AgentBrowserDialogs internal constructor() {
             put("prompt_default_excluded", dialog.type == "prompt")
         }
         var result = encoded()
-        // Keep the top-page URL and provenance origin intact. Omit an oversized requesting URL
-        // explicitly, never turn it into a misleading URL prefix.
+        // Keep the top-page URL and provenance origin intact. Omit an oversized
+        // requesting URL explicitly, never turn it into a misleading URL prefix.
         if (result.toString().length > 17_000 && includeSource) {
             includeSource = false
             result = encoded()
@@ -126,8 +126,8 @@ class AgentBrowserDialogs internal constructor() {
         val uri = URI(raw)
         if ((!uri.scheme.equals("http", true) && !uri.scheme.equals("https", true)) || uri.host == null ||
             uri.userInfo != null || uri.port !in -1..65535) return@runCatching null
-        // Preserve a valid requesting URL exactly. Unknown/oversized metadata must never be replaced
-        // with the top page's origin or a misleading URL prefix.
+        // Preserve a valid requesting URL exactly. Unknown/oversized metadata must
+        // never be replaced with the top page's origin or a misleading URL prefix.
         raw
     }.getOrNull()
 

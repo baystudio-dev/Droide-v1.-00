@@ -55,8 +55,8 @@ class WorkspaceLoadingScreenTest {
     )
 
     @Test fun phaseChangesKeepProgressIndeterminateAndLayoutStable() {
-        // Keep the real infinite animation running under a controlled clock; auto-idling cancels
-        // infinite animations in Compose tests and captures only the empty track.
+        // Keep the real infinite animation running under a controlled clock; auto-idling
+        // cancels infinite animations in Compose tests and captures only the empty track.
         compose.mainClock.autoAdvance = false
         var phase by mutableStateOf(WorkspaceStartupPhase.RUNTIME_REGISTRIES)
         lateinit var view: View
@@ -80,8 +80,8 @@ class WorkspaceLoadingScreenTest {
             compose.mainClock.advanceTimeBy(500)
             val bounds = compose.onNodeWithTag("welcome").fetchSemanticsNode().boundsInRoot
             compose.runOnIdle {
-                // Draw the real Compose view with Robolectric's native renderer. PixelCopy waits on a device
-                // window redraw that the host runner cannot dispatch.
+                // Draw the real Compose view with Robolectric's native renderer. PixelCopy
+                // waits on a device window redraw that the host runner cannot dispatch.
                 val bitmap = Bitmap.createBitmap(bounds.width.roundToInt(), bounds.height.roundToInt(), Bitmap.Config.ARGB_8888)
                 try {
                     val canvas = Canvas(bitmap)

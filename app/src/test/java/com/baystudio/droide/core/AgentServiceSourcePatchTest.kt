@@ -89,7 +89,7 @@ class AgentServiceSourcePatchTest {
     @Test(timeout=90000) fun malformedLaterPatchPreventsEarlierMixedWrite()=runBlocking {
         val root=Files.createTempDirectory("source-patch-invalid-").toFile()
         try {withProviderStreamFixture(ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS) {f->runBlocking {
-            val text="*** Begin Patch\n*** Add File: never.txt\n+"+"x".repeat(170000)
+            val text="*** Begin Patch\n*** Add File: never.txt\n+"+"x".repeat(170000) // no End Patch
             f.response={_,_,_->response(f,listOf(write("w","earlier.txt","no"),patch("p",text)))}
             val a=agent(root)
             try {withTimeout(60000){a.chat("Invalid mixed patch",f.config,maxTurns=2)}

@@ -41,6 +41,7 @@ import com.baystudio.droide.core.TerminalCommandHistory
 import com.baystudio.droide.core.TerminalCommandDraft
 import kotlinx.coroutines.launch
 
+ 
 @Composable
 internal fun TerminalPane(
     session: ITerminalSession,
@@ -54,8 +55,8 @@ internal fun TerminalPane(
     codingKeyboardMode: CodingKeyboardMode = CodingKeyboardMode.DEFAULT,
     onAccessoryKeysExpandedChange: (Boolean) -> Unit,
 ) {
-    // A native view's IME client/focus callbacks capture its session-specific owners. Recreate the
-    // view when switching tabs, while keeping the PTY session alive.
+    // A native view's IME client/focus callbacks capture its session-specific owners.
+    // Recreate the view when switching tabs, while keeping the PTY session alive.
     key(session) {
         when (session) {
             is NativePtySessionHandle -> NativePtyTerminalPane(session, profile, onOpenLinux, theme, accessoryKeysComfortable, accessoryInputFocus, accessoryKeysExpanded, typingFocusMode, codingKeyboardMode, onAccessoryKeysExpandedChange)
@@ -79,20 +80,21 @@ private fun NativePtyTerminalPane(
     onAccessoryKeysExpandedChange: (Boolean) -> Unit,
 ) {
     val workspacePresented = LocalWorkspacePresented.current
+    val exitVisible = LocalWorkspaceExitVisible.current
     val presentationGate = remember(session) { WorkspaceNativePresentationGate() }
     var viewRef by remember(session) { mutableStateOf<DroideNativeTerminalView?>(null) }
     val geometrySession = session as? NativeTerminalGeometrySession
     val geometry = geometrySession?.geometry?.collectAsState()?.value
     val displayedPty by session.displayedPtySession.collectAsState()
-
+    // Reading this flow triggers rebinding; the live getter avoids a stale composition target.
     displayedPty
     val accessoryModifiers = remember(session) { AccessoryModifierController() }
     val accessoryFocusOwner = remember(session) { accessoryInputFocus.owner(AccessoryInputTarget.TERMINAL_NATIVE) }
     DisposableEffect(session) {
         session.setScreenUpdateListener {
             viewRef?.let { view ->
-                // Rebind on the same main-Looper callback as ownership changes. Waiting for recomposition would
-                // leave a short input window targeting the old PTY.
+                // Rebind on the same main-Looper callback as ownership changes. Waiting
+                // for recomposition would leave a short input window targeting the old PTY.
                 val target = session.nativePtySession
                 if (view.currentSession !== target) view.attachSession(target)
                 view.onScreenUpdated()
@@ -150,8 +152,9 @@ private fun NativePtyTerminalPane(
             accessoryHandle = { TerminalAccessoryHandle(accessoryFocusOwner, accessoryInputFocus,
                 accessoryKeysExpanded, onAccessoryKeysExpandedChange) })
 
-        // Keep the touch gutter outside the Android surface. Both rendering and PTY resize must use the
-        // same smaller viewport; View padding would not change upstream Termux's cell geometry.
+        // Keep the touch gutter outside the Android surface. Both rendering and
+        // PTY resize must use the same smaller viewport; View padding would not
+        // change upstream Termux's cell geometry.
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(theme.ui.background)) {
           val bottomClearance = bottomTouchClearance(maxHeight)
           AndroidView(
@@ -182,14 +185,14 @@ private fun NativePtyTerminalPane(
                             if (!focused) accessoryModifiers.clear()
                         }
                     }
-                    presentationGate.update(this, workspacePresented)
+                    presentationGate.update(this, workspacePresented, exitVisible)
                     if (workspacePresented) requestFocus()
                 }
                 viewRef = view
                 view
             },
             update = { view ->
-                presentationGate.update(view, workspacePresented)
+                presentationGate.update(view, workspacePresented, exitVisible)
                 viewRef = view
                 view.applyKeyboardMode(codingKeyboardMode)
                 TerminalThemeAuthority.apply(session, theme.terminal)
@@ -223,6 +226,7 @@ private fun DevicePtyTerminalPane(
     onAccessoryKeysExpandedChange: (Boolean) -> Unit,
 ) {
     val workspacePresented = LocalWorkspacePresented.current
+    val exitVisible = LocalWorkspaceExitVisible.current
     val presentationGate = remember(session) { WorkspaceNativePresentationGate() }
     val status by session.status.collectAsState()
     var viewRef by remember(session) { mutableStateOf<DeviceTerminalView?>(null) }
@@ -270,13 +274,13 @@ private fun DevicePtyTerminalPane(
                         accessoryInputFocus.onFocusChanged(accessoryFocusOwner, focused)
                         if (!focused) accessoryModifiers.clear()
                     }
-                    presentationGate.update(this, workspacePresented)
+                    presentationGate.update(this, workspacePresented, exitVisible)
                     if (workspacePresented) requestFocus()
                     viewRef = this
                 }
             },
             update = { view ->
-                presentationGate.update(view, workspacePresented)
+                presentationGate.update(view, workspacePresented, exitVisible)
                 view.applyKeyboardMode(codingKeyboardMode)
                 TerminalThemeAuthority.apply(session, theme.terminal)
                 view.applyTheme(theme.terminal)
@@ -326,8 +330,8 @@ private fun PipeTerminalPane(
             withFrameNanos { }
             lastAppScrollValue = scrollState.maxValue
             scrollState.scrollTo(lastAppScrollValue)
-            // Keep the app ownership through the frame which publishes this position; a keyboard resize must
-            // not turn it into a user scroll.
+            // Keep the app ownership through the frame which publishes this
+            // position; a keyboard resize must not turn it into a user scroll.
             withFrameNanos { }
         } finally { appScrolls-- }
     }
@@ -337,8 +341,8 @@ private fun PipeTerminalPane(
             val old = previous
             if (old != null && appScrolls == 0 && (now.first != lastAppScrollValue || !followOutput) &&
                 now.first != old.first && (now.third || now.second == old.second)) {
-                // Only genuine movement changes the reader's intent. Layout clamping and delayed app scroll
-                // observations retain it.
+                // Only genuine movement changes the reader's intent. Layout
+                // clamping and delayed app scroll observations retain it.
                 followOutput = scrollState.maxValue - now.first <= 2
             }
             previous = now
@@ -353,8 +357,8 @@ private fun PipeTerminalPane(
             }
         }
     }
-    // Keyboard/deck resize can change the tail position without adding output. Keep following only
-    // when the reader had not deliberately scrolled away.
+    // Keyboard/deck resize can change the tail position without adding output.
+    // Keep following only when the reader had not deliberately scrolled away.
     LaunchedEffect(output, followOutput, scrollState.maxValue) {
         if (followOutput && !scrollState.isScrollInProgress) {
             scrollToLatest()
@@ -378,7 +382,7 @@ private fun PipeTerminalPane(
             val accepted = if (session is TerminalSession) session.submitCommandInput(cmd.text) else {
                 session.send(cmd.text)
                 commandHistory.submitted(cmd.text)
-                true
+                true // Generic fallback interfaces provide no stronger delivery receipt.
             }
             if (!accepted) {
                 actionError = "Command was not sent. Your draft has been kept."

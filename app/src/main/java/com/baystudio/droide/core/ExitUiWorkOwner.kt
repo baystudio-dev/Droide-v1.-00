@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 
+/** Exact screen/action jobs, retained through disposal until their cleanup actually completes. */
 internal class ExitUiWorkOwner {
     private val lock = Any()
     private val jobs = linkedSetOf<Job>()

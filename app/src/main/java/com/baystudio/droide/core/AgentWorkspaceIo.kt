@@ -15,7 +15,7 @@ internal interface AgentWorkspaceIo {
     fun requirePath(path: String)
     suspend fun shellBounded(command: String, maxOutputBytes: Int): BridgeShellResult
     suspend fun refresh()
-
+    /** Optional host-side inventory avoids launching Linux just to inspect local files. */
     suspend fun snapshot(): Map<String, String>? = null
     /** A host-owned baseline cannot be replaced by the external CLI's guest manifest. */
     suspend fun baseline(): Map<String, String>? = null
@@ -31,7 +31,7 @@ internal interface AgentWorkspaceIo {
         val result = shellBounded("test ! -e ${DeviceBridgeManager.shellQuote(path)} && test ! -L ${DeviceBridgeManager.shellQuote(path)}", 1_024)
         check(result.exitCode == 0) { "CLI recreated this path; deletion was not applied" }
     }
-
+    /** Optional local execution view. Null preserves existing remote bridge semantics. */
     suspend fun readExecutionText(path: String): String? = null
     suspend fun prepareTextProjection(path: String, canonical: StreamFileVersion): AcpTextProjection? = null
     suspend fun pull(path: String, output: File)
@@ -199,8 +199,8 @@ internal class LocalAgentWorkspaceProcessHost private constructor(
                         expectedBytes = input.length(), requireAbsent = true)
                 }
             } catch (failure: Exception) {
-                // A terminal can create this path after preflight. Preserve it across reconciliation, later
-                // refreshes and host recreation; never roll back the committed project asset.
+                // A terminal can create this path after preflight. Preserve it across reconciliation,
+                // later refreshes and host recreation; never roll back the committed project asset.
                 try {
                     if (Files.exists(executionFile(path).toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
                         withContext(NonCancellable) { mirror.preserveAttachmentConflict(relative) }
@@ -215,8 +215,13 @@ internal class LocalAgentWorkspaceProcessHost private constructor(
         override suspend fun push(input: File, path: String): Unit = throw UnsupportedOperationException(
             "Local CLI writes require a versioned text projection or new-attachment publication")
     }
-    /** Derive the relative name in the mapper's namespace, then address I/O through the original
-     * identity-checked root. */
+    /**
+     * The mapper exposes the canonical host root, while Android may supply the
+     * stored root through a trusted parent alias (for example its app-data path).
+     * Derive the relative name in the mapper's namespace, then address I/O through
+     * the original identity-checked root. Never canonicalize an untrusted child:
+     * anchored readers/writers must still reject child symlinks and path races.
+     */
     private fun executionRelativePath(path: String): String {
         sourceIdentity.requireCurrent()
         mirror.requireCurrent()

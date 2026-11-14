@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.baystudio.droide.core.DroideUiPalette
 
+ 
 private val DefaultDroidePalette = DroideUiPalette(
     background = Color(0xFF0D1117),
     surface = Color(0xFF161B22),
@@ -29,6 +30,10 @@ private val DefaultDroidePalette = DroideUiPalette(
     status = Color(0xFF0B6BBB),
     statusText = Color.White,
 )
+
+
+
+
 
 object DroideColors {
     private var active by mutableStateOf(DefaultDroidePalette)

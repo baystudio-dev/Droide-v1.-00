@@ -15,6 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
+/** Independent adversarial review. Actual production native SQLite; fixtures are retained. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], manifest = Config.NONE)
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
@@ -61,7 +62,7 @@ class FinishReceiptIndependentReviewTest {
             store.bindCheckpoint(second.identity, "native-new", "new-model")
             val current = request(second.identity)
             val saved = store.finishCheckpoint(current)
-            assertEquals(8, saved.summary.messageCount)
+            assertEquals(8, saved.summary.messageCount) // two user/reply pairs and four notices
             assertEquals("native-new", saved.summary.nativeSessionId)
             val completed = snapshot(root)
             refused { store.finishCheckpoint(old) }

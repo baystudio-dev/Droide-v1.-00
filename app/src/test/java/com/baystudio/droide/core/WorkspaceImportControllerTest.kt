@@ -176,8 +176,8 @@ class WorkspaceImportControllerTest {
         val winningClose = async(Dispatchers.IO) { input.close() }
         try {
             withTimeout(5_000) { provider.closeStarted.await() }
-            // UNDISTPATCHED executes the losing close through its first suspension now, avoiding a sleep or
-            // a race between asserting and starting the waiter.
+            // UNDISTPATCHED executes the losing close through its first suspension now,
+            // avoiding a sleep or a race between asserting and starting the waiter.
             val workerCleanup = async(start = CoroutineStart.UNDISPATCHED) { input.finishClose() }
             assertFalse("A losing close must join the provider, not just observe its claimed flag", workerCleanup.isCompleted)
             assertFalse(winningClose.isCompleted)

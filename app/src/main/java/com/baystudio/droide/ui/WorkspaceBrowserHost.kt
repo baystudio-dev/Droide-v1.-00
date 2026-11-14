@@ -113,8 +113,8 @@ internal fun BoxScope.WorkspaceBrowserHost(
     val geometry = visibleGeometry ?: placement.lastGeometry ?: return
     val bounds = geometry.visible
     if (selectedSlot == null && !keepActive && !stopping) return
-    // A known fully clipped pane is intentionally hidden. Missing destination measurement during a
-    // placement move is only transient and keeps one host.
+    // A known fully clipped pane is intentionally hidden. Missing destination
+    // measurement during a placement move is only transient and keeps one host.
     if (currentGeometry != null && visibleGeometry == null && !keepActive && !stopping) return
     val presented = selectedSlot != null && visibleGeometry != null
     val density = LocalDensity.current
@@ -130,8 +130,8 @@ internal fun BoxScope.WorkspaceBrowserHost(
         .graphicsLayer { alpha = if (presented) 1f else 0f }
         .testTag("workspace-browser-host")
     if (!presented) modifier = modifier.clearAndSetSemantics {}.pointerInput(Unit) {
-        // The hidden native view is INVISIBLE as well. Consume before any hidden toolbar child so a
-        // click through empty workspace space cannot activate browser controls.
+        // The hidden native view is INVISIBLE as well. Consume before any hidden toolbar
+        // child so a click through empty workspace space cannot activate browser controls.
         awaitPointerEventScope {
             while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
         }

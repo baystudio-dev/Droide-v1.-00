@@ -35,6 +35,7 @@ import java.util.PriorityQueue
 
 // Durable local agent sessions.
 
+
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DroideSession(
@@ -43,12 +44,12 @@ data class DroideSession(
     @EncodeDefault val createdAt: Long = System.currentTimeMillis(),
     val parentId: String? = null,
     val messages: List<AgentMessage> = emptyList(),
-
+     
     val apiHistory: List<JsonObject> = emptyList(),
     val typedChat: TypedChatCheckpoint? = null,
-
+     
     val forkHistory: List<JsonObject> = emptyList(),
-
+     
     val forkHistoryVersion: Int = 0,
     val forkHistoryPages: List<SessionHistoryPage> = emptyList(),
     val todos: List<Todo> = emptyList(),
@@ -87,8 +88,8 @@ private data class SessionIndexEntry(
     val sourceKey: String? = null,
     val sourceModifiedTime: String? = null,
 ) {
-    // Catalog display metadata is bounded even for a legacy/imported primary whose full title or
-    // malformed parent exceeds the cache limit. The primary is untouched.
+    // Catalog display metadata is bounded even for a legacy/imported primary whose
+    // full title or malformed parent exceeds the cache limit. The primary is untouched.
     fun summary() = SessionSummary(id, summaryTitle(title), createdAt, summaryParent(parentId), messageCount, mode)
 }
 
@@ -115,8 +116,7 @@ internal fun sessionCacheIdentity(fileKey: Any?, modifiedTime: FileTime): Sessio
         catch (cancelled: CancellationException) { throw cancelled }
         catch (_: RuntimeException) { null }
     if (key == null || key.length !in 1..1_024 || key.isBlank() || key.any { Character.isISOControl(it) }) return null
-    // Compare the canonical full-precision value directly; never coerce a cached time to
-    // milliseconds.
+    // Compare the canonical full-precision value directly; never coerce a cached time to milliseconds.
     return SessionCacheIdentity(key, modifiedTime.toString())
 }
 
@@ -166,7 +166,7 @@ class SessionManager(
 
     private val dir = PathSecurity.resolveWithin(workDir, ".droide/sessions")
     internal val historyLedger = SessionHistoryLedger(workDir)
-
+    // Production AgentService installs this; legacy/test managers remain unchanged.
     internal var toolOutputStore: (() -> AgentToolOutputStore)? = null
     private val publicAdmission = AgentPublicContentAdmissionCache()
     internal var publicContentRegistryOverride: AgentPublicContentRegistry? = null
@@ -209,7 +209,8 @@ class SessionManager(
 
     internal fun textEditCall(owner: SessionTextEditEvidence.Owner, isCurrent: () -> Boolean,
         publish: (SessionTextEditEvidence.Record, AgentTextEditAssociation, Boolean) -> Unit): AgentTextEditCall {
-
+        // Capture the original workspace before backup preparation can suspend.
+        // AgentService calls this outside its admission monitor; no metadata scan occurs.
         textEdits.requireRoot()
         return AgentTextEditCall(this, owner, isCurrent, textEdits::requireRoot, publish)
     }
@@ -364,6 +365,7 @@ class SessionManager(
         }
     }
 
+     
     /** Compatibility API: only the 20 newest manifests can load full exact histories. */
     suspend fun list(): List<DroideSession> = withContext(Dispatchers.IO) {
         val context = currentCoroutineContext()
@@ -375,8 +377,9 @@ class SessionManager(
         }.sortedWith(compareByDescending<DroideSession> { it.createdAt }.thenBy { it.id })
     }
 
-    /** Complete lightweight catalog used by the drawer; no cold history restoration. The List
-     * contract retains O(session count) bounded metadata, not transcript bodies. */
+    /** Complete lightweight catalog used by the drawer; no cold history restoration.
+     * The List contract retains O(session count) bounded metadata, not transcript bodies.
+     */
     suspend fun listSummaries(): List<SessionSummary> = withContext(Dispatchers.IO) {
         val summaries = mutableListOf<SessionSummary>()
         forEachSessionFile { file, _ -> readOrRepairIndex(file)?.let { summaries += it.summary() } }
@@ -402,8 +405,8 @@ class SessionManager(
         count
     }
 
-    // DirectoryStream avoids File.listFiles' eager array and permits cancellation even among invalid
-    // entries. Each callback finishes before the next manifest is decoded.
+    // DirectoryStream avoids File.listFiles' eager array and permits cancellation even
+    // among invalid entries. Each callback finishes before the next manifest is decoded.
     private suspend fun forEachSessionFile(visit: suspend (File, SessionFileStamp) -> Unit) {
         val context = currentCoroutineContext()
         context.ensureActive()
@@ -452,7 +455,8 @@ class SessionManager(
         val target = File(sessionDir, "${PathSecurity.safeLeafName(s.id)}.json")
         val tmp = File(dir, ".${target.name}.tmp-${System.nanoTime()}")
         try {
-
+            // The stream encoder is recursive. Reject unsupported payload depth
+            // before encoding, and leave the previous manifest authoritative.
             s.typedChat?.let { checkpoint -> typedChatResources(checkActive).history.verify(checkpoint,s.id) }
             s.apiHistory.forEach(SessionJsonSize::requireSupportedDepth)
             if (s.messages.any { it.publicContent != null || it.publicAbort != null }) {
@@ -471,8 +475,8 @@ class SessionManager(
                 require(SessionForkHistory.isExact(effective.forkHistory)) { "Incomplete exact conversation history; existing data was preserved" }
                 effective.copy(forkHistory = emptyList(), forkHistoryPages = historyLedger.persist(effective.forkHistory))
             } else effective.copy(forkHistoryPages = emptyList())
-            // Inspect only history actually emitted inline. A paged checkpoint has an empty stored tail; do
-            // not scan its immutable cold prefix.
+            // Inspect only history actually emitted inline. A paged checkpoint
+            // has an empty stored tail; do not scan its immutable cold prefix.
             stored.forkHistory.forEach(SessionJsonSize::requireSupportedDepth)
             val mediaRefs = s.messages.flatMap { it.media }
             if (mediaRefs.isNotEmpty() || s.pendingInputs.any { it.media.isNotEmpty() || it.images.any { image -> image.mediaId != null } }) {
@@ -500,13 +504,14 @@ class SessionManager(
                     Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
                 }
             }
-            // A sidecar is a rebuildable cache: its I/O failure must not make a durable prompt look rejected
-            // and leave the inbox behind its on-disk pending inputs.
+            // The primary session is authoritative and has already committed. A sidecar
+            // is a rebuildable cache: its I/O failure must not make a durable prompt look
+            // rejected and leave the inbox behind its on-disk pending inputs.
             try { writeIndex(target, s) }
             catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: Exception) {   }
-            // This point is outside commitAdmission's lifecycle monitor but still owns the per-session
-            // mutex. Only an existing exact normal-terminal save can retire evidence.
+            catch (_: Exception) { /* Summary reads rebuild the cache or use primary metadata. */ }
+            // This point is outside commitAdmission's lifecycle monitor but still owns
+            // the per-session mutex. Only an existing exact normal-terminal save can retire evidence.
             if (textEditSaveIdentity != null) textEdits.retire(s, textEditSaveIdentity)
             Unit
         } finally {
@@ -514,6 +519,7 @@ class SessionManager(
         }
     }
 
+     
     suspend fun savePendingInputs(id: String, pendingInputs: List<AgentPendingInput>,
         commitAdmission: ((() -> Unit) -> Unit) = { publish -> publish() },
     ) = sessionWriterIo("savePendingInputs") withContext@ {
@@ -546,6 +552,7 @@ class SessionManager(
         }
     }
 
+
     suspend fun fork(id: String, atIndex: Int = -1): DroideSession? = try {
         forkInternal(id, atIndex)
     } catch (cancelled: CancellationException) {
@@ -577,12 +584,13 @@ class SessionManager(
             forkApi = SessionForkHistory.slice(src.messages, exactSource, idx) ?: return@withContext null
             forkExact = forkApi
         } else if (exact != null) {
-
-            // The latest fork retains the parent's model checkpoint/context exactly as it is. Cold history
-            // remains available for exact historical forks without inflating a model request.
+            
+            // The latest fork retains the parent's model checkpoint/context exactly as it is.
+            // Cold history remains available for exact historical forks without inflating a model request.
             forkApi = if (exact is SessionHistoryLedger.Snapshot && exact.pages.isNotEmpty()) src.apiHistory else exact
             forkExact = exact
         } else {
+            
 
             val active = AgentHistory.completeGroups(src.apiHistory).flatten()
             if (active.size != src.apiHistory.size) return@withContext null
@@ -614,8 +622,8 @@ class SessionManager(
         media.copyOwner(src.id, forked.id)
         try {
             toolOutputStore?.invoke()?.let { outputStore ->
-                // Text mentions are not authority: intersect selected-prefix refs with immutable artifacts
-                // actually owned by the source session.
+                // Text mentions are not authority: intersect selected-prefix refs
+                // with immutable artifacts actually owned by the source session.
                 val outputRefs = (forkExact ?: forkApi).asSequence()
                     .filter { it["role"]?.jsonPrimitive?.contentOrNull == "tool" }
                     .flatMap { AgentToolOutputStore.references(it["content"]?.jsonPrimitive?.contentOrNull.orEmpty()).asSequence() }
@@ -659,15 +667,18 @@ class SessionManager(
         }
     }
 
+    /** Legacy full-payload helper remains limited to list()'s newest 20 sessions. */
     suspend fun children(id: String): List<DroideSession> = list().filter { it.parentId == id }
 
+    
     suspend fun diff(id: String, git: GitManager): String {
         val s = get(id) ?: return "Session not found"
-
+        
         val gitDiff = git.diff()
         val fileChanges = s.messages.filter { it.content.contains("write_file") || it.content.contains("edit_file") || it.content.contains("TOOL|") }.takeLast(5).joinToString("\n") { it.content.take(200) }
         return "Session ${s.id} diff:\n$gitDiff\n\nRecent file changes:\n$fileChanges".take(8000)
     }
+
 
     suspend fun compact(
         s: DroideSession,
@@ -740,7 +751,7 @@ class SessionManager(
         }
         AgentHistory.requireCompleteGroups(compactApi)
         val compacted = s.copy(
-
+            
             messages = s.messages,
             apiHistory = compactApi,
         )
@@ -760,8 +771,8 @@ class SessionManager(
         workBudget: CompactionWorkBudget,
         onUsage: (TokenUsage) -> Unit,
     ): String {
-        // Every candidate represents historical evidence. A blank checkpoint must abort the transaction
-        // rather than silently remove the chunk it represents.
+        // Every candidate represents historical evidence. A blank checkpoint must
+        // abort the transaction rather than silently remove the chunk it represents.
         require(initial.all { it.isNotBlank() }) {
             "Compaction model returned an empty checkpoint; existing conversation was preserved"
         }
@@ -818,8 +829,8 @@ class SessionManager(
         val accounting = ProviderRequestAccounting(config.providerId, onUsage)
         return try {
             val resp = llm.chatCompletions(config.providerId, config.baseUrl, config.apiKey, ProviderModelIdentity.requireCanonical(config.model), body)
-            // Reported provider work must survive extraction, a later chunk, the work budget or final
-            // transaction admission rejecting the checkpoint.
+            // Reported provider work must survive extraction, a later chunk, the
+            // work budget or final transaction admission rejecting the checkpoint.
             accounting.response(resp)
             workBudget.retainExchange(body.length, resp.length)
             exchanges += CompactionExchange(body, resp)
@@ -831,6 +842,7 @@ class SessionManager(
             if (accounting.isCallbackFailure(t)) throw t
             val overflow = t is LlmRequestTooLargeException || (t is LlmHttpException && t.isContextOverflow())
             if (!overflow || transcript.length <= MIN_ADAPTIVE_COMPACTION_CHARS) throw t
+            
 
             val split = transcript.length / 2
             val left = summarizeChunk(config, transcript.substring(0, split), "$label / adaptive A", exchanges, requestBudget, workBudget, onUsage, depth + 1)
@@ -855,7 +867,7 @@ class SessionManager(
         val reserve = checkNotNull(ProviderRequestBudget.explicitOutputTokens(request))
         val available = ContextBudget.effectiveInputTokens(config.providerId, config.model, reserve)
             ?: return UNKNOWN_COMPACTION_CHUNK_CHARS
-
+        // Include the full checkpoint instructions, labels/envelope and approximate-token margin.
         val inputTokens = available - COMPACTION_PROMPT_OVERHEAD_TOKENS - 256
         require(inputTokens >= MIN_ADAPTIVE_COMPACTION_CHARS / 4) {
             "The model input window cannot fit checkpoint instructions and the reserved output. " +
@@ -932,8 +944,8 @@ class SessionManager(
         val id = sessionFile.name.removeSuffix(".json")
         val context = currentCoroutineContext()
         context.ensureActive()
-        // The same lock protects primary commits/deletion and cache repair. Without it an old decoded
-        // body could be stamped with a newer primary's size and mtime.
+        // The same lock protects primary commits/deletion and cache repair. Without it
+        // an old decoded body could be stamped with a newer primary's size and mtime.
         val entry = writes.entry(id)
         try {
             return entry.mutex.withLock {
@@ -954,13 +966,13 @@ class SessionManager(
                         source.cacheIdentity?.matches(cached.sourceKey, cached.sourceModifiedTime) == true &&
                         source == sessionFileStamp(sessionFile)) return@withLock cached
                 }
-
+    
                 val session = try { readSession(sessionFile) { context.ensureActive() } }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (_: Exception) { return@withLock null }
                 context.ensureActive()
-                // An external replacement is not protected by the app mutex. Do not give it metadata derived
-                // from another file; a later refresh can retry it.
+                // An external replacement is not protected by the app mutex. Do not give
+                // it metadata derived from another file; a later refresh can retry it.
                 if (source != sessionFileStamp(sessionFile)) return@withLock null
                 try { writeIndex(sessionFile, session, source) }
                 catch (cancelled: CancellationException) { throw cancelled }
@@ -968,8 +980,8 @@ class SessionManager(
                 catch (_: Exception) { indexEntry(session, source) }
             }
         } finally {
-            // The coordinator holds weak entries. Keep this exact owner alive through suspended lock
-            // acquisition, cache publication, unlock and cancellation.
+            // The coordinator holds weak entries. Keep this exact owner alive through
+            // suspended lock acquisition, cache publication, unlock and cancellation.
             java.lang.ref.Reference.reachabilityFence(entry)
         }
     }
@@ -992,8 +1004,8 @@ class SessionManager(
     ): SessionIndexEntry {
         require(session.id == sessionFile.name.removeSuffix(".json")) { "Conversation identity does not match its file" }
         val entry = indexEntry(session, source)
-        // Unsupported providers remain readable. An uncacheable observation cannot benefit from
-        // publication, and must not repeatedly rewrite a sidecar that can never hit.
+        // Unsupported providers remain readable. An uncacheable observation cannot benefit
+        // from publication, and must not repeatedly rewrite a sidecar that can never hit.
         if (source.cacheIdentity == null) return entry
         return ExportWriterAdmission.withWriter(workDir, "Session summary repair") {
             val target = File(dir, "${PathSecurity.safeLeafName(session.id)}.meta")

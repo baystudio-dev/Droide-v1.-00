@@ -53,6 +53,6 @@ interface UnifiedPackageAuthority {
         UnifiedPackageTransactionResult(false, "This provider does not support exact-version repair")
     suspend fun uninstall(familyId: String, version: String): UnifiedPackageTransactionResult
     suspend fun list(): List<UnifiedPackageInfo>
-
+    
     val transactionState: StateFlow<UnifiedPackageTransactionState>
 }

@@ -9,6 +9,7 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 
+
 internal class GitHubAccountOAuthAuthority(
     private val random: SecureRandom = SecureRandom(),
     private val epochSeconds: () -> Long = { System.currentTimeMillis() / 1_000L },
@@ -83,6 +84,7 @@ internal class GitHubAccountOAuthAuthority(
         return Authorization(attemptId, "$AUTHORIZATION_ENDPOINT?$query", record)
     }
 
+     
     fun restore(record: PendingRecord): Boolean {
         return runCatching {
             validateRecord(record)

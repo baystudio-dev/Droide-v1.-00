@@ -3,6 +3,7 @@ package com.baystudio.droide.ui
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Pure pre-repair API cases. No UI, network, process, native code, or timing assertions. */
 class AgentMarkdownDonorBaselineTest {
     private fun cost(block: AgentMarkdownBlock): Int = when (block) {
         is AgentMarkdownBlock.ListBlock -> block.items.size

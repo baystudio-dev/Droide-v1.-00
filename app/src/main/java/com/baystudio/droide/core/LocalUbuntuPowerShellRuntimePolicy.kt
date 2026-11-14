@@ -201,8 +201,8 @@ internal object LocalUbuntuPowerShellRuntimePolicy {
         return done.fold(base) { at, p -> at.resolve(p) }.toFile()
     }
 
-    /** All matching cache targets must resolve to the inspected file; unknown/hwcaps variants are not
-     * guessed. */
+    /** Modern glibc 1.1 cache layout: glibc-2.39/sysdeps/generic/dl-cache.h and linux/aarch64/dl-cache.h.
+     * All matching cache targets must resolve to the inspected file; unknown/hwcaps variants are not guessed. */
     private fun requireGuestLoaderConfiguration(root: File, expected: Map<String, String>, active: () -> Unit) {
         resolveGuestFile(root, "/etc/ld.so.preload", active)?.let {
             require(readBytes(it, 16_384, active, allowEmpty = true).all { byte -> byte.toInt().toChar() in " \t\r\n" }) {
@@ -292,7 +292,7 @@ internal object LocalUbuntuPowerShellRuntimePolicy {
                 require(section is JsonObject)
                 section.forEach { (path, _) ->
                     requireRelative(path)
-
+                    // Published self-contained deps can retain build package paths while publishing the basename at PSHOME.
                     val expected = if (kind == "resources") path else path.substringAfterLast('/')
                     require(expected in files) { "PowerShell deps asset missing from original layout: $path" }
                     if (kind == "native") {
@@ -362,8 +362,7 @@ internal object LocalUbuntuPowerShellRuntimePolicy {
                 else { require(value >= 0); tags.getOrPut(tag) { mutableListOf() }.add(value) }
             }
             require(ended); tags.filterKeys { it != 1L }.values.forEach { require(it.size == 1) { "PowerShell duplicate ELF dynamic singleton" } }
-            // Finite ELF64/AArch64 ABI metadata only. DT_CONFIG, audit, filters and unknown extensions fail
-            // closed.
+            // Finite ELF64/AArch64 ABI metadata only. DT_CONFIG, audit, filters and unknown extensions fail closed.
             val standardTags = (1L..30L).toSet() + (32L..37L).toSet()
             val gnuTags = setOf(0x6ffffef5L, 0x6ffffff0L, 0x6ffffff9L, 0x6ffffffaL, 0x6ffffffbL,
                 0x6ffffffcL, 0x6ffffffdL, 0x6ffffffeL, 0x6fffffffL)

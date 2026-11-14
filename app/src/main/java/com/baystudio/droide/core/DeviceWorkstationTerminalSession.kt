@@ -20,6 +20,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 
+ 
 interface DevicePtySessionHandle : ITerminalSession, TerminalMetadataSession, TerminalWorkingDirectorySession {
     val terminalEmulator: DeviceTerminalEmulator
     val profileLabel: String
@@ -29,6 +30,11 @@ interface DevicePtySessionHandle : ITerminalSession, TerminalMetadataSession, Te
     fun resize(columns: Int, rows: Int)
     suspend fun refreshWorkspace()
 }
+
+
+
+
+
 
 class DeviceWorkstationTerminalSession(
     private val bridge: DeviceBridgeManager,
@@ -124,6 +130,7 @@ class DeviceWorkstationTerminalSession(
                 session.resize(rows = initialGeometry.rows, cols = initialGeometry.columns)
                 appliedResizeRef.set(AppliedResize(session, initialGeometry))
                 connection.complete(session)
+                
 
                 resizeAuthority.signalLatest()
                 _status.value = "Ready"

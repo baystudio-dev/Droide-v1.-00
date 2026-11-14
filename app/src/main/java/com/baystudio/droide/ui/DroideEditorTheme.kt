@@ -5,6 +5,7 @@ import com.baystudio.droide.core.DroideThemeSnapshot
 import com.baystudio.droide.core.ThemeContrastPolicy
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 
+ 
 internal class DroideEditorColorScheme(snapshot: DroideThemeSnapshot) : EditorColorScheme(snapshot.editor.isDark) {
     init {
         val editor = snapshot.editor
@@ -17,7 +18,7 @@ internal class DroideEditorColorScheme(snapshot: DroideThemeSnapshot) : EditorCo
         setColor(LINE_DIVIDER, ui.border.toArgb())
         setColor(CURRENT_LINE, editor.currentLine)
         setColor(SELECTED_TEXT_BACKGROUND, editor.selection)
-
+        // Translucent theme accents preserve placeholder readability instead of the bright grey defaults.
         val snippetAccent = ThemeContrastPolicy.ensureAccentVisibility(editor.background, ui.primary.toArgb())
         setColor(SNIPPET_BACKGROUND_EDITING, ThemeContrastPolicy.withAlpha(snippetAccent, 0x28))
         setColor(SNIPPET_BACKGROUND_RELATED, ThemeContrastPolicy.withAlpha(snippetAccent, 0x1C))
@@ -67,6 +68,7 @@ internal class DroideEditorColorScheme(snapshot: DroideThemeSnapshot) : EditorCo
 }
 
 internal fun DroideCodeEditor.applyDroideTheme(snapshot: DroideThemeSnapshot) {
+    
 
     setBackgroundColor(snapshot.editor.background)
     if (themeFingerprint == snapshot.fingerprint) return

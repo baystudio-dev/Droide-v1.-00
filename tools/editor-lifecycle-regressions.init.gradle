@@ -1,0 +1,15 @@
+// Host regression selection. Pair with agent-plugin-regressions.init.gradle and
+// terminal-pty-regressions.init.gradle. Filter class files too: forkEvery=1 must
+// not start empty JVM workers for every unrelated test/fixture in the project.
+gradle.projectsEvaluated {
+    def selected = System.getProperty('droide.stability.tests') ?:
+        '*EditorLifecycleBoundaryTest,*ExplorerFileOpenRegressionTest,*EditorAndroidSurfaceTest,' +
+        '*EditorTouchInteractionTest,*DroideSoraFeatureLifetimeTest,*EditorMemoryRetentionTest,' +
+        '*EditorTabRetentionTest,*AbnormalStartupEditorRecoveryTest,*DeferredEditorRecoveryTest,' +
+        '*AgentPaneLifetimeTest,*DeviceTerminalViewLifecycleTest'
+    gradle.rootProject.project(':app').tasks.named('testDebugUiIsolated').configure {
+        def patterns = selected.split(',')
+        filter.setIncludePatterns(patterns)
+        setIncludes(patterns.collect { '**/' + it.tokenize('.').last() + '.class' })
+    }
+}

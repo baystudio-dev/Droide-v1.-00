@@ -8,6 +8,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 
 // Commit durable state only after verification succeeds.
 
+
 @Serializable
 enum class PackageSourceKind(val label: String) {
     NPM("npm"),
@@ -300,6 +301,7 @@ data class PackageSourceDefinition(
     }
 }
 
+
 private fun isSafeVendorArtifactTemplate(value: String?): Boolean {
     if (value == null || value.length !in 12..500 || !value.startsWith("https://")) return false
     val tagCount = Regex(Regex.escape("{tag}")).findAll(value).count()
@@ -410,6 +412,7 @@ private data class RubyGemsVersionDto(
     val sha: String? = null,
 )
 
+ 
 class PackageSourceResolver(private val sourceCatalog: PackageSourceCatalog) {
     private val json = Json { ignoreUnknownKeys = true }
     private val npmRegistry = "https://registry.npmjs.org".toHttpUrl()

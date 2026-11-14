@@ -14,6 +14,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Integration regressions for strict direct-child/pipe failure propagation. */
 class ProcessTerminationReceiptTest {
     @Test fun cancelledHostedOwnerRetainsCustodyWhenPipeCloseFails() = runBlocking {
         val root = Files.createTempDirectory("strict-hosted-custody-").toFile()

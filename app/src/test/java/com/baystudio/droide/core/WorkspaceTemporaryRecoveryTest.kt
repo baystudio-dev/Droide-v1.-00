@@ -258,7 +258,8 @@ class WorkspaceTemporaryRecoveryTest {
     }
 
     private fun runOnAndroidMain(block: suspend () -> Unit) {
-
+        // Coordinator publishes on Main; runBlocking on Robolectric's paused Main
+        // prevents that publication from ever resuming after preparation on IO.
         val fixtureScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         var failure: Throwable? = null
         val fixtureJob = fixtureScope.launch {

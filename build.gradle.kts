@@ -10,6 +10,7 @@ tasks.register("resolveDependencyInputs") {
     group = "verification"
     description = "Resolves dependency graphs and external artifacts for locking and checksum verification"
     dependsOn(":app:verifyJGitAndroidCompat")
+    dependsOn(":app:verifyTermuxOverlay")
     notCompatibleWithConfigurationCache("Enumerates dependency configurations at execution time")
     doLast {
         allprojects.sortedBy { it.path }.forEach { target ->

@@ -73,6 +73,7 @@ class AndroidProjectDetectorTest {
         }
     }
 
+
     @Test fun ignoresCommentedRequirementsAndDetectsPluginAliasAndroidBlock() {
         val root = Files.createTempDirectory("droide-android-detect-").toFile()
         try {

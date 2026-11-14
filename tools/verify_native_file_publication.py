@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Exercise the production JNI publication primitive on a Linux host."""
+"""Exercise the production JNI publication primitive on a Linux host.
+
+Requires a C compiler and a JDK (JAVA_HOME or --java-home). Generated native and
+Java binaries remain in a temporary directory. --output retains only the JSON
+result and command logs. This is host JNI evidence, not an Android/PRoot test.
+"""
 from __future__ import annotations
 
 import argparse

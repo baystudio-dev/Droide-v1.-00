@@ -20,7 +20,7 @@ internal object AndroidSealedHookEvent : ImmutableHookEventFactory {
 
     @android.annotation.TargetApi(30)
     private object Api30 {
-
+        // Linux UAPI include/uapi/linux/fcntl.h. The SDK's public fcntlInt dispatches these commands.
         private const val ADD_SEALS = 1033
         private const val GET_SEALS = 1034
         private const val ALL_SEALS = 0x0001 or 0x0002 or 0x0004 or 0x0008
@@ -29,7 +29,7 @@ internal object AndroidSealedHookEvent : ImmutableHookEventFactory {
             val reservation = HookKernelMemory.reserve()
             var lease: Lease? = null
             try {
-                val original = Os.memfd_create("droide-hook-event", OsConstants.MFD_CLOEXEC or 2  )
+                val original = Os.memfd_create("droide-hook-event", OsConstants.MFD_CLOEXEC or 2 /* Linux MFD_ALLOW_SEALING */)
                 val descriptor = try { ParcelFileDescriptor.dup(original) } finally { Os.close(original) }
                 lease = Lease(descriptor, reservation)
                 takeOwnership(lease) // Before writes and before any suspended return can lose cleanup ownership.

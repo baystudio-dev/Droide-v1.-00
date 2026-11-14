@@ -32,7 +32,7 @@ class TerminalReadinessInvalidationTest {
         }
         val a=Session()
         val observer=TerminalReadinessInvalidation(CoroutineScope(coroutineContext+delayed),MutableStateFlow(snapshot(a)))
-        runCurrent()
+        runCurrent() // Session collector publishes lifecycle hint before debounce collector starts.
         val pending=held!!;delegate.dispatch(pending.first,pending.second)
         runCurrent();advanceTimeBy(400);runCurrent()
         assertEquals(1L,observer.revision.value)

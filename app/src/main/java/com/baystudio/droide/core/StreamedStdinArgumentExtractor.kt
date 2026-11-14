@@ -5,8 +5,8 @@ import java.io.Reader
 import java.nio.charset.CodingErrorAction
 import kotlinx.serialization.json.*
 
-/** Strict source compatibility with the existing single 64KiB UTF8 stdin offer. Prepared retains
- * no decoded input; queue admission is never proof of delivery. */
+/** Strict source compatibility with the existing single 64KiB UTF8 stdin offer.
+ * Prepared retains no decoded input; queue admission is never proof of delivery. */
 internal object StreamedStdinArgumentExtractor {
     const val MAX_INPUT_UTF8 = 65_536
     class Prepared internal constructor(

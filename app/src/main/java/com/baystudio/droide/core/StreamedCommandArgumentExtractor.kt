@@ -119,7 +119,7 @@ internal object StreamedCommandArgumentExtractor {
             val background = values["background"]?.jsonPrimitive?.booleanOrNull == true
             val timeout = values["timeout_ms"]?.jsonPrimitive?.longOrNull
             require(timeout == null || timeout in BackgroundCommandManager.MIN_TIMEOUT_MS..BackgroundCommandManager.MAX_TIMEOUT_MS)
-            val keep = values["keep_stdin_open"]?.jsonPrimitive?.booleanOrNull == true
+            val keep = AgentTtyPolicy.keepStdinOpen(tty, values["keep_stdin_open"]?.jsonPrimitive?.booleanOrNull)
             val yieldMs = if(background) null else AgentCommandSessions.yieldMs(JsonObject(values),
                 if(tool == "exec_command") 1000L else AgentTimeoutPolicy.COMMAND_YIELD_MS)
             val semantic = "v1|${if(tool == "exec_command") "exec" else "run"}|$commandUnits|${hexDigest(commandHash.digest())}|$tty|$background|$keep|$timeout|$yieldMs"

@@ -8,8 +8,7 @@ internal object LspIsolatedHealthLaunchPolicy {
         "cleanup() { [ -d \"\$runtime\" ] && [ ! -L \"\$runtime\" ] || return 0; /bin/rmdir -- \"\$runtime\" 2>/dev/null || :; };",
         "trap cleanup EXIT; trap 'exit 143' TERM; trap 'exit 130' INT; trap 'exit 129' HUP;",
         "cd \"\$runtime\"; PATH=; export PATH;",
-        // Original argv stays positional and foreground stdin is retained. Never sweep leftover
-        // directories.
+        // Original argv stays positional and foreground stdin is retained. Never sweep leftover directories.
         "set +e; \"\$@\"; result=\$?; exit \"\$result\"",
     ).joinToString(" ")
 

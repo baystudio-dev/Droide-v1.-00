@@ -37,7 +37,7 @@ class ToolchainCatalogHealthRegressionTest {
         val definition = LocalUbuntuVendorCatalog.find("toolchain.zig")!!
         assertEquals("zig-linux-aarch64-0.14.0.tar.xz", definition.asset("0.14.0"))
         assertEquals("zig-aarch64-linux-0.14.1.tar.xz", definition.asset("0.14.1"))
-
+        // Synthetic current-layout fixture; no claim that this release exists upstream.
         val recipe = LocalUbuntuVendorResolver { zig("0.17.0", "zig-aarch64-linux-0.17.0.tar.xz") }.resolve("toolchain.zig")
         assertEquals("zig-aarch64-linux-0.17.0/zig", recipe.entryPoint)
         assertThrows(IllegalArgumentException::class.java) { definition.asset("0.13.0/../../x") }; Unit

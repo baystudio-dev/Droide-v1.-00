@@ -194,7 +194,8 @@ class ExternalAgentHistoryPersistenceTest {
                 admissionAttempts++
                 throw IOException("No writable storage")
             }
-
+            // Kotlin delegation forwards this method to real, where its internal beginTurn
+            // call would bypass our override. Fail the actual controller admission entrypoint.
             override suspend fun beginMediaTurn(id: String?, agentId: String, prompt: String, mode: WorkspaceAgentMode,
                                                 nativeSessionId: String?, media: List<ChatMediaRef>): PluginHistoryWindow =
                 beginTurn(id, agentId, prompt, mode, nativeSessionId)

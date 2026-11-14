@@ -236,7 +236,7 @@ class SafUnchangedRefreshProofTest {
         f.provider.observe = {
             if (externalBytes == expected && localBytes == expected) {
                 lateCalls++
-
+                // V1 allowed this same-inode edit after hashing and still returned a no-op.
                 f.local.resolve("sentinel.bin").writeBytes(original.reversedArray())
             }
         }
@@ -308,7 +308,7 @@ class SafUnchangedRefreshProofTest {
                 val action = core.prepare(operation, SafEffectPlan(SafEffectKind.WRITE_FILE, "sentinel.bin",
                     document, parent, null, before, desired), poll)
                 core.attempting(action, poll)
-
+                // Model exactly one successful ordinary write; no provider/device process is used.
                 f.external.resolve("sentinel.bin").writeBytes(next)
                 f.local.resolve("sentinel.bin").writeBytes(next)
                 modeledWrites++

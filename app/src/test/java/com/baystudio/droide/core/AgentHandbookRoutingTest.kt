@@ -4,6 +4,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Regression for the real catalog -> lazy projection -> system prompt -> discovery path. */
 class AgentHandbookRoutingTest {
     private fun prompt(tools: JsonArray?, mode: AgentMode = AgentMode.BUILD) =
         AgentRuntimePrompt.compose(mode, AgentRequestScope.modeInstruction(mode), "", "", false, tools)

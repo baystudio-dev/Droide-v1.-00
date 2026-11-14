@@ -30,6 +30,7 @@ private data class AgentPluginIndex(
     val records: List<InstalledAgentPluginRecord> = emptyList(),
 )
 
+// App-private authoritative store for Agent customization bundles.
 class AgentPluginStore(context: Context) {
     private val root = File(context.filesDir, "agent-plugins")
     private val packages = File(root, "packages")
@@ -181,6 +182,7 @@ class AgentPluginStore(context: Context) {
         ParsedAgentPluginArchive(id, displayName, version, description, manifest.third, prefix, normalizedFiles)
     }
 
+     
     private fun manifestCandidate(names: Set<String>): Triple<String, String, AgentPluginFormat>? {
         val candidates = mutableListOf<Triple<String, String, AgentPluginFormat>>()
         names.forEach { path ->

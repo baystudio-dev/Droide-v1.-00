@@ -7,6 +7,7 @@ internal class ElpDiagnosticPublication(val owner: Any, val serial: Long,
     fun publishIfCurrent(publish: (Map<String, List<LspDiagnostic>>) -> Unit): Boolean = admit(publish)
 }
 
+/** Complete native proposals are checked against the original captured UTF-16 text. */
 internal object LspElpResultAuthority {
     fun integer(value: JsonElement?): Int = (value as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
         ?.takeIf { it in 0 until Int.MAX_VALUE } ?: error("Invalid ELP coordinate/integer")

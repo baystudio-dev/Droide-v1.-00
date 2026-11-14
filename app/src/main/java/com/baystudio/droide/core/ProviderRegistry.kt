@@ -7,10 +7,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+
 enum class ProviderWireProtocol { OPENAI_CHAT_COMPLETIONS, OPENAI_RESPONSES, ANTHROPIC_MESSAGES, GOOGLE_GENERATE_CONTENT }
 
-// compatibility marker: ProviderAuthScheme { NONE, BEARER, ANTHROPICXAPIKEY, GOOGLEAPIKEY,
-// AZUREAPIKEY }
+// compatibility marker: ProviderAuthScheme { NONE, BEARER, ANTHROPICXAPIKEY, GOOGLEAPIKEY, AZUREAPIKEY }
 enum class ProviderAuthScheme {
     NONE,
     BEARER,
@@ -132,6 +132,7 @@ object ProviderRegistry {
         discovered.set(safe)
     }
 
+
     internal fun prepareConfigured(providers: Collection<AiProvider>): ConfiguredSnapshot {
         val bootstrapIds = bootstrap.asSequence().map { it.id.lowercase() }.toHashSet()
         val safe = providers.asSequence()
@@ -165,6 +166,7 @@ object ProviderRegistry {
     internal fun installConfigured(providers: Collection<AiProvider>) {
         publishConfigured(prepareConfigured(providers))
     }
+
 
     internal fun installManagedRuntime(providers: Collection<AiProvider>) {
         val reserved = bootstrap.asSequence().map { it.id.lowercase() }.toHashSet()

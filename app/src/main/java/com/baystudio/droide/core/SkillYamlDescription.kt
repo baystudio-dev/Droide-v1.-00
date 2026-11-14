@@ -6,8 +6,8 @@ import org.snakeyaml.engine.v2.api.lowlevel.Parse
 import org.snakeyaml.engine.v2.events.Event
 import org.snakeyaml.engine.v2.events.ScalarEvent
 
-// Parse scalar events only. Never construct arbitrary objects or expand aliases. The caller has
-// already bounded the header by the existing skill byte limit.
+// Parse scalar events only. Never construct arbitrary objects or expand aliases.
+// The caller has already bounded the header by the existing skill byte limit.
 internal object SkillYamlDescription {
     private val settings = LoadSettings.builder()
         .setCodePointLimit(200_000)
@@ -17,6 +17,7 @@ internal object SkillYamlDescription {
 
     data class BlockSpan(val startLine: Int, val endLine: Int, val value: String)
 
+    /** Verified root scalar spans in normalized LF source order, including duplicates. */
     fun blockSpans(header: String): List<BlockSpan> = try {
         val markedSettings = LoadSettings.builder().setCodePointLimit(200_000)
             .setMaxAliasesForCollections(0).setUseMarks(true).build()
@@ -72,8 +73,8 @@ internal object SkillYamlDescription {
                         if (event.eventId != Event.ID.MappingStart) break
                         rootMapping = true
                     } else if (depth == 1) {
-                        // A collection consumes a root key or value, but is not a scalar description. Nested metadata is
-                        // not selected.
+                        // A collection consumes a root key or value, but is not
+                        // a scalar description. Nested metadata is not selected.
                         if (!expectingKey && key == "description") foundDescription = true
                         expectingKey = !expectingKey
                         key = null

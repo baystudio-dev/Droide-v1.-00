@@ -89,8 +89,8 @@ class LocalLinuxUserEnvironmentTest {
         val home = Files.createTempDirectory("droide-late-cli-").toFile()
         try {
             val path = LocalLinuxUserEnvironment.path(emptyList()).replace("/root/", home.path + "/")
-            // The child creates the executable after its environment is established, as the official
-            // installer does. It never reloads .bashrc or recreates the shell.
+            // The child creates the executable after its environment is established, as the
+            // official installer does. It never reloads .bashrc or recreates the shell.
             val child = ProcessBuilder("/bin/bash", "--noprofile", "--norc", "-c",
                 "command -v opencode >/dev/null && exit 71; " +
                     "mkdir -p \"\$HOME/.opencode/bin\"; " +
@@ -234,6 +234,7 @@ class LocalLinuxUserEnvironmentTest {
     }
 }
 
+/** Export compiled environment policy for the external, original npm integration fixture. */
 object LocalLinuxUserEnvironmentHostProbe {
     @JvmStatic fun main(args: Array<String>) {
         println("LOCAL_LINUX_USER_ENVIRONMENT_JSON=" + buildJsonObject {

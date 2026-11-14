@@ -16,6 +16,7 @@ internal fun rememberUiStarted(): Boolean {
     return rememberUiAtLeast(Lifecycle.State.STARTED)
 }
 
+/** Returning from an external picker/app can change project bytes while the UI was paused. */
 @Composable
 internal fun rememberUiResumed(): Boolean = rememberUiAtLeast(Lifecycle.State.RESUMED)
 

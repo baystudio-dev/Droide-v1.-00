@@ -21,6 +21,7 @@ import com.baystudio.droide.core.ProjectManager
 import com.baystudio.droide.core.ProjectTemplateRegistry
 import kotlinx.coroutines.launch
 
+ 
 @Composable
 fun ProjectDrawer(
     manager: ProjectManager,

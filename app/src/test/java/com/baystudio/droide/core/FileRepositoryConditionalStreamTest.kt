@@ -243,8 +243,7 @@ class FileRepositoryConditionalStreamTest {
         }
         assertEquals("competitor", file.readText())
         assertEquals("original", root.resolve("retained/asset.png").readText())
-        // A stage in a moved parent is deliberately retained: cleanup never follows a replacement
-        // parent.
+        // A stage in a moved parent is deliberately retained: cleanup never follows a replacement parent.
     }
 
     private fun observer(before: () -> Unit) = object : StreamPublicationObserver {

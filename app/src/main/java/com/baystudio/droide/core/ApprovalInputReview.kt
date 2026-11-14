@@ -2,8 +2,9 @@ package com.baystudio.droide.core
 
 import java.security.MessageDigest
 
-/** Runtime-only immutable input evidence, never persisted or sent to a provider. A reader does
- * not grant permission; ApprovalManager binds its lifetime to the current request. */
+/** Runtime-only immutable input evidence, never persisted or sent to a provider.
+ * A reader does not grant permission; ApprovalManager binds its lifetime to the current request.
+ */
 class ApprovalInputReview private constructor(
     val label: Label,
     val byteLength: Long,
@@ -35,7 +36,7 @@ class ApprovalInputReview private constructor(
         internal fun text(label: Label, text: String, optionsSummary: String = "",
             checkOwner: () -> Unit = {}): ApprovalInputReview {
             checkOwner()
-
+            // Reject malformed UTF-16 rather than digest replacement bytes that conceal execution differences.
             var at = 0
             while (at < text.length) {
                 if (at % PAGE_CHARS == 0) checkOwner()
@@ -61,6 +62,7 @@ class ApprovalInputReview private constructor(
                 Page(text.substring(start, end), end < text.length)
             }
         }
+
 
     }
     override fun toString() = "ApprovalInputReview(label=$label, bytes=$byteLength, content=redacted)"

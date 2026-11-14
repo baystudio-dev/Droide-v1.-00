@@ -9,6 +9,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Authored byte-stream peers exercise actual manager/writer/callback/snapshot application paths. */
 class LspTomlRequestsTest {
     private class Incoming : InputStream() {
         private val queue=LinkedBlockingQueue<Int>()

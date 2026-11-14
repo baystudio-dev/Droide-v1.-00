@@ -154,7 +154,7 @@ class LspSvelteFilePollerTest {
         fails {
             poller.scan(initial) {
                 invalidated = true
-
+                // Removing another enumerated file makes this pass incomplete after invalidation.
                 b.delete()
             }
         }

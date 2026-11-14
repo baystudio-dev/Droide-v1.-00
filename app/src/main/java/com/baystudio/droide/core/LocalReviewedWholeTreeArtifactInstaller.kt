@@ -188,7 +188,8 @@ class LocalReviewedWholeTreeArtifactInstaller(
         val layer = ubuntuEnvironment.ensurePackages(spec.runtimeCompatibility.requiredGuestPackages, progress, allowSharedRepair = !powerShell && !nim && !vueHelper)
         val dependencyRecords = listOfNotNull(layer) + spec.ownedRuntimeDependencies
         dependencyRecords.forEach { dependency ->
-
+            // The existing compiler/runtime receipt has already been admitted.
+            // Re-adopting it would change the user's selected default needlessly.
             if (dependency === layer) localAuthority.adopt(dependency)
             check(if (LocalUbuntuNimPolicy.isFamily(dependency.familyId)) localAuthority.verifyNimPackageWithoutHealth(dependency) else localAuthority.verify(dependency)) {
                 "Ubuntu runtime dependency ${dependency.familyId}@${dependency.version} failed verification"
@@ -219,8 +220,8 @@ class LocalReviewedWholeTreeArtifactInstaller(
         downloader.withArtifact(artifactSpec, onProgress = { status ->
             progress(status.describe() + "\n")
         }) { artifact ->
-            // Download admission used the publisher's digest. Persist a canonical SHA-256 as well, so
-            // existing receipt, journal and cache identities remain compatible.
+            // Download admission used the publisher's digest. Persist a canonical SHA-256
+            // as well, so existing receipt, journal and cache identities remain compatible.
             val spec = if (spec.vendor?.assetSha512 != null) {
                 val resolved = spec.vendor.withVerifiedSha256(LocalUbuntuNpmPolicy.sha256(artifact))
                 spec.copy(assetSha256 = resolved.assetSha256, vendor = resolved)
@@ -293,8 +294,11 @@ class LocalReviewedWholeTreeArtifactInstaller(
                     var activation: LocalPackageInstallJournal.Activation? = null
                     try {
                         val activationId = LocalPackageInstallJournal.prepare(stageDir)
-                        // The projection and staged tree live on the same app-owned filesystem.
-
+                        // The projection and staged tree live on the same app-owned filesystem. Release each
+                        // projected regular file immediately after its verified copy is durable so large archives
+                        // (for example the Swift toolchain) do not require space for two full unpacked trees.
+                        // One source member is still duplicated while it is being copied, so reserve the largest
+                        // reviewed member before staging begins.
                         val largestProjectedFile = projection.files.maxOfOrNull { it.size } ?: 0L
                         DeviceWorkstationStorageGuard.requireHeadroom(
                             additionalBytes = Math.addExact(largestProjectedFile, 64L * 1024L * 1024L),

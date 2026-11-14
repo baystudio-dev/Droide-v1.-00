@@ -16,7 +16,7 @@ internal class TerminalInputRelay<T : Any>(
     private var pendingBytes = 0
     private var closed = false
     private var failureReported = false
-
+    // Includes prior discarded accepted input after pending counters have been cleared.
     private var deliveryUnconfirmed = false
     private var finalInputFailureReason = -1
     @Volatile private var reportDropped = false
@@ -31,8 +31,8 @@ internal class TerminalInputRelay<T : Any>(
             }
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (error: Exception) {
-            // This worker is already exiting. Do not reference the worker field here: an immediate
-            // dispatcher can enter this catch before its assignment.
+            // This worker is already exiting. Do not reference the worker field here:
+            // an immediate dispatcher can enter this catch before its assignment.
             reportFailure("Terminal input delivery could not be confirmed: ${error.message?.take(160) ?: error.javaClass.simpleName}. Check the terminal before retrying.", cancelWorker = false)
         } finally { discardQueuedInput() }
     }.also { job ->
@@ -46,8 +46,8 @@ internal class TerminalInputRelay<T : Any>(
             input.close()
             while (input.tryReceive().isSuccess) { /* discard without replay */ }
             if (pending > 0) deliveryUnconfirmed = true
-            // Finalization owns its receipt/notice; cancellation must not call an observer inline before the
-            // caller can publish that stable receipt.
+            // Finalization owns its receipt/notice; cancellation must not call an
+            // observer inline before the caller can publish that stable receipt.
             val unconfirmed = if (failureReported || finalInputFailureReason >= 0) 0 else pending
             pending = 0
             pendingBytes = 0
@@ -88,20 +88,24 @@ internal class TerminalInputRelay<T : Any>(
         return false
     }
 
-    /** Linearizes final input admission and freezes its receipt without joining or invoking
-     * observers. pending includes the current write until it returns. */
+    /**
+     * Linearizes final input admission and freezes its receipt without joining or
+     * invoking observers. pending includes the current write until it returns.
+     * Reason 5 is conservative: an admitted write may settle after this snapshot,
+     * but a later return/discard can never upgrade the frozen receipt to clean.
+     */
     fun finishInput(): Int {
         val receipt = synchronized(this) {
             closed = true
             if (finalInputFailureReason < 0) {
                 finalInputFailureReason = if (deliveryUnconfirmed || failureReported || pending > 0) 5 else 0
             }
-
+            // Latch before close can resume an inline completion handler.
             input.close()
             finalInputFailureReason
         }
-        // Queue state/receipt is already committed. No observer/cleanup exception is allowed to prevent
-        // the completion owner from obtaining that receipt.
+        // Queue state/receipt is already committed. No observer/cleanup exception
+        // is allowed to prevent the completion owner from obtaining that receipt.
         runCatching { worker.cancel(CancellationException("Terminal input finalized")) }
         return receipt
     }

@@ -89,8 +89,8 @@ internal class InteractiveTerminalProcess(
             check(!destroyed) { "Terminal is closed" }
             if (worker != null && !exited) return
         }
-        // A timed-out prior stop stays a barrier: explicit start/restart cannot turn an unconfirmed
-        // known child into an overlapping replacement.
+        // A timed-out prior stop stays a barrier: explicit start/restart cannot
+        // turn an unconfirmed known child into an overlapping replacement.
         observePendingStops()
         // Capture admission before taking the process lock to avoid reversing the caller's lock order.
         val admission = prepareLaunch()
@@ -239,8 +239,8 @@ internal class InteractiveTerminalProcess(
         val detached = synchronized(lock) {
             if (destroyed) return
             detachLocked(permanently).also { detached ->
-                // Publish the ordinary restart barrier atomically with detachment; a concurrent explicit start
-                // cannot slip into the dispatch gap.
+                // Publish the ordinary restart barrier atomically with detachment;
+                // a concurrent explicit start cannot slip into the dispatch gap.
                 if (!permanently) detached.process?.let { pendingStops += it }
             }
         }
@@ -275,8 +275,8 @@ internal class InteractiveTerminalProcess(
             }
             reader = thread(name = "droide-terminal-output", isDaemon = true) {
                 try {
-                    // Raw process streams have one termination owner. Reader/writer workers must not race it with
-                    // independent close/flush calls.
+                    // Raw process streams have one termination owner. Reader/writer
+                    // workers must not race it with independent close/flush calls.
                     val input = InputStreamReader(child.inputStream, Charsets.UTF_8)
                     run {
                         val chars = CharArray(4096)
@@ -342,7 +342,8 @@ internal class InteractiveTerminalProcess(
                     }
                 }
                 cleanupOwner?.let { owner ->
-
+                    // Preserve the lease's process-group authority while the root
+                    // is alive, but bound its observation before direct termination.
                     val error = runCatching { observeCleanup(owner) }.exceptionOrNull()
                     if (error != null && synchronized(lock) { !destroyed && generation == ownedGeneration }) {
                         runCatching {

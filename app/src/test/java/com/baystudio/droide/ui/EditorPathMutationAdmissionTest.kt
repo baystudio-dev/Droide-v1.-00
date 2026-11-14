@@ -9,6 +9,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
+/** Real model/save/repository transitions. No native launch, provider, or held-input-barrier claim. */
 class EditorPathMutationAdmissionTest {
     @get:Rule val temp = TemporaryFolder()
 
@@ -87,7 +88,7 @@ class EditorPathMutationAdmissionTest {
         val release = CompletableDeferred<Unit>()
         val savingFiles = FileRepository(root, beforeMutation = { mutation ->
             if (mutation is FileRepository.Mutation.Write) withContext(owner) {
-                document.capture("original")
+                document.capture("original") // Undo can make dirty false while the captured save is in progress.
                 entered.complete(Unit)
                 release.await()
             }

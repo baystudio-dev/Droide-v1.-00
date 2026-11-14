@@ -133,8 +133,8 @@ class BrowserFullPageCaptureTest {
         view.measure(View.MeasureSpec.makeMeasureSpec(120, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(100, View.MeasureSpec.EXACTLY))
         view.layout(0, 0, 120, 100)
-        // ShadowWebView does not perform Chromium layout or requestLayout from setLayoutParams. Use real
-        // public View bounds, as in the lifecycle fixture.
+        // ShadowWebView does not perform Chromium layout or requestLayout from
+        // setLayoutParams. Use real public View bounds, as in the lifecycle fixture.
         view.left = 0
         view.top = 0
         view.right = 120
@@ -195,8 +195,8 @@ class BrowserFullPageCaptureTest {
     private fun assertControlledMemoryFailure(failure: Throwable?, controlledMessage: String) {
         val chain = generateSequence(failure) { it.cause }.take(16).toList()
         val diagnostic = chain.joinToString(" -> ") { "${it.javaClass.simpleName}(${it.message})" }
-        // Coroutine stack-trace recovery may copy BrowserCaptureException and use the original exception
-        // as its cause. Inspect the retained terminal fault.
+        // Coroutine stack-trace recovery may copy BrowserCaptureException and use
+        // the original exception as its cause. Inspect the retained terminal fault.
         println("Controlled capture memory fault: $diagnostic")
         assertTrue("Expected recoverable capture failure: $diagnostic", failure is BrowserCaptureException)
         assertTrue("Expected retained terminal memory fault: $diagnostic", chain.lastOrNull() is OutOfMemoryError)

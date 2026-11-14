@@ -7,6 +7,7 @@ import com.baystudio.droide.core.ChatMediaAccess
 import com.baystudio.droide.core.ChatMediaRef
 import java.io.File
 
+/** Small explicit user actions; no automatic launch, write grants or raw filesystem URLs. */
 object AgentChatMediaOpener {
     fun open(context: Context, workDir: File, ref: ChatMediaRef): String? = launch {
         val uri = ChatMediaAccess.uri(context.applicationContext, workDir, ref)

@@ -11,8 +11,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-// Explicit integration only; normal startup does not enroll or resume this protocol
-// automatically.
+// Explicit integration only; normal startup does not enroll or resume this protocol automatically.
 internal class InitialProjectRegistration(
     appFilesDir: File,
     private val enrollment: CanonicalFileOperationJournal.Enrollment,

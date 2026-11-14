@@ -2,6 +2,12 @@ package com.baystudio.droide.core
 
 import kotlinx.coroutines.flow.MutableStateFlow
 
+
+
+
+
+
+
 internal class AgentStreamProjector(
     private val state: MutableStateFlow<AgentStreamState>,
     private val maxAssistantChars: Int,

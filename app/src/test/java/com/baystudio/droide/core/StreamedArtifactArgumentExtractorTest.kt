@@ -19,7 +19,7 @@ class StreamedArtifactArgumentExtractorTest {
         finally{root.toFile().deleteRecursively()}
     }
     private fun args(s:OwnedResponseContentStore.Session,text:String)=s.begin(OwnedResponseContentStore.Kind.TOOL_ARGUMENTS).use { w->
-
+        // Include one-character fragments, splitting UTF16 surrogate pairs as a real provider may.
         text.forEach { w.append(it.toString()) };w.sealCompleted(::drain).content.handle
     }
     private fun read(s:OwnedResponseContentStore.Session,c:StreamedFileArgumentExtractor.Source)=s.openPages(c.handle).use { p->buildString {while(true)append(p.readPage(31)?:break)} }

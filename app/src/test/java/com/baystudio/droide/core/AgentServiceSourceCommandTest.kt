@@ -148,7 +148,8 @@ class AgentServiceSourceCommandTest {
             try {
                 withTimeout(60000){a.chat("Attempt the requested command under existing policy",f.config,maxTurns=3)}
                 assertTrue(terminal.commands.isEmpty());assertNull(a.approvals.pending.value)
-
+                // Policy filters the advertised catalog BEFORE source-call admission. No private
+                // executable journal record should be invented merely to satisfy a denial fixture.
                 val advertised=(f.requests.first()["tools"] as? JsonArray).orEmpty().mapNotNull {
                     it.jsonObject["function"]?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
                 }
@@ -179,8 +180,8 @@ class AgentServiceSourceCommandTest {
                 val resources=a.sessions.typedChatResources()
                 val locator=checkNotNull(resources.journal.locate(OwnedResponseContentStore.Owner(saved.id,native.runId,"uncertain"),"run_command"))
                 assertEquals(ToolCallHistoryJournal.State.EXECUTING,resources.journal.state(locator))
-                // Recovery evidence can be inspected, but unresolved arguments must not gain the settled replay
-                // capability used by normal continuation/fork.
+                // Recovery evidence can be inspected, but unresolved arguments must not gain
+                // the settled replay capability used by normal continuation/fork.
                 assertThrows(IllegalArgumentException::class.java){resources.journal.completedArguments(locator)}
                 val exactArguments=resources.journal.recordedArguments(locator)
                 assertEquals(original,exactArguments.first.openBytes(exactArguments.second.handle).bufferedReader().use{it.readText()})

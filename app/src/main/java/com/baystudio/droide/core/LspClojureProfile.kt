@@ -55,8 +55,12 @@ internal object LspClojureProfile {
         return JsonObject(result + ("window" to JsonObject(window - "showDocument")))
     }
 
-    /** Only the exact full-document formatting response is normalized. */
-
+    /**
+     * Only the exact full-document formatting response is normalized. The manager
+     * owns profile/request admission; the ordinary edit validator still owns application.
+     * Every unrecognized shape remains unchanged, including blank-file applyEdit's
+     * distinct 999998 sentinel, near-sentinels and multi-edit results.
+     */
     fun normalizeFormatting(result: JsonArray, requestText: String): JsonArray {
         val edit = result.singleOrNull() as? JsonObject ?: return result
         if (edit.keys != setOf("range", "newText")) return result
@@ -72,8 +76,8 @@ internal object LspClojureProfile {
         if (!exactPosition(range["start"], 0, 0) || !exactPosition(range["end"], 999999, 999999)) return result
         val replacement = (edit["newText"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return result
         if (replacement.length > MAX_FORMATTING_TEXT_CHARS || !validUtf16(replacement) || !validUtf16(requestText)) return result
-        // Match the editor's LSP line model without normalizing the captured text: standalone CR and LF
-        // each end a line; CRLF is one line break.
+        // Match the editor's LSP line model without normalizing the captured text:
+        // standalone CR and LF each end a line; CRLF is one line break.
         var endLine = 0
         var lineStart = 0
         var index = 0

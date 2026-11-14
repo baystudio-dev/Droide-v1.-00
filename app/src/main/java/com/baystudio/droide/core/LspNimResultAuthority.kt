@@ -2,8 +2,10 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
-/** Validation only: input is exact captured client text, never a disk read or byte-coordinate
- * conversion. */
+/**
+ * Validation only: input is exact captured client text, never a disk read or byte-coordinate conversion.
+ * URI, pre-request synchronization, current open state, owner and snapshot checks belong to the manager.
+ */
 internal object LspNimResultAuthority {
     const val MAX_RESULT_ITEMS = 4096
     const val MAX_COMPLETIONS = 512
@@ -62,7 +64,7 @@ internal object LspNimResultAuthority {
                 kind?.let { put("kind", it) }
                 item["detail"]?.let { put("detail", it) }
                 item["documentation"]?.let { put("documentation", it) }
-
+                // Always explicit plain text, even if the native symbol kind happens to be Snippet.
                 put("insertTextFormat", 1)
             }
         })

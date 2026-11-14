@@ -95,6 +95,7 @@ if(require.main===module){try{check(equal(process.argv.slice(2),['--stdio']));co
         }
     }
 
+    /** Create the empty private state before the first Node interpreter, even the health supervisor. */
     fun healthHandoff(node: String, guestRoot: String): String {
         requireAbsolute(node); requireAbsolute(guestRoot)
         return """

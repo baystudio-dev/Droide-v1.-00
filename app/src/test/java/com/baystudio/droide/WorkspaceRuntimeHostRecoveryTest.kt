@@ -28,8 +28,8 @@ class WorkspaceRuntimeHostRecoveryTest {
     @Before fun prepareAndroidProcessIdentity() {
         previousPid = Process.myPid()
         ShadowProcess.setPid(4242)
-        // This fixture uses its own Application, so it does not run DroideApplication's admission
-        // initialization. Explicitly model a user-opened session for the host.
+        // This fixture uses its own Application, so it does not run DroideApplication's
+        // admission initialization. Explicitly model a user-opened session for the host.
         ApplicationWorkAdmission.initialize(RuntimeEnvironment.getApplication())
         ApplicationWorkAdmission.reopenFromUser()
     }
@@ -68,8 +68,8 @@ class WorkspaceRuntimeHostRecoveryTest {
             override suspend fun load(): List<String>? = listOf("existing")
             override suspend fun save(ids: List<String>) { recentSaves++ }
         }
-        // ModelsDevCatalog.initialize has an existing fresh-cache early return. Validate the tiny
-        // fixture with its actual parser before starting Host; never seed an empty root.
+        // ModelsDevCatalog.initialize has an existing fresh-cache early return. Validate the
+        // tiny fixture with its actual parser before starting Host; never seed an empty root.
         val cache = File(root, "models-dev/api.json").apply {
             parentFile!!.mkdirs(); writeText("""{"fixture":{"id":"fixture","models":{}}}""")
         }

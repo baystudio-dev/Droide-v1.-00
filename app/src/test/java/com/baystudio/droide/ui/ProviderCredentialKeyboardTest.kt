@@ -30,6 +30,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
 import kotlin.math.roundToInt
 
+/** Real Compose layout/focus driven by deterministic Android IME insets; no provider calls. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w360dp-h640dp")
 class ProviderCredentialKeyboardTest {
@@ -101,7 +102,7 @@ class ProviderCredentialKeyboardTest {
         credential().performImeAction()
         credential().assertIsNotFocused()
         dispatchIme(0)
-
+        // The secret stays masked; input is retained rather than submitted or cleared.
         credential().assertTextContains("•".repeat("unit-test-secret".length))
         compose.onNodeWithText("Connect & validate").performScrollTo().assertIsDisplayed().assertIsEnabled()
     }
@@ -161,8 +162,8 @@ class ProviderCredentialKeyboardTest {
         val dialog = requireNotNull(ShadowDialog.getLatestDialog())
         view = requireNotNull(composeView(requireNotNull(dialog.window).decorView))
         credential().performScrollTo().performClick().performTextInput("unit-test-secret")
-        // Dispatch to the sheet's own dialog root. Material3 consumes IME space outside the form, so a
-        // second application would collapse the viewport.
+        // Dispatch to the sheet's own dialog root. Material3 consumes IME space
+        // outside the form, so a second application would collapse the viewport.
         dispatchIme(260, verifyReceiver = false)
         assertAboveKeyboard((rootHeight - 260).toInt())
         credential().performImeAction()

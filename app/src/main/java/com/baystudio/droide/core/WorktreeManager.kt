@@ -18,6 +18,7 @@ import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.dircache.DirCacheIterator
 import org.eclipse.jgit.treewalk.FileTreeIterator
 
+
 data class IsolatedWorkspaceInfo(
     val name: String,
     val directory: String,
@@ -49,6 +50,7 @@ class WorktreeManager(private val workDir: File) {
     }.getOrElse { "Workspace create failed: ${it.message}" }
 
     // Parent must be clean so the child never receives a silently stale/incomplete snapshot.
+
 
     suspend fun provision(name: String, branch: String = "droide-agent/$name"): IsolatedWorkspaceInfo = worktreeWriterIo("provision") withContext@ {
         val safeName = PathSecurity.safeLeafName(name.trim())
@@ -113,6 +115,7 @@ class WorktreeManager(private val workDir: File) {
         }
     }
 
+     
     suspend fun status(name: String): String = withContext(Dispatchers.IO) {
         val safe = PathSecurity.safeLeafName(name)
         val dir = PathSecurity.resolveWithin(base, safe)
@@ -142,6 +145,7 @@ class WorktreeManager(private val workDir: File) {
         }
     }
 
+     
     suspend fun reviewChanges(name: String): String = withContext(Dispatchers.IO) {
         val safe = PathSecurity.safeLeafName(name)
         val dir = PathSecurity.resolveWithin(base, safe)
@@ -186,8 +190,8 @@ class WorktreeManager(private val workDir: File) {
                     }
                 }
                 format(git.diff().setCached(true).call(), "staged")
-                // scan binds the formatter's content source to the live working tree. DiffEntry IDs returned by
-                // a separate Git.diff() are not necessarily stored Git blobs.
+                // scan binds the formatter's content source to the live working tree. DiffEntry
+                // IDs returned by a separate Git.diff() are not necessarily stored Git blobs.
                 format(formatter.scan(DirCacheIterator(git.repository.readDirCache()), FileTreeIterator(git.repository)), "working tree")
             }
             buildString {
@@ -204,6 +208,7 @@ class WorktreeManager(private val workDir: File) {
     }
 
     // The parent must be clean.
+
 
     suspend fun merge(
         name: String,
@@ -273,6 +278,7 @@ class WorktreeManager(private val workDir: File) {
                     )
                 }
 
+                
                 val childStatus = childGit.status().call()
                 if (!childStatus.isClean) {
                     val candidates = childStatus.added + childStatus.changed + childStatus.modified + childStatus.untracked +
@@ -363,6 +369,7 @@ class WorktreeManager(private val workDir: File) {
         }
     }
 
+     
     suspend fun remove(name: String, force: Boolean = false): String = worktreeWriterIo("remove") withContext@ {
         val safe = PathSecurity.safeLeafName(name)
         val dir = PathSecurity.resolveWithin(base, safe)
@@ -380,8 +387,8 @@ class WorktreeManager(private val workDir: File) {
                     parent.use { parentGit ->
                         val parentHead = parentGit.repository.resolve(Constants.HEAD) ?: error("Cannot resolve parent HEAD")
                         val integrated = RevWalk(parentGit.repository).use { walk ->
-                            // resolve(fullHexId) can return an ID even when this clone lacks its object. An unimported child
-                            // commit must fail the removal guard.
+                            // resolve(fullHexId) can return an ID even when this clone lacks its
+                            // object. An unimported child commit must fail the removal guard.
                             parentGit.repository.objectDatabase.has(childHead) &&
                                 walk.isMergedInto(walk.parseCommit(childHead), walk.parseCommit(parentHead))
                         }

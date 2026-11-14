@@ -11,14 +11,14 @@ internal object TypedChatForkBoundary {
     /** null means a valid but unfinished legacy tool batch, never a usable fork anchor. */
     fun completedEnd(entries: List<TypedChatEntry>): Int? = scan(entries) {}
 
-    /** Valid earlier anchors survive an unfinished or malformed later tail. Width is the serialized
-     * message width, not the number of typed entries (OwnedTurn is atomic). */
+    /** Valid earlier anchors survive an unfinished or malformed later tail. Width is the
+     * serialized message width, not the number of typed entries (OwnedTurn is atomic). */
     fun completedPrefixWidths(entries: List<TypedChatEntry>): Set<Int> {
         val ends = mutableSetOf(0)
         try {
             scan(entries, completedWidth = { ends.add(it) }) {}
         } catch (_: IllegalArgumentException) {
-
+            // No boundary after the first malformed entry is admitted.
         } catch (_: ArithmeticException) {
             // Overflow cannot produce a usable anchor.
         }

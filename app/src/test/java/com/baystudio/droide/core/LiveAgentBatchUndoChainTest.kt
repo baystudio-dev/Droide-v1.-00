@@ -58,7 +58,8 @@ class LiveAgentBatchUndoChainTest {
                 withTimeout(5_000) { paused.await() }
                 val observed = f.snapshot("a.txt")
                 assertEquals(if (pauseBeforeRestore) "second-A" else "first-A", observed.content)
-
+                // C commits while B's rollback call is suspended. The no-op case seals the
+                // still-current B after-version; the other case starts at the restored version.
                 f.apply(Batch.LSP, linkedMapOf("a.txt" to if (pauseBeforeRestore) "second-A" else "third-A"))
                 val concurrentVersion = f.snapshot("a.txt").version
                 if (pauseBeforeRestore) assertEquals(observed.version, concurrentVersion)
@@ -323,7 +324,7 @@ class LiveAgentBatchUndoChainTest {
 
     private fun workspace(block: suspend (Fixture) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("droide-live-batch-chain-").toFile()
-
+        // No AgentTools context, terminal, search-page store, or web client is constructed.
         try { val fixture = Fixture(root); fixture.load(); block(fixture) }
         finally { PathSecurity.deleteTreeNoFollow(root) }
     }

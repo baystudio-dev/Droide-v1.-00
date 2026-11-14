@@ -1,0 +1,1127 @@
+{
+  "schemaVersion": 1,
+  "status": "BUILD_ONLY_DEVICE_UNVALIDATED",
+  "artifactKind": "STANDALONE_CMAKE_NATIVE_BUILD_STATIC_EVIDENCE",
+  "sourceArchiveSha256": "e767a89ace01569e1e0412b2bbd03de171194caa85c3989b770d4bfe9438d317",
+  "sourceTreeUnchanged": true,
+  "sourceContractStatus": "UNBUILT",
+  "sourceContractModified": false,
+  "releaseCompatible": false,
+  "ndkVersion": "28.2.13676358",
+  "cmakeVersion": "3.22.1",
+  "androidApi": 29,
+  "buildType": "Debug",
+  "linkPageSizeFlags": [
+    "-Wl,-z,max-page-size=16384",
+    "-Wl,-z,common-page-size=16384"
+  ],
+  "libraries": [
+    {
+      "abi": "arm64-v8a",
+      "filename": "libtermux.so",
+      "sha256": "e31b4ce48b794cf07be9643c333a58e9805e3ad2b6f9c0d5cfeb2b84fa8d6594",
+      "sizeBytes": 81392,
+      "elfClass": 64,
+      "elfMachine": 183,
+      "architecture": "AArch64",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 15616,
+          "memorySize": 15616,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 15616,
+          "virtualAddress": 32000,
+          "fileSize": 1112,
+          "memorySize": 17152,
+          "flags": 6,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 16728,
+          "virtualAddress": 49496,
+          "fileSize": 8,
+          "memorySize": 5168,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "JNI_OnLoad"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libtermux.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "669372b66366ac8f67391f5b42d5cc774b1ae624",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 15616,
+          "virtualAddress": 32000,
+          "fileSize": 1112,
+          "memorySize": 17152,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/arm64-v8a",
+        "/droide/source/third_party/termux/native/termux.c"
+      ],
+      "jniOnLoadExported": true,
+      "noNumericJavaJniExports": true,
+      "compiledNativeMethodTable": [
+        {
+          "name": "ownedProcessApiVersion",
+          "descriptor": "()I",
+          "cFunction": "owned_process_api_version",
+          "functionAddress": 7712
+        },
+        {
+          "name": "reserveOwnedProcess",
+          "descriptor": "()J",
+          "cFunction": "reserve_owned_process",
+          "functionAddress": 7720
+        },
+        {
+          "name": "createOwnedSubprocess",
+          "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+          "cFunction": "create_owned_subprocess",
+          "functionAddress": 7936
+        },
+        {
+          "name": "requestOwnedStop",
+          "descriptor": "(JI)I",
+          "cFunction": "request_owned_stop",
+          "functionAddress": 9608
+        },
+        {
+          "name": "waitForOwnedProcess",
+          "descriptor": "(J)J",
+          "cFunction": "wait_for_owned_process",
+          "functionAddress": 9828
+        },
+        {
+          "name": "releaseOwnedProcess",
+          "descriptor": "(J)Z",
+          "cFunction": "release_owned_process",
+          "functionAddress": 10868
+        },
+        {
+          "name": "readOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "read_owned_pty_once",
+          "functionAddress": 11060
+        },
+        {
+          "name": "writeOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "write_owned_pty_once",
+          "functionAddress": 11420
+        },
+        {
+          "name": "pollOwnedPtyOnce",
+          "descriptor": "(JII)J",
+          "cFunction": "poll_owned_pty_once",
+          "functionAddress": 11772
+        },
+        {
+          "name": "cancelOwnedPtyIo",
+          "descriptor": "(JI)V",
+          "cFunction": "cancel_owned_pty_io",
+          "functionAddress": 12020
+        },
+        {
+          "name": "releaseOwnedPtyLane",
+          "descriptor": "(JI)Z",
+          "cFunction": "release_owned_pty_lane",
+          "functionAddress": 12160
+        },
+        {
+          "name": "resizeOwnedPty",
+          "descriptor": "(JII)Z",
+          "cFunction": "resize_owned_pty",
+          "functionAddress": 12348
+        }
+      ],
+      "compiledTableCount": 12,
+      "compiledTableSourceJavaContractAgreement": true,
+      "tableInspection": "ELF owned_methods symbol, pointer relocations, strings and function symbols; no execution",
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "arm64-v8a",
+      "filename": "libdroide_files.so",
+      "sha256": "52f7215cab4c6f05eab17f62ac38611753419d172b362e9d8a2facf5814c5615",
+      "sizeBytes": 29520,
+      "elfClass": 64,
+      "elfMachine": 183,
+      "architecture": "AArch64",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 2768,
+          "memorySize": 2768,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 2768,
+          "virtualAddress": 19152,
+          "fileSize": 512,
+          "memorySize": 13616,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "Java_com_baystudio_droide_core_NativeFilePublication_moveNoReplace",
+        "Java_com_baystudio_droide_core_NativeFilePublication_renameNoReplace"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libdroide_files.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "29c6a5b1cbc32b9b0b8390d85942319c60e02fd3",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 2768,
+          "virtualAddress": 19152,
+          "fileSize": 512,
+          "memorySize": 13616,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/arm64-v8a",
+        "/droide/source/app/src/main/cpp/droide_files.c"
+      ],
+      "filePublicationExportsMatch": true,
+      "jniOnLoadRequired": false,
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "armeabi-v7a",
+      "filename": "libtermux.so",
+      "sha256": "139a46e994e326008d6f21d37d6f9e975e7854351bbd4b8e535eb175034b4941",
+      "sizeBytes": 64024,
+      "elfClass": 32,
+      "elfMachine": 40,
+      "architecture": "ARM",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 10464,
+          "memorySize": 10464,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 10464,
+          "virtualAddress": 26848,
+          "fileSize": 564,
+          "memorySize": 5920,
+          "flags": 6,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 11032,
+          "virtualAddress": 43800,
+          "fileSize": 8,
+          "memorySize": 5136,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "JNI_OnLoad"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libtermux.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "9aa11ce655524fb296c26446852767a9c6875ba6",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 10464,
+          "virtualAddress": 26848,
+          "fileSize": 564,
+          "memorySize": 5920,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_frame",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/armeabi-v7a",
+        "/droide/source/third_party/termux/native/termux.c"
+      ],
+      "jniOnLoadExported": true,
+      "noNumericJavaJniExports": true,
+      "compiledNativeMethodTable": [
+        {
+          "name": "ownedProcessApiVersion",
+          "descriptor": "()I",
+          "cFunction": "owned_process_api_version",
+          "functionAddress": 4509
+        },
+        {
+          "name": "reserveOwnedProcess",
+          "descriptor": "()J",
+          "cFunction": "reserve_owned_process",
+          "functionAddress": 4513
+        },
+        {
+          "name": "createOwnedSubprocess",
+          "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+          "cFunction": "create_owned_subprocess",
+          "functionAddress": 4717
+        },
+        {
+          "name": "requestOwnedStop",
+          "descriptor": "(JI)I",
+          "cFunction": "request_owned_stop",
+          "functionAddress": 5941
+        },
+        {
+          "name": "waitForOwnedProcess",
+          "descriptor": "(J)J",
+          "cFunction": "wait_for_owned_process",
+          "functionAddress": 6109
+        },
+        {
+          "name": "releaseOwnedProcess",
+          "descriptor": "(J)Z",
+          "cFunction": "release_owned_process",
+          "functionAddress": 6873
+        },
+        {
+          "name": "readOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "read_owned_pty_once",
+          "functionAddress": 7021
+        },
+        {
+          "name": "writeOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "write_owned_pty_once",
+          "functionAddress": 7269
+        },
+        {
+          "name": "pollOwnedPtyOnce",
+          "descriptor": "(JII)J",
+          "cFunction": "poll_owned_pty_once",
+          "functionAddress": 7513
+        },
+        {
+          "name": "cancelOwnedPtyIo",
+          "descriptor": "(JI)V",
+          "cFunction": "cancel_owned_pty_io",
+          "functionAddress": 7709
+        },
+        {
+          "name": "releaseOwnedPtyLane",
+          "descriptor": "(JI)Z",
+          "cFunction": "release_owned_pty_lane",
+          "functionAddress": 7825
+        },
+        {
+          "name": "resizeOwnedPty",
+          "descriptor": "(JII)Z",
+          "cFunction": "resize_owned_pty",
+          "functionAddress": 7969
+        }
+      ],
+      "compiledTableCount": 12,
+      "compiledTableSourceJavaContractAgreement": true,
+      "tableInspection": "ELF owned_methods symbol, pointer relocations, strings and function symbols; no execution",
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "armeabi-v7a",
+      "filename": "libdroide_files.so",
+      "sha256": "e483fa273b266f99f17471122f332f2ade53940a048e007252cfbc84cc900413",
+      "sizeBytes": 25812,
+      "elfClass": 32,
+      "elfMachine": 40,
+      "architecture": "ARM",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 1872,
+          "memorySize": 1872,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 1872,
+          "virtualAddress": 18256,
+          "fileSize": 260,
+          "memorySize": 14512,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "Java_com_baystudio_droide_core_NativeFilePublication_moveNoReplace",
+        "Java_com_baystudio_droide_core_NativeFilePublication_renameNoReplace"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libdroide_files.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "38fc02be3111c0fdbba4e5ed3fba713565a382eb",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 1872,
+          "virtualAddress": 18256,
+          "fileSize": 260,
+          "memorySize": 14512,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_frame",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/armeabi-v7a",
+        "/droide/source/app/src/main/cpp/droide_files.c"
+      ],
+      "filePublicationExportsMatch": true,
+      "jniOnLoadRequired": false,
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "x86",
+      "filename": "libtermux.so",
+      "sha256": "5e65e9b0394afd61205b25bf117c20fb1c24e772e108e57581c1bd30d75cf952",
+      "sizeBytes": 65876,
+      "elfClass": 32,
+      "elfMachine": 3,
+      "architecture": "Intel 80386",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 13824,
+          "memorySize": 13824,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 13824,
+          "virtualAddress": 30208,
+          "fileSize": 556,
+          "memorySize": 2560,
+          "flags": 6,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 14384,
+          "virtualAddress": 47152,
+          "fileSize": 8,
+          "memorySize": 5132,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "JNI_OnLoad"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libtermux.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "f10d440253c7edaa6dd25d3e3386ed968ea9b431",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 13824,
+          "virtualAddress": 30208,
+          "fileSize": 556,
+          "memorySize": 2560,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/x86",
+        "/droide/source/third_party/termux/native/termux.c"
+      ],
+      "jniOnLoadExported": true,
+      "noNumericJavaJniExports": true,
+      "compiledNativeMethodTable": [
+        {
+          "name": "ownedProcessApiVersion",
+          "descriptor": "()I",
+          "cFunction": "owned_process_api_version",
+          "functionAddress": 5483
+        },
+        {
+          "name": "reserveOwnedProcess",
+          "descriptor": "()J",
+          "cFunction": "reserve_owned_process",
+          "functionAddress": 5489
+        },
+        {
+          "name": "createOwnedSubprocess",
+          "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+          "cFunction": "create_owned_subprocess",
+          "functionAddress": 5724
+        },
+        {
+          "name": "requestOwnedStop",
+          "descriptor": "(JI)I",
+          "cFunction": "request_owned_stop",
+          "functionAddress": 7993
+        },
+        {
+          "name": "waitForOwnedProcess",
+          "descriptor": "(J)J",
+          "cFunction": "wait_for_owned_process",
+          "functionAddress": 8192
+        },
+        {
+          "name": "releaseOwnedProcess",
+          "descriptor": "(J)Z",
+          "cFunction": "release_owned_process",
+          "functionAddress": 9330
+        },
+        {
+          "name": "readOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "read_owned_pty_once",
+          "functionAddress": 9517
+        },
+        {
+          "name": "writeOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "write_owned_pty_once",
+          "functionAddress": 9883
+        },
+        {
+          "name": "pollOwnedPtyOnce",
+          "descriptor": "(JII)J",
+          "cFunction": "poll_owned_pty_once",
+          "functionAddress": 10260
+        },
+        {
+          "name": "cancelOwnedPtyIo",
+          "descriptor": "(JI)V",
+          "cFunction": "cancel_owned_pty_io",
+          "functionAddress": 10492
+        },
+        {
+          "name": "releaseOwnedPtyLane",
+          "descriptor": "(JI)Z",
+          "cFunction": "release_owned_pty_lane",
+          "functionAddress": 10619
+        },
+        {
+          "name": "resizeOwnedPty",
+          "descriptor": "(JII)Z",
+          "cFunction": "resize_owned_pty",
+          "functionAddress": 10788
+        }
+      ],
+      "compiledTableCount": 12,
+      "compiledTableSourceJavaContractAgreement": true,
+      "tableInspection": "ELF owned_methods symbol, pointer relocations, strings and function symbols; no execution",
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "x86",
+      "filename": "libdroide_files.so",
+      "sha256": "551ddabb8bbd7a5c3712714de1549017014212d9b8402c6b72b6f45409f54886",
+      "sizeBytes": 25504,
+      "elfClass": 32,
+      "elfMachine": 3,
+      "architecture": "Intel 80386",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 2416,
+          "memorySize": 2416,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 2416,
+          "virtualAddress": 18800,
+          "fileSize": 256,
+          "memorySize": 13968,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "Java_com_baystudio_droide_core_NativeFilePublication_moveNoReplace",
+        "Java_com_baystudio_droide_core_NativeFilePublication_renameNoReplace"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libdroide_files.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "c35196a490e137378554db30f8d2f5885675c3ef",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 2416,
+          "virtualAddress": 18800,
+          "fileSize": 256,
+          "memorySize": 13968,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/x86",
+        "/droide/source/app/src/main/cpp/droide_files.c"
+      ],
+      "filePublicationExportsMatch": true,
+      "jniOnLoadRequired": false,
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "x86_64",
+      "filename": "libtermux.so",
+      "sha256": "aec7e11c45798469aafd05d860ca34ef792131f733089dce2c95317ad8892669",
+      "sizeBytes": 78808,
+      "elfClass": 64,
+      "elfMachine": 62,
+      "architecture": "AMD x86-64",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 14880,
+          "memorySize": 14880,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 14880,
+          "virtualAddress": 31264,
+          "fileSize": 1120,
+          "memorySize": 1504,
+          "flags": 6,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 16000,
+          "virtualAddress": 48768,
+          "fileSize": 8,
+          "memorySize": 5184,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "JNI_OnLoad"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libtermux.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "ce854f5b2d088576799acdcb0aa4c7ccf297db79",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 14880,
+          "virtualAddress": 31264,
+          "fileSize": 1120,
+          "memorySize": 1504,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/x86_64",
+        "/droide/source/third_party/termux/native/termux.c"
+      ],
+      "jniOnLoadExported": true,
+      "noNumericJavaJniExports": true,
+      "compiledNativeMethodTable": [
+        {
+          "name": "ownedProcessApiVersion",
+          "descriptor": "()I",
+          "cFunction": "owned_process_api_version",
+          "functionAddress": 7404
+        },
+        {
+          "name": "reserveOwnedProcess",
+          "descriptor": "()J",
+          "cFunction": "reserve_owned_process",
+          "functionAddress": 7410
+        },
+        {
+          "name": "createOwnedSubprocess",
+          "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+          "cFunction": "create_owned_subprocess",
+          "functionAddress": 7631
+        },
+        {
+          "name": "requestOwnedStop",
+          "descriptor": "(JI)I",
+          "cFunction": "request_owned_stop",
+          "functionAddress": 9375
+        },
+        {
+          "name": "waitForOwnedProcess",
+          "descriptor": "(J)J",
+          "cFunction": "wait_for_owned_process",
+          "functionAddress": 9563
+        },
+        {
+          "name": "releaseOwnedProcess",
+          "descriptor": "(J)Z",
+          "cFunction": "release_owned_process",
+          "functionAddress": 10668
+        },
+        {
+          "name": "readOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "read_owned_pty_once",
+          "functionAddress": 10821
+        },
+        {
+          "name": "writeOwnedPtyOnce",
+          "descriptor": "(J[BII)J",
+          "cFunction": "write_owned_pty_once",
+          "functionAddress": 11178
+        },
+        {
+          "name": "pollOwnedPtyOnce",
+          "descriptor": "(JII)J",
+          "cFunction": "poll_owned_pty_once",
+          "functionAddress": 11487
+        },
+        {
+          "name": "cancelOwnedPtyIo",
+          "descriptor": "(JI)V",
+          "cFunction": "cancel_owned_pty_io",
+          "functionAddress": 11708
+        },
+        {
+          "name": "releaseOwnedPtyLane",
+          "descriptor": "(JI)Z",
+          "cFunction": "release_owned_pty_lane",
+          "functionAddress": 11809
+        },
+        {
+          "name": "resizeOwnedPty",
+          "descriptor": "(JII)Z",
+          "cFunction": "resize_owned_pty",
+          "functionAddress": 11950
+        }
+      ],
+      "compiledTableCount": 12,
+      "compiledTableSourceJavaContractAgreement": true,
+      "tableInspection": "ELF owned_methods symbol, pointer relocations, strings and function symbols; no execution",
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    },
+    {
+      "abi": "x86_64",
+      "filename": "libdroide_files.so",
+      "sha256": "02e1f27c87c2901911d6150c97a5080356d440b52e7130505ae2afbafcca3e80",
+      "sizeBytes": 28416,
+      "elfClass": 64,
+      "elfMachine": 62,
+      "architecture": "AMD x86-64",
+      "elfType": "DYN",
+      "loadSegments": [
+        {
+          "type": 1,
+          "offset": 0,
+          "virtualAddress": 0,
+          "fileSize": 2704,
+          "memorySize": 2704,
+          "flags": 5,
+          "alignment": 16384
+        },
+        {
+          "type": 1,
+          "offset": 2704,
+          "virtualAddress": 19088,
+          "fileSize": 512,
+          "memorySize": 13680,
+          "flags": 6,
+          "alignment": 16384
+        }
+      ],
+      "allLoadSegmentsAtLeast16KiBAligned": true,
+      "definedDynamicExports": [
+        "Java_com_baystudio_droide_core_NativeFilePublication_moveNoReplace",
+        "Java_com_baystudio_droide_core_NativeFilePublication_renameNoReplace"
+      ],
+      "forbiddenLegacyExportsAbsent": true,
+      "executionEvidence": null,
+      "soname": "libdroide_files.so",
+      "neededLibraries": [
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "buildId": "b8634ff479ab16aa2f1cb9d1ac3dc64ee5a31996",
+      "gnuRelroSegments": [
+        {
+          "type": 1685382482,
+          "offset": 2704,
+          "virtualAddress": 19088,
+          "fileSize": 512,
+          "memorySize": 13680,
+          "flags": 4,
+          "alignment": 1
+        }
+      ],
+      "bindNow": true,
+      "nonExecutableGnuStack": true,
+      "textRelocations": false,
+      "writableExecutableLoadSegments": false,
+      "staticFullRelro": true,
+      "debugSectionsRetained": [
+        ".debug_loc",
+        ".debug_abbrev",
+        ".debug_info",
+        ".debug_ranges",
+        ".debug_str",
+        ".debug_line"
+      ],
+      "normalizedPathStrings": [
+        "/droide/native/x86_64",
+        "/droide/source/app/src/main/cpp/droide_files.c"
+      ],
+      "filePublicationExportsMatch": true,
+      "jniOnLoadRequired": false,
+      "physicalSourceBuildOrNdkPathsEmbedded": false
+    }
+  ],
+  "actualCommandChecks": {
+    "arm64-v8a": {
+      "defaultNdkHardeningAndTargetOptionsPresent": true,
+      "testSeamOrSanitizerInjectionAbsent": true,
+      "both16KiBLinkFlagsPresentForBothLibraries": true,
+      "compileCommandsSha256": "daa7d2c673074fd070c2b13810e782f1de19e9bc4a97bc21ed6a14c3fda08cb5",
+      "ninjaCommandsSha256": "79556283a39765eecdd645c544b589821dafad9a88b0dc9b5f786fbdc5cdea34"
+    },
+    "armeabi-v7a": {
+      "defaultNdkHardeningAndTargetOptionsPresent": true,
+      "testSeamOrSanitizerInjectionAbsent": true,
+      "both16KiBLinkFlagsPresentForBothLibraries": true,
+      "compileCommandsSha256": "2f34466f15a0aa435728d188b86dd2e75d296e70a4a1cc780d84d0cb8061070e",
+      "ninjaCommandsSha256": "bd2e3692e32fdf8cab7bc8ff0c38b4bfcd882091fa44f36720a8bfb839a717b0"
+    },
+    "x86": {
+      "defaultNdkHardeningAndTargetOptionsPresent": true,
+      "testSeamOrSanitizerInjectionAbsent": true,
+      "both16KiBLinkFlagsPresentForBothLibraries": true,
+      "compileCommandsSha256": "2c58ddf3da87427a19da544a73fc0f9676ef816cc581b7b4e65219136f21769f",
+      "ninjaCommandsSha256": "fa9712350e595be5ac9726db7db1fa3af08595e29ac89f7eecb85edfe4ce590b"
+    },
+    "x86_64": {
+      "defaultNdkHardeningAndTargetOptionsPresent": true,
+      "testSeamOrSanitizerInjectionAbsent": true,
+      "both16KiBLinkFlagsPresentForBothLibraries": true,
+      "compileCommandsSha256": "8c6f2a3294177b1acea24406d01ab17b730134051e6be8c444b04d0fa06c8e47",
+      "ninjaCommandsSha256": "dadfa3421589c1054eb3c02a04f4ca66abeb71ca978d862eded34bc7c182c432"
+    }
+  },
+  "executionEvidence": null,
+  "independentReproduction": "PENDING_SEPARATE_BUILD",
+  "evidenceFiles": {
+    "arm64-v8a-actual-commands.log": "79556283a39765eecdd645c544b589821dafad9a88b0dc9b5f786fbdc5cdea34",
+    "arm64-v8a-build.log": "906d404a357d7d1afe1ada55b86f7d9b6aa4f6d569b284e84449ae106127530e",
+    "arm64-v8a-configure.log": "1f1b2cdc698cac7cd0a6e327dbe1dbc72d7610442bddaa50eeae211700717e18",
+    "arm64-v8a-libdroide_files.so-nm-defined-dynamic.txt": "76442ce695e9a2e9ba2bb99b8c4fb2eeb2c2492bed0fac0e9dbc1972f9006d74",
+    "arm64-v8a-libdroide_files.so-readelf.txt": "4a65c56e961e0d3e07ffe1a907c8e70374cef7c81a7826afcda6f5afc517116c",
+    "arm64-v8a-libtermux.so-nm-defined-dynamic.txt": "5ff16a92fc1b560709fdf4740f251ed876bcd9be748621bbd73e194fa01a18f2",
+    "arm64-v8a-libtermux.so-readelf.txt": "412b6c5bd0135e543c04810d9be378503745b4484c98fcb98cd63bf737490ef0",
+    "armeabi-v7a-actual-commands.log": "bd2e3692e32fdf8cab7bc8ff0c38b4bfcd882091fa44f36720a8bfb839a717b0",
+    "armeabi-v7a-build.log": "7c3a166fd8f4cb91cf4009314c1431a2d5f5ae803498fd686471ac9d32f8d3b5",
+    "armeabi-v7a-configure.log": "e05568b8d7653d8030ca4a53ab6556f5058452bda6f2d47b66dd3986182b8bee",
+    "armeabi-v7a-libdroide_files.so-nm-defined-dynamic.txt": "cfe9ebf43b1eb8d499d140e720c8d24d8719a1b31f207a4a28da5292862d5969",
+    "armeabi-v7a-libdroide_files.so-readelf.txt": "5f555d8e83b9a7d0d0a0c2c64b90563acff48b253078ca8416ea03d5246fe302",
+    "armeabi-v7a-libtermux.so-nm-defined-dynamic.txt": "c390a7feb1e1f30af72819ee78def1cf61184261c6a60f2255906736a03f7e66",
+    "armeabi-v7a-libtermux.so-readelf.txt": "3bb8d3898e44f8f901eba6d0c2800ef9195b7ecd5621b7aee47a17a8db28dfae",
+    "build-diagnostics.json": "6e853e798fb60b5dfc08334a383e5b715f0ccd53f754171f3321ea37462b717b",
+    "build-plan.json": "fcfd78b9d29f9e198a11842a165da5e873da7766ad5897ae91359bf3b67cbbbc",
+    "build_native.py": "009f61a09b6473d2f9b2d0a84bbb7909517156b8714c81f8cf6d37f1ee127185",
+    "commands.json": "1a2bebc59432211b64649c80458b12fb9c0876a9bae06dc90990035b0acf9630",
+    "compilation-result.json": "8f2d0442f7ab2243d42adbe5c7ce749b1b6300112d632e9476b56a11e1811745",
+    "compiled-java-table-agreement.json": "db7d066be078f947549697e64206a4869d005ebff291dfae9c098357aa82ccf5",
+    "finalize_evidence.py": "14c1db53204185eee95c604894bf82f79ea5861f06c104e35230bb253b0cfe15",
+    "inspect_native.py": "8c810e36203ef44294c20a5e54cb90ee66e01e9939edb08df5df0088b09e8857",
+    "inspection-commands.json": "bf1b0f1237d5eabeca0939e9ed7632c644b517449cecd7b64dbdab50a0ea540a",
+    "ndk-cmake-inputs.json": "15e83c1bfdeccd22832199118d30b6d358411386fade1231bdd47cec4f381414",
+    "preflight-correction.json": "ab50b478b21564e2cd129e63233f6d35991dd7c1cb68dc000b7af440aff1a246",
+    "source-tree-after.json": "10cb60a27bb55a2e5d1ec044a3e089ceda96cc7deb61557569ae75e1046a0fc5",
+    "source-tree-before.json": "10cb60a27bb55a2e5d1ec044a3e089ceda96cc7deb61557569ae75e1046a0fc5",
+    "static-source-inspection.json": "8a69322c32c088beba89a4349dc15304784a65da96622002afd0bb2d57921985",
+    "tool-clang.log": "b6d66cde29660871542999b7eb72a27e29909c7e13a24dd97a771c6635cf6baa",
+    "tool-cmake.log": "90cd757f403ff8f205a0b6a5c35cb226381cfdf7aedd87b2ca34df02bb51ef99",
+    "tool-identities.json": "7b9217974330d43806529811e25e590c70b0604e4a9d7437239847b6d148f1ff",
+    "tool-ld-lld.log": "beb081d9d28d09dd4f1c22c71aafbfde911fabc5e08b870749953232eb57c07f",
+    "tool-llvm-nm.log": "cd217ec0c676f167944beb9155e9de10d7aa73ac10c8380f6c205ab32c59dca2",
+    "tool-llvm-readelf.log": "94808aded17d65b49712a685424bdb641a02b7dbfdd6f5a648b7c89061b5c097",
+    "tool-ninja.log": "50020f5178d4e42fca05b2455fbe25f0a8a19b7537bab9fa87429ec5ebe20de1",
+    "x86-actual-commands.log": "fa9712350e595be5ac9726db7db1fa3af08595e29ac89f7eecb85edfe4ce590b",
+    "x86-build.log": "d08acfd35120a7d3863b4ca6f2894e1e430a7b7b58870165e8954fb36bcec57c",
+    "x86-configure.log": "a1a9d6bb25447912e42b1de6cf88f341478297b1265eeab60142d4775c76eb63",
+    "x86-libdroide_files.so-nm-defined-dynamic.txt": "6e9607e50cbd7e55fc785c1d07f2f8b7e61d9577b89ee3c41c70246af74e7c00",
+    "x86-libdroide_files.so-readelf.txt": "add595158a0e43d4959290b9c9d0cf8255ce283104d51b123d4ac684ecd03420",
+    "x86-libtermux.so-nm-defined-dynamic.txt": "635e725cc176c28888cb310691f6a1d3a4a2e267f40ec5e39026a7bccc35b405",
+    "x86-libtermux.so-readelf.txt": "ad4b796b6d655b0e0d375087abc0570f0716ccdefc9d6a51a9fd894d4388802b",
+    "x86_64-actual-commands.log": "dadfa3421589c1054eb3c02a04f4ca66abeb71ca978d862eded34bc7c182c432",
+    "x86_64-build.log": "c0999f934bc1669623eecee00da35b2506617a22879364a5194d23a9e56a142c",
+    "x86_64-configure.log": "0aa9b40a4506d6822ec39fc7a99f285412c75b9a71e06961db7da6070d49aa77",
+    "x86_64-libdroide_files.so-nm-defined-dynamic.txt": "96c8aab0550ac5e7569661b00b1c742b25fdbd5fc24f1e69f6207e97aac6d244",
+    "x86_64-libdroide_files.so-readelf.txt": "9b6725d595023566f77c5f824f408d37171f3b597532be01d760a1bbded2e769",
+    "x86_64-libtermux.so-nm-defined-dynamic.txt": "5d35b2d2e723c2b75537c6f06843af8dd5619e06833b86d5860c40fa82e3b474",
+    "x86_64-libtermux.so-readelf.txt": "67d8876ecc96e96607b8bba8f843def5ef3c722b89b08aa8588d8d7221b7dea5"
+  },
+  "limitations": [
+    "No Android/JNI, PTY, process, kernel, device or harness execution occurred.",
+    "Static table agreement does not prove runtime JNI registration succeeds.",
+    "Compilation does not validate PID/fd ownership, races, signals or cleanup.",
+    "Four ABI compilation is not full-workstation support certification.",
+    "Standalone CMake bytes are not presumed equal to future AGP-packaged bytes.",
+    "This derived receipt does not satisfy or modify the existing release admission gate."
+  ],
+  "compiledJavaClassAgreement": {
+    "evidenceKind": "STATIC_CLASSFILE_AND_ELF_TABLE_PARSING_ONLY",
+    "class": {
+      "className": "com/termux/terminal/JNI",
+      "majorVersion": 52,
+      "minorVersion": 0,
+      "nativeStaticMethods": [
+        {
+          "name": "ownedProcessApiVersion",
+          "descriptor": "()I"
+        },
+        {
+          "name": "reserveOwnedProcess",
+          "descriptor": "()J"
+        },
+        {
+          "name": "createOwnedSubprocess",
+          "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I"
+        },
+        {
+          "name": "requestOwnedStop",
+          "descriptor": "(JI)I"
+        },
+        {
+          "name": "waitForOwnedProcess",
+          "descriptor": "(J)J"
+        },
+        {
+          "name": "releaseOwnedProcess",
+          "descriptor": "(J)Z"
+        },
+        {
+          "name": "readOwnedPtyOnce",
+          "descriptor": "(J[BII)J"
+        },
+        {
+          "name": "writeOwnedPtyOnce",
+          "descriptor": "(J[BII)J"
+        },
+        {
+          "name": "pollOwnedPtyOnce",
+          "descriptor": "(JII)J"
+        },
+        {
+          "name": "cancelOwnedPtyIo",
+          "descriptor": "(JI)V"
+        },
+        {
+          "name": "releaseOwnedPtyLane",
+          "descriptor": "(JI)Z"
+        },
+        {
+          "name": "resizeOwnedPty",
+          "descriptor": "(JII)Z"
+        }
+      ]
+    },
+    "aarSha256": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+    "classesJarSha256": "57d86325ce93620e859e088cfbb82c23453365a30c026f280a5e907c2a0c6790",
+    "jniClassSha256": "0f46033d6a7753e9bf7fa4784811c430a04b897462759b7df281553a6608782a",
+    "allFourCompiledNativeTablesMatchCompiledJavaClass": true,
+    "compiledClassMatchesJavaSourceAndSourceContract": true,
+    "producerComparisonSha256": "ed77c4005499c814534b9d6b771037f393a3f6d4ab5dd40c40ec4e36549028aa",
+    "executionEvidence": null,
+    "classInitializationOrJniRegistrationExecuted": false
+  },
+  "buildSourceIdentity": {
+    "nativeSourceMatchesPreservedR40": true,
+    "authorizedJavaDerivedArtifactPresent": true,
+    "derivedAarSha256": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+    "nativeBuildChangedSourceTree": false,
+    "sourceFileCount": 8723
+  },
+  "compilerAndCmakeWarningErrorCount": 0
+}

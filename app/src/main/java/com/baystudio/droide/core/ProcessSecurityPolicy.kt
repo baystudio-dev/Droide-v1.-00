@@ -1,10 +1,11 @@
 package com.baystudio.droide.core
 
+ 
 object ProcessSecurityPolicy {
     private val executableName = Regex("[A-Za-z0-9._+-]{1,128}")
     private val environmentKey = Regex("[A-Za-z_][A-Za-z0-9_]{0,63}")
-    // Capability admission must agree with the known PATH roots. This does not allow arbitrary /root
-    // paths or change Android/device executable ownership bounds.
+    // Capability admission must agree with the known PATH roots. This does not allow
+    // arbitrary /root paths or change Android/device executable ownership bounds.
     private val GUEST_EXECUTABLE_ROOTS = LocalLinuxUserEnvironment.executableRoots()
 
     fun requireExecutableName(command: String) {
@@ -17,11 +18,13 @@ object ProcessSecurityPolicy {
         return path.startsWith("/system/") || path.startsWith("/apex/") || path.startsWith(allowedManagedRoot)
     }
 
+     
     fun isAllowedGuestExecutable(path: String): Boolean {
         if (!isSafeAbsoluteExecutablePath(path)) return false
         return GUEST_EXECUTABLE_ROOTS.any { root -> path.startsWith("$root/") }
     }
 
+     
     fun isAllowedCapabilityExecutable(path: String, managedRoot: String): Boolean =
         isAllowedRemoteExecutable(path, managedRoot) || isAllowedGuestExecutable(path)
 

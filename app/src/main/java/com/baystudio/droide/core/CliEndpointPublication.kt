@@ -12,6 +12,7 @@ import java.nio.file.StandardOpenOption.WRITE
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.UUID
 
+/** The server's one publication slot. All session selection/revocation uses [monitor] too. */
 internal class CliEndpointPublication<Owner : Any>(
     private val isCurrent: (Owner) -> Boolean,
     private val replace: (Owner) -> Unit,
@@ -63,7 +64,8 @@ internal class CliEndpointFile(filesDir: File, private val workspaceId: String) 
             requireDirectoryPath(directory)
         }
         val payload = "DROIDE_CLI_ENDPOINT_V1\n$socketName\n$workspaceId\n".toByteArray(Charsets.UTF_8)
-
+        // CREATE_NEW + NOFOLLOW refuses an existing staging leaf. 0600 applies at creation,
+        // rather than after a world-readable payload could already have been written.
         Files.newByteChannel(
             stagingFile.toPath(),
             setOf<OpenOption>(CREATE_NEW, WRITE, NOFOLLOW_LINKS),

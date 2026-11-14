@@ -114,8 +114,7 @@ class DeclarativeExtensionStore(context: Context) {
             detached = true
         }
         try {
-            // A failed index commit restores the previously active payload instead of reporting an uninstall
-            // that never completed.
+            // A failed index commit restores the previously active payload instead of reporting an uninstall that never completed.
 
             writeIndex(DeclarativeExtensionIndex(records = current.records.filterNot { it.extensionId == extensionId }))
         } catch (t: Throwable) {

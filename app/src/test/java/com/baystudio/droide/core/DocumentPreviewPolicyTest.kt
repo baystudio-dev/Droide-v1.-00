@@ -86,3 +86,4 @@ class DocumentPreviewPolicyTest {
         assertTrue(cache.listFiles().orEmpty().isEmpty())
     }
 }
+

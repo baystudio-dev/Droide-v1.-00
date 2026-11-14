@@ -44,7 +44,7 @@ internal fun MutableStateFlow<WorkspaceFailureEvent?>.publishWorkspaceFailure(ev
 }
 
 internal fun MutableStateFlow<WorkspaceFailureEvent?>.consumeWorkspaceFailure(event: WorkspaceFailureEvent) {
-
+    // WorkspaceFailureEvent deliberately keeps reference equality, including for equal IDs.
     compareAndSet(event, null)
 }
 

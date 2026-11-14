@@ -130,7 +130,7 @@ class LandscapePanelControlsTest {
             } }
         } }
         compose.onNodeWithTag("input").assertHeightIsAtLeast(80.dp)
-        compose.onNodeWithContentDescription("Send Ctrl+C / interrupt shell").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Send Ctrl+C").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Commands").performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText("Find / Export retained history").assertExists()
     }

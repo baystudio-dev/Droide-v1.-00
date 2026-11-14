@@ -163,7 +163,7 @@ class AgentLspDiskCommitTest {
             .apply(prepared(mapOf("a.kt" to "before"), mapOf("a.kt" to "after"))) }
         assertOriginatingFailure(stopped, result.exceptionOrNull())
         assertEquals("after", root.resolve("a.kt").readText())
-        assertEquals(0, history.depth())
+        assertEquals(0, history.depth()) // The ambiguous call has no invented after-token.
         assertTrue(root.resolve(".droide/backups").listFiles().orEmpty().any { it.isFile && it.readText() == "before" })
     }
 

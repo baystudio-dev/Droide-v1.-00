@@ -9,6 +9,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real ACP request dispatch, real local mirror/repositories, and an in-memory protocol peer. */
 class AcpMirrorEditGrantLifecycleTest {
     private class Fixture(val root: File, effect: PermEffect) : AutoCloseable {
         val source = File(root, "project").apply { mkdirs() }

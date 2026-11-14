@@ -18,6 +18,8 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+
+/** Exercises exact production manager and JSON-RPC transport with a deterministic peer. */
 class LspResultTruthTest {
     @Test(timeout = 10000) fun silentPushServerRemainsPendingWithoutInventingARequest() = runBlocking {
         Fixture().use { f ->
@@ -239,8 +241,8 @@ class LspResultTruthTest {
             f.manager.didClose("main.py")
             f.manager.didOpen("main.py", "new = 2\n")
             f.manager.completionItems("main.py", 1, 1)
-            // This may be a delayed report from the old open lifetime, which used the same version. Receipt
-            // time alone cannot distinguish that report.
+            // This may be a delayed report from the old open lifetime, which used
+            // the same version. Receipt time alone cannot distinguish that report.
             f.host.empty(version = 1)
             awaitUntil { f.manager.diagnostics.value.containsKey(f.localUri("main.py")) }
             val result = f.manager.diagnose("main.py")

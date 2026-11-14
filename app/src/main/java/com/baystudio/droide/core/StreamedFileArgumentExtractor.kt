@@ -5,8 +5,16 @@ import java.io.InputStreamReader
 import java.io.Reader
 import java.nio.charset.CodingErrorAction
 
-/** Narrow schema extractor, NOT a general JSON parser or mutation authority. */
-
+/** Narrow schema extractor, NOT a general JSON parser or mutation authority.
+ * Parses complete stored write_file/edit_file arguments without materializing content/search/
+ * replace Strings. Full syntax/schema/duplicate/EOF validation precedes derived content sealing.
+ * No hooks, permission requests, file mutations or tool dispatch occur here.
+ *
+ * The legacy catalog permits unknown properties; this new route explicitly rejects unsupported
+ * fields instead of silently dropping them. Legacy behavior and global 128k admission are unchanged.
+ * A separately reviewed executor must still enforce ownership, hooks, permissions, document CAS,
+ * disk receipts, undo and durable history before any project side effect.
+ */
 internal object StreamedFileArgumentExtractor {
     enum class Tool(val wireName: String) { WRITE_FILE("write_file"), EDIT_FILE("edit_file") }
     fun canonicalTool(wireName: String): Tool = when(wireName) {
@@ -65,8 +73,9 @@ internal object StreamedFileArgumentExtractor {
         init { initCause(cause) }
     }
 
-    /** The protocol adapter supplies a stable completed call identity. Storage completion alone does
-     * not prove provider terminal admission; callers must satisfy that before invoking this. */
+    /** The protocol adapter supplies a stable completed call identity. Storage completion alone
+     * does not prove provider terminal admission; callers must satisfy that before invoking this.
+     */
     fun extract(
         session: OwnedResponseContentStore.Session,
         originalArguments: OwnedResponseContentStore.Handle,
@@ -101,12 +110,13 @@ internal object StreamedFileArgumentExtractor {
                     while (true) { checkCancelled(); val n = input.read(buffer); if (n < 0) break; check(n > 0) }
                 }.content)
             }
-            checkCancelled()
+            checkCancelled() // sealing the final scalar can suspend/perform substantial IO
             return Prepared(tool, callId, parsed.path, parsed.expected, source(original),
                 fields["content"], fields["search"], fields["replace"])
         } catch (failure: Exception) {
-            // Only explicitly owned unpublished extraction stages are discarded.
-
+            // Only explicitly owned unpublished extraction stages are discarded. Published
+            // artifacts survive an uncertain multi-field seal and must enter the owner's
+            // recovery journal; they never become a Prepared execution candidate here.
             val retained = mutableListOf<OwnedResponseContentStore.Handle>()
             stages.values.forEach { writer ->
                 try { writer.close() } catch (close: Exception) { failure.addSuppressed(close) }
@@ -197,8 +207,8 @@ internal object StreamedFileArgumentExtractor {
             return text.toString()
         }
         private fun counter(): Int {
-            // Match current WorkspaceDocumentVersion's non-negative Int semantics. Quoted numbers,
-            // decimals/exponents, leading zeros and overflow are not coerced.
+            // Match current WorkspaceDocumentVersion's non-negative Int semantics. Quoted
+            // numbers, decimals/exponents, leading zeros and overflow are not coerced.
             val text = StringBuilder(10)
             if (peek() == '-'.code) text.append(take().toChar())
             if (peek() == '0'.code) text.append(take().toChar())

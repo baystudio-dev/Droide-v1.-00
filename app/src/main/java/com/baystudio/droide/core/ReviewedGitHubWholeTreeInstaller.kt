@@ -18,6 +18,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+
+
+
+
+
+
+
 internal class ReviewedGitHubWholeTreeInstaller(
     private val bridge: DeviceBridgeManager,
     private val packageInstaller: ManagedPackageInstaller,
@@ -344,6 +351,11 @@ internal class SafeTreeProjection(
     val totalBytes: Long,
     val treeSha256: String,
 ) : Closeable {
+    
+
+
+
+
 
     fun releaseLocalPayload(file: SafeTreeFile) {
         val canonicalRoot = root.canonicalFile
@@ -489,6 +501,7 @@ internal object SafeWholeTreeArchive {
         files
     }
 
+    /** Reviewed vendor TAR input uses the same entry parser, with a separate larger file-count bound. */
     fun projectVendorTar(archive: File, executablePaths: Set<String>, maxFiles: Int,
         maxUnpackedBytes: Long, checkActive: () -> Unit = {}, gzip: Boolean = false,
         allowReviewedNumericPax: Boolean = false,
@@ -574,8 +587,8 @@ internal object SafeWholeTreeArchive {
                 val size = tarOctal(header, 124, 12, "size")
                 val type = header[156].toInt().toChar()
                 if (type == 'x') {
-                    // The reviewed Eclipse archive uses only numeric uid/gid/mtime. They never override a path,
-                    // link, mode or payload size.
+                    // The reviewed Eclipse archive uses only numeric uid/gid/mtime.
+                    // They never override a path, link, mode or payload size.
                     require(allowReviewedNumericPax && !paxPending && longName == null && size in 1..1024) { "Unreviewed PAX metadata" }
                     normalizePath(if (prefix.isBlank()) name else "$prefix/$name")
                     val raw = ByteArray(size.toInt())

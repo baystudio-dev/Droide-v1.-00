@@ -6,6 +6,7 @@ import com.baystudio.droide.core.ExtensionInstallKind
 import com.baystudio.droide.core.ExtensionState
 import com.baystudio.droide.core.ExtensionVersionState
 
+/** A catalog family is one product; versions and execution environments are choices in its detail. */
 internal data class ExtensionCatalogCard(
     val primary: ExtensionVersionState,
     val choices: List<ExtensionVersionState>,

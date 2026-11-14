@@ -31,7 +31,7 @@ internal object AgentDroideHelp {
         permission("read", "droide_help:$section")?.let { return it }
         if (screenshotId != null) permission("read", "droide_help:screenshot:$screenshotId")?.let { return it }
         requireCurrent()
-
+        // Capability and sink checks happen before opening image assets or making a media copy.
         val canAttach = screenshot != null && c.onImageReady != null && VisionSupport.providerAcceptsImageUrl(c.llmConfig)
         return withContext(Dispatchers.IO) {
             requireCurrent()

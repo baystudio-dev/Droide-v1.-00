@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.collect
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
+ 
 class TerminalManager private constructor(
     private val scope: CoroutineScope,
     private val defaultDir: File,
@@ -89,8 +90,8 @@ class TerminalManager private constructor(
         val activeTab: Tab? get() = tabs.firstOrNull { it.id == activeId }
     }
 
-    // Android-shell launch history belongs to a different backend. Preserve it on disk, but do not
-    // revive it or reinterpret its commands as Ubuntu sessions.
+    // Android-shell launch history belongs to a different backend. Preserve it on disk,
+    // but do not revive it or reinterpret its commands as Ubuntu sessions.
     private val persistentLocalHost = context?.takeUnless { ubuntuOnly }?.let(PersistentLocalTerminalHost::get)
     private val startupRecovery = startupRecoveryOverride ?: context?.let(StartupRecoveryPolicy::forProcess) ?: StartupRecoveryPolicy.NORMAL
     private val restoredLocalTabs = persistentLocalHost?.snapshot(projectKey).orEmpty().map { hosted ->
@@ -115,7 +116,7 @@ class TerminalManager private constructor(
     private val _ubuntuPreparation = MutableStateFlow(UbuntuPreparationState())
     val ubuntuPreparation: StateFlow<UbuntuPreparationState> = _ubuntuPreparation
     private var initialUbuntuJob: Job? = null
-    private var ownershipVersion: Any = Any()
+    private var ownershipVersion: Any = Any() // guarded by manager monitor
     private val retiredSessions = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<ITerminalSession, Boolean>())
     private class StopAttempt {
         val completion = kotlinx.coroutines.CompletableDeferred<Result<Unit>>()
@@ -170,11 +171,12 @@ class TerminalManager private constructor(
         require(profile != Profile.LOCAL_LINUX_ARM64 || launchSpec.prefix.isNotEmpty()) {
             "Linux execution requires an explicit backend launcher"
         }
+        
 
-        // Recovery blocks automatic startup, not a fresh requested PTY. A crash in another surface must
-        // not turn every new terminal into a pipe.
+        // Recovery blocks automatic startup, not a fresh requested PTY. A crash
+        // in another surface must not turn every new terminal into a pipe.
         val nativeReady = context != null && NativePtyCompatibility.prepare()
-
+        
         val hosted = if (nativeReady && profile == Profile.LOCAL) persistentLocalHost?.create(projectKey, defaultDir, title, workDir, activate) else null
         val id = hosted?.id ?: "t${System.nanoTime()}"
         val session: ITerminalSession = hosted?.session ?: if (localSessionFactory != null) {
@@ -207,6 +209,7 @@ class TerminalManager private constructor(
                     })
         }
 
+
     suspend fun createLocalOnMain(
         title: String = "Local",
         workDir: File = defaultDir,
@@ -237,6 +240,7 @@ class TerminalManager private constructor(
         observeDynamicTitle(id, title, session)
         return tab
     }
+
 
     suspend fun localExecutionSession(createIfMissing: Boolean = true): ITerminalSession? {
         check(!ubuntuOnly) { "Android shell is not a project execution backend; use Ubuntu."
@@ -269,6 +273,7 @@ class TerminalManager private constructor(
             launchSpec = spec, profile = if (qemu) Profile.LOCAL_QEMU else Profile.LOCAL_LINUX_ARM64)
     }
 
+     
     suspend fun createLinuxTerminal(title: String = "Ubuntu", activate: Boolean = true): Tab =
         prepareLinuxSession {
             val spec = prepareLaunchSpec(qemu = false)
@@ -334,8 +339,8 @@ class TerminalManager private constructor(
     /** Editor initialization must not wait for rootfs extraction or start an Android shell. */
     @Synchronized
     fun prepareInitialUbuntuTerminal() {
-        // Do not start a pipe or prepare the rootfs either: both can repeat work that was interrupted by
-        // the previous crash. +Ubuntu/Run can retry.
+        // Do not start a pipe or prepare the rootfs either: both can repeat work
+        // that was interrupted by the previous crash. +Ubuntu/Run can retry.
         if (!startupRecovery.allowAutomaticTerminalStart) return
         if (!ApplicationWorkAdmission.isOpen || disposed || !scope.isActive || existingAutomatedExecutionSession() != null || initialUbuntuJob?.isActive == true) return
         val job = scope.launch(Dispatchers.IO, start = kotlinx.coroutines.CoroutineStart.LAZY) {
@@ -378,6 +383,7 @@ class TerminalManager private constructor(
         return if (createIfMissing) createDeviceWorkstation(title = "Workstation", activate = false).session else null
     }
 
+
     suspend fun automatedExecutionSession(createIfMissing: Boolean = true): ITerminalSession? =
         linuxExecutionSession(createIfMissing)
 
@@ -402,6 +408,7 @@ class TerminalManager private constructor(
         else if (preferWorkstation) workstationExecutionSession(createIfMissing = true) ?: localExecutionSession(createIfMissing = true)
         else localExecutionSession(createIfMissing = true)
 
+     
     fun existingExecutionSession(preferWorkstation: Boolean = true): ITerminalSession? {
         if (ubuntuOnly) return existingAutomatedExecutionSession()
         val workstation = if (deviceBridge?.state?.value?.connected != null) {
@@ -410,6 +417,7 @@ class TerminalManager private constructor(
         val local = _tabs.value.firstOrNull { it.profile == Profile.LOCAL }?.session
         return if (preferWorkstation) workstation ?: local else local ?: workstation
     }
+
 
     suspend fun revivePersistedLocalSessions(): Int {
         if (!ApplicationWorkAdmission.isOpen || disposed) return 0
@@ -447,8 +455,8 @@ class TerminalManager private constructor(
             exitSessions.addAll(retiredSessions)
             exitSessions.map { stopAttemptLocked(it, retryFailure = true) }
         }
-        // No suspension/cancellation point between publication and starting every attempt. Each worker
-        // dispatches independently, never inline under a lock.
+        // No suspension/cancellation point between publication and starting every
+        // attempt. Each worker dispatches independently, never inline under a lock.
         first.forEach { it.worker.start() }
         exitPreparationJobs.orEmpty().forEach { it.cancel(CancellationException("Droide Exit")) }
         exitPreparationJobs.orEmpty().forEach { it.join() }
@@ -465,8 +473,8 @@ class TerminalManager private constructor(
             check(exitSessions.all { stopAttempts[it]?.outcome?.isSuccess == true }) {
                 "A retained terminal still needs verified cleanup; retry Exit"
             }
-            // Metadata removal is exact-owner only and must not destroy a session again after its verified
-            // completion. Failure remains retryable.
+            // Metadata removal is exact-owner only and must not destroy a session
+            // again after its verified completion. Failure remains retryable.
             exitTabs.orEmpty().filter { it.profile == Profile.LOCAL }.forEach { tab ->
                 persistentLocalHost?.removeAfterVerifiedExit(projectKey, defaultDir, tab.id, tab.session)
             }
@@ -504,7 +512,7 @@ class TerminalManager private constructor(
         titleObservationJobs.remove(id)?.cancel()
         val remaining = current.filterNot { it.id == id }
         val nextActive = if (_active.value == id) remaining.getOrNull(index.coerceAtMost(remaining.lastIndex))?.id else _active.value
-
+        // Publish one coherent list/selection before detaching the old view or killing its process.
         publish(remaining, nextActive)
         return runCatching {
             releaseTab(tab)
@@ -515,6 +523,7 @@ class TerminalManager private constructor(
                 ?.let { persistentLocalHost?.markActive(projectKey, defaultDir, it.id) }
         }
     }
+
 
     @Synchronized
     fun dispose(preserveLocalSessions: Boolean): Result<Unit> {
@@ -581,8 +590,8 @@ class TerminalManager private constructor(
                 attempt.outcome = outcome
                 if (outcome.isSuccess) {
                     retiredSessions -= session
-                    // Before Exit, completed closed tabs need no permanent ledger. During Exit retain successful
-                    // receipts so retries/dispose do not replay.
+                    // Before Exit, completed closed tabs need no permanent ledger.
+                    // During Exit retain successful receipts so retries/dispose do not replay.
                     if (exitTabs == null && stopAttempts[session] === attempt) stopAttempts.remove(session)
                 }
             }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
+/** Shared by every research service, including short-lived unbound tool services. */
 internal object AgentWebWork {
     const val MAX_TRANSFERS = 3
     private val transfers = Semaphore(MAX_TRANSFERS)
@@ -28,6 +29,7 @@ internal object AgentWebWork {
         }
     }
 
+    /** Existing single-source image/PDF work uses one lane, including across service instances. */
     suspend fun <T> single(block: suspend () -> T): T = binary.withLock {
         currentCoroutineContext().ensureActive()
         block().also { currentCoroutineContext().ensureActive() }

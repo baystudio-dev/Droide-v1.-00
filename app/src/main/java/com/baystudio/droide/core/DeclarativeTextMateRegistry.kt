@@ -8,6 +8,10 @@ import org.eclipse.tm4e.core.grammar.IGrammar
 import org.eclipse.tm4e.core.grammar.IStateStack
 import org.eclipse.tm4e.core.registry.IGrammarSource
 
+
+
+
+
 object DeclarativeTextMateRegistry {
     private const val MAX_TOTAL_NANOS = 120_000_000L
     private val lineBudget = Duration.ofMillis(8)
@@ -73,8 +77,10 @@ object DeclarativeTextMateRegistry {
     }
 
     internal fun highlightGrammar(grammar: IGrammar, text: String, maxSpans: Int): List<DroideHighlightSpan>? {
-        // Converting final tokens cannot fix internal regex/backreference positions.
-
+        // Sora 0.24.6's OnigString mixes code-point and UTF-16 offsets for surrogate
+        // pairs. Converting final tokens cannot fix internal regex/backreference
+        // positions. Keep such documents readable as plain text until the engine is
+        // upgraded/rebuilt; never paint shifted spans or modify the source to fit it.
         if (text.any(Char::isSurrogate)) return emptyList()
         val deadline = System.nanoTime() + MAX_TOTAL_NANOS
         val spans = ArrayList<DroideHighlightSpan>(minOf(maxSpans, text.length / 5 + 8))

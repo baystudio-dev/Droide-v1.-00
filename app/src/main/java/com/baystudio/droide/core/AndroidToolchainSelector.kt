@@ -1,5 +1,8 @@
 package com.baystudio.droide.core
 
+
+
+
 internal class AndroidToolchainSelector(
     private val managedProvider: suspend () -> AndroidDevelopmentManager.ToolchainManifest?,
     private val userProvider: suspend () -> AndroidDevelopmentManager.ToolchainManifest?,
@@ -29,6 +32,7 @@ internal class AndroidToolchainSelector(
     suspend fun resolve(requiredCompileSdk: Int?): Resolution =
         resolve(AndroidToolchainRequirements(compileSdk = requiredCompileSdk))
 
+     
     suspend fun resolve(requirements: AndroidToolchainRequirements): Resolution {
         val problems = mutableListOf<String>()
         managedProvider()?.let { managed ->
@@ -48,6 +52,10 @@ internal class AndroidToolchainSelector(
         }
         return Resolution(null, problems.takeIf { it.isNotEmpty() }?.joinToString(" · "))
     }
+
+    
+
+
 
     suspend fun resolveAll(requirements: AndroidToolchainRequirements): CandidateResolution {
         val candidates = mutableListOf<Resolved>()
@@ -76,8 +84,8 @@ internal class AndroidToolchainSelector(
     ): String? {
         AndroidGradlePluginJdkCompatibility.problem(manifest.javaVersion, requirements.androidGradlePluginVersions)
             ?.let { return it }
-        // A null result means the full requirements check succeeded, not that the callback is absent. Do
-        // not run a second (legacy) device probe on success.
+        // A null result means the full requirements check succeeded, not that the
+        // callback is absent. Do not run a second (legacy) device probe on success.
         val fullVerifier = requirementsVerifier
         return if (fullVerifier != null) fullVerifier(manifest, requirements)
         else verifier(manifest, requirements.compileSdk)
@@ -93,6 +101,12 @@ internal class AndroidToolchainSelector(
             .thenByDescending { it.javaVersion }
             .thenBy { it.version }
     )
+
+    
+
+
+
+
 
     suspend fun sourceCandidateStillPresent(candidate: Resolved): Boolean = when (candidate.source) {
         Source.MANAGED -> managedProvider() == candidate.manifest

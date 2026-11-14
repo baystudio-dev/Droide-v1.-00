@@ -24,6 +24,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.Shadows
 import org.robolectric.util.ReflectionHelpers
 
+/** Real dialog interaction with a fake irreversible-action boundary. No payload deletion. */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [35], qualifiers = "w360dp-h640dp")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -148,8 +149,8 @@ class EditorRecoveryDiscardUiTest {
         assertEquals(0, actions.prepares); assertEquals(0, actions.confirms)
     }
 
-    // SDK35 modal roots require a real owner traversal, as in RetainedWorkUiTest. Do not disable
-    // Compose idling: require five final quiet frames with no manual layout.
+    // SDK35 modal roots require a real owner traversal, as in RetainedWorkUiTest.
+    // Do not disable Compose idling: require five final quiet frames with no manual layout.
     private fun settleNativeDialog() {
         assertTrue(compose.mainClock.autoAdvance)
         var quietFrames = 0

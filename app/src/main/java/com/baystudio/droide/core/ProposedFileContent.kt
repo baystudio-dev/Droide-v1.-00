@@ -2,8 +2,9 @@ package com.baystudio.droide.core
 
 import java.io.OutputStream
 
-/** Runtime-only exact proposed content. A preview is never presented as the whole file. Local
- * capability stays inside the app; not serialized into project/session/provider JSON. */
+/** Runtime-only exact proposed content. A preview is never presented as the whole file.
+ * Local capability stays inside the app; not serialized into project/session/provider JSON.
+ */
 class ProposedFileContent private constructor(
     private val session: OwnedResponseContentStore.Session,
     private val source: StreamedFileArgumentExtractor.Source,

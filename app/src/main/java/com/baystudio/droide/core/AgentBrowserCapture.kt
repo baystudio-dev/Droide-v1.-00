@@ -25,8 +25,15 @@ import kotlinx.coroutines.yield
 
 internal class BrowserCaptureException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/** Application-owned vertical scroll capture at the existing viewport width. */
-
+/**
+ * Application-owned vertical scroll capture at the existing viewport width. The
+ * WebView is never resized, and one mutable ARGB bitmap is owned for the whole
+ * operation. Fixed/sticky overlays can repeat; lazy loading, video and animation
+ * cannot be treated as an immutable full-document snapshot.
+ * Six seconds bounds asynchronous capture waits and cooperative tile work;
+ * Android's synchronous draw cannot be forcibly interrupted. This does not
+ * prevent an OS memory kill or certify real-engine performance.
+ */
 internal object AgentBrowserCapture {
     const val MAX_BITMAP_BYTES = 16L * 1024 * 1024
     const val MAX_PIXELS = MAX_BITMAP_BYTES / 4
@@ -94,6 +101,7 @@ internal object AgentBrowserCapture {
         val incompleteReasons: List<String>,
     )
 
+    /** Pure allocation/coverage plan. Quality floor limits tall-page capture instead of producing an unreadably thin image. */
     fun plan(geometry: Geometry, fullPage: Boolean): Plan {
         val width = geometry.viewportWidth
         val height = geometry.viewportHeight
@@ -104,8 +112,8 @@ internal object AgentBrowserCapture {
         val rasterScale: Double
         if (!fullPage) {
             capturedHeight = height
-            // Downsample large viewports, but never invent extra pixels on a small mobile surface: 2x
-            // upscaling quadruples raster/encoder work.
+            // Downsample large viewports, but never invent extra pixels on a small
+            // mobile surface: 2x upscaling quadruples raster/encoder work.
             rasterScale = min(1600.0 / maxOf(width, height), sqrt(2_000_000.0 / (width.toDouble() * height))).coerceAtMost(1.0)
         } else {
             if (validScale(geometry.scale) == null) reasons += "scale_unavailable"
@@ -133,8 +141,14 @@ internal object AgentBrowserCapture {
             capturedHeight, outputWidth, outputHeight, reasons.distinct())
     }
 
-    /** The suspend block borrows the bitmap for encoding; it must not retain or recycle it. */
-
+    /**
+     * The suspend block borrows the bitmap for encoding; it must not retain or
+     * recycle it. The controller owns PNG/file cleanup and verifies its lease
+     * again before committing output. All view callbacks run only on main.
+     * checkRestoreIdentity may allow a paused operation, but must still reject
+     * replacement views/documents. It is used only to restore the original scroll.
+     * Cached WebViewClient.onScaleChanged data must belong to that same lease.
+     */
     suspend fun <T> withCapture(
         view: WebView,
         fullPage: Boolean,
@@ -159,15 +173,16 @@ internal object AgentBrowserCapture {
                             checkRestoreIdentity()
                             if (view.url == sourceUrl) {
                                 view.scrollTo(saved.scrollX, saved.scrollY)
-                                // scrollTo is void and may silently clamp or ignore the requested position. Do not commit an
-                                // image until the actual viewport is back at its original coordinates.
+                                // scrollTo is void and may silently clamp or ignore the
+                                // requested position. Do not commit an image until the
+                                // actual viewport is back at its original coordinates.
                                 scrolled = view.scrollX != saved.scrollX || view.scrollY != saved.scrollY
                             }
                         }
                     }
                 } catch (_: Exception) {
-                    // A replacement page/view owns its own scroll; never alter it. Cleanup timeout or a dead surface
-                    // does not mask the original failure.
+                    // A replacement page/view owns its own scroll; never alter it.
+                    // Cleanup timeout or a dead surface does not mask the original failure.
                 }
             }
         }
@@ -185,8 +200,10 @@ internal object AgentBrowserCapture {
                     page(view, sourceUrl, checkLease)
                     geometryUnchanged(first, geometry(view, scaleOnMain), fullPage)
                 }
-                // Bitmap creation and the potentially 16 MiB fill do not touch a View.
-
+                // Bitmap creation and the potentially 16 MiB fill do not touch a
+                // View. Keep them off the UI thread. Publish ownership inside the
+                // worker, so cancellation while returning from withContext still
+                // reaches the outer finally and releases the native allocation.
                 val bitmap = withContext(Dispatchers.Default) {
                     memory { allocateBitmap(plan.outputWidth, plan.outputHeight) }.also {
                         ownedBitmap = it
@@ -246,8 +263,9 @@ internal object AgentBrowserCapture {
                     tiles++
                     if (fullPage && finalHeight != first.sourceHeight) { reasons += "document_height_changed"; break }
                     if (covered < plan.captureHeight && tiles < MAX_TILES) {
-                        // A renderer may acknowledge a visual request immediately. Explicitly yield the main queue
-                        // between tile draws so input, lifecycle and cancellation can run without a sleep.
+                        // A renderer may acknowledge a visual request immediately.
+                        // Explicitly yield the main queue between tile draws so
+                        // input, lifecycle and cancellation can run without a sleep.
                         withContext(Dispatchers.Main) { yield() }
                     }
                 }
@@ -256,14 +274,14 @@ internal object AgentBrowserCapture {
                     val rasterHeight = ceil(covered * plan.scaleY).toInt().coerceIn(1, bitmap.height)
                     withContext(Dispatchers.Main.immediate) {
                         page(view, sourceUrl, checkLease)
-
+                        // Shrink the logical height in the same allocation: no second raster.
                         memory { bitmap.reconfigure(bitmap.width, rasterHeight, Bitmap.Config.ARGB_8888) }
                     }
                 }
                 Captured(bitmap, plan, covered, finalHeight, tiles,
                     plan.complete && covered == plan.captureHeight && reasons.isEmpty(), reasons.distinct())
             }
-
+            // Give the user their original viewport back before PNG encoding starts.
             restore()
             withTimeout(RESTORE_MS) {
                 withContext(Dispatchers.Main.immediate) {
@@ -273,8 +291,8 @@ internal object AgentBrowserCapture {
             }
             return block(captured).also { currentCoroutineContext().ensureActive() }
         } catch (failure: TimeoutCancellationException) {
-            // Only a timeout owned by this still-active operation becomes a tool failure. Parent/user
-            // cancellation must retain its cancellation semantics.
+            // Only a timeout owned by this still-active operation becomes a tool
+            // failure. Parent/user cancellation must retain its cancellation semantics.
             currentCoroutineContext().ensureActive()
             throw BrowserCaptureException("Browser capture timed out; retry a viewport capture", failure)
         } finally {

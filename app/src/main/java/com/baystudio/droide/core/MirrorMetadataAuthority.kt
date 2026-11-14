@@ -55,7 +55,8 @@ internal class MirrorMetadataAuthority(
         if (Files.exists(directory.toPath(), NOFOLLOW_LINKS)) WorkspaceDirectoryIdentity(directory) else null
     private val binding = digest(listOf(source.canonicalPath, key(source), key(working)))
     private val hashPattern = Regex("[0-9a-f]{64}")
-
+    // Cleanup receipts can arrive outside the workspace mutation coroutine. Keep every
+    // access to this authority serialized before inspecting SQLite rollback sidecars.
     private val accessLock = accessLocks.computeIfAbsent(directory.canonicalPath) { Any() }
 
     private fun createNew(
@@ -136,8 +137,8 @@ internal class MirrorMetadataAuthority(
                     MirrorProcessCustodyLedger.enableBootIdentity(db, binding)
                     val owners = MirrorProcessCustodyLedger.read(db, binding)
                     val receipts = MirrorProcessCleanupReceipts(directory, binding, checkpoint = processCheckpoint)
-                    // Only the committed ledger snapshot can authorize removal of redundant private proof; never use
-                    // this transaction's removals.
+                    // Only the committed ledger snapshot can authorize removal of
+                    // redundant private proof; never use this transaction's removals.
                     receipts.retireCompleted(owners)
                     val cancelled = committedCancelledProcessOwners(db)
                     val remaining = MirrorProcessRebootBarrier(directory, binding).remaining(
@@ -149,8 +150,8 @@ internal class MirrorMetadataAuthority(
                     }
                     receipts.requireCapacity(remaining)
                     MirrorProcessCustodyLedger.recordBootReconciliation(db, binding, owners, remaining)
-                    // Valid legacy cleanup/reboot proof must be reconciled before demanding an empty ledger for the
-                    // launch-state migration.
+                    // Valid legacy cleanup/reboot proof must be reconciled before
+                    // demanding an empty ledger for the launch-state migration.
                     MirrorProcessCustodyLedger.enableLaunchState(db, binding)
                     MirrorProcessCustodyLedger.append(db, binding, remaining, owner)
                     processCheckpoint("writer-admission-before-commit")
@@ -170,8 +171,9 @@ internal class MirrorMetadataAuthority(
                             readState(db)
                             check(db.version in PROCESS_CUSTODY_SCHEMA..MirrorProcessCustodyLedger.LAUNCH_SCHEMA) { "Process custody disappeared before cleanup confirmation" }
                             val owners = MirrorProcessCustodyLedger.read(db, binding)
-                            // The local one-shot capability was consumed before this IO. Exact cleanup or a locally aborted
-                            // invocation can never be followed by another factory on that capability.
+                            // The local one-shot capability was consumed before this
+                            // IO. Exact cleanup or a locally aborted invocation can
+                            // never be followed by another factory on that capability.
                             if (owners.any { it.id == owner.id }) {
                                 MirrorProcessCleanupReceipts(directory, binding, checkpoint = processCheckpoint).record(owner, owners)
                             }
@@ -185,8 +187,9 @@ internal class MirrorMetadataAuthority(
         }
     }
 
-    /** Revoke permission, rather than infer that an old runtime died. This must commit independently
-     * even if an entered/legacy owner still blocks recovery. */
+    /** Revoke permission, rather than infer that an old runtime died. This must
+     * commit independently even if an entered/legacy owner still blocks recovery.
+     */
     private fun revokeUnenteredProcessReservations(runtimeId: String) {
         val changed = access { db -> transaction(db) {
             readState(db)
@@ -198,8 +201,10 @@ internal class MirrorMetadataAuthority(
         if (changed) processCheckpoint("writer-reservation-cancel-after-commit")
     }
 
-    /** Called only in a fresh transaction, never the one that changed PREPARED. */
-
+    /** Called only in a fresh transaction, never the one that changed PREPARED.
+     * These rows themselves are durable no-start receipts. Missing UUIDs cannot
+     * grant entry because every factory requires a successful PREPARED CAS.
+     */
     private fun committedCancelledProcessOwners(db: SQLiteDatabase): Set<String> =
         MirrorProcessCustodyLedger.launchStates(db).filterValues {
             it == MirrorProcessCustodyLedger.LaunchState.CANCELLED_NO_START
@@ -558,6 +563,7 @@ internal class MirrorMetadataAuthority(
         return dbFile
     }
 
+    // Inspect existing evidence before SQLite can replay sidecars or convert the journal format.
     private fun requireRollbackFormat(database: File, authorityKey: String) {
         AnchoredWorkspaceFiles(directory).use { owner ->
             check(owner.directoryKey() == authorityKey) { "Synchronization authority changed before database open" }

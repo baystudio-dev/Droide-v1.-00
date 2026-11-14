@@ -1,0 +1,1 @@
+Ubuntu setup is optional and reused after installation. Terminal, Git and native components are built from source. Includes editor, landscape, SSH/PTY, agent synchronization and recovery fixes, plus safer cancellation and retry during environment setup.

@@ -68,7 +68,7 @@ class ExternalIdeLifecycleTest {
             try {
                 val writer = process.outputStream.bufferedWriter()
                 val reader = process.inputStream.bufferedReader()
-
+                // EOF means disconnect; consume completed replies before closing the transport.
                 repeat(2) {
                     writer.write(payload + "\n"); writer.flush()
                     assertEquals(payload, reader.readLine())

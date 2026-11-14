@@ -198,7 +198,7 @@ class LocalUbuntuCMakePolicyTest {
         val f=admissionFixture()
         try {
             val w=f.witness();val bytes=f.nested.readBytes();f.nested.writeBytes(bytes)
-            CMakeManagedLaunchAuthority.prove(f.root.path,f.identity,f.records,{})
+            CMakeManagedLaunchAuthority.prove(f.root.path,f.identity,f.records,{}) // Byte-identical rewriting still passes the full byte proof.
             assertFalse(w.requireCurrentBeforeStart(f.records,emptyMap(),{}))
             val next=f.witness();File(f.nested.parentFile,"injected.py").writeText("# authored inert addition")
             assertFalse(next.requireCurrentBeforeStart(f.records,emptyMap(),{}))

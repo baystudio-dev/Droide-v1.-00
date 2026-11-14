@@ -149,7 +149,7 @@ class FileRepositoryMutationRecoveryTest {
                 if (mutation is FileRepository.Mutation.Move) {
                     val destination = root.resolve("renamed.kt")
                     val before = Files.getLastModifiedTime(destination.toPath())
-                    destination.writeText("modified")
+                    destination.writeText("modified") // Same length as the original; verify mtime too.
                     Files.setLastModifiedTime(destination.toPath(), FileTime.fromMillis(before.toMillis() + 2000))
                     error("sync failed")
                 }

@@ -207,6 +207,53 @@ class AgentMediaToolsTest {
         }
     }
 
+    @Test fun largeBuildOutputCanBeReferencedWithoutCopyingBytesIntoChat() = runBlocking {
+        withWorkspaceSuspend { root ->
+            val file = root.resolve("app-release.apk")
+            val bytes = 80L * 1024 * 1024
+            RandomAccessFile(file, "rw").use { it.setLength(bytes) }
+            val progress = mutableListOf<AgentToolProgress>()
+            val media = mutableListOf<ChatMediaRef>()
+            val result = AgentTools.execute("send_media", buildJsonObject {
+                put("path", file.name); put("reference_only", true)
+            }, context(root, media::add, progress = progress::add))
+            assertTrue(result, result.startsWith("PROJECT_RESULT "))
+            assertEquals(listOf(file.name), progress.single().producedFiles)
+            assertTrue(media.isEmpty()); assertEquals(bytes, file.length())
+            assertFalse(root.resolve(".droide/chat-media/blobs").exists())
+        }
+    }
+
+    @Test(timeout = 10_000) fun referenceStillRequiresPermissionsAndRejectsSymlinksAndInternalState() = runBlocking {
+        withWorkspaceSuspend { root ->
+            root.resolve("report.txt").writeText("retained")
+            Files.createSymbolicLink(root.resolve("linked.txt").toPath(), root.resolve("report.txt").toPath())
+            val progress = mutableListOf<AgentToolProgress>()
+            fun reference(path: String) = buildJsonObject { put("path", path); put("reference_only", true) }
+            for (path in listOf("../outside", "linked.txt", ".droide/private.json")) {
+                val result = AgentTools.execute("send_media", reference(path), context(root, {}, progress = progress::add))
+                assertTrue(result, result.startsWith("ERROR"))
+            }
+            for (action in listOf("read", "edit")) {
+                val permission = PermissionEngine(listOf(PermRule("*", "*", PermEffect.ALLOW), PermRule(action, "*", PermEffect.DENY)))
+                val result = AgentTools.execute("send_media", reference("report.txt"), context(root, {}, permissions = permission, progress = progress::add))
+                assertTrue(result, result.startsWith("DENIED"))
+            }
+            assertTrue(progress.isEmpty())
+        }
+    }
+
+    @Test fun malformedReferenceFlagCannotFallBackToCopyingTheFile() = runBlocking {
+        withWorkspaceSuspend { root ->
+            root.resolve("report.txt").writeText("retained")
+            val media = mutableListOf<ChatMediaRef>()
+            val result = AgentTools.execute("send_media", buildJsonObject {
+                put("path", "report.txt"); put("reference_only", "true")
+            }, context(root, media::add))
+            assertTrue(result.startsWith("ERROR")); assertTrue(media.isEmpty())
+        }
+    }
+
     private fun path(value: String) = buildJsonObject { put("path", value) }
 
     private fun context(
@@ -216,11 +263,12 @@ class AgentMediaToolsTest {
         mode: AgentMode = AgentMode.BUILD,
         sessionId: String? = "test-session",
         imageSink: ((List<AgentImageRef>) -> Unit)? = null,
+        progress: (AgentToolProgress) -> Unit = {},
     ): AgentTools.Ctx {
         val base = agentWorkflowContext(root, permissions = permissions, mode = mode)
         return AgentTools.Ctx(base.files, base.terminal, base.git, base.approvals, base.questions, base.history,
             base.perms, base.mode, base.llm, base.llmConfig, root, base.todos, sessionId, base.lsp,
-            onImageReady = imageSink, onMediaReady = mediaSink)
+            onImageReady = imageSink, onMediaReady = mediaSink, onProgress = progress)
     }
 
     private inline fun withWorkspace(block: (File) -> Unit) {

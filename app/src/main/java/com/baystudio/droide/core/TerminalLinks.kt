@@ -1,6 +1,7 @@
 package com.baystudio.droide.core
 
 import com.termux.terminal.TerminalEmulator
+import com.termux.terminal.TextStyle
 import com.termux.terminal.WcWidth
 import java.net.URI
 import java.net.URISyntaxException
@@ -40,10 +41,15 @@ object TerminalLinks {
         return null
     }
 
-    /** The caller must own the emulator thread or its lock, as for rendering. */
-
-    fun atCell(emulator: TerminalEmulator, column: Int, row: Int): String? {
-        if (emulator.isMouseTrackingActive) return null
+    /**
+     * [row] uses the emulator's coordinates (negative rows are scrollback). The caller must own
+     * the emulator thread or its lock. Full-width underlined CLI continuations also join.
+     * Termux does not expose the wrap bit of an evicted row: the oldest retained logical group
+     * can already have lost its prefix. Detection uses retained text only and cannot reconstruct
+     * or authenticate that missing history (including a URL embedded in a discarded query).
+     */
+    fun atCell(emulator: TerminalEmulator, column: Int, row: Int, explicitSelection: Boolean = false): String? {
+        if (!explicitSelection && emulator.isMouseTrackingActive) return null
         val screen = emulator.screen
         val columns = emulator.mColumns
         val firstAvailable = -screen.activeTranscriptRows
@@ -51,14 +57,28 @@ object TerminalLinks {
         if (columns > MAX_CHARS || column !in 0 until columns || row !in firstAvailable..lastAvailable) {
             return null
         }
+        emulator.getHyperlinkAt(column, row)?.let { return it.takeIf(::isHttpUrl) }
+        fun continuesAfter(current: Int): Boolean {
+            if (screen.getLineWrap(current)) return true
+            if (current == lastAvailable) return false
+            val style = screen.getStyleAt(current, columns - 1)
+            if (TextStyle.decodeEffect(style) and TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE == 0 ||
+                style != screen.getStyleAt(current + 1, 0)) return false
+            val line = screen.getSelectedText(0, current, columns - 1, current)
+            val next = screen.getSelectedText(0, current + 1, columns - 1, current + 1)
+            if (next.isEmpty() || isDelimiter(next[0]) || next.startsWith("http://", true) ||
+                next.startsWith("https://", true)) return false
+            val edge = offsetAtColumn(line, columns - 1) ?: return false
+            return !isDelimiter(line[edge])
+        }
         var first = row
         var last = row
-        while (first > firstAvailable && screen.getLineWrap(first - 1)) {
+        while (first > firstAvailable && continuesAfter(first - 1)) {
             if (last - first + 1 >= MAX_ROWS) return null
             first--
         }
-        while (screen.getLineWrap(last)) {
-
+        while (continuesAfter(last)) {
+            // Returning an incomplete URL would silently corrupt an authentication request.
             if (last == lastAvailable || last - first + 1 >= MAX_ROWS) return null
             last++
         }
@@ -116,7 +136,7 @@ object TerminalLinks {
                 ')' -> counts[1] > counts[0] && (!hasQueryOrFragment || matchesWrapper)
                 ']' -> counts[3] > counts[2] && (!hasQueryOrFragment || matchesWrapper)
                 '}' -> counts[5] > counts[4] && (!hasQueryOrFragment || matchesWrapper)
-
+                // A quoted URL is common in CLI help. Interior apostrophes remain unchanged.
                 '\'' -> matchesWrapper
                 '.', ',', ';', '!', ':' -> !hasQueryOrFragment
                 else -> false
@@ -141,9 +161,10 @@ object TerminalLinks {
         else -> null
     }
 
-    private fun isHttpUrl(value: String): Boolean = try {
+    fun isHttpUrl(value: String): Boolean = try {
         val uri = URI(value)
-        (uri.scheme.equals("https", ignoreCase = true) || uri.scheme.equals("http", ignoreCase = true)) &&
+        value.length <= MAX_CHARS &&
+            (uri.scheme.equals("https", ignoreCase = true) || uri.scheme.equals("http", ignoreCase = true)) &&
             !uri.host.isNullOrEmpty() && (uri.port == -1 || uri.port in 0..65535)
     } catch (_: URISyntaxException) {
         false

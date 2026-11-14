@@ -2,31 +2,41 @@ package com.baystudio.droide.ui
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.baystudio.droide.R
 import com.baystudio.droide.core.FileIconRegistry
 
+
+
+
+
+
+
+
 @DrawableRes
-fun fileTypeResource(path: String): Int? = when (FileIconRegistry.iconNameFor(path)) {
+fun fileTypeResource(path: String): Int? = fileTypeResourceForIcon(FileIconRegistry.iconNameFor(path))
+
+@DrawableRes
+internal fun fileTypeResourceForIcon(iconName: String): Int? = when (iconName) {
     "pdf" -> R.drawable.filetype_pdf
     "word" -> R.drawable.filetype_word
     "android" -> R.drawable.filetype_android
@@ -44,6 +54,7 @@ fun fileTypeResource(path: String): Int? = when (FileIconRegistry.iconNameFor(pa
     "typescript" -> R.drawable.filetype_typescript
     "react" -> R.drawable.filetype_react
     "go" -> R.drawable.filetype_go
+    "goose" -> R.drawable.filetype_goose
     "rust" -> R.drawable.filetype_rust
     "php" -> R.drawable.filetype_php
     "ruby" -> R.drawable.filetype_ruby
@@ -82,9 +93,51 @@ fun fileTypeResource(path: String): Int? = when (FileIconRegistry.iconNameFor(pa
     "ini" -> R.drawable.filetype_settings
     "properties" -> R.drawable.filetype_settings
     "settings" -> R.drawable.filetype_settings
-    "env" -> R.drawable.filetype_settings
+    "env" -> R.drawable.filetype_env
     "prisma" -> R.drawable.filetype_prisma
     "protobuf" -> R.drawable.filetype_protobuf
+    "archive" -> R.drawable.filetype_archive
+    "audio" -> R.drawable.filetype_audio
+    "cmake" -> R.drawable.filetype_cmake
+    "fsharp" -> R.drawable.filetype_fsharp
+    "git" -> R.drawable.filetype_git
+    "image" -> R.drawable.filetype_image
+    "less" -> R.drawable.filetype_less
+    "license" -> R.drawable.filetype_license
+    "lock" -> R.drawable.filetype_lock
+    "log" -> R.drawable.filetype_log
+    "sass" -> R.drawable.filetype_sass
+    "text" -> R.drawable.filetype_text
+    "video" -> R.drawable.filetype_video
+    "webassembly" -> R.drawable.filetype_webassembly
+    "zip" -> R.drawable.filetype_zip
+    "table" -> R.drawable.filetype_table
+    "powerpoint" -> R.drawable.filetype_powerpoint
+    "font" -> R.drawable.filetype_font
+    "jupyter" -> R.drawable.filetype_jupyter
+    "exe", "binary" -> R.drawable.filetype_exe
+    "certificate" -> R.drawable.filetype_certificate
+    "key" -> R.drawable.filetype_key
+    "nodejs" -> R.drawable.filetype_nodejs
+    "npm" -> R.drawable.filetype_npm
+    "yarn" -> R.drawable.filetype_yarn
+    "gomod" -> R.drawable.filetype_gomod
+    "eslint" -> R.drawable.filetype_eslint
+    "prettier" -> R.drawable.filetype_prettier
+    "tsconfig" -> R.drawable.filetype_tsconfig
+    "vite" -> R.drawable.filetype_vite
+    "astro" -> R.drawable.filetype_astro
+    "nix" -> R.drawable.filetype_nix
+    "julia" -> R.drawable.filetype_julia
+    "ocaml" -> R.drawable.filetype_ocaml
+    "scheme" -> R.drawable.filetype_scheme
+    "racket" -> R.drawable.filetype_racket
+    "fortran" -> R.drawable.filetype_fortran
+    "cobol" -> R.drawable.filetype_cobol
+    "pascal" -> R.drawable.filetype_pascal
+    "coffee" -> R.drawable.filetype_coffee
+    "stylus" -> R.drawable.filetype_stylus
+    "diff" -> R.drawable.filetype_diff
     else -> null
 }
 
@@ -101,6 +154,10 @@ fun FileTypeBrandIcon(
     fallbackTint: Color = DroideColors.Muted,
 ) {
     val resource = fileTypeResource(path)
+    if (resource == R.drawable.filetype_goose) {
+        GooseFileIcon(contentDescription, modifier.size(size))
+        return
+    }
     if (resource != null) {
         Image(
             painter = painterResource(resource),
@@ -110,23 +167,23 @@ fun FileTypeBrandIcon(
         return
     }
 
-    val shape = RoundedCornerShape((size.value * .20f).dp)
-    Box(
-        modifier = modifier
-            .size(size)
-            .background(fallbackTint.copy(alpha = .10f), shape)
-            .border(1.dp, fallbackTint.copy(alpha = .50f), shape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = FileIconRegistry.fallbackToken(path),
-            color = fallbackTint,
-            fontSize = (size.value * .34f).sp,
-            lineHeight = (size.value * .36f).sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-        )
-    }
+    Icon(
+        imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
+        contentDescription = contentDescription ?: "File",
+        modifier = modifier.size(size),
+        tint = fallbackTint,
+    )
+}
+
+
+
+
+
+
+@Composable
+private fun GooseFileIcon(description: String?, modifier: Modifier) {
+    Icon(painterResource(R.drawable.filetype_goose), description ?: "goose file", modifier,
+        tint = MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -138,16 +195,22 @@ fun FileIdentityLabel(
     maxLines: Int = 1,
     monospaced: Boolean = false,
     color: Color = Color.Unspecified,
+    style: TextStyle = LocalTextStyle.current,
+    softWrap: Boolean = true,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         FileTypeBrandIcon(path = path, size = iconSize)
         Spacer(Modifier.width(6.dp))
         Text(
             text = label,
+            modifier = Modifier.weight(1f, fill = false),
             maxLines = maxLines,
-            overflow = TextOverflow.Ellipsis,
+            overflow = overflow,
+            softWrap = softWrap,
             fontFamily = if (monospaced) FontFamily.Monospace else null,
             color = color,
+            style = style,
         )
     }
 }

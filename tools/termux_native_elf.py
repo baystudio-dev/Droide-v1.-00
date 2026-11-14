@@ -1,6 +1,10 @@
-"""Narrow static inspection of pinned-compiler, unstripped Termux ELF payloads."""
+"""Narrow static inspection of pinned-compiler, unstripped Termux ELF payloads.
+
+This reconstructs loader-relative JNINativeMethod pointers, not Android execution
+or a proof that JNI_OnLoad actually calls the table. Those remain separate gates.
+"""
 import struct
-from current_native_jni_guard import ABIS, require
+from filesystem_native_v1 import ABIS, require
 
 
 class Elf:

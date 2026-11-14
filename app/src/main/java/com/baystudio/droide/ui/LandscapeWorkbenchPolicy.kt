@@ -8,6 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Companion pane budgets are independent of their visibility: closing a pane gives
+ * its complete rectangle to the editor rather than silently enlarging the other pane.
+ */
 internal fun droideLandscapePaneFit(
     layout: DroideWorkbenchLayout,
     availableWidth: Dp,
@@ -17,7 +20,7 @@ internal fun droideLandscapePaneFit(
     requestedAgentWidth: Dp,
 ): DroidePaneFit {
     val usable = (availableWidth - DroideDimensions.ActivityRail).coerceAtLeast(0.dp)
-    val paneBudget = (usable - 11.dp).coerceAtLeast(0.dp)
+    val paneBudget = (usable - 11.dp).coerceAtLeast(0.dp) // sidebar divider and chat resize handle
     val desiredSidebar = if (sidebarTool in setOf(DroideRailTool.Files, DroideRailTool.Search))
         layout.sidebarWidth else layout.wideSidebarWidth
     val sidebar = if (sidebarVisible) minOf(desiredSidebar, paneBudget * .28f) else 0.dp
@@ -37,8 +40,10 @@ internal fun droideHideLandscapeHeader(
     landscape: Boolean, editorTyping: Boolean, terminalExpanded: Boolean,
 ): Boolean = landscape && (editorTyping || terminalExpanded)
 
-/** Otherwise a short terminal below the editor can subtract the entire keyboard height again and
- * lose its input surface while the chat composer owns focus. */
+/** Resize the landscape workbench once, then consume the IME inset for every child pane.
+ * Otherwise a short terminal below the editor can subtract the entire keyboard height
+ * again and lose its input surface while the chat composer owns focus.
+ */
 @Composable
 internal fun Modifier.landscapeWorkbenchImePadding(
     landscape: Boolean,

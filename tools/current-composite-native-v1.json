@@ -1,0 +1,126 @@
+{
+  "auxiliarySha256": {
+    "arm64-v8a/libdroide_cli.so": "913b313398b30115416acd20959b1c449eab0563c15c83230862b03e44e7cfee",
+    "arm64-v8a/libdroide_proot.so": "6a7babd8480adea03afba45a3cabd89a1387040a0cdc205a90f37185cb4f882b",
+    "arm64-v8a/libproot-loader.so": "44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04",
+    "arm64-v8a/libproot-loader32.so": "25f6bd90bc5a3d3088026289a0d3eaf3e502bd2b00e5cb74fadd9791132efa34"
+  },
+  "jniMethods": [
+    {
+      "descriptor": "()I",
+      "name": "ownedProcessApiVersion"
+    },
+    {
+      "descriptor": "()J",
+      "name": "reserveOwnedProcess"
+    },
+    {
+      "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+      "name": "createOwnedSubprocess"
+    },
+    {
+      "descriptor": "(JI)I",
+      "name": "requestOwnedStop"
+    },
+    {
+      "descriptor": "(J)J",
+      "name": "waitForOwnedProcess"
+    },
+    {
+      "descriptor": "(J)Z",
+      "name": "releaseOwnedProcess"
+    },
+    {
+      "descriptor": "(J[BII)J",
+      "name": "readOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(J[BII)J",
+      "name": "writeOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(JII)J",
+      "name": "pollOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(JI)V",
+      "name": "cancelOwnedPtyIo"
+    },
+    {
+      "descriptor": "(JI)Z",
+      "name": "releaseOwnedPtyLane"
+    },
+    {
+      "descriptor": "(JII)Z",
+      "name": "resizeOwnedPty"
+    }
+  ],
+  "kind": "CURRENT_COMPOSITE_NATIVE_V1",
+  "schema": 1,
+  "sourceAndToolSha256": {
+    "app/libs/terminal-emulator-v0.118.0-java.aar": "4852749bb1de1d64630ee82000ce728a842521e391c55c2392d4a1b84ae74b61",
+    "app/src/main/cpp/CMakeLists.txt": "5822f744df7b90c4473ad690a8d068e82094a3e5a4be730c750e9aa80fd8982c",
+    "app/src/main/cpp/droide_cli_client.c": "f668eff99575d9a3ad1f68ce5727f6d51db4d7f8ebe811b4d800532084304830",
+    "app/src/main/cpp/droide_files.c": "303e7c7cfebd4bb36c1166386e368f7a99759ac67714c91a654bb3cfa50e1ed4",
+    "app/src/main/java/com/baystudio/droide/core/ApplicationWorkAdmission.kt": "9e2790dbe27c1c85ff17341a3e78f1c031c083672f88838330a8fd6a2c072864",
+    "app/src/main/java/com/baystudio/droide/core/CliEndpointPublication.kt": "1479cc97f212200e2c3d886b60e788b2b484eda20713beb0f70e1c4d6e40fe52",
+    "app/src/main/java/com/baystudio/droide/core/DroideCliClientInstaller.kt": "bb3f11f2803fdd6bbb235df0f2f2042b08dc7eade14cf95cefea1ff73d73eb8a",
+    "app/src/main/java/com/baystudio/droide/core/DroideCliServer.kt": "9a54c61f8fb3227e41e5c7f6bc240de27d7667881608f50df61f7d96cdca9351",
+    "app/src/main/java/com/baystudio/droide/core/DroideCliWireProtocol.kt": "1b034d9fa30dcd1054d30eee41605ff1c442e2168bdf5bdd275fdb42f2253960",
+    "app/src/main/java/com/baystudio/droide/core/LocalExecutionSubstrate.kt": "10701bfd3e4608fbae6126dcf8c66d567ba3ac2d71ecedc236548d383f1e172a",
+    "app/src/main/java/com/baystudio/droide/core/PackagedLinuxEngine.kt": "821e8d0a226bf088278b53328297508cabebce9b1b98d4ced50aff4a2cf48ca5",
+    "app/src/main/java/com/baystudio/droide/core/ProjectFilePublication.kt": "cceb392dac56814b4702c6333a647314efa8656adba80d55215ac2eb57e338ad",
+    "third_party/native-engines/proot/OPENMINIS_LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "third_party/native-engines/proot/PROOT_COPYING": "0ffa6454acbe7e410ac6f0007df83b9b3161fe55484c1f4b87487c0f2d228a6d",
+    "third_party/native-engines/proot/README_DROIDE.md": "38e6df8d1baa507e8b5a4cf4d97ed06593bdd10845931435dbbd377fe6504300",
+    "third_party/native-engines/proot/THIRD_PARTY_LICENSES.md": "7998ec155c04ff96d87d4f2cd1f594f5c3bd7447c729351249c2471ccafdeae9",
+    "third_party/native-engines/proot/build_droide_proot.py": "a61f1068a0b5e36a945d92136a60aa9cd73cad6c22fbcb8ee56a3bda309fe12f",
+    "third_party/native-engines/proot/build_proot.sh": "0c42a65d6ebe1be2573880673178ae1b19abadddbe61ea52b9227afc41e7f116",
+    "third_party/native-engines/proot/patches/0001-preserve-voided-syscall-results-under-outer-seccomp.patch": "6a823fe58eee9110a69f411be3fd62ac657b299878a878cf51fd9b5df4d819f6",
+    "third_party/native-engines/proot/proot-openminis-8cf13e99-source.tar.gz": "6c77863bbdddbaa2d8043a901fee61f0e40492bb3bebdc6cb31390ac71ffca47",
+    "third_party/native-engines/proot/talloc-2.4.2-source.tar.gz": "85ecf9e465e20f98f9950a52e9a411e14320bc555fa257d87697b7e7a9b1d8a6",
+    "third_party/termux/UPSTREAM_PROVENANCE.json": "30164128e8e76b20fbac29cab4f09ec3b719136718d18d63f27e9fd9137c61db",
+    "third_party/termux/derivatives/r46/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
+    "third_party/termux/derivatives/r46/fixtures/AarFixtureRunner.java": "609896f2d5f092000f2d5c3e4960924ca5e887f35a2b72c8407244f4d5e66d7b",
+    "third_party/termux/derivatives/r46/fixtures/ReaderHealthyOutputTiming.java": "9ce8a622834b22864dc2723df75b7214a92d91a09f0d227d7f6f2bedff21d79d",
+    "third_party/termux/derivatives/r46/fixtures/TerminalOwnedProcessTest.java": "6169fa33f12fc537490ee08f1cf2302489622c79a8cb2f85c16aa0e3065df52c",
+    "third_party/termux/derivatives/r46/fixtures/TerminalPtyReadProgressTest.java": "c62c06cea093824dfd3977850350f6c2c56fa3452f5f255dbb91f8ec937be360",
+    "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java": "01c470e72e74106426d494849f61d42d9fdb456546b506b393895316148f48c4",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSession.java": "c969987f8dd20c974a9017e4c9a9e0a005cbc84dce6eb7df56be8b8813f7c998",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2",
+    "third_party/termux/native/OWNED_PROCESS_ABI.json": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+    "third_party/termux/native/REBUILD.json": "f2c9660006eefb353655994c92c6253c35533e038638e005b0aab11ab5732105",
+    "third_party/termux/native/termux.c": "e6e4e563865857af85fd6e101021fb3e247ecfc93f9261e1242d0ef637edc000",
+    "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3",
+    "third_party/termux/patches/src/com/termux/terminal/JNI.java": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java": "49565646f259eb81724696366e63a3f30a3234f7684895f293701b93b5d0ad9d",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java": "91e8b1f545374e07696245fcf2b518b5d681ba15ff79fd8a79bdec29eac8d5ca",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java": "6b397797ed186229fc6709bd1391dbe3b04277edd92ab8c53e7ddecbf0ebe72e",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java": "6131e5639ad689e51a817a640076ca69ec6995a7cf911eee7250e086b7e2145b",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae",
+    "tools/filesystem-native-v1.json": "fead60dd5d4187656c325ec510a4a7a759b7eb6a13c5fd5638fc8e7cc11a22e0",
+    "tools/filesystem-native-v1.md": "47346c8bceda3caa100e2f2b50668e5790016a0c7d909334c27f8614530195c3",
+    "tools/filesystem_native_v1.py": "3f04e15ffc56cc903702d8cd1f53d7ddbdb33e26a5c808e5b527448581130950",
+    "tools/run_current_engine_host_v1.py": "0fdf0ae3eea375afabe864f31a308600ea6ecea7e9aff00e535e7c8aa61ab080",
+    "tools/run_terminal_engine_regressions.py": "a707ec7b5b19dae30ac786074ed4132975baf08b1f3184d93852bc3aecb45335",
+    "tools/terminal-engine-v2-jdk.json": "8438db3e628cf0860d2f5e0db29a3216bba0b4d3d1ce6d1a6e8d9cf17f29f2e5",
+    "tools/terminal-engine-v2.json": "ff30e833ad865617ebc45c095e792adddc960a96dd6a93a2ffecec7fa32d172b",
+    "tools/terminal_engine_v2.py": "ceb8f580940a21af37fbfb755cb9321182c0373467bc21c9e21067f48cfbd642",
+    "tools/terminal_jdk_v2.py": "0583a3dfeb92088eca19554abd4928d93c14e1f6bf7a02abc529fb663f2f2ddd",
+    "tools/termux-native-v1.json": "eb38cd0f2a62e22d3461eccb984215e55347fe5ffc2f406162d1133bb72ec7ec",
+    "tools/termux-native-v1.md": "425d46236fcdf9b36a7eca24fa1cc509bb830e94d128d87828e8e9f23191e787",
+    "tools/termux_native_elf.py": "bdecb4d77f420c7c3eed169cc325d5a67d00ae0bdbf3cc4864ec9b0cead1f5d9",
+    "tools/termux_native_v1.py": "56cf312433ddfc8071a0447363565f2fc2510081aa26fa5df3fbdde96a6ae9a0",
+    "tools/tests/terminal-engine-fixtures/TerminalResizeFixtureRunner.java": "a1dd5b12f1e24a8848cc7e9f0ba28cce833b8c422af912c085fbf32dc2808c06",
+    "tools/tests/terminal-engine-fixtures/TerminalResizeStateContractTest.java": "546e33937e1194bec5f62228146c3a35e6814948ac68f6635b1067966f3968aa",
+    "tools/tests/test_current_droide_cli_v1.py": "13149a1886c3360574d31eca082dff7e0859841ffa8302263c58ba56ab598ab5",
+    "tools/tests/test_termux_native_v1.py": "40e9cada533eb05a43186544a76288ce23e30df0a5285194f727c9ba8c896ae4",
+    "tools/verify_current_droide_cli_v1.py": "b2f587ce19c339bf1ed027587d0d4b5da5e9ed821878e400223c864f0772ba43",
+    "tools/verify_droide_cli_client.py": "d3b636ec6a5292a3c6a43be8ce1a596622b128c09ad2ac682f704eea0e23ca28",
+    "tools/verify_owned_jni_host_contract.py": "09a461284ca2af4053e79f3b85222d10595d210f2d090b6b22bf1f155c1f0316",
+    "tools/verify_termux_pty_derivative.py": "223d0f62da43fae3490819864dbfdc213934baae2fb6dc941805c77f9506b0e7"
+  },
+  "sourceArchiveSha256": "989ce467c3daae57246377c0915cdab985ac3e6146ee4ec9809ed2045eab8504"
+}

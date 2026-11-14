@@ -32,7 +32,8 @@ class MirrorMetadataProcessLockAuthorityTest {
             args.writeText(values.joinToString("\n") { "\"" + it.replace("\\", "\\\\").replace("\"", "\\\"") + "\"" })
             val process = ProcessBuilder(File(System.getProperty("java.home"), "bin/java").path, "@${args.path}")
                 .redirectErrorStream(true).apply {
-
+                    // Keep the exact child protocol free of JVM environment-option banners.
+                    // The parent temp directory is passed explicitly above.
                     environment().remove("JAVA_TOOL_OPTIONS")
                 }.start()
             try {
@@ -82,7 +83,7 @@ class MirrorMetadataProcessLockAuthorityTest {
 
     @Test fun compatibleEnrollmentLeavesExistingDatabaseBytesAndRevisionUnchanged() = fixture {
         val state = initial.load(); val before = database.readBytes()
-        // Disposable fixture simulates an authority, which has neither lock artifact.
+        // Disposable fixture simulates an F115 authority, which has neither lock artifact.
         Files.delete(File(directory, MirrorMetadataProcessLock.IDENTITY).toPath())
         Files.delete(File(directory, MirrorMetadataProcessLock.LOCK).toPath())
         assertEquals(state, authority().load())

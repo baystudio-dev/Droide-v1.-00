@@ -27,6 +27,7 @@ internal fun CodeEditor.setSelectionOffsets(startOffset: Int, endOffset: Int = s
     else setSelectionRegion(start.line, start.column, end.line, end.column, makeVisible)
 }
 
+
 internal fun CodeEditor.replaceAllBounded(query: String, replacement: String, maxMatches: Int = 50_000): Int? {
     if (query.isEmpty()) return 0
     val source: CharSequence = text

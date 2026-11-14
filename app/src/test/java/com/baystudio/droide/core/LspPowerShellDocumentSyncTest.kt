@@ -8,6 +8,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual Content-Length frames over authored in-memory streams; no native process. */
 class LspPowerShellDocumentSyncTest {
     private class Host : StdioProcessHost, AutoCloseable {
         override val executionScope = ProcessExecutionScope.LOCAL_LINUX_ARM64

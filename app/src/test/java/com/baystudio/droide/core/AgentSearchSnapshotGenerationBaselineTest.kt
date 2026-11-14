@@ -7,7 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Current API only. The coordinator records the actual pre-fix result. */
+/** Current R13 API only. The coordinator records the actual pre-fix result. */
 class AgentSearchSnapshotGenerationBaselineTest {
     @Test(timeout = 15_000) fun searchHitsAndOverlayStateUseOneSnapshotAcquisition(): Unit = runBlocking {
         val root = Files.createTempDirectory("droide-search-generation-").toFile()

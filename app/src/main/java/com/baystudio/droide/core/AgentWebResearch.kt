@@ -110,7 +110,7 @@ class AgentWebResearch internal constructor(
     internal suspend fun open(owner: String, url: String?, refId: String?, start: Int, count: Int, refresh: Boolean,
         authorize: suspend (String, String) -> Unit, imageSink: (suspend (File) -> Boolean)?, mediaOwnerId: String? = null): JsonObject = operation {
         require((url.isNullOrBlank()) != (refId.isNullOrBlank())) { "Supply exactly one url or ref_id" }
-
+        // Immutable text continuations remain available while another request downloads or renders a PDF.
         if (!refId.isNullOrBlank() && !refresh && store.document(owner, refId)?.reference?.kind in setOf("page", "pdf_page")) {
             openInternal(owner, url, refId, start, count, refresh, authorize, null, true, null)
         } else AgentWebWork.single {

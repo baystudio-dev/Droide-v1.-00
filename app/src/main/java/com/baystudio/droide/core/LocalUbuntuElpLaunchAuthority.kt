@@ -15,7 +15,7 @@ internal class ElpPackageActivityHold internal constructor(internal val root:Str
         LocalUbuntuElpLaunchAuthority.release(this)
     }
 }
-
+/** Exact in-process installation claim. It is retained when entered native cleanup is unknown. */
 internal class ElpInstallerClaim internal constructor(internal val root:String,internal val token:String) {
     internal fun releaseNeverEntered() = LocalUbuntuElpLaunchAuthority.releaseInstaller(this)
     internal fun release(receipt:ElpTeardownReceipt) {

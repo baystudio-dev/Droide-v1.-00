@@ -24,6 +24,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+
 class LocalLlamaInferenceCertifier(
     context: Context,
     private val bridge: DeviceBridgeManager,
@@ -102,6 +103,7 @@ class LocalLlamaInferenceCertifier(
 
     // Re-proves every durable 08aw identity before a long-lived server is allowed to consume it.
 
+
     suspend fun prepareCertifiedForServing(
         modelId: String,
         onTransferProgress: (copiedBytes: Long, totalBytes: Long) -> Unit = { _, _ -> },
@@ -132,6 +134,7 @@ class LocalLlamaInferenceCertifier(
             ServingPreparation(runtime, model, certificate, memory, plan, targetEnvironment, remoteModel)
         }
     }
+
 
     suspend fun certificationsFor(modelIds: Collection<String>): Map<String, Certification> = withContext(Dispatchers.IO) {
         val ids = modelIds.asSequence().map(String::trim).filter { it.matches(Regex("[0-9a-f]{64}")) }
@@ -173,6 +176,7 @@ class LocalLlamaInferenceCertifier(
             onPhase(Phase.SYNCING_MODEL)
             val remoteModel = ensureRemoteModel(model, ::checkCancelled, onTransferProgress)
             checkCancelled()
+
 
             onPhase(Phase.CHECKING_MEMORY)
             val memory = probeMemory()
@@ -251,6 +255,7 @@ class LocalLlamaInferenceCertifier(
         val cpus = lines[1].toIntOrNull() ?: 1
         return LocalLlamaInferencePolicy.MemorySnapshot(total, available, cpus)
     }
+
 
     private suspend fun probeTargetEnvironmentSha256(): String {
         val command = """

@@ -157,7 +157,7 @@ class EditorNativeHandoffOwnershipTest {
                 }
             }
             try {
-
+                // The model remains clean until release actually captures the raw native delta.
                 f.native.text = "raw A delta at release"
                 assertEquals("saved A", f.document.content)
                 assertFalse(f.document.canEdit)

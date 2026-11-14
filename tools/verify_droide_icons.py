@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Fail-closed static branding check. Stdlib only; does not build an APK."""
+"""Fail-closed static branding check. Stdlib only; does not build an APK.
+
+Run: python3 tools/verify_droide_icons.py [--source-root PATH] [--overlay PATH]
+Overlay is optional and supports validating an unmerged source delta.
+"""
 import argparse
 import hashlib
 import json
@@ -56,8 +60,8 @@ def main():
             data=file(res+f'mipmap-{density}/{name}.png').read_bytes()
             assert data[:8] == b'\x89PNG\r\n\x1a\n'
             assert struct.unpack('>II',data[16:24]) == (size,size)
-    provenance=json.loads(file('resources/branding/source-provenance.json').read_text())
-    assert hashlib.sha256(file('resources/branding/droide-logo-source.png').read_bytes()).hexdigest() == provenance['source_sha256']
+    provenance=json.loads(file('docs/branding/source-provenance.json').read_text())
+    assert hashlib.sha256(file('docs/branding/droide-logo-source.png').read_bytes()).hexdigest() == provenance['source_sha256']
     sources = {p.relative_to(args.source_root) for p in (args.source_root/'app/src').rglob('*') if p.suffix in ('.kt','.java')}
     if args.overlay: sources.update(p.relative_to(args.overlay) for p in (args.overlay/'app/src').rglob('*') if p.suffix in ('.kt','.java'))
     calls=[]

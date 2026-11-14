@@ -4,7 +4,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Captured session/new responses from supported external command-line agents. */
+/** Captured session/new responses from original OpenCode/Claude/Codex CLIs. */
 class WorkspaceAgentSessionConfigurationTest {
     private fun fixture(name: String): JsonObject = requireNotNull(javaClass.getResourceAsStream("/agent-acp/$name-session.json"))
         .bufferedReader().use { Json.parseToJsonElement(it.readText()).jsonObject }

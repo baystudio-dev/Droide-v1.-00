@@ -64,7 +64,7 @@ class BrowserRetentionPaneTest {
         }
         override fun onPause() { pauses++; super.onPause() }
         override fun destroy() { destroyed++; super.destroy() }
-
+        // Override the hidden runtime frame hook through the real Android View contract.
         fun setFrame(left: Int, top: Int, right: Int, bottom: Int): Boolean =
             org.robolectric.shadow.api.Shadow.directlyOn(this, View::class.java, "setFrame",
                 org.robolectric.util.ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, left),

@@ -2,6 +2,11 @@ package com.baystudio.droide.core
 
 import kotlin.math.abs
 
+
+
+
+
+
 object EditorInputInteractionPolicy {
     fun movedBeyondSlop(deltaX: Float, deltaY: Float, touchSlop: Float): Boolean =
         abs(deltaX) > touchSlop || abs(deltaY) > touchSlop

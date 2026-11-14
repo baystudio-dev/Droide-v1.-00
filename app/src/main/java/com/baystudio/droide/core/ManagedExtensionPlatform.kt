@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.JsonElement
 
+ 
 private data class ReviewedMarketplaceBinding(
     val entry: PluginMarketplaceEntry,
     val manifestBytes: ByteArray,
@@ -9,6 +10,7 @@ private data class ReviewedMarketplaceBinding(
 )
 
 // Keep operation ownership explicit across lifecycle boundaries.
+
 
 class ManagedExtensionPlatform(
     val contributions: ExtensionContributionRegistry,
@@ -105,6 +107,7 @@ class ManagedExtensionPlatform(
     @Synchronized
     fun activatedExtensionIds(): Set<String> = activated.toSet()
 
+     
     fun contributedTool(toolId: String): ContributedToolCapability? = capabilities.tool(toolId)
 
     private suspend fun activateOne(extensionId: String) {
@@ -119,6 +122,7 @@ class ManagedExtensionPlatform(
         when (manifest.runtime) {
             ExtensionRuntimeKind.DECLARATIVE -> Unit
             ExtensionRuntimeKind.PROTOCOL -> {
+
 
                 check(manifest.contributes.languageServers.isNotEmpty() || manifest.contributes.debuggers.isNotEmpty() || manifest.contributes.tools.isNotEmpty()) {
                     "Protocol extension exposes no protocol/tool capability: $extensionId"

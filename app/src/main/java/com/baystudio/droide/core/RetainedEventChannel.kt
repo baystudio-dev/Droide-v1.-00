@@ -5,8 +5,13 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.channels.Channel
 
-/** One-owner FIFO. */
-
+/**
+ * One-owner FIFO. Character weights cover pending AND in-flight payloads.
+ * Graceful close and overflow drain accepted events; neither evicts their data.
+ * Unlike ProtocolEventMailbox this admits events before the consumer starts.
+ * Channel wake operations occur outside the lock: even inline dispatch cannot
+ * run the consumer's action while a producer holds the accounting monitor.
+ */
 internal class RetainedEventChannel<T>(
     private val capacity: Int,
     private val maxRetainedChars: Long,
@@ -43,7 +48,7 @@ internal class RetainedEventChannel<T>(
             when {
                 closed -> Admission.CLOSED
                 count >= capacity || chars > maxRetainedChars - retained -> {
-
+                    // Latch the first gap: no later event can be admitted past it.
                     closed = true
                     Admission.OVERFLOW
                 }

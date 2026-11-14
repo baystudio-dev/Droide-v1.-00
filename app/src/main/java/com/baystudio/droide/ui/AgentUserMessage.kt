@@ -21,8 +21,11 @@ private const val attachedContextMarker = "\n\n[Attached context]\n"
 private const val attachedContextFallback = "Use the attached context for this request."
 private val attachedContextHeading = Regex("^--- [^\\r\\n]+ ---\\n", RegexOption.MULTILINE)
 
-/** Only sections backed by this message's exact media references can be hidden. */
-
+/**
+ * Display projection for composeAgentPrompt's stored envelope, including existing history.
+ * Only sections backed by this message's exact media references can be hidden. Unknown context
+ * and the user's prefix stay intact; prompt bytes, persistence and provider input never change.
+ */
 internal fun agentUserMessageText(prompt: String, media: List<ChatMediaRef>): String {
     if (media.isEmpty() || !prompt.endsWith('\n')) return prompt
     val prefixes = media.associateWith { ref ->
@@ -79,7 +82,7 @@ internal fun AgentUserMessage(text: String, media: List<ChatMediaRef>, workDir: 
                     shape = MaterialTheme.shapes.small, color = DroideColors.Surface,
                     border = BorderStroke(1.dp, DroideColors.Border),
                 ) {
-                    Text(caption, Modifier.padding(horizontal = 10.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
+                    Text(caption, Modifier.padding(horizontal = 10.dp, vertical = 8.dp), style = MaterialTheme.typography.bodyMedium)
                 }
                 AgentMessageMedia(media, workDir, alignToEnd = true)
             }
@@ -87,6 +90,7 @@ internal fun AgentUserMessage(text: String, media: List<ChatMediaRef>, workDir: 
     }
 }
 
+/** Live INPUT parts mirror promoted user messages; bind refs by the complete, unmodified prompt. */
 internal fun agentInputMediaByPrompt(messages: List<AgentMessage>): Map<String, List<ChatMediaRef>> =
     messages.asSequence().filter { it.role == "user" && it.media.isNotEmpty() }
         .associate { it.content to it.media }

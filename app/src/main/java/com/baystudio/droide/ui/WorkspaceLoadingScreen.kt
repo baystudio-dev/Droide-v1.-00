@@ -22,8 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baystudio.droide.core.WorkspaceStartupPhase
 
-/** Presentation only: the workspace owner decides whether startup is still pending. */
-
+/**
+ * Presentation only: the workspace owner decides whether startup is still pending.
+ * No minimum display time, simulated percentage, or animation-completion callback.
+ * The caller already owns system insets, errors, retries and runtime publication.
+ */
 @Composable
 internal fun WorkspaceLoadingScreen(phase: WorkspaceStartupPhase, modifier: Modifier = Modifier) {
     DroideSessionLayout(modifier) {
@@ -42,8 +45,8 @@ internal fun WorkspaceLoadingScreen(phase: WorkspaceStartupPhase, modifier: Modi
         Text("Wait a moment…", color = DroideSessionColors.Muted, fontSize = 14.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(40.dp))
         Column(Modifier.widthIn(max = 280.dp).fillMaxWidth()) {
-            // Startup has bounded stages, not a known total amount of work. The standard indeterminate
-            // indicator honors Android's animation scale.
+            // Startup has bounded stages, not a known total amount of work. The
+            // standard indeterminate indicator honors Android's animation scale.
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth().height(4.dp),
                 color = DroideSessionColors.Accent,

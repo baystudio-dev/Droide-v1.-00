@@ -88,8 +88,8 @@ class ExportSourceAdmission internal constructor(
         check(identity(scopeFile(ticket.scope)) == ticket.scopeIdentity) { "Export scope identity changed; select the source again" }
     }
 
-    /** Call only after the existing scoped save coordinator reports ready using its save receipts. An
-     * atomic save legitimately replaces a file inode; never rebind the root or runtime owner. */
+    /** Call only after the existing scoped save coordinator reports ready using its save receipts.
+     * An atomic save legitimately replaces a file inode; never rebind the root or runtime owner. */
     suspend fun refreshAfterScopedSave(ticket: ExportSourceTicket, savedPaths: Set<String>): ExportSourceTicket {
         withContext(Dispatchers.IO) { validateOwnerRoot(ticket) }
         check(dirtyVersions(ticket.scope).isEmpty()) { "New editor changes need review after scoped save" }
@@ -104,6 +104,7 @@ class ExportSourceAdmission internal constructor(
         return ticket.copy(scopeIdentity = nextIdentity, dirtyVersions = emptyMap())
     }
 
+    /** Save is performed by the existing editor coordinator BEFORE calling this method. */
     suspend fun prepare(ticket: ExportSourceTicket, allowDirtySavedVersion: Boolean): ExportSourceTicket {
         withContext(Dispatchers.IO) { validate(ticket) }
         val dirty = dirtyVersions(ticket.scope)
@@ -114,8 +115,9 @@ class ExportSourceAdmission internal constructor(
         return ticket.copy(dirtyVersions = dirty)
     }
 
-    /** The atomic admission in withCapture remains authoritative after this observation. */
-
+    /** Inspect known local blockers before a picker can create an output. No database close,
+     * checkpoint, journal replay, source write or capture lease is performed here.
+     * The atomic admission in withCapture remains authoritative after this observation. */
     internal suspend fun preflight(ticket: ExportSourceTicket): ExportPreflightSnapshot = withContext(Dispatchers.IO) {
         validate(ticket)
         requireSourceSafe(ticket.scope)
@@ -138,13 +140,14 @@ class ExportSourceAdmission internal constructor(
             captureDone = CompletableDeferred()
         }
         try {
-            // Existing mutex includes repository participants, receipts, and reconciliation. Do not acquire
-            // transition/editor locks here and never save or call a provider from action.
+            // Existing mutex includes repository participants, receipts, and reconciliation. Do not
+            // acquire transition/editor locks here and never save or call a provider from action.
             return WorkspaceFileMutationLocks.withCaptureRoot(root) { guard ->
                 validate(ticket)
                 check(dirtyVersions(ticket.scope) == ticket.dirtyVersions) { "Editor changes changed while waiting for capture" }
-                // Repository mutations still hold the workspace-wide mutex. The auxiliary writer fence covers
-                // the selected subtree: an idle database in .droide/sessions must not block exporting an APK.
+                // Repository mutations still hold the workspace-wide mutex. The
+                // auxiliary writer fence covers the selected subtree: an idle
+                // database in .droide/sessions must not block exporting an APK.
                 requireSourceSafe(ticket.scope)
                 suspend fun capture(): T {
                     validate(ticket)
@@ -223,8 +226,8 @@ class ExportSourceAdmission internal constructor(
         return current
     }
     private fun identity(file: File, requireDirectory: Boolean = false): String {
-        // Bind ticket and descriptor stamps to the same numeric dev/inode representation. Do not read
-        // fileKey and dev/inode in separate syscalls (rename ABA window).
+        // Bind ticket and descriptor stamps to the same numeric dev/inode representation.
+        // Do not read fileKey and dev/inode in separate syscalls (rename ABA window).
         val attrs = Files.readAttributes(file.toPath(), "unix:dev,ino,isDirectory,isSymbolicLink,isRegularFile", NOFOLLOW_LINKS)
         val directory = attrs.getValue("isDirectory") as Boolean
         val symlink = attrs.getValue("isSymbolicLink") as Boolean

@@ -27,7 +27,8 @@ data class TaskResult(
     val durationMs: Long,
 )
 
-// Process tasks use literal argv; Bash runs only for an explicitly requested shell task.
+// Process tasks use literal argv. Only an explicit VS Code shell task invokes Bash.
+
 
 class TaskManager(
     private val root: File,
@@ -52,8 +53,7 @@ class TaskManager(
         val ordered = TaskDependencyGraph.order(task.label, tasks)
         ordered.forEach(::validate)
         val started = System.nanoTime()
-        // Pin one shared Ubuntu session for the entire graph. Changing tabs cannot redirect a
-        // dependency.
+        // Pin one shared Ubuntu session for the entire graph. Changing tabs cannot redirect a dependency.
         val session = if (taskExecutor == null) terminals?.automatedExecutionSession(createIfMissing = true)
                 ?: error(terminals?.automatedExecutionUnavailableReason() ?: "Local Linux backend is unavailable")
             else null
@@ -204,7 +204,7 @@ class TaskManager(
         val out = mutableListOf<IdeTask>()
         val gradlew = metadataPath("gradlew")
         if (gradlew?.isFile == true) {
-
+            
             out += IdeTask("Gradle: test", listOf("sh", "./gradlew", "test"), root, "test")
             out += IdeTask("Gradle: assembleDebug", listOf("sh", "./gradlew", "assembleDebug"), root, "build")
         }

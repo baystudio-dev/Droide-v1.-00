@@ -18,6 +18,7 @@ internal data class SafProjectIdentity(val authority: String, val documentId: St
             return SafProjectIdentity(authority, documentId)
         }
 
+        /** No provider queries, filesystem scan, journal rewrite or registration side effect. */
         fun existing(projects: List<DroideProject>, uri: Uri, activeId: String?): DroideProject? {
             val requested = from(uri)
             val matches = projects.filter { project ->
@@ -25,7 +26,8 @@ internal data class SafProjectIdentity(val authority: String, val documentId: St
                     runCatching { from(Uri.parse(value)) == requested }.getOrDefault(false)
                 } == true
             }
-
+            // Older catalogs may contain separate mirrors for one tree. Keep every mirror
+            // and its pending journal; choosing the already active one needs no migration.
             matches.firstOrNull { it.id == activeId }?.let { return it }
             require(matches.size <= 1) {
                 "This external folder has multiple registered projects. Open the intended project from Projects; existing files were preserved."

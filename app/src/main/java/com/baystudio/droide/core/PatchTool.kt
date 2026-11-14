@@ -6,8 +6,9 @@ import kotlinx.coroutines.withContext
 
 // Transactional multi-file text patcher with full preflight validation and rollback.
 object PatchTool {
-    /** This is not a bound on live-editor ownership, parser copies, or total process heap. */
-
+    /** Same accepted UTF16 total as before, checked before adding another retained snapshot.
+     * The just-read disk String may still exist transiently (per-file read limit unchanged).
+     * This is not a bound on live-editor ownership, parser copies, or total process heap. */
     private class SnapshotBudget {
         private var retainedChars = 0L
         fun admit(text: String?) {
@@ -88,7 +89,7 @@ object PatchTool {
         val before = linkedMapOf<String, String?>()
         val budget = SnapshotBudget()
         suspend fun capture(path: String): String? {
-            files.resolveChecked(path)
+            files.resolveChecked(path) 
             if (path !in before) {
                 val value = if (files.exists(path)) files.readTextForEdit(path) else null
                 budget.admit(value)
@@ -275,8 +276,9 @@ object PatchTool {
             try {
                 check(files.deleteFileIfUnchanged(observation)) { "Delete failed: $path" }
             } catch (cancelled: CancellationException) {
-                // A cancellation can arrive after the owned local move, including on the IO dispatcher return.
-
+                // A cancellation can arrive after the owned local move, including on
+                // the IO dispatcher return. Account for that exact result before the
+                // surrounding transaction rolls back; cancellation is never success.
                 if (observation.ownedCurrent) settled(observation.synchronizationFailed)
                 throw cancelled
             } catch (failure: Exception) {
@@ -297,8 +299,8 @@ object PatchTool {
             } catch (saved: ProjectFileSyncException) {
                 if (files.resolveChecked(saved.relativePath) != files.resolveChecked(path) ||
                     saved.bytes != content.toByteArray(Charsets.UTF_8).size.toLong()) throw saved
-                // The reviewed write is already canonical. Do not replay it or undo it merely because its
-                // provider/editor synchronization failed after publication.
+                // The reviewed write is already canonical. Do not replay it or undo it merely
+                // because its provider/editor synchronization failed after publication.
                 syncPending += path
             }
             appliedDisk[path] = content
@@ -320,8 +322,8 @@ object PatchTool {
                     val old = before[op.path] ?: error("Update target missing: ${op.path}")
                     val updated = updatedText(old, op)
                     if (op.moveTo != null) {
-                        // Each side has its own reviewed CAS token. A late source change must neither be moved over a
-                        // destination nor deleted after it was copied.
+                        // Each side has its own reviewed CAS token. A late source change must
+                        // neither be moved over a destination nor deleted after it was copied.
                         write(op.moveTo, updated)
                         delete(op.path)
                     } else {
@@ -412,7 +414,8 @@ object PatchTool {
                     }
                 }
                 // Preserve guarded undo for committed changes that could not be rolled back.
-
+                // A failing/ambiguous operation retains its backup for manual recovery; it is
+                // never assigned a fabricated successful-after token or blindly overwritten.
                 val remaining = remainingLive.keys + remainingDisk.keys
                 if (remaining.isNotEmpty()) history.commitBatch(
                     pending.copy(snapshots = pending.snapshots.filter { it.path in remaining }),

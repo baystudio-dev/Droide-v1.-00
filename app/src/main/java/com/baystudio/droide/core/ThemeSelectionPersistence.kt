@@ -11,6 +11,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** Existing {"current":"name"} format, isolated from palette/rendering and custom-theme parsing. */
 internal class ThemeSelectionPersistence(
     private val workspace: File,
     private val publish: (Path, Path) -> Unit = { temporary, target ->

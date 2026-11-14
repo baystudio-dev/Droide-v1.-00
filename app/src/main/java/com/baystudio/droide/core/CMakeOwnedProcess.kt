@@ -134,7 +134,7 @@ internal class LocalCMakePreparedOwner(
         if (retired.get() || expected != generation.get() || process?.isAlive != true) return@withLock null
         CMakeHostAdmissionObservation(token, expected)
     }
-
+    /** Pure final wire/application check: no filesystem, blocking calls or suspension. */
     fun isAdmissionCurrent(observation: CMakeHostAdmissionObservation): Boolean =
         observation.owner === token && observation.generation == generation.get() && !retired.get() && process?.knownLive == true
 
@@ -244,8 +244,8 @@ internal class LocalCMakeHostedProcess(
             if (!reaped) { process.destroyForcibly(); reaped = process.waitFor(750, TimeUnit.MILLISECONDS) }
         }
         if (reaped) { code = process.exitValue(); knownLive = false }
-        // Closing an externally read pipe may block on its monitor. Never call it in the manager lock or
-        // infer completion when a bounded close worker fails to finish.
+        // Closing an externally read pipe may block on its monitor. Never call it in the manager lock
+        // or infer completion when a bounded close worker fails to finish.
         val closed = CompletableDeferred<Boolean>()
         scope.launch {
             val clean = runCatching { process.outputStream.close(); process.inputStream.close(); process.errorStream.close(); true }.getOrDefault(false)

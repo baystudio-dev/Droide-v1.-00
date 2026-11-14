@@ -17,8 +17,8 @@ internal class AcpStartupConfigurationHandoff(
 
     fun observe(reportedSessionId: String, update: JsonObject) {
         synchronized(lock) {
-            // The response owns the session identity. Notifications may refine that snapshot, never choose
-            // another owner.
+            // The response owns the session identity. Notifications
+            // may refine that snapshot, never choose another owner.
             startupConfiguration?.takeIf { it.sessionId == reportedSessionId }?.let {
                 it.value = WorkspaceAgentSessionConfigurations.update(update, it.value)
             }
@@ -55,7 +55,8 @@ internal class AcpStartupConfigurationHandoff(
             requireCurrent()
             val startup = requireNotNull(startupConfiguration) { "ACP startup configuration is unavailable" }
             check(startup.sessionId == expectedSessionId) { "ACP startup configuration belongs to another session" }
-
+            // Keep the retained snapshot until delivery succeeds. Commands already capture
+            // pre-response announcements and remain scoped to this same native session.
             onSnapshot(startup.value.copy(availableCommands = commands.snapshot(expectedSessionId)))
             requireCurrent()
             listener = onUpdate

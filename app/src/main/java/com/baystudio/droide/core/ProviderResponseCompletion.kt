@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Pure completion admission used by production buffered and streaming transport. */
 internal object ProviderResponseCompletion {
     fun complete(body: String, json: Json): String = admit(body, json)
 
@@ -65,8 +66,8 @@ internal object ProviderResponseCompletion {
         }
         val safeMessage = if (allowTools ?: (finish == "tool_calls")) message else
             JsonObject(message.filterKeys { it != "tool_calls" && it != "function_call" && !it.startsWith("_droide_") })
-        // Only the native adapter may author this diagnostic field. Compatible buffered JSON must not
-        // smuggle arbitrary provider prose into it.
+        // Only the native adapter may author this diagnostic field. Compatible
+        // buffered JSON must not smuggle arbitrary provider prose into it.
         val safeChoice = buildJsonObject {
             choice.filterKeys { it !in setOf(GoogleGenerateContentAdapter.NATIVE_FINISH_REASON_FIELD, AnthropicMessagesAdapter.NATIVE_STOP_REASON_FIELD) }.forEach { (key, value) -> put(key, value) }
             put("message", safeMessage)

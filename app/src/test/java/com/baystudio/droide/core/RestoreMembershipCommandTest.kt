@@ -49,8 +49,7 @@ class RestoreMembershipCommandTest {
                 hook(it)
             })
             manager = ProjectManager(app, store)
-            // Pending commands intentionally prevent manager initialization. Discovery is store-owned and
-            // does not loadReady.
+            // Pending commands intentionally prevent manager initialization. Discovery is store-owned and does not loadReady.
             if (store.inspectRecovery().pending == null) manager.init()
         }
     }
@@ -135,7 +134,7 @@ class RestoreMembershipCommandTest {
         assertTrue(f.manager.projects.value.single { it.id == "stored" }.workspaceRemoved)
         assertEquals(r.copy(acknowledged = true), f.manager.discoverMembershipCommands().single())
         assertTrue(f.manager.projects.value.single { it.id == "stored" }.workspaceRemoved)
-        assertEquals(2, f.store.inspectRecovery().completed.size)
+        assertEquals(2, f.store.inspectRecovery().completed.size) // tracked restore plus explicit untracked removal
     }
     @Test fun unknownTokenCannotStartOperation() = fixture { f ->
         assertNotNull(runCatching { f.manager.acknowledgeMembershipResult(java.util.UUID.randomUUID().toString(), "0".repeat(64)) }.exceptionOrNull())
@@ -394,7 +393,7 @@ class RestoreMembershipCommandTest {
         var returnedBoundary = false
         var bindingReads = 0
         f.hook = { if (it == "membership-before-return") returnedBoundary = true }
-
+        // One final store binding performs two readText calls; the third is the manager post-store read.
         f.admissionHook = { if (returnedBoundary && it == "choice-read" && ++bindingReads == 3) throw fatal }
         val failure = runCatching { f.manager.restoreMembershipCommand("stored") }.exceptionOrNull()
         assertSame(fatal, failure); assertEquals(3, bindingReads)

@@ -14,6 +14,7 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
 
+ 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 suspend fun Call.awaitResponse(): Response = suspendCancellableCoroutine { continuation ->
     continuation.invokeOnCancellation { cancel() }
@@ -43,8 +44,7 @@ internal suspend fun <T> Call.withCancellableResponse(block: suspend (Response) 
     try {
         call.awaitResponse().use { response -> block(response) }
     } catch (failure: IOException) {
-        // Closing a socket on Stop can throw IOException; preserve user cancellation, not an Agent
-        // error.
+        // Closing a socket on Stop can throw IOException; preserve user cancellation, not an Agent error.
         currentCoroutineContext().ensureActive()
         throw failure
     } finally {

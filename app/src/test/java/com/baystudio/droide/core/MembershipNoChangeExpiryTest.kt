@@ -206,7 +206,7 @@ class MembershipNoChangeExpiryTest {
         f.reopen()
         val r = f.accepted(); val before = f.store.inspectRecovery(); val tables = f.immutableTables(); val custody = f.custody()
         assertEquals(128, before.completed.size)
-        assertEquals(384, custody.size)
+        assertEquals(384, custody.size) // exact retained before/after/retired files for all128 real operations
         f.manager.expireAcceptedNoChange(r.token, r.outcome!!)
         assertEquals(before, f.store.inspectRecovery()); assertEquals(tables, f.immutableTables()); assertEquals(custody, f.custody())
         val next = current.projects.map { it.copy(name = "Must refuse") }

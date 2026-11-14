@@ -6,10 +6,10 @@ import java.io.OutputStream
 
 /** Physical free-space headroom, not a source-size limit or a promise of reserved blocks. */
 internal object ExportStorageBudget {
-    const val RESERVE = 64L * 1024 * 1024
+    const val RESERVE = 64L * 1024 * 1024 // Same app-private safety reserve as APK snapshots.
     fun requireMetadataAvailable(directory: File, available: Long = directory.usableSpace) {
-        // Recovery moves existing bytes, not a capture copy. Do not make low-space recovery depend on
-        // the capture reserve; actual ENOSPC still leaves its receipt/evidence intact.
+        // Recovery moves existing bytes, not a capture copy. Do not make low-space recovery
+        // depend on the capture reserve; actual ENOSPC still leaves its receipt/evidence intact.
         if (!WorkspaceTransferSpace.canStage(available, 4096, 0)) throw ExportFailure("InsufficientStorage")
     }
     fun requireAvailable(directory: File, remaining: Long = 0, available: Long = directory.usableSpace) {
@@ -35,8 +35,9 @@ internal object ExportStorageBudget {
                     val remaining = maxOf(next.toLong(), expectedBytes?.let { maxOf(0, it - written) } ?: 0)
                     val free = available()
                     requireAvailable(directory, remaining, free)
-                    // This is not a disk reservation; racing external allocations can still cause ENOSPC and
-                    // ordinary partial-capture retention.
+                    // At most1MiB of locally accounted writes or250ms between filesystem probes.
+                    // This is not a disk reservation; racing external allocations can still cause
+                    // ENOSPC and ordinary partial-capture retention. Never buffers source bytes.
                     credit = minOf(free - RESERVE, maxOf(1024L * 1024, next.toLong()))
                     checkedAt = now
                 }

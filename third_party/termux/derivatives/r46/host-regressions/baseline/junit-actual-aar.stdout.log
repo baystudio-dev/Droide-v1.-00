@@ -1,0 +1,25 @@
+LOADED_AAR_CLASS name=com.termux.terminal.TerminalPtyIo codeSource=file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar resource=jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar!/com/termux/terminal/TerminalPtyIo.class sha256=dad71a2616d8896baad01e244ac3548f014960822462961d7569a6e557b6ee51
+LOADED_AAR_CLASS name=com.termux.terminal.TerminalProcessOwner codeSource=file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar resource=jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar!/com/termux/terminal/TerminalProcessOwner.class sha256=1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0
+LOADED_AAR_CLASS name=com.termux.terminal.ByteQueue codeSource=file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar resource=jar:file:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar!/com/termux/terminal/ByteQueue.class sha256=c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33
+....................READER_METRIC mixed bytes=8224 polls=321 backoffs=20 requestedBackoffMillis=200
+E....READER_METRIC sustained bytes=1048576 polls=257 backoffs=16 requestedBackoffMillis=160
+E.
+Time: 0.036
+There were 2 failures:
+1) intermittentRetriesResetAfterEachSuccessfulDelivery(com.termux.terminal.TerminalPtyReadProgressTest)
+java.lang.AssertionError: four retries per successful chunk must not accumulate across chunks expected:<0> but was:<20>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at com.termux.terminal.TerminalPtyReadProgressTest.intermittentRetriesResetAfterEachSuccessfulDelivery(Unknown Source)
+2) sustainedSuccessfulDeliveryDoesNotBackoff(com.termux.terminal.TerminalPtyReadProgressTest)
+java.lang.AssertionError: successful delivery must reset the consecutive retry budget expected:<0> but was:<16>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at com.termux.terminal.TerminalPtyReadProgressTest.sustainedSuccessfulDeliveryDoesNotBackoff(Unknown Source)
+
+FAILURES!!!
+Tests run: 25,  Failures: 2
+
+ACTUAL_AAR_JUNIT tests=25 failures=2

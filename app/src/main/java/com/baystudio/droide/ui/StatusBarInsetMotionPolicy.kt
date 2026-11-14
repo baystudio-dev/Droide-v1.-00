@@ -66,12 +66,12 @@ internal class StatusBarInsetMotionController {
             else adoptNative(current, intermediate, requestedHidden)
         }
 
-        // A swipe-revealed bar is an overlay once immersive hiding has completed. Keep the latch over
-        // metric changes; only an actual show request releases it.
+        // A swipe-revealed bar is an overlay once immersive hiding has completed.
+        // Keep the latch over metric changes; only an actual show request releases it.
         if (settledHidden) return adoptNative(0, false, requestedHidden)
 
-        // Native samples always win, including when a fallback has just started. Reduced motion disables
-        // our timer, not the system's actual geometry.
+        // Native samples always win, including when a fallback has just started.
+        // Reduced motion disables our timer, not the system's actual geometry.
         if (intermediate || nativeTrajectory || reducedMotion) {
             return adoptNative(current, intermediate, requestedHidden)
         }
@@ -88,7 +88,7 @@ internal class StatusBarInsetMotionController {
         }
 
         if (current != lastNativeTop) {
-
+            // Both samples are endpoints; otherwise adoptNative handled this above.
             fallback = if (lastRenderedTop != current.toFloat()) {
                 StatusBarInsetFallbackPlan(++generation, lastRenderedTop, current.toFloat())
             } else {

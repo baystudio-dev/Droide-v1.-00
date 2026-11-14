@@ -1,5 +1,10 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
 internal object FoundryUbuntuBaseManifest {
     const val ROOTFS_SHA256 = "a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2"
     const val ROOTFS_BYTES = 29_936_675L

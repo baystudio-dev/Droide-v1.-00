@@ -244,7 +244,7 @@ internal object CSharpRuntimeClosure {
             return Assembly(name,version(a+4),refs.toMap(),modules.toSet(),publicKey,ownCulture,keys.toMap(),cultures.toMap())
         }
     }
-
+    /** Positive managed/dependency/notice closure across the exact three original trees. No remote/package resolver. */
     fun requireManagedClosure(inventories:List<Inventory>,active:()->Unit={}):Map<String,String> {
         require(inventories.size==3&&inventories.map{it.recipe.familyId}.toSet()==LocalUbuntuCSharpPolicy.families)
         val tool=inventories.single{it.recipe.role==CSharpArtifactRole.MANAGED_NUPKG};val sdk=inventories.single{it.recipe.role==CSharpArtifactRole.ORIGINAL_SDK}
@@ -273,8 +273,7 @@ internal object CSharpRuntimeClosure {
             }
             require(a.nativeModules.all{it in setOf("libc","libc.so.6","libdl","libdl.so.2","libpthread","libpthread.so.0")||it in nativeNames||"lib$it.so" in nativeNames}) { "Unsupported managed P/Invoke module in ${a.name}" }
         }
-        // Only explicit complete component sections count; nearby unrelated license words never
-        // establish attribution.
+        // Only explicit complete component sections count; nearby unrelated license words never establish attribution.
         val noticeFiles=(tool.notices.mapKeys{tool.root to it.key}+sdk.notices.mapKeys{sdk.root to it.key})
         val records=linkedMapOf<String,String>()
         for((key,hash)in noticeFiles) {
@@ -291,8 +290,8 @@ internal object CSharpRuntimeClosure {
     internal fun requireReferenceIdentity(requester:Assembly,name:String,provider:Assembly) {
         require(requester.referenceKeys.getValue(name)==provider.publicKeyToken&&requester.referenceCultures.getValue(name)==provider.culture) { "Managed reference strong-name/culture mismatch: ${requester.name} -> $name" }
     }
-    /** Reviewed MSBuildLocator API binding is not a claim of semantic compatibility. */
-
+    /** Reviewed MSBuildLocator API binding is not a claim of semantic compatibility. Native health remains required.
+     * Pinned BuildHost csproj deliberately compiles against 17.11.48 with runtime assets excluded. */
     internal fun requireBinding(name:String,requested:String,provided:String,sdkLoaded:Boolean,runtimeFramework:Boolean) {
         fun parts(v:String)=v.split('.').also{require(it.size==4&&it.all{p->p.matches(Regex("[0-9]{1,5}"))})}.map(String::toInt)
         val req=parts(requested);val actual=parts(provided)
@@ -303,8 +302,8 @@ internal object CSharpRuntimeClosure {
             else -> require(requested==provided) { "Managed non-framework reference version mismatch: $name/$requested" }
         }
     }
-    /** Exact component headings delimit their own notice text. */
-
+    /** Exact component headings delimit their own notice text. This is the source-observed .NET notice format.
+     * An unresolved name/format/full license remains an activation failure, never a proximity heuristic. */
     internal fun noticeSections(raw:String):Map<String,String> {
         require(raw.length<=8_388_608)
         val lines=raw.lines();val starts=lines.indices.filter { lines[it].startsWith("License notice for ") }
@@ -319,8 +318,8 @@ internal object CSharpRuntimeClosure {
             val mit=normalized.indexOf("Permission is hereby granted")
             val apache=normalized.indexOf("Apache License")
             val licenseEnd=normalized.indexOf("END OF TERMS AND CONDITIONS",apache.coerceAtLeast(0))
-            // Exact complete normalized license bodies, not keywords or adjacent-component proximity. Body
-            // fingerprints are local legal-template hashes, never publisher archive authentication.
+            // Exact complete normalized license bodies, not keywords or adjacent-component proximity.
+            // Body fingerprints are local legal-template hashes, never publisher archive authentication.
             val bodyStart=listOf(mit,apache).filter{it>=0}.minOrNull()?:0
             val attribution=normalized.substring(0,bodyStart)
             val attributed=Regex("(?i)Copyright(?: \\(c\\)| ©)? +[A-Za-z0-9][^<>]{3,512}").containsMatchIn(attribution)
@@ -333,6 +332,7 @@ internal object CSharpRuntimeClosure {
         return out.toMap()
     }
 
+    /** Actual env prefix, typed-resource bash and protocol sh remain original guest ELF obligations. */
     internal fun launchShells(guestRoot:File,active:()->Unit={}):Map<File,NimRuntimeClosure.NativeImage> = listOf("/bin/sh","/bin/bash","/usr/bin/env").associate { path ->
         val file=requireNotNull(NimRuntimeClosure.resolveGuestFile(guestRoot,path,active)) { "C# launch command is missing: $path" }
         file to NimRuntimeClosure.inspectElf(file,path,NimRuntimeClosure.NativeRole.EXECUTABLE,active).also { require(!it.originSearch) }
@@ -342,8 +342,7 @@ internal object CSharpRuntimeClosure {
     fun guestClosure(guestRoot:File,inventories:List<Inventory>,active:()->Unit={}):NimRuntimeClosure.Closure {
         require(inventories.size in 1..3)
         val helper=inventories.firstOrNull{it.recipe.role==CSharpArtifactRole.PRIVATE_NODE_HELPER}
-        // Shared parser is pure data validation; this does not borrow Nim receipt/process/health
-        // authority.
+        // Shared parser is pure data validation; this does not borrow Nim receipt/process/health authority.
         val bootstrap=helper?.let{LocalUbuntuCSharpHelperPolicy.requireTree(File(it.root,LocalUbuntuCSharpHelperPolicy.ENTRY),active)}
         val native=inventories.flatMap{inv->inv.native.values.map{inv to it}}
         require(native.size<=512)
@@ -385,8 +384,7 @@ internal object CSharpRuntimeClosure {
             add(image)
             for(symbol in image.imports.filterNot{it.weak})require(providers.values.any{provider->provider.exports.any{export->export.name==symbol.name&&(if(symbol.version==null)export.defaultVersion else export.version==symbol.version)&&(symbol.type==0||symbol.type==export.type||symbol.type==2&&export.type==10)}}){"Unresolved C# native import ${image.relativePath}:${symbol.name}"}
         }
-        // SDK-only proof has no helper bootstrap: obtain identical data-only loader/cache checks via the
-        // shell inventory.
+        // SDK-only proof has no helper bootstrap: obtain identical data-only loader/cache checks via the shell inventory.
         if(bootstrap==null) {
             val inventory=NimRuntimeClosure.Inventory(guestRoot,emptySet(),shells.values.associateBy{it.relativePath},emptyMap(),emptyMap())
             hashes.putAll(NimRuntimeClosure.requireExecutionClosure(listOf(inventory),guestRoot,emptySet(),active).files)

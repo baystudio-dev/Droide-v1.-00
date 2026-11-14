@@ -7,7 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Uses only the frozen API; the coordinator owns execution and the baseline record. */
+/** Uses only the frozen R12 API; the coordinator owns execution and the baseline record. */
 class FileRepositoryDiscoveryDepthBaselineTest {
     @Test fun depthLimitedDiscoveryReportsIncompleteResults(): Unit = runBlocking {
         val root = Files.createTempDirectory("droide-discovery-depth-").toFile()

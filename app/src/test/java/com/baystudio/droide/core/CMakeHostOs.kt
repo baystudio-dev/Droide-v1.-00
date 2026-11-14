@@ -21,8 +21,13 @@ import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.annotation.Resetter
 
-/** Opt-in Linux host fixture, never an Android implementation or global shadow. */
-
+/** Opt-in Linux host fixture, never an Android implementation or global shadow.
+ * Real no-follow opens, descriptor identity and FileChannel.force are exercised.
+ * This does not establish crash survival or Android device compatibility.
+ * Path checks are not atomic with open, and external stream closes are not locked
+ * by this shadow. This fixture does not certify adversarial concurrent-writer safety.
+ * Requires the dedicated CMake host profile's sun.nio.ch/sun.nio.fs/java.io openings.
+ */
 @Implements(Os::class)
 class CMakeHostOs {
     companion object {
@@ -93,8 +98,8 @@ class CMakeHostOs {
                 .first { it.startsWith("Uid:") }.substringAfter(':').trim().split(Regex("\\s+"))[0].toInt()
 
         private fun readChannelWithCloseOnExec(target: Path, flags: Int): FileChannel {
-            // FileChannel.open omits CLOEXEC on this pinned JDK. Use the same JDK's native Unix open with
-            // all requested flags atomically, never a post-open toggle.
+            // FileChannel.open omits CLOEXEC on this pinned JDK. Use the same JDK's
+            // native Unix open with all requested flags atomically, never a post-open toggle.
             check(System.getProperty("os.name") == "Linux") { "Linux host fixture required" }
             // Verified against this host's fcntl.h; never reinterpret foreign ABI flag bits.
             check(OsConstants.O_RDONLY == 0 && OsConstants.O_NOFOLLOW == 131072 && OsConstants.O_CLOEXEC == 524288) {

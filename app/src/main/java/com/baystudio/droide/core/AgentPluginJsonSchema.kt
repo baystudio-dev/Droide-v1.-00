@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 // Plugin schemas are model-facing contracts and a runtime security boundary.
 
+
 object AgentPluginJsonSchema {
     private const val MAX_DEPTH = 16
     private const val MAX_PATTERN_CHARS = 256
@@ -111,6 +112,8 @@ object AgentPluginJsonSchema {
         }
     }
 
+    // JSON Schema count assertions accept mathematical integers (for example
+    // 2.0 or 2e0), while retaining the existing nonnegative Int range.
     private fun schemaCount(value: JsonElement?): Int? {
         val number = value as? JsonPrimitive ?: return null
         if (number.isString) return null
@@ -144,8 +147,8 @@ object AgentPluginJsonSchema {
         return null
     }
 
-    // Schema equality compares JSON values, not their numeric token spelling. Keep invocation
-    // hashing separate: approval identity still uses the exact input.
+    // Schema equality compares JSON values, not their numeric token spelling.
+    // Keep invocation hashing separate: approval identity still uses the exact input.
     private fun equalJsonValues(left: JsonElement, right: JsonElement): Boolean {
         val pending = java.util.ArrayDeque<Pair<JsonElement, JsonElement>>()
         pending.add(left to right)
@@ -219,8 +222,8 @@ object AgentPluginJsonSchema {
         return null
     }
 
-    // Compare decimal values without Double rounding or expanding exponent zeros. Order is arbitrary
-    // precision; retained digits remain bounded by the input text.
+    // Compare decimal values without Double rounding or expanding exponent zeros.
+    // Order is arbitrary precision; retained digits remain bounded by the input text.
     private data class DecimalValue(val negative: Boolean, val digits: String, val order: BigInteger) {
         fun compareTo(other: DecimalValue): Int {
             val zero = digits.isEmpty()

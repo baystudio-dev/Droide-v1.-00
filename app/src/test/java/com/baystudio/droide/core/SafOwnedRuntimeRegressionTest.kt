@@ -33,6 +33,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 
+/** Actual Mirror/repository/provider routing. No device, native, process, or power-loss claims. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [SafPreservationDirectoryOs::class])
 class SafOwnedRuntimeRegressionTest {
@@ -138,11 +139,13 @@ class SafOwnedRuntimeRegressionTest {
         assertEquals(mutations, f.provider.mutations)
         assertEquals(key, SafOperationStorage().key(retained, true))
         assertArrayEquals(original, retained.resolve("child.bin").readBytes())
-
+        // Provider failure may already have deleted part of its tree. No whole-provider outcome is inferred.
         assertFalse(f.external.resolve(".droide").exists())
         f.sentinels()
     }
 
+    // R23's temporary type-refusal expectation is preserved in its immutable checkpoint. Successful
+    // replacement is now checked separately; changed originals still have a zero-effect boundary.
     @Test(timeout = 30_000) fun fullRefreshReplacementRejectsChangedOriginalBeforeAnyProviderEffect(): Unit = runBlocking {
         for (directoryBefore in listOf(false, true)) {
             val f = fixture()
@@ -470,7 +473,7 @@ class SafOwnedRuntimeRegressionTest {
         val oldParticipant = WorkspaceMutationParticipant { guard, mutation ->
             val delegate = mirror.repositoryParticipant().begin(guard, mutation)
             object : WorkspaceMutationSession(guard, mutation) {
-
+                // Model the old API's default sibling destination, retaining its original receipt.
                 override val retainLocalOnSyncFailure get() = delegate.retainLocalOnSyncFailure
                 override suspend fun prepareLocal(preparation: WorkspaceLocalPreparation) = delegate.prepareLocal(preparation)
                 override fun beforeLocalAttempt(preparation: WorkspaceLocalPreparation) = delegate.beforeLocalAttempt(preparation)

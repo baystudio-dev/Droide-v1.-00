@@ -17,6 +17,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
+/** Built-in file runners use user-installed compilers, with disposable generated files. */
 internal object SourceRunPreparation {
     private const val OWNER_FILE = ".droide-owned-run"
     private const val OWNER_CONTENT = "droide-source-run-v1\n"
@@ -160,8 +161,8 @@ internal object SourceRunPreparation {
                     ?: error("Invalid TypeScript package.json: ${workDir.toPath().relativize(manifest)}")
                 val type = (json["type"] as? JsonPrimitive)?.contentOrNull
                 val relative = workDir.toPath().relativize(manifest).toString().replace(File.separatorChar, '/')
-                // NodeNext classifies source files by their original package scope. The emitted tree needs the
-                // same classification, without copying scripts or other package metadata.
+                // NodeNext classifies source files by their original package scope. The emitted tree
+                // needs the same classification, without copying scripts or other package metadata.
                 markers[relative] = if (type == "module") "{\"type\":\"module\"}\n" else "{\"type\":\"commonjs\"}\n"
                 require(markers.size <= 4_096) { "Too many TypeScript package scopes for single-file execution" }
                 return FileVisitResult.CONTINUE
@@ -172,6 +173,8 @@ internal object SourceRunPreparation {
         return markers
     }
 
+    // Workspace sync deliberately excludes .droide. Materialize only these generated files in the
+    // selected Device terminal, using argv for contents and refusing symlinks or unowned directories.
     internal fun remotePreparationCommands(preparation: RunPreparation, files: Map<String, String>): List<List<String>> {
         require(preparation.directory.matches(Regex("\\.droide/run/(typescript|csharp|native)/[0-9a-f]{64}")))
         files.keys.forEach { checkedRelativeParts(it) }

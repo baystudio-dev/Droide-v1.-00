@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal object GradleBuildCommand {
     fun create(
         manifest: AndroidDevelopmentManager.ToolchainManifest,
@@ -23,6 +24,9 @@ internal object GradleBuildCommand {
         val compatibilityRuntime = AndroidToolchainRuntime.isCompatibility(manifest.runtime)
         val commonArgs = buildString {
             append("--console=plain ")
+            
+
+
 
             if (!allowPersistentDaemon || compatibilityRuntime) append("--no-daemon ")
             append("--max-workers=").append(maxWorkers).append(' ')

@@ -23,6 +23,11 @@ class TerminalImeProtocolTest {
         assertEquals("", TerminalImeProtocol.normalizeCommittedText(null))
     }
 
+    @Test fun `CRLF commits do not execute an extra empty command`() {
+        assertEquals("echo café\rnext\r", TerminalImeProtocol.normalizeCommittedText("echo café\r\nnext\r\n"))
+        assertEquals("e\u0301👨‍👩‍👧\r世界", TerminalImeProtocol.normalizeCommittedText("e\u0301👨‍👩‍👧\n世界"))
+    }
+
     @Test
     fun `unicode committed text is preserved`() {
         assertEquals("🙂漢字", TerminalImeProtocol.normalizeCommittedText("🙂漢字"))

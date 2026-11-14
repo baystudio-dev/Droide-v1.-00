@@ -9,6 +9,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
+/** Filesystem artifacts are bytes, independent of the ACP/editor text-document limit. */
 internal object AgentWorkspaceArtifacts {
     private const val BUFFER_BYTES = 64 * 1024
     private const val MAX_FILES = 20_000
@@ -70,6 +71,7 @@ internal object AgentWorkspaceArtifacts {
         } }
     }
 
+    /** Android-host file walk: no PRoot startup, shell pipeline or full-file allocation. */
     suspend fun snapshot(
         root: File,
         fingerprints: WorkspaceFileFingerprintCache = WorkspaceFileFingerprintCache(maxEntries = 0),

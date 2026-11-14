@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Shared by every split and consolidation branch of one compaction transaction. */
 internal class CompactionRequestBudget {
     private var requests = 0
 

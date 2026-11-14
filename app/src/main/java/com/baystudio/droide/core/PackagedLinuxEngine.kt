@@ -1,5 +1,7 @@
 package com.baystudio.droide.core
 
+import com.baystudio.droide.BuildConfig
+
 import android.content.Context
 import android.os.Build
 import java.io.DataInputStream
@@ -27,6 +29,7 @@ object PackagedLinuxEngine {
         }
     }
 
+    /** Named children remain noncanonical so an attempt's no-follow check sees aliases. */
     internal fun nativeFiles(context: Context, checkCancelled: () -> Unit): List<File> {
         checkCancelled()
         check(Build.SUPPORTED_ABIS.firstOrNull() == "arm64-v8a" && android.os.Process.is64Bit()) {
@@ -57,9 +60,13 @@ object PackagedLinuxEngine {
         val launcher = checkedLauncher(files)
         SystemLinkerExec.requireAndroidArm64DynamicElf(launcher)
         checkCancelled()
-        check(sha256(launcher, checkCancelled) == LIBRARY_SHA256) { "Packaged PRoot does not match the reviewed release" }
-        loader(launcher.parentFile!!, LOADER_NAME, LOADER_SHA256, 2, checkCancelled)
-        loader(launcher.parentFile!!, LOADER32_NAME, LOADER32_SHA256, 1, checkCancelled)
+        check(sha256(launcher, checkCancelled) == if (BuildConfig.FDROID_NATIVE_SOURCE) BuildConfig.SOURCE_PROOT_SHA256 else LIBRARY_SHA256) {
+            "Packaged PRoot does not match the reviewed release"
+        }
+        loader(launcher.parentFile!!, LOADER_NAME,
+            if (BuildConfig.FDROID_NATIVE_SOURCE) BuildConfig.SOURCE_PROOT_LOADER_SHA256 else LOADER_SHA256, 2, checkCancelled)
+        loader(launcher.parentFile!!, LOADER32_NAME,
+            if (BuildConfig.FDROID_NATIVE_SOURCE) BuildConfig.SOURCE_PROOT_LOADER32_SHA256 else LOADER32_SHA256, 1, checkCancelled)
         checkCancelled()
         return launcher
     }

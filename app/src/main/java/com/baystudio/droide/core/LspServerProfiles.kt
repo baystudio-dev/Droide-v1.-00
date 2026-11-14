@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
+/** Reviewed server-specific discovery and configuration. Existing integrations are unchanged. */
 internal object LspServerProfiles {
     fun isAsm(spec: LanguageServerSpec): Boolean = LspAsmProfile.matches(spec)
 
@@ -127,6 +128,7 @@ internal object LspServerProfiles {
     private fun isVim(spec: LanguageServerSpec): Boolean = spec.source == "built-in" && spec.id == "vim-language-server"
 
     fun requiresProjectAnalysis(spec: LanguageServerSpec, path: String): Boolean =
+        spec.id == LspMdxProfile.ID || "mdx" in spec.languageIds || "mdx" in spec.extensions || path.endsWith(".mdx", ignoreCase = true) ||
         LspSolidityProfile.isRoute(spec, path) || LspScalaProfile.isRoute(spec, path) || LspAsmProfile.isRoute(spec, path) || LspElixirProfile.isRoute(spec, path) || LspHaskellProfile.isRoute(spec, path) || LspRProfile.isRoute(spec, path) || isElpRoute(spec, path) || isGraphqlRoute(spec, path) || isTomlRoute(spec, path) || isCSharpRoute(spec, path) || isVueRoute(spec, path) || isNimRoute(spec, path) || isCMakeRoute(spec, path) || isSvelteRoute(spec, path) || isPowerShellRoute(spec, path) || isSqlRoute(spec, path) || isPrismaRoute(spec, path) || isClojureRoute(spec) || LspClojureProfile.supportsPath(path) ||
             spec.id == "perlnavigator" || "perl" in spec.languageIds ||
             spec.extensions.any { it in setOf("pl", "pm") } || LanguageRegistry.forFile(path)?.id == "perl" ||
@@ -155,6 +157,7 @@ internal object LspServerProfiles {
         put("extensions", buildJsonArray { spec.extensions.sorted().forEach(::add) })
         put("filenames", buildJsonArray { spec.filenames.sorted().forEach(::add) })
         put("profile", when {
+            LspMdxProfile.matches(spec) -> "mdx-managed-sdk-project-plugins-v1"
             isAsm(spec) -> LspAsmProfile.IDENTITY
             isSolidity(spec) -> LspSolidityProfile.IDENTITY
             isScala(spec) -> LspScalaProfile.IDENTITY
@@ -308,8 +311,8 @@ internal object LspServerProfiles {
         if (isElixir(spec)) return LspElixirProfile.projectRoot(workspace, document)
         if (isHaskell(spec)) return LspHaskellProfile.projectRoot(workspace, document)
         if (isR(spec)) return LspRProfile.projectRoot(workspace, document)
-        // The manager supplies its committed CMake selection. This fallback is an inert document
-        // identity only and cannot select or authorize a build.
+        // The manager supplies its committed CMake selection. This fallback is an
+        // inert document identity only and cannot select or authorize a build.
         if (isVue(spec)) return LspVueProfile.projectRoot(workspace, document)
         if (isNim(spec)) return LspNimProfile.projectRoot(workspace, document)
         if (isCMake(spec)) return document.canonicalFile.parentFile ?: workspace.canonicalFile
@@ -321,8 +324,8 @@ internal object LspServerProfiles {
         require(PathSecurity.contains(boundary, file)) { "Language-server document escaped the workspace" }
         if (!hasProjectRoots(spec)) return boundary
         val directory = file.parentFile ?: boundary
-        // A dirty editor tab can outlive its on-disk directory. Keep its exact identity available for
-        // status/revoke/close; admission checks availability.
+        // A dirty editor tab can outlive its on-disk directory. Keep its exact
+        // identity available for status/revoke/close; admission checks availability.
         if (isTerraform(spec)) return directory
         // Do not route a deleted nested project through a pre-approved ancestor.
         if ((isPowerShell(spec) || isMake(spec) || isClojure(spec)) && !Files.isDirectory(directory.toPath(), NOFOLLOW_LINKS)) return directory
@@ -340,7 +343,8 @@ internal object LspServerProfiles {
             if (candidate == boundary) break
             candidate = candidate.parentFile ?: break
         }
-
+        // Vim's released server ignores rootUri and falls back to the document's
+        // parent. Match that actual contract, with '.' preventing ancestor search.
         return if (isVim(spec) || isBuf(spec) || isZls(spec) || isLemMinx(spec)) directory else boundary
     }
 
@@ -386,8 +390,8 @@ internal object LspServerProfiles {
                 Files.isDirectory(File(root, it).toPath(), NOFOLLOW_LINKS)
             }
 
-    // Empty workspaceFolders deliberately prevents fallback to rootUri in Marksman. Each didOpen
-    // then creates a singleton document without scanning the workspace.
+    // Empty workspaceFolders deliberately prevents fallback to rootUri in Marksman.
+    // Each didOpen then creates a singleton document without scanning the workspace.
     fun publishesWorkspaceRoot(spec: LanguageServerSpec, project: File): Boolean =
         !isMarksman(spec) || marksmanProject(project)
 
@@ -408,8 +412,8 @@ internal object LspServerProfiles {
         if (isLemMinx(spec)) LspLemMinxProfile.initializationOptions().forEach { (key, value) -> put(key, value) }
         if (isZls(spec)) LspZlsProfile.initializationOptions().forEach { (key, value) -> put(key, value) }
         if (isTerraform(spec)) terraformInitializationOptions().forEach { (key, value) -> put(key, value) }
-        // Full distribution lookup is allowed only after the explicit project grant. This flag cannot
-        // prevent latexmkrc execution, hence the independent gate.
+        // Full distribution lookup is allowed only after the explicit project grant.
+        // This flag cannot prevent latexmkrc execution, hence the independent gate.
         if (isTexlab(spec)) put("skipDistro", false)
         if (isVim(spec)) {
             put("isNeovim", false)
@@ -422,7 +426,8 @@ internal object LspServerProfiles {
                 put("fromVimruntime", false)
             })
             put("indexes", buildJsonObject {
-
+                // 2.3.1 ignores this false flag. Empty runtime paths and disabled
+                // runtime suggestions above are the actual bounding controls.
                 put("runtimepath", false)
                 put("gap", 100)
                 put("count", 1)
@@ -531,6 +536,7 @@ internal object LspServerProfiles {
         else if (isClojureRoute(spec, path)) LspClojureProfile.INSTALLATION_DISCLOSURE else null
 
     fun approvalExplanation(spec: LanguageServerSpec, project: File? = null, path: String? = null): String = when {
+        LspMdxProfile.matches(spec) -> "MDX analysis reads the project TypeScript configuration and may execute its remark or virtual-code plugins. Enable only for a project you trust; Revoke stops the analysis session."
         isAsm(spec) -> LspAsmProfile.APPROVAL_EXPLANATION
         isSolidity(spec) -> LspSolidityProfile.APPROVAL_EXPLANATION
         isScala(spec) -> LspScalaProfile.APPROVAL_EXPLANATION

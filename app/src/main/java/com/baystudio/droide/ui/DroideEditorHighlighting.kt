@@ -17,6 +17,10 @@ import io.github.rosemoe.sora.lang.styling.Styles
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import kotlinx.coroutines.*
 
+
+
+
+
 internal class DroideEditorHighlightController(
     private val editor: DroideCodeEditor,
     private val path: String,
@@ -89,6 +93,7 @@ internal class DroideEditorHighlightController(
             return
         }
         if (!geometryChanged) return
+        
 
         val styles = editor.styles ?: return
         styles.blocks?.clear()
@@ -103,6 +108,11 @@ internal class DroideEditorHighlightController(
         syntaxJob?.cancel()
         semanticJob?.cancel()
     }
+
+    
+
+
+
 
     fun installSafeBaseStyles(text: String) {
         if (released) return
@@ -134,9 +144,9 @@ internal class DroideEditorHighlightController(
                 continue
             }
             val styles = LongArray(line.length) { TextStyle.makeStyle(EditorColorScheme.TEXT_NORMAL) }
-
+            
             lineSpans.asSequence().filter { !it.semantic }.forEach { paint(styles, it) }
-
+            
             lineSpans.asSequence().filter { it.semantic }.forEach { paint(styles, it) }
             var last: Long? = null
             for (column in styles.indices) {
@@ -180,6 +190,7 @@ internal class DroideEditorHighlightController(
                 toBottomOfEndLine = guide.toBottomOfEndLine
             })
         }
+        
 
         styles.setIndentCountMode(true)
     }

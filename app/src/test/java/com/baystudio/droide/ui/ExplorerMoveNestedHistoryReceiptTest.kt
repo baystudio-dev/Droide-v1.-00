@@ -170,7 +170,8 @@ class ExplorerMoveNestedHistoryReceiptTest {
         assertTrue(request.committed)
         assertNull(request.failure)
         assertNotNull(request.undo)
-
+        // The exact live performMove publication gate includes the outer IO-return
+        // failure, even when repository completion was successful before return loss.
         state.recordMove(if (failure == null && request.failure == null) request.undo else null, 0)
         assertTrue(state.undoMoves.isEmpty()); assertTrue(state.redoMoves.isEmpty())
         assertEquals("unchanged", root.resolve("moved/b.txt").readText())

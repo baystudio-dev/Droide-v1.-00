@@ -1,0 +1,45 @@
+{
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "additionalCFlags": "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358 -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358",
+  "androidApi": 29,
+  "androidOrJavaOutputExecution": false,
+  "buildType": "Debug",
+  "environment": {
+    "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+    "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+    "TZ": "UTC"
+  },
+  "knownPriorDerivedChanges": [
+    "Java-only AAR and patches/REBUILD.json were updated by another owner before both native runs."
+  ],
+  "outputRoot": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+  "primaryRoot": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-primary",
+  "recipeReviewSha256": "27d73550110628e5df54f8b188a254675528f2c8d3c8df45bd706075d3f173be",
+  "sourceArchiveSha256": "e767a89ace01569e1e0412b2bbd03de171194caa85c3989b770d4bfe9438d317",
+  "sourcePins": {
+    "app/src/main/cpp/CMakeLists.txt": "5822f744df7b90c4473ad690a8d068e82094a3e5a4be730c750e9aa80fd8982c",
+    "app/src/main/cpp/droide_files.c": "8161f13dcca6e7df65c2ffe8be3298465c2593ace41f56114340475885fb5ea3",
+    "third_party/termux/native/OWNED_PROCESS_ABI.json": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+    "third_party/termux/native/REBUILD.json": "f2c9660006eefb353655994c92c6253c35533e038638e005b0aab11ab5732105",
+    "third_party/termux/native/termux.c": "e6e4e563865857af85fd6e101021fb3e247ecfc93f9261e1242d0ef637edc000",
+    "third_party/termux/patches/src/com/termux/terminal/JNI.java": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
+    "tools/verify_release_source.sh": "bb1c4f1d3c95720bc44dff2f152317c3a7d2f83f65cc2de1d8021a72c3655f3b",
+    "tools/verify_termux_provenance.py": "9a2b277a99bf0fffd8be1751f846cc91237c2e11ad13e2f07081fa3857792637"
+  },
+  "sourceRoot": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source",
+  "sourceTreeMatchesPrimaryPostBuild": true,
+  "startedUtc": "2026-10-16T19:26:41.808220+00:00",
+  "status": "BUILD_ONLY_DEVICE_UNVALIDATED",
+  "targets": [
+    "termux",
+    "droide_files"
+  ]
+}

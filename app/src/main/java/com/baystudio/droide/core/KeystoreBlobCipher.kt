@@ -8,6 +8,10 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+
+
+
+
 class KeystoreBlobCipher(private val alias: String) {
     fun encrypt(plain: ByteArray, aad: ByteArray = byteArrayOf()): ByteArray {
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -58,7 +62,7 @@ class KeystoreBlobCipher(private val alias: String) {
     }
 
     private companion object {
-        val MAGIC = byteArrayOf(0x44, 0x52, 0x42, 0x31)
+        val MAGIC = byteArrayOf(0x44, 0x52, 0x42, 0x31) 
         const val FORMAT_VERSION: Byte = 1
         const val TRANSFORMATION = "AES/GCM/NoPadding"
     }

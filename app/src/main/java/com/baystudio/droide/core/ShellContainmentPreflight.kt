@@ -25,6 +25,7 @@ data class ShellContainmentResult(
             findings.any { it.kind.startsWith("dynamic_") || it.kind == "parse_ambiguity" || it.kind == "wrapper" }
 }
 
+
 object ShellContainmentPreflight {
     private enum class TokenKind { WORD, OPERATOR }
 
@@ -74,6 +75,7 @@ object ShellContainmentPreflight {
         }
 
         inspectCommandSemantics(lexed.tokens, findings).also { if (it) dynamic = true }
+
 
         lexed.tokens.forEachIndexed { index, token ->
             if (token.kind != TokenKind.WORD || token.dynamic) return@forEachIndexed
@@ -131,6 +133,7 @@ object ShellContainmentPreflight {
             }
             // Clustered flags such as -lc/-xec still carry -c semantics and must not bypass shellescape.
 
+
             words.windowed(size = 2, step = 1, partialWindows = false).forEach { pair ->
                 val wrapper = pair[0].text.substringAfterLast('/')
                 if (wrapper in SHELL_WRAPPERS && isShellCommandFlag(pair[1].text)) {
@@ -153,9 +156,11 @@ object ShellContainmentPreflight {
         return dynamic
     }
 
+
     private fun staticPathOperand(value: String, forcedPath: Boolean): String? {
         if (value.isBlank() || value == "-") return null
         if (forcedPath) return value
+        
 
         if (value.startsWith("--") && '=' in value) {
             val optionValue = value.substringAfter('=')
@@ -170,7 +175,7 @@ object ShellContainmentPreflight {
 
     private fun resolveStaticPath(value: String, cwd: File): File? {
         if (value.isEmpty()) return null
-
+        
         if (URI_SCHEME.matches(value)) return null
         if (value.startsWith("-") && !value.startsWith("./") && !value.startsWith("../")) return null
         return runCatching {
@@ -199,12 +204,13 @@ object ShellContainmentPreflight {
         return if (normalized.isEmpty()) "/*" else "$normalized/*"
     }
 
+
     private fun lex(command: String): LexResult {
         val out = mutableListOf<Token>()
         val word = StringBuilder()
         var wordDynamic = false
         var wordExpansion = false
-        var state = 0
+        var state = 0 
         var escaped = false
         var i = 0
 
@@ -226,7 +232,7 @@ object ShellContainmentPreflight {
                 continue
             }
             when (state) {
-                1 -> {
+                1 -> { 
                     if (ch == '\'') state = 0 else word.append(ch)
                     i++
                 }

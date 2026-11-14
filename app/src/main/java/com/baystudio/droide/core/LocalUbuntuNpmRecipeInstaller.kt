@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
+
 internal class LocalUbuntuNpmRecipeInstaller(
     context: Context,
     private val projectRoot: File,
@@ -167,7 +168,7 @@ internal class LocalUbuntuNpmRecipeInstaller(
                 LocalUbuntuNpmPolicy.validateLock(lock.readText(), recipe)
                 npmCommand(listOf("ci", "--ignore-scripts", "--omit=dev", "--include=optional"))
                 if (recipe.allowLifecycleScripts) {
-
+                    // The reviewed root binary selector may run; transitive lifecycle scripts stay blocked.
                     val preload = File(paths.stage, ".selector-copy-only.cjs")
                     preload.writeText(LocalUbuntuNpmPolicy.reviewedSelectorPreload(recipe))
                     val guestPreload = "/opt/droide/packages/" + preload.absolutePath.removePrefix("$root/packages/")
@@ -198,7 +199,7 @@ internal class LocalUbuntuNpmRecipeInstaller(
                 }
                 val lspProbe = if (recipe.familyId != LocalUbuntuPrismaPolicy.FAMILY_ID && commands.keys.any { LocalUbuntuNpmPolicy.isLanguageServerCommand(recipe, it) })
                     File(paths.stage, "payload/${LocalUbuntuNpmLspHealth.FILE_NAME}").apply {
-                        writeText(LocalUbuntuNpmLspHealth.script)
+                        writeText(if (recipe.familyId == LspMdxProfile.FAMILY) LspMdxProfile.healthScript else LocalUbuntuNpmLspHealth.script)
                     } else null
                 val stageGuest = if (recipe.familyId == LocalUbuntuPrismaPolicy.FAMILY_ID) requireNotNull(LocalLinuxPackageEnvironment.guestPath(paths.stage.absolutePath, "$root/packages/"))
                     else "/opt/droide/packages/" + paths.stage.absolutePath.removePrefix("$root/packages/")
@@ -378,6 +379,7 @@ internal class LocalUbuntuNpmRecipeInstaller(
         }
     }
 
+    /** Svelte alone is isolated before even Node/npm observation. Other npm families keep their existing route. */
     suspend fun probeSvelteRuntime(node: ManagedPackageRecord): JsonObject = withContext(Dispatchers.IO) {
         require(authority.verifySvelteNode(node)) { LocalUbuntuSveltePolicy.PREREQUISITE_MESSAGE }
         withSveltePrivateContext { privateHost, privateGuest ->
@@ -476,7 +478,7 @@ internal class LocalUbuntuNpmRecipeInstaller(
                 }
             }
             if (reusable != null) {
-
+                // activate takes the transaction gate itself; match the generic npm boundary.
                 if (!reusable.active) authority.activate(reusable)
                 progress("Using verified installed Svelte ${recipe.version}; no npm install or download needed.\n")
                 return@withSveltePrivateContext reusable.copy(active=true)

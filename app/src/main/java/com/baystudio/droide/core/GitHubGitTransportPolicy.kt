@@ -3,6 +3,13 @@ package com.baystudio.droide.core
 import java.net.URI
 import java.net.URL
 
+
+
+
+
+
+
+
 object GitHubGitTransportPolicy {
     internal fun isGitHubRequest(url: URL): Boolean =
         url.protocol.equals("https", true) && url.host.equals("github.com", true) &&

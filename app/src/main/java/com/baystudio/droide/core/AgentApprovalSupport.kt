@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object AgentApprovalSupport {
     suspend fun doomLoopDenied(
         approvals: ApprovalManager,

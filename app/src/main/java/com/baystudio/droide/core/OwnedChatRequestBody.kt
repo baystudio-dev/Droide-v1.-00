@@ -6,8 +6,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
 import okio.BufferedSink
 
-/** Context admission remains approximate UTF-8 bytes / 4 (not a tokenizer or token upper bound)
- * plus image reservations. */
+/** Immutable source-backed history; no whole-history heap allocation or allocation-size ceiling.
+ * Context admission remains approximate UTF-8 bytes / 4 (not a tokenizer or token upper bound) plus image reservations.
+ */
 internal class OwnedChatRequestBody private constructor(
     private val options: JsonObject,
     private val history: List<SourceAwareChatHistoryWriter.Item>,
@@ -53,8 +54,8 @@ internal class OwnedChatRequestBody private constructor(
             val available = ContextBudget.effectiveInputTokens(provider.id, target.modelId, reserve)
             if (available != null) {
                 val legacy = immutable.filterIsInstance<SourceAwareChatHistoryWriter.Item.Legacy>().map { it.message }
-                // Wire base64 size is not model context. Replace only legacy message accounting with the shared
-                // Unicode/image-aware estimate; retain every exact wire byte.
+                // Wire base64 size is not model context. Replace only legacy message accounting
+                // with the shared Unicode/image-aware estimate; retain every exact wire byte.
                 val legacyEstimate = ContextBudget.estimate("", legacy, null, provider.id, target.modelId, null, reserve)
                 val otherBytes = (counter.bytes - legacy.sumOf { ContextBudget.serializedUtf8Bytes(it).toLong() }).coerceAtLeast(0)
                 val estimated = (otherBytes + 3) / 4 + legacyEstimate.approximateTokens

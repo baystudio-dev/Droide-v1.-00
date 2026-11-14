@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 // Durable connection metadata intentionally stores only non-secret summary state.
 
+
 internal object ProviderModelCertificationRegistry {
     private const val MAX_MODELS = 1_000
 
@@ -24,6 +25,7 @@ internal object ProviderModelCertificationRegistry {
         return safe.toList()
     }
 
+     
     fun certify(provider: AiProvider, models: Collection<String>): List<String> {
         val safe = validatedModels(models)
         val id = provider.id.trim().lowercase()

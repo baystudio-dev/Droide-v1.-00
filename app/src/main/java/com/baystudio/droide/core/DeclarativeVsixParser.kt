@@ -27,6 +27,11 @@ internal data class ParsedDeclarativeVsix(
     val resourcePaths: Set<String>,
 )
 
+
+
+
+
+
 internal object DeclarativeVsixParser {
     const val MAX_VSIX_BYTES = 64L * 1024 * 1024
     const val MAX_ENTRY_BYTES = 8L * 1024 * 1024
@@ -165,6 +170,7 @@ internal object DeclarativeVsixParser {
                 val target = idValue.primitiveString() ?: return@mapNotNull null
                 if (scopeKey.matches(scopeName) && target.matches(languageId)) scopeKey to target else null
             }.take(32).toMap()
+            
 
             DroideGrammarContribution(language, scope, path, embedded).also(DroideGrammarContribution::validate)
         }

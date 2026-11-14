@@ -60,7 +60,7 @@ data class EditorRecoverySnapshot(
     val deferredBuffers: Map<String, EditorRecoveryBuffer> = emptyMap(),
     val conflictBuffers: Map<String, String> = emptyMap(),
     val deferredConflictBuffers: Map<String, EditorRecoveryBuffer> = emptyMap(),
-
+    // Missing entries are unknown, distinct from a known-absent DiskFileVersion.
     val diskVersions: Map<String, DiskFileVersion> = emptyMap(),
     val conflictDiskVersions: Map<String, DiskFileVersion> = emptyMap(),
     val conflictRevision: EditorRecoveryConflictAuthority.Revision? = null,
@@ -80,8 +80,8 @@ private class PlatformEditorRecoveryCipher : EditorRecoveryCipher {
     override fun decrypt(encrypted: ByteArray, aad: ByteArray) = delegate.decrypt(encrypted, aad)
 }
 
-/** An archived leaf is not live recovery data and is never a cleanup authorization. Expected
- * identity always comes from the original authenticated v7 ledger, never rebaselined. */
+/** An archived leaf is not live recovery data and is never a cleanup authorization.
+ * Expected identity always comes from the original authenticated v7 ledger, never rebaselined. */
 data class EditorRecoveryEvidenceIssue(
     val blobName: String,
     val missing: Boolean,
@@ -155,6 +155,7 @@ class EditorStateStore internal constructor(
         RetirementToken().also { retirement.set(RetirementState(it, committed = false)) }
     }
 
+    /** Non-suspending, allocation-free commit, called before publishing the next runtime. */
     fun commitRetirement(token: RetirementToken): Boolean {
         val state = retirement.get() ?: return false
         if (state.token !== token) return false
@@ -213,8 +214,8 @@ class EditorStateStore internal constructor(
                         require(blob.isFile && blob.length() in 1..MAX_ENCRYPTED_BUFFER_BYTES) { "Missing recovery buffer for $path" }
                         val hash = (o["sha256"] as? JsonPrimitive)?.contentOrNull
                         require(hash == null || hash.matches(Regex("[0-9a-f]{64}"))) { "Invalid recovery checksum for $path" }
-                        // V4 had no plaintext-size metadata. Its encrypted length is a bounded, conservative estimate,
-                        // keeping recovery lazy without reading every blob.
+                        // V4 had no plaintext-size metadata. Its encrypted length is a bounded,
+                        // conservative estimate, keeping recovery lazy without reading every blob.
                         val bound = if (version >= 5) (o["max_bytes"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
                             ?: error("Missing recovery buffer size for $path") else minOf(MAX_BUFFER_BYTES.toLong(), blob.length())
                         require(bound in 0..MAX_BUFFER_BYTES.toLong() && (version == 4 || total + bound <= MAX_TOTAL_BUFFER_BYTES)) { "Recovery exceeds safety limit" }
@@ -255,7 +256,7 @@ class EditorStateStore internal constructor(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Throwable) {
-
+            
             throw IllegalStateException("Editor recovery could not be read; encrypted data was preserved", error)
         }
     } }
@@ -318,8 +319,8 @@ class EditorStateStore internal constructor(
     private fun validateDiscard(selection: ConflictDiscardSelection, manifest: JsonObject, snapshot: EditorRecoverySnapshot,
         context: kotlin.coroutines.CoroutineContext) {
         check(selection.owner === this && selection.consumed.get() && selection.phase == DiscardPhase.PREPARED)
-        // Unrelated checkpoints may change the encrypted manifest. Consent remains bound to the exact
-        // selected payload; capture the current manifest only for uncertain-publication reconciliation.
+        // Unrelated checkpoints may change the encrypted manifest. Consent remains bound to
+        // the exact selected payload; capture the current manifest only for uncertain-publication reconciliation.
         selection.admittedManifestSha256 = digestBytes(readEncrypted(file, MAX_FILE_BYTES))
         requireUniqueDiscardReference(manifest, selection.path, selection.blob)
         val selectedEntry = (manifest["conflicts"] as? JsonArray).orEmpty().map { it.jsonObject }
@@ -361,7 +362,7 @@ class EditorStateStore internal constructor(
         check(selection.owner === this && selection.consumed.compareAndSet(false, true)) { "Removal preview was already used" }
         selection.installCallback(onDurable)
         try {
-
+            // Writer gate precedes store mutex, matching capture order. No workspace-wide fence.
             ExportWriterAdmission.withQuiescentCapture(blobs, label = "Selected recovery removal") {
                 saveChecked(snapshot, null, committedToken = false, discard = selection)
             }
@@ -410,6 +411,7 @@ class EditorStateStore internal constructor(
     suspend fun saveRetired(snapshot: EditorRecoverySnapshot, token: RetirementToken) =
         saveChecked(snapshot, token, committedToken = true)
 
+    /** Exit may preserve a frozen draft before its reversible lease is committed. */
     internal suspend fun saveTentative(snapshot: EditorRecoverySnapshot, token: RetirementToken) =
         saveChecked(snapshot, token, committedToken = false)
 
@@ -419,7 +421,7 @@ class EditorStateStore internal constructor(
     ) = mutex.withLock {
         if (pendingDiscard != null && pendingDiscard !== discard) throw EditorRecoveryCheckpointDeferredException("A confirmed recovery removal needs reconciliation before another checkpoint")
         validateSnapshotRevision(snapshot)
-
+        // Check after admission to the same mutex as IO, including callers queued before retirement.
         val state = retirement.get()
         check(if (token == null) state == null else state != null && state.token === token && state.committed == committedToken) {
             "Editor recovery write is not owned by the active store or its committed handoff"
@@ -444,7 +446,7 @@ class EditorStateStore internal constructor(
         val context = currentCoroutineContext()
         val previousRoot = readManifestForMutation()
         discard?.let { validateDiscard(it, checkNotNull(previousRoot), snapshot, context) }
-
+        // Admit all live payload sizes before either inspection or fresh writes.
         var liveBytes = 0L
         fun admitLive(bytes: Long) {
             require(bytes in 0..MAX_BUFFER_BYTES.toLong())
@@ -567,6 +569,7 @@ class EditorStateStore internal constructor(
         val plain = text.toByteArray(Charsets.UTF_8)
         val encrypted = cipher.encrypt(plain, aad)
         require(encrypted.size <= MAX_FILE_BYTES) { "Encrypted recovery state too large" }
+        
 
         context.ensureActive()
         validateSnapshotRevision(snapshot)
@@ -648,8 +651,8 @@ class EditorStateStore internal constructor(
     private fun validPath(path: String): Boolean = isRecoverablePath(path)
 
     private fun requireStorage(create: Boolean) {
-        // Android may expose /data/data through a system symlink. The canonical application files
-        // directory is the trusted anchor; every component owned below it is no-follow.
+        // Android may expose /data/data through a system symlink. The canonical application
+        // files directory is the trusted anchor; every component owned below it is no-follow.
         check(appFilesDir.isDirectory && !PathSecurity.isSymbolicLink(appFilesDir)) { "Editor recovery application root is unavailable" }
         requireDirectory(metadataRoot, create)
         requireDirectory(root, create)
@@ -657,8 +660,9 @@ class EditorStateStore internal constructor(
     }
 
     private fun prepareStorage(create: Boolean) {
-        // Storage validation and maintenance belong to handled suspend operations, so corrupt metadata
-        // cannot turn constructing the editor into a repeat startup crash.
+        // Construction happens from the Activity/composition path. Storage validation and
+        // maintenance belong to handled suspend operations, so corrupt metadata cannot turn
+        // constructing the editor into a repeat startup crash.
         requireStorage(create)
         requireRegularOrAbsent(legacyPlaintextFile)
         if (legacyPlaintextFile.isFile) check(legacyPlaintextFile.delete()) { "Cannot remove legacy editor recovery state" }
@@ -687,8 +691,8 @@ class EditorStateStore internal constructor(
         val size = target.length()
         require(size in (if (allowEmpty) 0 else 1)..limit) { "Editor recovery file exceeds its safety limit" }
         return Files.newInputStream(target.toPath(), LinkOption.NOFOLLOW_LINKS).use { input ->
-            // Allocate once at the admitted size; do not grow/copy a second large ciphertext buffer on a
-            // phone. Atomic writers keep the opened generation stable.
+            // Allocate once at the admitted size; do not grow/copy a second large ciphertext
+            // buffer on a phone. Atomic writers keep the opened generation stable.
             val bytes = ByteArray(size.toInt())
             var offset = 0
             while (offset < bytes.size) {
@@ -826,8 +830,8 @@ class EditorStateStore internal constructor(
         evidenceIssues.value = issues
     }
 
-    /** Isolate only missing/changed archived bytes. Invalid metadata and unsafe filesystem objects
-     * still fail closed. No leaf is moved, rewritten, adopted or marked deletable. */
+    /** Isolate only missing/changed archived bytes. Invalid metadata and unsafe filesystem
+     * objects still fail closed. No leaf is moved, rewritten, adopted or marked deletable. */
     private fun inspectPreserved(entries: Map<String, PreservedBlob>,
         context: kotlin.coroutines.CoroutineContext): List<EditorRecoveryEvidenceIssue> {
         val issues = mutableListOf<EditorRecoveryEvidenceIssue>()
@@ -840,8 +844,8 @@ class EditorStateStore internal constructor(
             val exists = Files.exists(blob.toPath(), LinkOption.NOFOLLOW_LINKS)
             val observedSize = if (exists) blob.length() else 0L
             require(!exists || observedSize in 0..MAX_ENCRYPTED_BUFFER_BYTES) { "Archived recovery ciphertext exceeds its budget" }
-            // Keep charging missing evidence's original reservation; changed evidence cannot evade capacity
-            // by replacing a small archived leaf with a larger one.
+            // Keep charging missing evidence's original reservation; changed evidence cannot
+            // evade capacity by replacing a small archived leaf with a larger one.
             retainedBudget += maxOf(entry.identity.bytes, observedSize)
             require(retainedBudget <= MAX_PRESERVED_BYTES) { "Recovery evidence byte limit reached; ciphertext was preserved" }
             val observed = if (exists) cipherIdentity(blob, context) else null
@@ -920,7 +924,7 @@ class EditorStateStore internal constructor(
             }
         }
         require(preserved.size + orphans.size <= MAX_PRESERVED_BLOBS) { "Recovery evidence entry limit reached" }
-
+        // Bound real ciphertext IO before decrypting any previous payload, including legacy v4.
         var inspectBytes = 0L
         val pendingFiles = retiring.keys.filter { id ->
             val blob = File(blobs, id); requireRegularOrAbsent(blob)
@@ -939,11 +943,11 @@ class EditorStateStore internal constructor(
             "A live recovery reference has changed archived evidence; data was preserved"
         }
         evidenceIssues.value = issues
-        // A prior rename may have succeeded even when its directory sync failed. Confirm the visible
-        // receipt manifest before any retry can unlink its payloads.
+        // A prior rename may have succeeded even when its directory sync failed.
+        // Confirm the visible receipt manifest before any retry can unlink its payloads.
         if (retiring.isNotEmpty()) syncDirectory(root)
-        // Resume only durable, previously verified retirements. A missing leaf is already done; a
-        // changed leaf is evidence, never a fresh deletion authorization.
+        // Resume only durable, previously verified retirements. A missing leaf is already done;
+        // a changed leaf is evidence, never a fresh deletion authorization.
         for (id in pendingFiles) {
             val blob = File(blobs, id)
             val observed = cipherIdentity(blob, context)
@@ -955,8 +959,8 @@ class EditorStateStore internal constructor(
             }
         }
         if (retiring.isNotEmpty()) {
-            // A new manifest may forget these receipts only after absence is durable, including a retry
-            // where the previous attempt already unlinked the leaves.
+            // A new manifest may forget these receipts only after absence is durable,
+            // including a retry where the previous attempt already unlinked the leaves.
             syncDirectory(if (blobs.isDirectory) blobs else root)
         }
         val verified = linkedMapOf<String, CipherIdentity>()
@@ -1016,8 +1020,8 @@ class EditorStateStore internal constructor(
     private fun deleteOwnedBlob(blob: File) {
         requireStorage(create = false)
         if (blob.parentFile != blobs || !BLOB_NAME.matches(blob.name)) return
-        // Only flat generated regular leaves are eligible. Unknown names, directories, and symbolic
-        // links are retained; no recursive cleanup can enter a project/dependency.
+        // Only flat generated regular leaves are eligible. Unknown names, directories, and
+        // symbolic links are retained; no recursive cleanup can enter a project/dependency.
         if (Files.isRegularFile(blob.toPath(), LinkOption.NOFOLLOW_LINKS)) Files.deleteIfExists(blob.toPath())
     }
 
@@ -1065,8 +1069,8 @@ class EditorStateStore internal constructor(
     }
 
     companion object {
-        // Serialize separate owners of the same app-local project within this process. This is not an
-        // exclusion fence for another OS process or arbitrary filesystem writers.
+        // Serialize separate owners of the same app-local project within this process.
+        // This is not an exclusion fence for another OS process or arbitrary filesystem writers.
         private val storageMutexes = mutableMapOf<String, java.lang.ref.WeakReference<Mutex>>()
         @Synchronized private fun storageMutex(key: String): Mutex {
             storageMutexes.entries.removeAll { it.value.get() == null }
@@ -1076,8 +1080,8 @@ class EditorStateStore internal constructor(
             if (path.isBlank() || path.length > 1_024 || File(path).isAbsolute || '\u0000' in path) return false
             return path.split('/').none { it == "." || it == ".." }
         }
-        /** Preflight for duplicating a retained copy without making the next checkpoint exceed its
-         * budget. Call off Main. Unknown legacy bounds require normal recovery/checkpoint first. */
+        /** Preflight for duplicating a retained copy without making the next checkpoint exceed its budget.
+         * Call off Main. Unknown legacy bounds require normal recovery/checkpoint first. */
         internal fun requireAdditionalCopyCapacity(snapshot: EditorRecoverySnapshot, additionalBytes: Long) {
             require(snapshot.dirtyPaths.size + snapshot.conflictPaths.size < MAX_DIRTY_FILES) {
                 "Recovery has 256 entries. Save or close other unsaved copies before opening another copy."

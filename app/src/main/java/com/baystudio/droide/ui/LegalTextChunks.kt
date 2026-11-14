@@ -1,5 +1,6 @@
 package com.baystudio.droide.ui
 
+/** Bound each Android text layout; retain every character, including Unicode pairs. */
 internal fun legalTextChunks(text: String, maximum: Int = 4096): List<String> {
     require(maximum >= 2)
     if (text.isEmpty()) return emptyList()

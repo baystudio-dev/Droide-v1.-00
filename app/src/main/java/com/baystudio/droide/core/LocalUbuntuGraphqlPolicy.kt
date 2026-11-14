@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import kotlinx.serialization.json.*
 
+/** Exact five-package original public-library route. Scripts/bin metadata remain inert data. */
 internal object LocalUbuntuGraphqlPolicy {
     const val FAMILY = "lsp.graphql-library"
     const val FAMILY_ID = FAMILY
@@ -39,7 +40,7 @@ internal object LocalUbuntuGraphqlPolicy {
     fun requirePackage(identity:String,value:JsonObject) {
         val expected=artifacts.getValue(identity)
         for(key in listOf("name","version","license","main","module","types","type","exports","dependencies","peerDependencies","optionalDependencies","bundledDependencies","bundleDependencies","engines","bin","scripts")) {
-
+            // Absence and explicit JSON null are deliberately different; unknown layouts stop admission.
             require(value.containsKey(key)==expected.containsKey(key) && value[key]==expected[key]) { "GraphQL original manifest field changed: $identity/$key" }
         }
     }

@@ -39,8 +39,9 @@ object UbuntuAptCatalog {
         r("runtime.lua", "lua5.4", "lua", args = listOf("-v")),
         r("runtime.r", "r-base-core", "R", "Rscript"),
         r("runtime.perl", "perl", "perl"),
-        // A compiler version probe is not a native-build closure.
-
+        // A compiler version probe is not a native-build closure. APT is deliberately
+        // run without recommendations; Cargo's system linker and crate build scripts
+        // therefore need their C toolchain explicitly, as do the C/C++ recipes.
         r("toolchain.rust", "rustc cargo rustfmt build-essential pkg-config ca-certificates", "rustc", "cargo", "rustfmt"),
         r("toolchain.jdk", "openjdk-17-jdk-headless", "java", "javac", "jar", args = listOf("-version"))
             .copy(commands = setOf("java", "javac", "jar").associateWith { "/usr/lib/jvm/java-17-openjdk-arm64/bin/$it" },
@@ -57,7 +58,8 @@ object UbuntuAptCatalog {
             .copy(healthArgs = mapOf("erl" to listOf("-noshell", "-eval", "io:format(\"~s~n\", [erlang:system_info(otp_release)]), halt()."))),
         r("toolchain.elixir", "elixir", "elixir", "elixirc", "mix"),
         r("toolchain.clojure", "clojure", "clojure", args = listOf("-e", "(println (clojure-version))")),
-
+        // The package only recommends a C compiler; --no-install-recommends needs an explicit build closure.
+        // Fixed analysis uses runtime.nim-lsp; this terminal compiler recipe remains independent.
         r("toolchain.nim", "nim gcc libc6-dev", "nim", "nimble"),
         r("package.pip", "python3-pip python3-venv", "pip3")
             .copy(commands = mapOf("pip" to "/usr/bin/pip3", "pip3" to "/usr/bin/pip3")),
@@ -108,8 +110,8 @@ object UbuntuAptCatalog {
         r("quality.rubocop", "rubocop", "rubocop"),
         r("quality.sqlfluff", "sqlfluff", "sqlfluff"),
         r("debug.delve", "delve", "dlv", args = listOf("version")),
-        // Noble publishes lldb-dap-18 for ARM64. Installation/stdio admission is distinct from
-        // permission to ptrace a debuggee in the Android/PRoot host.
+        // Noble publishes lldb-dap-18 for ARM64. Installation/stdio admission is
+        // distinct from permission to ptrace a debuggee in the Android/PRoot host.
         UbuntuAptRecipe("debug.lldb", listOf("lldb-18"),
             mapOf("lldb" to "/usr/bin/lldb-18", "lldb-dap" to "/usr/bin/lldb-dap-18"),
             healthArgs = mapOf("lldb" to listOf("--version"), "lldb-dap" to listOf("--help"))),
@@ -127,6 +129,7 @@ object UbuntuAptCatalog {
         "python" to "runtime.python", "javascript" to "runtime.node", "typescript" to "toolchain.typescript",
         "react" to "runtime.node", "tsx" to "runtime.node", "jsx" to "runtime.node", "vue" to "runtime.node", "svelte" to "runtime.node",
         "go" to "toolchain.go", "rust" to "toolchain.rust", "java" to "toolchain.jdk", "kotlin" to "toolchain.kotlin",
+        "goose" to "toolchain.goose",
         "c" to "toolchain.gcc", "cpp" to "toolchain.gcc", "csharp" to "toolchain.dotnet", "php" to "runtime.php",
         "ruby" to "runtime.ruby", "lua" to "runtime.lua", "r" to "runtime.r", "perl" to "runtime.perl",
         "haskell" to "toolchain.haskell", "scala" to "toolchain.scala", "erlang" to "toolchain.erlang",
@@ -175,6 +178,8 @@ object UbuntuNpmCatalog {
             "nomicfoundation-solidity-language-server", "https://github.com/NomicFoundation/hardhat-vscode",
             allowsPublisherUpdates = true),
         Entry("lsp.python-pyright", "pyright", "pyright-langserver", "https://github.com/microsoft/pyright"),
+        Entry("lsp.mdx-language-server", "@mdx-js/language-server", "mdx-language-server", "https://github.com/mdx-js/mdx-analyzer",
+            reviewedVersion = "0.6.4", reviewedIntegrity = "sha512-FuHTy1Uvs2/I0ULSsGK+F+gja/1jvGhx6Mtnqw93jIIPh+3oQEtX4fpCh5wpdQPK9aaef+DKwGXttOTKZV/DBw==", allowsPublisherUpdates = true),
         Entry("lsp.typescript", "typescript-language-server", "typescript-language-server", "https://github.com/typescript-language-server/typescript-language-server"),
         Entry("lsp.intelephense", "intelephense", "intelephense", "https://github.com/bmewburn/intelephense-docs"),
         Entry("lsp.bash-language-server", "bash-language-server", "bash-language-server", "https://github.com/bash-lsp/bash-language-server"),
@@ -183,7 +188,8 @@ object UbuntuNpmCatalog {
         Entry("lsp.vscode-json-language-server", "vscode-langservers-extracted", "vscode-json-language-server", "https://github.com/hrsh7th/vscode-langservers-extracted"),
         Entry("lsp.vscode-html-language-server", "vscode-langservers-extracted", "vscode-html-language-server", "https://github.com/hrsh7th/vscode-langservers-extracted"),
         Entry("lsp.vscode-css-language-server", "vscode-langservers-extracted", "vscode-css-language-server", "https://github.com/hrsh7th/vscode-langservers-extracted"),
-
+        // Exact published bundle: no production dependencies or install lifecycle scripts.
+        // Source commit f6e1808e441c64f47f6fb86886eb9ad5a4e74156; upstream MIT license.
         Entry("lsp.vim-language-server", "vim-language-server", "vim-language-server", "https://github.com/iamcco/vim-language-server",
             reviewedVersion = "2.3.1", reviewedIntegrity = "sha512-Y9Zy3NKzfndLUfuZRrITkpfGvpL2K7hNPV8sJ1iB6mf1YRxIX3Hs6lwZimoD5pmvamUaOQhNGYMS/Ox9itzA4Q==", allowsPublisherUpdates = true),
         Entry(LocalUbuntuSveltePolicy.FAMILY_ID, LocalUbuntuSveltePolicy.PACKAGE, LocalUbuntuSveltePolicy.COMMAND, LocalUbuntuSveltePolicy.PROVENANCE,
@@ -203,7 +209,7 @@ object UbuntuNpmCatalog {
             recipe.allowLifecycleScripts == it.allowLifecycleScripts &&
             (if (it.allowLifecycleScripts) !recipe.lifecycleScriptReview.isNullOrBlank() else recipe.lifecycleScriptReview == null) &&
             when (recipe.familyId) {
-                "lsp.typescript" -> recipe.additionalDependencies.keys == setOf("typescript")
+                "lsp.typescript", LspMdxProfile.FAMILY -> recipe.additionalDependencies.keys == setOf("typescript")
                 LocalUbuntuPerlNavigatorPolicy.FAMILY_ID -> recipe.additionalDependencies ==
                     if (recipe.version == it.reviewedVersion) LocalUbuntuPerlNavigatorPolicy.dependencies else emptyMap<String, String>()
                 LocalUbuntuGraphqlPolicy.FAMILY -> LocalUbuntuGraphqlPolicy.supports(recipe)

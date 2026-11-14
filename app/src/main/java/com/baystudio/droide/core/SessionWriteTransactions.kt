@@ -21,7 +21,7 @@ internal class SessionWriteTransactions {
     @Synchronized fun entry(id: String): Entry {
         while (true) {
             val reference = entryQueue.poll() as EntryRef? ?: break
-
+            // A cleared reference can be queued after this id already has a new entry.
             if (entries[reference.id] === reference) entries.remove(reference.id)
         }
         return entries[id]?.get() ?: Entry().also { entries[id] = EntryRef(id, it, entryQueue) }

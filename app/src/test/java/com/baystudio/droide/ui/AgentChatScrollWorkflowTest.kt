@@ -31,8 +31,11 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Real pane, native text layout and user scroll actions; no network inference or Ubuntu install. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = DroideApplication::class, qualifiers = "w360dp-h640dp")
+// Keep prefetch deadlines on Robolectric's virtual frame clock.
+@Config(sdk = [35], application = DroideApplication::class, qualifiers = "w360dp-h640dp",
+    instrumentedPackages = ["androidx.compose.foundation.lazy.layout"])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AgentChatScrollWorkflowTest {
     @org.junit.Before fun openApplicationSession() {
@@ -139,7 +142,7 @@ class AgentChatScrollWorkflowTest {
             agent.approvals, PermissionEngine(), host.runtimeScope, io)
         try {
             fontScale = 1.5f
-
+            // A previously prepared session prevents real CLI preparation in this UI fixture.
             @Suppress("UNCHECKED_CAST") val states = ExternalAgentSessionController::class.java.getDeclaredField("states")
                 .apply { isAccessible = true }.get(ui.externalController) as MutableMap<String, ExternalAgentConversationState>
             states["codex"] = ExternalAgentConversationState(sessionId = "files-ui-fixture", historyRestored = true)
@@ -439,7 +442,8 @@ class AgentChatScrollWorkflowTest {
             assertEquals(before, top(), 1f)
         }
         compose.onNodeWithContentDescription("Scroll to latest activity").performClick()
-        compose.mainClock.advanceTimeBy(240)
+        // Include the measurement frame that retires the disclosure's reserved space.
+        compose.mainClock.advanceTimeUntil(timeoutMillis = 320) { position()?.following == true }
         assertEquals(0, position()!!.disclosureSpacePx)
         assertTrue(position()!!.following)
         compose.onNodeWithText("New result while details are open").assertIsDisplayed()

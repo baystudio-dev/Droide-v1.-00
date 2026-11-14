@@ -78,8 +78,8 @@ data class WorkspaceRuntime(
         }
         val message = try { mirror.refreshFromTree() }
         catch (failure: Throwable) {
-            // A failed refresh may already have published some files. Retire the old index even when editor
-            // reconciliation also fails or is cancelled.
+            // A failed refresh may already have published some files. Retire the
+            // old index even when editor reconciliation also fails or is cancelled.
             try { withContext(NonCancellable + Dispatchers.IO) { documentAuthority.reconcileAfterPersistedMutation() } }
             catch (cleanup: Throwable) { if (cleanup !== failure) failure.addSuppressed(cleanup) }
             throw failure
@@ -300,7 +300,7 @@ class WorkspaceCoordinator internal constructor(
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (firstError: Throwable) {
-
+                // A timed-out stage may have finished constructing its candidate.
                 unpublishedRuntime.discardUnlessPublished()
                 if (builtinsOnly || active.id == "default") throw firstError
                 recoveredFrom = firstError
@@ -340,8 +340,8 @@ class WorkspaceCoordinator internal constructor(
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
         } catch (failure: Throwable) {
-            // A stage deadline can discard the return after accepted publication. READY belongs to that live
-            // runtime; never present it as a failed retry candidate.
+            // A stage deadline can discard the return after accepted publication. READY
+            // belongs to that live runtime; never present it as a failed retry candidate.
             if (_runtime.value == null) {
                 _startup.value = WorkspaceStartupStatus(
                     attempt = attempt,
@@ -352,8 +352,8 @@ class WorkspaceCoordinator internal constructor(
             }
             throw failure
         } finally {
-            // The stage deadline can discard a returned runtime at its own suspension boundary. Its
-            // ownership remains here until publication.
+            // The stage deadline can discard a returned runtime at its own
+            // suspension boundary. Its ownership remains here until publication.
             unpublishedRuntime.discardUnlessPublished(_runtime.value)
         }
     }
@@ -365,7 +365,8 @@ class WorkspaceCoordinator internal constructor(
         require(!project.workspaceRemoved) { "Restore the stored project before opening it" }
         val current = _runtime.value
         // Selecting the owner that is already active is not a lifecycle boundary.
-
+        // Like reopening the active SAF tree, it must not retry a previous editor
+        // handoff, reconcile a provider or rebuild services to keep the same owner.
         if (current?.project?.id == id) return@withLock
         awaitEditorHandoff(current)
 
@@ -385,18 +386,20 @@ class WorkspaceCoordinator internal constructor(
         projects.requireSelectionCertain()
         val current = _runtime.value
         val existing = SafProjectIdentity.existing(projects.projects.value, uri, current?.project?.id)
-        // Reopening the current folder is a selection no-op. Do not rebuild its runtime, flush its dirty
-        // editor or repeat provider/setup work.
+        // Reopening the current folder is a selection no-op. Do not rebuild its runtime,
+        // flush its dirty editor or repeat provider/setup work.
         if (existing != null && current?.project?.id == existing.id) return@withLock existing
         awaitEditorHandoff(current)
         current?.reconcileSaf()
         val project = if (existing?.workspaceRemoved == true) projects.restoreWorkspace(existing.id)
             else existing ?: projects.add(name = name, treeUri = uri.toString())
-
+        // Refresh may retain uncertain local/provider evidence. Keep the registered
+        // workspace on preparation or activation failure for explicit reconciliation.
         val prepared = buildRuntime(project, refreshSaf = true, safProgress = onProgress)
         commitPrepared(current, prepared)
         project
     }
+
 
     suspend fun createProjectFromTemplateAndSwitch(name: String, templateId: String): Pair<DroideProject, String?> =
         transitionMutex.withLock {
@@ -495,6 +498,7 @@ class WorkspaceCoordinator internal constructor(
             if (builtinsOnly) TemporaryRecoveryLspManager() else ProfessionalLspManager(
                 scope = scope,
                 files = files,
+
 
                 fallback = CliLspManager(automatedExecutionTerminal, files),
                 remoteProcessHost = remoteProcessHost,
@@ -694,8 +698,7 @@ class WorkspaceCoordinator internal constructor(
         runtime
     }
 
-    // Observe on the existing owners; no transition lock, save, handoff or cancellation is
-    // initiated.
+    // Observe on the existing owners; no transition lock, save, handoff or cancellation is initiated.
     internal suspend fun observeCatalogEditor(): CatalogEditorReview {
         val captured = withContext(Dispatchers.Main.immediate) {
             val epoch = ApplicationWorkAdmission.requireOpen()
@@ -753,8 +756,8 @@ class WorkspaceCoordinator internal constructor(
         var retiredApprovalDelivery: (() -> Unit)? = null
         try {
             projects.requireCatalogReadyForTransition()
-            // This drains local capture only, never picker/provider work. Capture does not acquire
-            // transitionMutex; no root/transition lock inversion is introduced.
+            // This drains local capture only, never picker/provider work. Capture does not
+            // acquire transitionMutex; no root/transition lock inversion is introduced.
             previous?.exports?.pauseAndDrain()
             withContext(Dispatchers.Main.immediate) {
                 projects.requireSelectionCertain()
@@ -773,7 +776,7 @@ class WorkspaceCoordinator internal constructor(
                     }
                 }
                 val publish: () -> Unit = {
-
+                    // Seal before StateFlow can synchronously dispose the old AndroidView.
                     admission.commit()
                     retiredApprovalDelivery = previous?.retireApprovalAuthority()
                     ProviderRegistry.publishConfigured(next.providerConfiguration)
@@ -794,16 +797,16 @@ class WorkspaceCoordinator internal constructor(
             }
         } finally {
             if (!committed) previous?.exports?.resume()
-            // A reserved denial must settle even if a later publication callback fails. Clear before
-            // delivery; resumed caller code runs outside the publication closure.
+            // A reserved denial must settle even if a later publication callback fails.
+            // Clear before delivery; resumed caller code runs outside the publication closure.
             val deliver = retiredApprovalDelivery
             retiredApprovalDelivery = null
             if (deliver != null) withContext(NonCancellable + Dispatchers.Main.immediate) {
                 runCatching { deliver() }
                     .onFailure { Log.w("DroideWorkspace", "Retired approval delivery failed", it) }
             }
-            // Record ownership before leaving Main: prompt cancellation must never discard B merely because
-            // the caller did not receive the committed return value.
+            // Record ownership before leaving Main: prompt cancellation must never discard B
+            // merely because the caller did not receive the committed return value.
             owner.discardUnlessPublished(if (committed) next else _runtime.value)
             if (committed) withContext(NonCancellable + Dispatchers.Main.immediate) {
                 if (_runtime.value === next) {
@@ -816,7 +819,7 @@ class WorkspaceCoordinator internal constructor(
                 }
             }
         }
-
+        // Optional presentation follows the irrevocable runtime/service handover.
         if (selectionChanged) projects.recordSelectedProject(next.project.id)
     }
 
@@ -824,6 +827,7 @@ class WorkspaceCoordinator internal constructor(
         if (project.id != "default") return
         PathSecurity.resolveWithin(root, "README.md").apply { if (!exists()) writeText("# Welcome to Droide\n") }
     }
+
 
     // Install a data-only VSIX into the integrity-checked app-private extension store.
     suspend fun installDeclarativeVsix(uri: Uri): InstalledDeclarativeExtensionRecord = transitionMutex.withLock {
@@ -834,6 +838,7 @@ class WorkspaceCoordinator internal constructor(
         }
     }
 
+
     suspend fun uninstallDeclarativeExtension(extensionId: String) = transitionMutex.withLock {
         ApplicationWorkAdmission.requireOpen()
         requireInstalledComponents()
@@ -841,8 +846,9 @@ class WorkspaceCoordinator internal constructor(
         withContext(Dispatchers.IO) { DeclarativeExtensionRuntime.uninstall(extensionId) }
     }
 
-    // Called only while transitionMutex owns the runtime binding. Admission must precede app-store
-    // mutation, not fail later during source projection cleanup.
+
+    // Called only while transitionMutex owns the runtime binding. Admission must
+    // precede app-store mutation, not fail later during source projection cleanup.
     private suspend fun <T> withPluginWorkspaceWriter(action: suspend () -> T): T {
         val root = _runtime.value?.project?.rootPath?.let(::File) ?: return action()
         return ExportWriterAdmission.withSuspendingWriter(root, "Agent plugin configuration") { action() }

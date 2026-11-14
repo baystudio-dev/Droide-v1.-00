@@ -69,7 +69,7 @@ class LspVueRequestsTest {
             Fixture(now::get).use { fixture ->
                 val result = fixture.requests.owned(method, { true }) { operation ->
                     assertFalse(operation.hasDispatched)
-                    now.set(4_000_000_000L)
+                    now.set(4_000_000_000L) // preparation + actual full-set synchronization phase
                     operation.markDispatched()
                     now.set(lateSeconds * 1_000_000_000L)
                     "late native result"

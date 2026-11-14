@@ -1,5 +1,10 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
 data class ManagedDebugAdapterPlanEntry(
     val adapterId: String,
     val packageFamilyId: String,

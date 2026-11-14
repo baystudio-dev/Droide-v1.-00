@@ -10,6 +10,7 @@ internal data class GitHubAccountRecord(
     val tokenExpiresAtEpochSeconds: Long?,
 )
 
+ 
 internal class GitHubAccountStateStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 

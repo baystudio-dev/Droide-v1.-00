@@ -38,8 +38,8 @@ class DevelopmentForegroundService : Service() {
         check(activeInstance === this && !exitShutdown && serviceEpoch == ApplicationWorkAdmission.currentEpoch) {
             "CPU lease belongs to a retired developer service"
         }
-        // Closing new work is not retirement of existing work. Preserve CPU protection during the
-        // coordinator's durable-save phase, including a slow failed save.
+        // Closing new work is not retirement of existing work. Preserve CPU protection
+        // during the coordinator's durable-save phase, including a slow failed save.
         action()
     }
     private val cpuLease by lazy { DevelopmentCpuWakeLease(getSystemService(PowerManager::class.java), onFailure = {
@@ -84,8 +84,8 @@ class DevelopmentForegroundService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
-                // Late completion may release its own lease; no late start or acquire may cancel existing owners
-                // or tear down foreground protection during Save.
+                // Late completion may release its own lease; no late start or acquire may
+                // cancel existing owners or tear down foreground protection during Save.
                 if (request.action == ACTION_FINISH) finishToken(request.getStringExtra(EXTRA_TOKEN).orEmpty())
                 if (request.action == ACTION_RELEASE_WAKE_LOCK) applyManualWakeLock(false)
             } else if (activeSessions.isEmpty() && residentEpoch == null) stopSelf(startId)
@@ -176,8 +176,8 @@ class DevelopmentForegroundService : Service() {
     }
     private fun refreshOrStop() {
         if (!ApplicationWorkAdmission.isOpen && !exitShutdown) {
-            // Existing owners are still being preserved/stopped by the Exit coordinator. Do not interpret
-            // its admission fence as a service or wake-lock failure.
+            // Existing owners are still being preserved/stopped by the Exit coordinator.
+            // Do not interpret its admission fence as a service or wake-lock failure.
             if (activeSessions.keys.none(DevelopmentForegroundSessionRegistry::cpuWork)) cpuLease.release()
             return
         } else if (activeSessions.isEmpty() && residentEpoch == null) {
@@ -360,7 +360,7 @@ class DevelopmentForegroundService : Service() {
             if (service != null) {
                 Handler(Looper.getMainLooper()).post { if (activeInstance === service) service.finishToken(token) }
             }
-
+            // No cleanup start intent: a queued ACTION_START rejects an already removed registration.
         }
         /** Cancels admissions and sends stop requests. Individual operation owners must still be joined. */
         internal suspend fun shutdownForExit(context: Context): Unit = withContext(NonCancellable) {

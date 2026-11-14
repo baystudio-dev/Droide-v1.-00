@@ -2,6 +2,12 @@ package com.baystudio.droide.core
 
 import kotlinx.coroutines.flow.StateFlow
 
+
+
+
+
+
+
 class ExecutionTerminalRouter(
     private val terminals: TerminalManager,
     private val fallback: ITerminalSession? = null,
@@ -13,8 +19,8 @@ class ExecutionTerminalRouter(
     override fun start() = Unit
     override fun send(cmd: String) = Unit
 
-    // Command execution binds to the visible active tab; never create a hidden terminal. Capture the
-    // session once per command to prevent rerouting on tab switch.
+    // Command execution binds to the visible active tab; never create a hidden terminal.
+    // Capture the session once per command to prevent rerouting on tab switch.
     private fun selected(): ITerminalSession? = terminals.activeTab()?.takeIf {
         !terminals.ubuntuOnly || it.profile == TerminalManager.Profile.LOCAL_LINUX_ARM64
     }?.session
@@ -76,8 +82,11 @@ class ExecutionTerminalRouter(
         WorkspaceCommandInvocation.execute(pinned, workspaceRoot, directory, command, timeoutMs)
     }
 
-    /** One Agent command is pinned to the current visible tab at creation. */
-
+    /**
+     * One Agent command is pinned to the current visible tab at creation.
+     * Lazy jobs, stdin and callbacks must not follow a later user tab switch.
+     * The bound object does not own or destroy the interactive human shell.
+     */
     internal fun bindCommandSession(): ITerminalSession {
         val pinnedSnapshot = terminals.activeTab()?.takeIf {
             !terminals.ubuntuOnly || it.profile == TerminalManager.Profile.LOCAL_LINUX_ARM64
@@ -129,6 +138,7 @@ class ExecutionTerminalRouter(
     override fun interrupt() = Unit
     override fun clear() = Unit
 
+     
     override fun destroy() = Unit
 
 }

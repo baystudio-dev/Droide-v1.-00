@@ -51,6 +51,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 import kotlin.math.roundToInt
 
+/** Isolated footer responder. No AgentPane, WebView, actual software IME, or website dialog is mounted. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w360dp-h640dp")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -119,8 +120,8 @@ class WorkspaceApprovalHostTest {
             CompositionLocalProvider(LocalSoftwareKeyboardController provides keyboard) {
                 DroideTheme {
                     BackHandler { workspaceBackCalls++ }
-                    // Mirrors reserved footer space: approval may resize the viewport, but its controls do not cover
-                    // the workspace's remaining content.
+                    // Mirrors reserved footer space: approval may resize the viewport,
+                    // but its controls do not cover the workspace's remaining content.
                     Column(Modifier.width(360.dp).height(hostHeight)) {
                         Box(Modifier.weight(1f).fillMaxWidth().testTag("workspace-surface")) {
                             Text(if (browserVisible) "Browser surface" else "Editor surface")
@@ -149,7 +150,7 @@ class WorkspaceApprovalHostTest {
         }
     }
 
-    /** authored only: compact presentation never resolves or replaces the pending request. */
+    /** R48 authored only: compact presentation never resolves or replaces the pending request. */
     @Test fun expandedCompactFooterRetainsOnePendingResponderAcrossPresentationChanges() {
         activateBrowser()
         val result = browserRequest()

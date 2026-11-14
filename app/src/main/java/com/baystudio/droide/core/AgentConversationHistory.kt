@@ -11,8 +11,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-// Owns the two histories with intentionally different lifecycles: - active: model-facing and
-// compactable.
+// Owns the two histories with intentionally different lifecycles: - active: model-facing and compactable.
+
 
 internal class AgentConversationHistory(private val ledger: SessionHistoryLedger? = null) {
     @Volatile var active = mutableListOf<JsonObject>()
@@ -107,8 +107,8 @@ internal class AgentConversationHistory(private val ledger: SessionHistoryLedger
             state to loadGeneration
         }
         appendMutex.withLock {
-        // External policy/run checks stay outside ownerLock; the existing owner generation fences still
-        // decide which history may be mutated.
+        // External policy/run checks stay outside ownerLock; the existing owner
+        // generation fences still decide which history may be mutated.
         beforeAppend?.invoke()
         currentCoroutineContext().ensureActive()
         val proposal = synchronized(ownerLock) {
@@ -129,8 +129,8 @@ internal class AgentConversationHistory(private val ledger: SessionHistoryLedger
             val pages = if (spill && ledger != null) {
                 try { withContext(Dispatchers.IO) {
                     beforeAppend?.invoke()
-                    // This is admission, not revocable rollback. Once persist starts under valid authority, later
-                    // DENY cannot erase its durable bytes.
+                    // This is admission, not revocable rollback. Once persist starts
+                    // under valid authority, later DENY cannot erase its durable bytes.
                     ledger.persist(ledger.snapshot(coldPages, nextTail))
                 } }
                 catch (revoked: BrowserPublicationRevokedException) { throw revoked }

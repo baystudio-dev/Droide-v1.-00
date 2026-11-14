@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal object AwsSharedProfileParser {
     private const val MAX_SECTIONS = 128
     private const val MAX_ENTRIES_PER_SECTION = 64

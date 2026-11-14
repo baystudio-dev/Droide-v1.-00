@@ -98,7 +98,7 @@ public class TerminalOwnedProcessTest {
         long defaultWrite = result(1, 11), defaultPoll = result(0, 4);
         public long write(byte[] bytes, int offset, int count) {
             offsets.add(offset); writes++; now += step;
-            if (cancelDuringWrite) stop = true;
+            if (cancelDuringWrite) stop = true; // paused after native admission, before syscall result.
             return writeResults.isEmpty() ? defaultWrite : writeResults.remove(0);
         }
         public long poll(int millis) {

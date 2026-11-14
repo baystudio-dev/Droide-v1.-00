@@ -38,10 +38,12 @@ internal object DroideSessionColors {
 
 /** Shared presentation for startup/stopped states. The Activity owns insets and lifecycle. */
 @Composable
-internal fun DroideSessionLayout(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun DroideSessionLayout(
+    modifier: Modifier = Modifier, footer: (@Composable () -> Unit)? = null, content: @Composable ColumnScope.() -> Unit,
+) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-
+            // Center when it fits; scroll above the footer in short windows or with large text.
             Column(
                 Modifier.widthIn(max = 380.dp).fillMaxWidth()
                     .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 32.dp),
@@ -49,7 +51,7 @@ internal fun DroideSessionLayout(modifier: Modifier = Modifier, content: @Compos
                 content = content,
             )
         }
-        Text(
+        if (footer != null) footer() else Text(
             "Your workspace, anywhere.",
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
             color = DroideSessionColors.Muted,
@@ -75,8 +77,8 @@ internal fun DroideSessionLogo(size: Dp = 96.dp) {
             .clip(RoundedCornerShape(size / 4)).background(Color.White),
         contentAlignment = Alignment.Center,
     ) {
-        // Use the original vector, not the adaptive launcher drawable. A larger canvas compensates for
-        // launcher safe-zone padding without scaling a rasterized layer.
+        // Use the original vector, not the adaptive launcher drawable. A larger canvas
+        // compensates for launcher safe-zone padding without scaling a rasterized layer.
         Image(
             painterResource(R.drawable.ic_droide_foreground),
             contentDescription = null,

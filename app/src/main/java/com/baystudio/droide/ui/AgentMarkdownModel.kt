@@ -28,6 +28,8 @@ internal fun agentPublicUpdatePreview(text: String): String {
     return preview + if (end < text.length) "…" else ""
 }
 
+
+
 internal sealed interface AgentMarkdownBlock {
     data class Paragraph(val text: String) : AgentMarkdownBlock
     data class Heading(val level: Int, val text: String) : AgentMarkdownBlock
@@ -77,8 +79,9 @@ internal data class AgentStreamingMarkdownProjection(
     val completed: Boolean,
 )
 
-internal class AgentStreamingMarkdownProjector(maxRenderNodes: Int = AgentMarkdownParser.MAX_RENDER_NODES) {
 
+internal class AgentStreamingMarkdownProjector(maxRenderNodes: Int = AgentMarkdownParser.MAX_RENDER_NODES) {
+    // Default keeps the established single-message projection; typed slices share this budget.
     private val nodeLimit = maxRenderNodes.coerceIn(0, AgentMarkdownParser.MAX_RENDER_NODES)
     private var source = ""
     private var stableChars = 0
@@ -182,6 +185,7 @@ internal object AgentMarkdownParser {
                     body.append(candidate)
                     index++
                 }
+                
 
                 add(AgentMarkdownBlock.CodeBlock(fence.language, body.toString()))
                 continue
@@ -291,8 +295,8 @@ internal object AgentMarkdownParser {
                     i = close + ticks
                     continue
                 }
-                // An unmatched delimiter run is literal as a whole. Do not rescan every suffix or allocate a new
-                // repeated-delimiter string for each of its characters.
+                // An unmatched delimiter run is literal as a whole. Do not rescan every suffix
+                // or allocate a new repeated-delimiter string for each of its characters.
                 plain.append(source, i, i + ticks)
                 i += ticks
                 continue
@@ -392,6 +396,10 @@ internal object AgentMarkdownParser {
         return out
     }
 
+    /** CommonMark underscore flanking: identifiers such as CELL_TAIL_😄 are literal.
+     * This fixes selection fidelity beyond the surviving donor. Closing searches still
+     * consume the same shared inline work budget; these boundary checks are constant work.
+     */
     private fun underscoreDelimiterAllowed(source: String, index: Int, length: Int, opening: Boolean): Boolean {
         val before = if (index == 0) -1 else Character.codePointBefore(source, index)
         val after = if (index + length == source.length) -1 else Character.codePointAt(source, index + length)
@@ -415,6 +423,7 @@ internal object AgentMarkdownParser {
         return if (opening) leftFlanking && (!rightFlanking || beforePunctuation)
             else rightFlanking && (!leftFlanking || afterPunctuation)
     }
+
 
     fun stableStreamingPrefixLength(markdown: String): Int {
         if (markdown.isEmpty()) return 0
@@ -501,8 +510,8 @@ internal object AgentMarkdownParser {
             if (line.isBlank()) break
             val cells = splitTableRow(line) ?: break
             if (cells.size < 2) break
-            // Rendering already receives a bounded response preview. Keep complete cells here so the
-            // selection projection never silently drops a cell's tail.
+            // Rendering already receives a bounded response preview. Keep complete cells
+            // here so the selection projection never silently drops a cell's tail.
             rows += List(headers.size) { column -> cells.getOrNull(column).orEmpty() }
             index++
         }

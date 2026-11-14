@@ -82,8 +82,8 @@ class WorkspaceToolchainPreferencesTest {
         val independent = WorkspaceToolchainPreferences(context, root)
         val preferences = WorkspaceToolchainPreferences(context, root) { mutation ->
             check(owner.publish {
-                // A wrong preference -> lifecycle order would retain the preference monitor during admission and
-                // deadlock this independent writer. No sleeps or stress loop.
+                // A wrong preference -> lifecycle order would retain the preference monitor
+                // during admission and deadlock this independent writer. No sleeps or stress loop.
                 val failure = AtomicReference<Throwable?>()
                 val writer = thread(isDaemon = true, name = "preference-admission-order") {
                     try { independent.set("runtime.python", "3.12") } catch (error: Throwable) { failure.set(error) }
@@ -188,8 +188,9 @@ class WorkspaceToolchainPreferencesTest {
         assertEquals(mapOf("lsp.sqruff" to "0.41.0"), preferences.selections())
     }
 
-    /** In the fixed implementation the second thread is observed BLOCKED on the first thread's
-     * monitor; without the RMW lock its second read is observed instead, so the assertion fails. */
+    /** Pause the first actual read while a second instance attempts its mutation. In the fixed
+     * implementation the second thread is observed BLOCKED on the first thread's monitor;
+     * without the RMW lock its second read is observed instead, so the assertion fails. */
     private fun orderedMutations(
         context: Context,
         root: File,
@@ -248,8 +249,9 @@ class WorkspaceToolchainPreferencesTest {
         failure.get()?.let { throw it }
     }
 
-    /** Resolve public API declarations, not the bean's inaccessible implementation class. */
-
+    /** Android's compile API omits java.management, but these tests run on a host JVM.
+     * Resolve public API declarations, not the bean's inaccessible implementation class.
+     * Reflection failures fail the test; they never substitute a weaker scheduling check. */
     private class HostThreadMonitor {
         private val threads = Class.forName("java.lang.management.ManagementFactory")
             .getMethod("getThreadMXBean").invoke(null)

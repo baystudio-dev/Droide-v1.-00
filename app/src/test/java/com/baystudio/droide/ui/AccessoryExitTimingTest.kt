@@ -35,13 +35,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+// Real scaffold input and layout with injected insets; physical IME behavior is tested separately.
 @OptIn(ExperimentalLayoutApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29, 30, 35], application = Application::class, qualifiers = "w360dp-h640dp-port-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AccessoryExitTimingTest {
     private fun advanceFrame() {
-
+        // Commit state before advancing the manually controlled recomposition clock.
         Snapshot.sendApplyNotifications()
         compose.mainClock.advanceTimeByFrame()
     }
@@ -74,7 +75,8 @@ class AccessoryExitTimingTest {
             }
             DroideTheme {
                 Box(Modifier.size(360.dp, 560.dp).onSizeChanged { hostHeight = it.height }) {
-
+                    // Deliberate overlap proves the exiting subtree has no pointer shield.
+                    // The actual compact nav is a sibling below the typing pane.
                     Box(Modifier.fillMaxSize().testTag("navigation-underlay")
                         .clickable { navigationClicks++ })
                     AccessoryKeysScaffold(
@@ -138,7 +140,7 @@ class AccessoryExitTimingTest {
         compose.runOnIdle { assertTrue("Exit pixels should still be retained", viewportHeight < hostHeight) }
         tapNavigation(.5f, .97f)
         compose.runOnIdle { assertEquals(1, navigationClicks) }
-
+        // The callback gate also stays inactive after the visual endpoint.
         compose.mainClock.advanceTimeBy(AccessoryMotionMillis.toLong() + 32)
         compose.waitForIdle()
         tapNavigation(.95f, .97f)

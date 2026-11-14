@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 enum class DiffLineKind { CONTEXT, ADD, REMOVE, META }
 
 data class DiffLine(
@@ -85,7 +86,8 @@ object UnifiedDiffParser {
                 val newCount = if (legacy != null) match.groupValues[4].toIntOrNull()?.let { end -> newStart?.let { (end - it + 1).coerceAtLeast(0) } }
                     else match.groupValues[4].ifBlank { "1" }.toIntOrNull()
                 if (oldStart == null || oldCount == null || newStart == null || newCount == null) {
-
+                    // Tool output can contain an incomplete or malformed hunk.
+                    // Keep its text visible rather than throwing during UI composition.
                     headers += line
                     i++
                     continue

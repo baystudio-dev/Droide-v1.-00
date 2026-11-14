@@ -129,8 +129,7 @@ class LocalUbuntuPrismaLspHealthTest {
         val receipt = File(root, "RECIPE_LOCK.json")
         init {
             check(launcher.parentFile.mkdirs())
-            // Host-only fixture translation changes one architecture predicate in a COPY. No production
-            // bypass exists.
+            // Host-only fixture translation changes one architecture predicate in a COPY. No production bypass exists.
             val script = if (hostArchitectureFixture) LocalUbuntuPrismaLspHealth.script.replace(
                 "process.arch === 'arm64'", "process.arch === '$architecture'") else LocalUbuntuPrismaLspHealth.script
             helper.writeText(script); launcher.writeText(FIXTURE.replace("__MODE__", JsonPrimitive(mode).toString()))

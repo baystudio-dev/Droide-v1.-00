@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import java.nio.file.Files
 
+/** Downloaded artifacts remain disposable after their consumer releases its lease. */
 internal object TrustedArtifactCache {
     private val leases = mutableMapOf<String, Int>()
     private val pendingDiscards = mutableMapOf<String, File>()

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 enum class HookLifecycleEvent(val configKey: String, val blockable: Boolean) {
     SESSION_START("SessionStart", false),
     USER_PROMPT_SUBMIT("UserPromptSubmit", true),
@@ -24,6 +25,7 @@ data class HookLifecycleDecision(
     val additionalContext: String = "",
 )
 
+ 
 object HookLifecycleProtocol {
     const val SCHEMA_VERSION = 1
     const val MAX_MATCHER_CHARS = 160
@@ -35,6 +37,7 @@ object HookLifecycleProtocol {
 
     fun timeoutMs(value: Long): Long = value.coerceIn(MIN_TIMEOUT_MS, MAX_TIMEOUT_MS)
 
+     
     fun matches(pattern: String, target: String): Boolean {
         val bounded = pattern.trim().take(MAX_MATCHER_CHARS)
         if (bounded.isBlank() || bounded == "*") return true

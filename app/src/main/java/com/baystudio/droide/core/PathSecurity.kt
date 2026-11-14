@@ -7,6 +7,7 @@ import java.nio.file.SimpleFileVisitor
 import java.nio.file.FileVisitResult
 import java.nio.file.attribute.BasicFileAttributes
 
+ 
 object PathSecurity {
     fun resolveWithin(root: File, relative: String): File {
         require(relative.indexOf('\u0000') < 0) { "Path contains NUL" }
@@ -24,6 +25,7 @@ object PathSecurity {
         val child = candidate.canonicalFile.toPath().normalize()
         return child == rootPath || child.startsWith(rootPath)
     }
+
 
     fun isSymbolicLink(file: File): Boolean = Files.isSymbolicLink(file.toPath())
 

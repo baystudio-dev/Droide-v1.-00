@@ -2,12 +2,13 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+
 internal data class GradleProjectPerformanceHints(
     val buildCacheEnabled: Boolean? = null,
     val daemonEnabled: Boolean? = null,
     val maxWorkers: Int? = null,
     val daemonIdleMillis: Long? = null,
-
+    // low keeps editor/input responsive; an explicit normal is still project-authoritative.
     val priority: String? = null,
 ) {
     companion object {

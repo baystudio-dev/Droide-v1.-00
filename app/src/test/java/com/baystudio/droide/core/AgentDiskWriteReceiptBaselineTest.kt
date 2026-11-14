@@ -30,8 +30,8 @@ class AgentDiskWriteReceiptBaselineTest {
             val files = FileRepository(root, beforeMutation = { mutation ->
                 if (mutation is FileRepository.Mutation.Write) {
                     beforeCalls.incrementAndGet()
-                    // A foreign actor reaches the same bytes without this repository invocation
-                    // admitting/staging/publishing its reviewed write.
+                    // A foreign actor reaches the same bytes without this repository
+                    // invocation admitting/staging/publishing its reviewed write.
                     target.writeText("requested replacement")
                     throw IOException("fixture refused before repository publication")
                 }

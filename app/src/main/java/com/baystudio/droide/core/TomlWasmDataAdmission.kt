@@ -6,8 +6,8 @@ import java.nio.charset.CodingErrorAction
 import java.util.Base64
 import kotlinx.serialization.json.*
 
-/** Bounded binary-format and generated-template witnesses. */
-
+/** Bounded binary-format and generated-template witnesses. Never compiles, imports or evaluates JS/WASM.
+ * Literal observations are deliberately not a proof of arbitrary JavaScript semantics or confinement. */
 internal object TomlWasmDataAdmission {
     const val MAX_JS_BYTES = 67_108_864
     const val LIMITATION = "Trusted publisher/source-alignment witness; static scans do not prove arbitrary JS control flow, all imports, linked SBOM or source-to-binary identity. Genuine API/runtime health is separate."
@@ -33,7 +33,7 @@ internal object TomlWasmDataAdmission {
             put("limitation",LIMITATION)
         }
     }
-
+    /** Source template emits one JSON.stringify(base64) string. Computed/ambiguous encodings are unsupported. */
     internal fun inlineModule(js:String,active:()->Unit={}):ByteArray {
         require(js.toByteArray().size<=MAX_JS_BYTES);var at=0;var found:ByteArray?=null;var strings=0
         while(at<js.length) {

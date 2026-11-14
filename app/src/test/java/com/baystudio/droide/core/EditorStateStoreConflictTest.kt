@@ -97,8 +97,8 @@ class EditorStateStoreConflictTest {
             put("dirty", buildJsonArray {
                 repeat(3) { index ->
                     val id = "${UUID.randomUUID()}.bin"
-                    // Sparse ciphertext placeholders deliberately cannot decrypt: successful load must inspect
-                    // bounded metadata only, not eagerly read 45 MiB.
+                    // Sparse ciphertext placeholders deliberately cannot decrypt: successful
+                    // load must inspect bounded metadata only, not eagerly read 45 MiB.
                     RandomAccessFile(File(f.blobs, id), "rw").use { it.setLength(15L * 1024 * 1024 + 28) }
                     add(buildJsonObject {
                         put("path", "large${index + 1}.txt"); put("blob", id); put("sha256", "0".repeat(64))
@@ -125,8 +125,8 @@ class EditorStateStoreConflictTest {
         assertTrue(runCatching { f.store.save(snapshot(dirty = many, conflicts = many)) }.isFailure)
         assertArrayEquals(prior, f.file.readBytes())
         val loaded = f.store.load()!!.deferredBuffers.getValue("main.kt")
-        // A real encrypted blob with conservative lazy size metadata exercises the combined budget
-        // without allocating 40 MiB merely to test integer accounting.
+        // A real encrypted blob with conservative lazy size metadata exercises the combined
+        // budget without allocating 40 MiB merely to test integer accounting.
         fun bounded(path: String) = EditorRecoveryBuffer(path, loaded.blobName, loaded.contentSha256,
             f.store, 20L * 1024 * 1024) { error("Size admission must stay lazy") }
         assertTrue(runCatching { f.store.save(snapshot(dirty = mapOf("one-byte" to "x"),
@@ -178,8 +178,8 @@ class EditorStateStoreConflictTest {
             Files.move(chosen.toPath(), saved.toPath())
             Files.createSymbolicLink(chosen.toPath(), if (component == "manifest") sentinel.toPath() else foreign.toPath())
             try {
-                // A cold Activity creates the store synchronously. Corrupt metadata must fail through handled
-                // load/save, never through that construction path.
+                // A cold Activity creates the store synchronously. Corrupt metadata must
+                // fail through handled load/save, never through that construction path.
                 val reopened = EditorStateStore(f.context, f.id, f.cipher, f.directorySync)
                 assertTrue("cold load rejects $component alias", runCatching { reopened.load() }.isFailure)
                 assertTrue("cold save rejects $component alias", runCatching { reopened.save(snapshot()) }.isFailure)
@@ -275,8 +275,8 @@ class EditorStateStoreConflictTest {
         val id = "recovery-test-${UUID.randomUUID()}"
         val cipher = HostCipher()
         val syncedDirectories = CopyOnWriteArrayList<File>()
-        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host filesystem sync
-        // here; the public production constructor still uses Android Os.
+        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host
+        // filesystem sync here; the public production constructor still uses Android Os.
         val directorySync: (File) -> Unit = { directory ->
             check(Files.isDirectory(directory.toPath(), LinkOption.NOFOLLOW_LINKS))
             FileChannel.open(directory.toPath(), StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).use { it.force(true) }

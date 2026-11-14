@@ -18,6 +18,10 @@ import androidx.compose.ui.unit.dp
 import com.baystudio.droide.core.*
 import kotlinx.coroutines.launch
 
+
+
+
+
 @Composable
 fun GitPanel(git: GitManager, onOpen: (String) -> Unit = {}, onWorkspaceChanged: () -> Unit = {}) {
     val scope = rememberWorkspaceCoroutineScope()

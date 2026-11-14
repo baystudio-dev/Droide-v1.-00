@@ -10,7 +10,9 @@ internal object TerminalPromptPresentation {
     const val TITLE_PREFIX = "droide-cwd-v1:"
     const val COMPACT_PROMPT = "\$ "
     const val MAX_PATH_BYTES = 4_096
-
+    // Base64 prevents names containing BEL, ESC, semicolons or newlines from injecting OSCs.
+    // pwd -P verifies the shell's actual namespace cwd. PWD alone may be stale
+    // after a rename/unmount. A sentinel preserves directory names ending in newlines.
     private val readDirectoryCommand = "__droide_terminal_cwd=\$(command pwd -P 2>/dev/null && printf '.'); " +
         "__droide_terminal_cwd_status=\$?; " +
         "if [ \"\$__droide_terminal_cwd_status\" -eq 0 ]; then " +
@@ -20,8 +22,8 @@ internal object TerminalPromptPresentation {
     val directoryCommand = "$readDirectoryCommand; " +
         "if [ \"\$__droide_terminal_cwd_status\" -eq 0 ]; then $emitDirectoryCommand; fi"
 
-    // Save $? before any presentation command. The nonce is per interactive shell, and these markers
-    // never serve as execution evidence for Agent pipe commands.
+    // Save $? before any presentation command. The nonce is per interactive shell, and
+    // these markers never serve as execution evidence for Agent pipe commands.
     private const val activityPrefix = TerminalCommandActivityTracker.TITLE_PREFIX
     private const val activityToken = TerminalCommandActivityTracker.TOKEN_ENV
     internal val activityDirectoryCommand = "__droide_terminal_exit=\$?; $readDirectoryCommand; " +
@@ -36,8 +38,8 @@ internal object TerminalPromptPresentation {
 
     fun bashEnvironment(): Map<String, String> = mapOf(
         "PS1" to COMPACT_PROMPT,
-        // Bash caches command paths. Clear only that cheap in-memory table after each user command,
-        // preserving $? before the builtin runs. No rootfs scan.
+        // Bash caches command paths. Clear only that cheap in-memory table after
+        // each user command, preserving $? before the builtin runs. No rootfs scan.
         "PROMPT_COMMAND" to activityDirectoryCommand.replace("__droide_terminal_exit=\$?; ", "__droide_terminal_exit=\$?; hash -r; "),
         "PS0" to bashPreExecutionPrompt,
     )
@@ -48,8 +50,8 @@ internal object TerminalPromptPresentation {
         return listOf("--noprofile", "--rcfile", "/opt/droide/terminal/bashrc-v1.sh", "-i")
     }
 
-    // The rc profile installs tracking after user rc. Do not inject it twice or erase prompt hooks
-    // that Ubuntu's system bashrc may have supplied before our profile.
+    // The rc profile installs tracking after user rc. Do not inject it twice or erase
+    // prompt hooks that Ubuntu's system bashrc may have supplied before our profile.
     fun bashStartupEnvironment(): Map<String, String> = mapOf("PS1" to COMPACT_PROMPT)
 
     internal fun bashProfile(): String = """
@@ -62,8 +64,8 @@ internal object TerminalPromptPresentation {
     """.trimIndent() + "\n"
 
     private fun bashDefaultPrompt(): String {
-        // Exact defaults from the packaged Ubuntu root and skeleton rc files only. A different (even
-        // empty), readonly, or hook-managed user prompt stays user-owned.
+        // Exact defaults from the packaged Ubuntu root and skeleton rc files only.
+        // A different (even empty), readonly, or hook-managed user prompt stays user-owned.
         val plain = """${'$'}{debian_chroot:+(${'$'}debian_chroot)}\u@\h:\w\${'$'} """
         val color = """${'$'}{debian_chroot:+(${'$'}debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\${'$'} """
         // Quote the whole title prefix: a chroot name must never become a case pattern.
@@ -143,6 +145,7 @@ internal object TerminalPromptPresentation {
     }
 }
 
+/** Removes OSC metadata from pipe output even when it is split between read chunks. */
 internal class TerminalDirectoryStream(
     private val onDirectory: (String) -> Unit,
     private val onTitle: (String) -> Unit = {},

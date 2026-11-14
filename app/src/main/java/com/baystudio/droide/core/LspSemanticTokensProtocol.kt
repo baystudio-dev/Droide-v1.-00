@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+ 
 internal object LspSemanticTokensProtocol {
     private const val MAX_LEGEND_ITEMS = 128
     private const val MAX_TOKEN_NAME = 64
@@ -48,6 +49,7 @@ internal object LspSemanticTokensProtocol {
         return LspSemanticTokenDecoder.decode(data, legend)
     }
 
+    /** Exact built-in PSES opt-in; all other profiles keep parseFull unchanged. */
     fun parseFullMultiline(result: JsonElement, legend: LspSemanticTokenLegend, text: String): List<LspSemanticToken> =
         LspPowerShellSemanticTokens.parseFull(result, legend, text)
     suspend fun requestFull(

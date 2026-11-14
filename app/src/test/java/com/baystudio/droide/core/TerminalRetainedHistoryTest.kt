@@ -108,7 +108,7 @@ class TerminalRetainedHistoryTest {
 
     @Test fun snippetsKeepWholeMatchesAndNeverSplitBoundaryPairs() {
         val query = "Q".repeat(TerminalRetainedHistory.MAX_QUERY_UTF16)
-
+        // Each 64-unit context boundary would land in the middle of an emoji.
         val input = "x😀" + "p".repeat(63) + query + "s".repeat(63) + "😀x"
         val match = TerminalRetainedHistory.capture(input).search(query).matches.single()
         assertEquals(66, match.startUtf16)

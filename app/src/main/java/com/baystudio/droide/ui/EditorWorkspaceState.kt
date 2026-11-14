@@ -27,9 +27,11 @@ import com.baystudio.droide.core.LargeFileException
 import com.baystudio.droide.core.ProjectFileSyncException
 import com.baystudio.droide.core.runSuspendCatching
 
+
 @Stable
 enum class EditorDocumentKind { TEXT, IMAGE, BINARY, LARGE, DOCUMENT }
 
+/** A committed snapshot is distinct from the live buffer, which may already contain newer edits. */
 data class EditorSaveReceipt(
     val path: String,
     val text: String,
@@ -65,7 +67,7 @@ class EditorDocument internal constructor(initialPath: String) {
         private set
     var kind by mutableStateOf(EditorDocumentKind.TEXT)
         private set
-
+    
     var loadError by mutableStateOf<String?>(null)
         private set
     var pendingRecoveryBuffer by mutableStateOf<EditorRecoveryBuffer?>(null)
@@ -120,12 +122,12 @@ class EditorDocument internal constructor(initialPath: String) {
         private set
 
     val dirty: Boolean get() = pendingRecoveryBuffer != null || (kind == EditorDocumentKind.TEXT && loaded && (recoveryDirty || optimizedBufferDirty || content != savedContent))
-
+     
     val editable: Boolean get() = pendingRecoveryBuffer == null && kind == EditorDocumentKind.TEXT && loaded
     val canEdit: Boolean get() = handoffOwner == null && EditorReviewModePolicy.canEditText(kind == EditorDocumentKind.TEXT, loaded && pendingRecoveryBuffer == null, reviewMode)
     val fullIntelligence: Boolean get() = editable && performanceMode == EditorFilePerformanceMode.FULL_INTELLIGENCE
     val largeFileOptimized: Boolean get() = editable && performanceMode == EditorFilePerformanceMode.LARGE_FILE_OPTIMIZED
-
+     
     val agentEditable: Boolean get() = EditorReviewModePolicy.canAgentEdit(canEdit, fullIntelligence)
 
     /** Search-only projection. No loading, native capture, dirty-cache mutation, or full-text copy. */
@@ -191,6 +193,7 @@ class EditorDocument internal constructor(initialPath: String) {
         lineCountHint = EditorLargeFilePolicy.lineCount(text, EditorLargeFilePolicy.FULL_INTELLIGENCE_MAX_LINES + 1)
         val classified = EditorLargeFilePolicy.classify(fileBytes, lineCountHint).mode
 
+
         performanceMode = if (kind == EditorDocumentKind.TEXT && classified == EditorFilePerformanceMode.PREVIEW_ONLY) {
             EditorFilePerformanceMode.LARGE_FILE_OPTIMIZED
         } else classified
@@ -217,6 +220,7 @@ class EditorDocument internal constructor(initialPath: String) {
         nativeBufferPending = false
         captureSelection(selectionStart, selectionEnd)
     }
+
 
     fun captureInsert(start: Int, inserted: String): Boolean {
         if (!canEdit) return false
@@ -444,8 +448,8 @@ class EditorDocument internal constructor(initialPath: String) {
                 }
             } else null
             if (!stillCurrent()) return
-            // Release deferred edits only when their replacement can be published. Failed/cancelled/stale
-            // reads must keep the recovery reference intact.
+            // Release deferred edits only when their replacement can be published.
+            // Failed/cancelled/stale reads must keep the recovery reference intact.
             if (discardUnsaved) pendingRecoveryBuffer = null
             content = text
             savedContent = text
@@ -525,8 +529,8 @@ class EditorDocument internal constructor(initialPath: String) {
                         if (synchronizeOnly) files.synchronizeEditorTextIfUnchanged(path, content, expected)
                         else files.writeEditorTextIfUnchanged(requireNotNull(observation), commitPublication)
                     } catch (saved: ProjectFileSyncException) {
-                        // A callback exception alone cannot attribute the current file to this Save. Actual writes
-                        // require this invocation's guarded receipt.
+                        // A callback exception alone cannot attribute the current file to
+                        // this Save. Actual writes require this invocation's guarded receipt.
                         val matchesSaved = saved.relativePath == path && saved.bytes == committedVersion.bytes &&
                             (if (synchronizeOnly) files.matchesVersion(path, expected)
                             else observation?.disposition == FileRepository.TextWriteDisposition.OWNED_CURRENT)
@@ -534,12 +538,13 @@ class EditorDocument internal constructor(initialPath: String) {
                         syncPending = saved
                     }
                 } catch (cancelled: CancellationException) {
-                    // The invocation records its final receipt while still holding the root guard, before an
-                    // IO-return cancellation can discard its result.
+                    // The invocation records its final receipt while still holding the
+                    // root guard, before an IO-return cancellation can discard its result.
+                    // Equal foreign bytes are not proof that this Save published anything.
                     if (this@EditorDocument.path == path) {
                         if (synchronizeOnly) {
-                            // No publication was requested. Keep the already accepted identity and any edits delivered while
-                            // its observers were suspended.
+                            // No publication was requested. Keep the already accepted identity
+                            // and any edits delivered while its observers were suspended.
                             saveSynchronizationPending = true
                             status = if (dirty) "Newer edits remain unsaved · synchronization interrupted"
                                 else "Saved locally · synchronization interrupted; retry Save"
@@ -610,8 +615,8 @@ class EditorDocument internal constructor(initialPath: String) {
         }
     }
 
-    // Native capture already profiles this version. Save must not rescan a 20 MiB buffer on Main
-    // merely to update its completion label.
+    // Native capture already profiles this version. Save must not rescan a 20 MiB
+    // buffer on Main merely to update its completion label.
     private fun savedStatus(): String = if (largeFileOptimized) "Saved · large file"
         else "Saved — $lineCountHint lines"
 
@@ -748,6 +753,7 @@ class EditorDocument internal constructor(initialPath: String) {
     }
 }
 
+
 data class EditorWorkspacePathMutation(
     val sequence: Long,
     val from: String,
@@ -756,12 +762,12 @@ data class EditorWorkspacePathMutation(
 
 @Stable
 class EditorWorkspaceState {
-
+    // Shared by the retained document authority and all screen/shortcut Save coordinators.
     internal val saveMutex = kotlinx.coroutines.sync.Mutex()
     internal val pendingAgentSaves = linkedMapOf<String, String>()
 
-    /** Serializes final absent-target check with all document registration/path remap, recovery
-     * retention and retirement. No suspension or stream IO is allowed in action. */
+    /** Serializes final absent-target check with all document registration/path remap,
+     * recovery retention and retirement. No suspension or stream IO is allowed in action. */
     internal fun commitDiskOnly(path: String, action: () -> Unit) = commitDiskOnlyChecked(path, null, action)
 
     @Synchronized
@@ -848,6 +854,8 @@ class EditorWorkspaceState {
         check(sealedHandoffOwner == null) { "Editor workspace is being replaced" }
     }
 
+    // This state is retained by the application workspace across Activity recreation/closure.
+    // Loading the disk checkpoint again would replace newer tabs/edits/selections.
     var recoveryInitialized by mutableStateOf(false)
         private set
 
@@ -903,8 +911,9 @@ class EditorWorkspaceState {
     private val recoveryConflicts = linkedMapOf<String, String>()
     private val deferredRecoveryConflicts = linkedMapOf<String, EditorRecoveryBuffer>()
     private val recoveryConflictDiskVersions = linkedMapOf<String, DiskFileVersion>()
-    /** Main-owned, read-only observation of authority outside the live document map. */
-
+    /** Main-owned, read-only observation of authority outside the live document map.
+     * Captures references/immutable metadata only: never invokes native capture or reads blobs.
+     * This detects stale observations; it does not reserve or freeze any writer. */
     internal data class RecoveryAuthorityObservation(
         val owner: EditorWorkspaceState,
         val captureGeneration: Long,
@@ -927,8 +936,8 @@ class EditorWorkspaceState {
 
     internal fun observeRecoveryAuthority(): RecoveryAuthorityObservation {
         val native = nativeForProjectHandoff()
-        // The production readiness callback only checks release/failure/capture availability. Never
-        // begin handoff or invoke native capture during observation.
+        // The production readiness callback only checks release/failure/capture
+        // availability. Never begin handoff or invoke native capture during observation.
         native?.requireReady?.invoke()
         return RecoveryAuthorityObservation(
             this, captureBindingGeneration, handoffCaptureOwner,
@@ -1043,8 +1052,8 @@ class EditorWorkspaceState {
     }
 
     private val documents = mutableStateMapOf<String, EditorDocument>()
-    // A tab can retain its selection/review state without retaining two full text snapshots. The
-    // visible editor remains protected; dirty and deferred documents are never discarded.
+    // A tab can retain its selection/review state without retaining two full text snapshots.
+    // The visible editor remains protected; dirty and deferred documents are never discarded.
     var activeEditorPath: String = ""
         private set
     fun protectActiveEditor(path: String) { activeEditorPath = path }
@@ -1198,6 +1207,7 @@ class EditorWorkspaceState {
     fun clear() { requireMutableOwner(); documents.clear() }
 }
 
+ 
 class ActiveEditorBridge {
     internal var recoveryLifecycleGeneration: Long = 0L
         private set
@@ -1225,6 +1235,7 @@ class ActiveEditorBridge {
     var signatureHelp: (() -> Unit)? = null
     internal var resetZoom: (() -> Unit)? = null
     var cursorLocation: (() -> Pair<Int, Int>)? = null
+
 
     fun capture(): Boolean = safeInvoke(snapshot)
     internal fun yieldToAgentComposer(): Boolean = safeInvoke(yieldInputFocus)

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Coalesces scrollback copies; the terminal emulator and its screen updates remain immediate. */
 internal class TerminalTranscriptPublisher(
     private val schedule: (Long, () -> Unit) -> (() -> Unit),
     private val capture: () -> String,
@@ -45,6 +46,7 @@ internal class TerminalTranscriptPublisher(
         pending = null
     }
 
+    /** Close stops publication timers while retaining the current transcript. */
     @Synchronized fun close() {
         cancelPending()
         if (closed) return
@@ -52,6 +54,7 @@ internal class TerminalTranscriptPublisher(
         publish(capture())
     }
 
+    /** A process can emit final bytes while closing. Capture those once at the finish callback. */
     @Synchronized fun finish() {
         cancelPending()
         closed = true

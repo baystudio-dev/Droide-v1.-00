@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Uses production LlmClient and serializers against an isolated loopback HTTP endpoint. */
 class ProviderTransportSchemaTest {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -279,8 +280,8 @@ class ProviderTransportSchemaTest {
     }
 
     @Test(timeout = 30_000) fun legacyTupleAssertionsAndNestedAdditionalItemsSurviveWireSerialization() {
-        // This proves serializer preservation through the JSON Schema field, not acceptance by an
-        // upstream vendor or a model-specific strict schema subset.
+        // This proves serializer preservation through the JSON Schema field, not acceptance
+        // by an upstream vendor or a model-specific strict schema subset.
         val schema = json.parseToJsonElement("""{
           "type":"object","properties":{"rows":{
             "type":"array","items":[{"type":"string"},{"type":"integer"}],
@@ -433,7 +434,8 @@ class ProviderTransportSchemaTest {
 
     private fun withFixture(protocol: ProviderWireProtocol, block: (Fixture) -> Unit) {
         Fixture(protocol).use { fixture ->
-
+            // The production registry has no configured-layer snapshot API. Preserve that exact
+            // layer rather than flattening discovered or managed providers into configuration.
             val field = ProviderRegistry::class.java.getDeclaredField("configured").apply { isAccessible = true }
             @Suppress("UNCHECKED_CAST")
             val configured = field.get(ProviderRegistry) as AtomicReference<List<AiProvider>>

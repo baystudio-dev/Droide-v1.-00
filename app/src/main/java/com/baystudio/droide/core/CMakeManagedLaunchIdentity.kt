@@ -42,6 +42,7 @@ data class CMakeDirectoryIdentity(
     val mode: Int,
 )
 
+/** The selection has already received explicit informed analysis approval in the manager. */
 data class CMakeOwnerRequest(val selection: CMakeAnalysisSelections.Selection, val ownerGeneration: Long)
 
 /** Identity token: equal numeric fields cannot resurrect an earlier observation. */

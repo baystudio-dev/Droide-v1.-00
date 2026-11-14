@@ -13,6 +13,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** HTTP-200 error events through production transport on real local sockets. */
 class ProviderStreamErrorTransportTest {
     @Test(timeout = 30_000) fun errorBeforeFirstTextIsTypedRedactedAndNeverRetriedAcrossFourProtocols() {
         ProviderWireProtocol.entries.forEach { protocol -> withProviderStreamFixture(protocol) { fixture ->

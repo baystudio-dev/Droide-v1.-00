@@ -23,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
+/** All discovery, pairing and transports are in-memory fakes. No sockets, DNS or devices. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, manifest = Config.NONE)
 class DeviceBridgeManagerConnectionTest {
@@ -207,7 +208,7 @@ class DeviceBridgeManagerConnectionTest {
         val bridge = bridge(create = { Transport() }, pair = { _, _, _ ->
             entered.countDown()
             while (release.count != 0L) {
-                try { release.await() } catch (_: InterruptedException) {   }
+                try { release.await() } catch (_: InterruptedException) { /* Simulate platform DNS. */ }
             }
             endpoint.name
         })
@@ -232,7 +233,7 @@ class DeviceBridgeManagerConnectionTest {
             create = { if (creations++ == 0) queued else next }, pair = { _, _, _ ->
                 entered.put(Unit)
                 while (release.count != 0L) {
-                    try { release.await() } catch (_: InterruptedException) {   }
+                    try { release.await() } catch (_: InterruptedException) { /* Simulate platform DNS. */ }
                 }
                 endpoint.name
             })

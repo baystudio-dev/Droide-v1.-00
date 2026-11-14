@@ -17,6 +17,7 @@ data class ManagedLanguageServerProbeResult(
     val capabilities: Set<String>,
 )
 
+ 
 internal object ManagedLanguageServerProbePolicy {
     fun validateInitialize(result: JsonElement): Set<String> {
         val negotiated = LspNegotiatedCapabilities.fromInitialize(result)
@@ -43,8 +44,8 @@ internal object ManagedLanguageServerProbePolicy {
     }
 }
 
-// A version command alone is not enough: the exact package-owned executable must complete LSP
-// init.
+// A version command alone is not enough: the exact package-owned executable must complete LSP init.
+
 
 class ManagedLanguageServerRuntimeProbe(
     private val scope: CoroutineScope,

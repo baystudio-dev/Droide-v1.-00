@@ -1,0 +1,34 @@
+{
+  "upstream": "https://github.com/aardappel/goose",
+  "commit": "6c1fbc788f6eb1f17db4cab998353d7540ed825d",
+  "release": "v2026.4",
+  "license": "Apache-2.0",
+  "scope": "Editor grammar, language configuration and icon only; no compiler, stdlib, native binaries or runtime sources.",
+  "iconConversion": "Original path and 0.1/-0.1 scale retained. Translate Y=1191.5 centers the 1615x768 drawing in a square viewport. The shared UI chooses a foreground tint for the monochrome artwork.",
+  "files": [
+    {
+      "file": "goose-light-icon.svg",
+      "upstreamPath": "vscode/fileicons/goose-light-icon.svg",
+      "url": "https://github.com/aardappel/goose/blob/6c1fbc788f6eb1f17db4cab998353d7540ed825d/vscode/fileicons/goose-light-icon.svg",
+      "sha256": "dc0d0adaabe32b1e9e15a3ceeb1d0e8d032237c5734b1fe8886aa39f79b93e44"
+    },
+    {
+      "file": "goose.tmLanguage.json",
+      "upstreamPath": "vscode/syntaxes/goose.tmLanguage.json",
+      "url": "https://github.com/aardappel/goose/blob/6c1fbc788f6eb1f17db4cab998353d7540ed825d/vscode/syntaxes/goose.tmLanguage.json",
+      "sha256": "5b330a0850ddd53fed4c37b81716ddf7dfd969d2e563b3c0a674959b1b1595f3"
+    },
+    {
+      "file": "language-configuration.json",
+      "upstreamPath": "vscode/language-configuration.json",
+      "url": "https://github.com/aardappel/goose/blob/6c1fbc788f6eb1f17db4cab998353d7540ed825d/vscode/language-configuration.json",
+      "sha256": "92ac9300e387f3172ba76c37658c02e62f8f79c0e1cb23e05875727435bb19cb"
+    },
+    {
+      "file": "LICENSE",
+      "upstreamPath": "LICENSE",
+      "url": "https://github.com/aardappel/goose/blob/6c1fbc788f6eb1f17db4cab998353d7540ed825d/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}

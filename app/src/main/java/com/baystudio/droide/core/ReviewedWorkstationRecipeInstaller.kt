@@ -10,6 +10,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+// These are deliberately separate from ManagedPackageCatalog: npm resolves transitive packages at install time.
+
+
 data class WorkstationInstallRecipe(
     val familyId: String,
     val version: String,
@@ -301,6 +304,7 @@ class ReviewedWorkstationRecipeInstaller(
                 abi = "arm64-v8a",
             )
             packageInstaller.adoptReviewedRecord(record)
+            
 
             withContext(NonCancellable) {
                 bridge.shell("rm -rf ${DeviceBridgeManager.shellQuote(previous)}")

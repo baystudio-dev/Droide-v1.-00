@@ -169,9 +169,9 @@
       "copyright": "Terminal Emulator for Android / Termux contributors",
       "licenseTextAsset": "legal/licenses/APACHE-2.0.txt",
       "source": "third_party/termux/UPSTREAM_PROVENANCE.json",
-      "notice": "The pinned original terminal source and AARs retain the upstream Apache-2.0 Terminal Emulator exception. Droide builds a Java-only overlay for owned PTY I/O, resizing and bounded terminal storage. Modified sources and source hashes are retained under third_party/termux; tools/terminal-engine-v2.json records the exact source/compiler inputs and expected class hashes. Current JNI is compiled separately and checked against the packaged DEX declarations and ELF libraries.",
+      "notice": "Upstream termux-app v0.118.0 explicitly scopes terminal-view and terminal-emulator to its Apache-2.0 Terminal Emulator exception. Droide preserves the pinned original AARs/source JARs and uses a separate Java-only AAR with a local TerminalSession input-owner hook dated 2026-10-08. Only TerminalSession-family classes change; other Java classes and JNI bytes remain unchanged. Full modified source, exact diff and offline reproducible rebuild hashes are retained in third_party/termux/patches and verified by tools/verify_termux_provenance.py.",
       "dependencyKeys": [
-        "local:terminal-engine.aar",
+        "local:terminal-emulator-v0.118.0-droide-input.aar",
         "local:terminal-view-v0.118.0.aar"
       ],
       "noticeTextAssets": [
@@ -189,7 +189,8 @@
       "source": "third_party/xz/PROVENANCE.json",
       "notice": "Local JAR is hash-pinned and its matching source JAR/provenance are included under third_party/xz/.",
       "dependencyKeys": [
-        "local:xz-1.12.jar"
+        "local:xz-1.12.jar",
+        "org.tukaani:xz:1.12"
       ]
     },
     {
@@ -488,14 +489,14 @@
     },
     {
       "id": "material-document-file-icons",
-      "name": "Material Icon Theme PDF and Word file artwork",
+      "name": "Material Icon Theme file artwork",
       "version": "13025adc5ad10a5cc649528a2c1edec93069f1b9",
       "licenseName": "MIT License",
       "spdx": "MIT",
       "copyright": "Copyright (c) 2025 Material Extensions",
       "licenseTextAsset": "legal/licenses/Material-Icon-Theme-MIT.txt",
       "source": "https://github.com/material-extensions/vscode-material-icon-theme/tree/13025adc5ad10a5cc649528a2c1edec93069f1b9",
-      "notice": "PDF and Word file-type artwork converted from the pinned upstream SVGs to Android VectorDrawable without changing paths; PDF color is unchanged, and Word blue is adjusted for dark/light visibility. Provenance: third_party/material-document-icons/manifest.json. These are upstream file-type representations, not official Adobe or Microsoft assets. Trademarks remain with their owners; no endorsement or trademark rights are implied.",
+      "notice": "Language, configuration, document, media, archive, font, and security file-type artwork converted from pinned upstream SVGs to Android VectorDrawable, preserving paths, circle geometry, translations, viewports, and fill colors. Word blue is adjusted for dark/light visibility. Provenance: third_party/material-document-icons/manifest.json. These are upstream file-type representations, not official Adobe or Microsoft assets. All product, project, and language marks remain with their owners; no trademark rights or endorsement are granted.",
       "dependencyKeys": []
     },
     {
@@ -549,6 +550,18 @@
       "noticeTextAssets": [
         "legal/licenses/Apache-Commons-Compress-NOTICE.txt"
       ]
+    },
+    {
+      "id": "goose-editor-data",
+      "name": "Goose editor grammar and file artwork",
+      "version": "6c1fbc788f6eb1f17db4cab998353d7540ed825d",
+      "licenseName": "Apache License 2.0",
+      "spdx": "Apache-2.0",
+      "copyright": "Goose contributors; aardappel/goose",
+      "licenseTextAsset": "legal/licenses/Goose-Apache-2.0.txt",
+      "source": "https://github.com/aardappel/goose/tree/6c1fbc788f6eb1f17db4cab998353d7540ed825d",
+      "notice": "TextMate grammar and language configuration retained from the upstream editor extension. Original monochrome artwork is converted to a centered Android vector with theme-aware foreground color. No Goose compiler or runtime is bundled. Product marks remain with their owners. Provenance: third_party/goose-editor-data/manifest.json.",
+      "dependencyKeys": []
     }
   ]
 }

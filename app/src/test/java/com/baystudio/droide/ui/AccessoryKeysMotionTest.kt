@@ -44,13 +44,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+// Real scaffold input and layout with injected insets; physical IME behavior is tested separately.
 @OptIn(ExperimentalLayoutApi::class, ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w360dp-h640dp-port-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AccessoryKeysMotionTest {
     private fun advanceFrame() {
-
+        // Commit state before advancing the manually controlled recomposition clock.
         Snapshot.sendApplyNotifications()
         compose.mainClock.advanceTimeByFrame()
     }
@@ -174,7 +175,8 @@ class AccessoryKeysMotionTest {
             assertReveal(bottom / 200f)
         }
         sample(0, 0, 0, visible = true)
-
+        // Commit the all-zero mode boundary and start any scheduled fallback work.
+        // Merely sampling the pure controller would miss a wrapper-created revival.
         advanceFrame()
         advanceFrame()
         assertReveal(0f)
@@ -299,7 +301,7 @@ class AccessoryKeysMotionTest {
         compose.mainClock.autoAdvance = false
         compose.runOnIdle {
             focus.clearIf(owner)
-
+            // Deliberately invoke before recomposition, as a queued callback could.
             staleKey()
             staleModifier()
             assertTrue(keyCodes.isEmpty())
@@ -324,7 +326,7 @@ class AccessoryKeysMotionTest {
         compose.mainClock.autoAdvance = false
         val before = compose.mainClock.currentTime
         compose.onNodeWithContentDescription("Hide terminal keys").performClick()
-
+        // One frame applies the target; the next settles the zero-duration animation.
         advanceFrame()
         advanceFrame()
         compose.waitForIdle()

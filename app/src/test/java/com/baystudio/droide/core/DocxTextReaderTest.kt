@@ -187,7 +187,7 @@ class DocxTextReaderTest {
         expect(DocxTextReader.Reason.LIMIT_EXCEEDED, docx(document("<w:p a='" + "x".repeat(DocxTextReader.MAX_ATTRIBUTE_CHARS + 1) + "'/>")))
         val namespaces = (0..DocxTextReader.MAX_ATTRIBUTES_PER_ELEMENT).joinToString(" ") { "xmlns:n$it='urn:$it'" }
         expect(DocxTextReader.Reason.LIMIT_EXCEEDED, docx(document("<w:p $namespaces/>")))
-
+        // JDK Xerces rejects huge namespace URIs before our callback; Android Expat uses our limit.
         try {
             DocxTextReader.read(docx(document("<w:p xmlns:n='urn:" + "x".repeat(DocxTextReader.MAX_ATTRIBUTE_CHARS) + "'/>")))
             fail("Oversized namespace must be rejected")
@@ -329,7 +329,7 @@ class DocxTextReaderTest {
     }
     private fun patchEocd(file: File, offset: Int, value: Int, width: Int) {
         val bytes = file.readBytes()
-        val end = bytes.size - 22
+        val end = bytes.size - 22 // Fixtures have no ZIP comment.
         for (i in 0 until width) bytes[end + offset + i] = (value ushr (8 * i)).toByte()
         file.writeBytes(bytes)
     }

@@ -38,6 +38,13 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+
+
+
+
+
+
+
 class DeviceTerminalView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -96,7 +103,8 @@ class DeviceTerminalView @JvmOverloads constructor(
                 val row = ((e.y - lineSpacingAndAscent) / lineSpacing.coerceAtLeast(1)).toInt() + topRow
                 val terminal = model ?: return true
                 if (terminal.isMouseTrackingActive()) {
-
+                    // A touch tap is a click for a TUI, as on the native Termux surface.
+                    // Drag gestures still reach onScroll for wheel/scrollback handling.
                     val (mouseColumn, mouseRow) = visibleCoordinates(e.x, e.y)
                     terminal.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, mouseColumn + 1, mouseRow + 1, true)
                     terminal.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, mouseColumn + 1, mouseRow + 1, false)
@@ -323,6 +331,8 @@ class DeviceTerminalView @JvmOverloads constructor(
             }
 
             override fun deleteSurroundingTextInCodePoints(beforeLength: Int, afterLength: Int): Boolean {
+                
+
 
                 sendImeDeletion(beforeLength, afterLength)
                 return super.deleteSurroundingTextInCodePoints(beforeLength, afterLength)
@@ -422,8 +432,8 @@ class DeviceTerminalView @JvmOverloads constructor(
         isEnabled && isAttachedToWindow && isShown && windowVisibility == VISIBLE && model != null
 
     private fun notifyTouchClick() {
-        // The coordinate-specific tap was already handled. Only publish its View click here; opening a
-        // URL or clicking a TUI must not also summon the keyboard.
+        // The coordinate-specific tap was already handled. Only publish its View click here;
+        // opening a URL or clicking a TUI must not also summon the keyboard.
         val previous = dispatchingTouchClick
         dispatchingTouchClick = true
         try {
@@ -437,7 +447,7 @@ class DeviceTerminalView @JvmOverloads constructor(
         if (!canActivateTerminal()) return false
         super.performClick()
         if (!dispatchingTouchClick && canActivateTerminal()) {
-
+            // Accessibility/keyboard activation has no terminal cell coordinates.
             clearSelection()
             requestTerminalFocus()
         }
@@ -507,6 +517,7 @@ class DeviceTerminalView @JvmOverloads constructor(
         session?.writeRaw(text)
     }
 
+     
     private fun followLiveCursorForInput() {
         if (topRow == 0) return
         topRow = 0
@@ -592,20 +603,39 @@ class DeviceTerminalView @JvmOverloads constructor(
         val target = model ?: return
         val owner = session ?: return
         val generation = screenGeneration
+        var link: String? = null
         fun current() = generation == screenGeneration && target === model && owner === session &&
             isAttachedToWindow && isShown && hasWindowFocus()
+        fun selectedLink(): String? = selection?.let(target::selectedLink)
+        fun updateLink(menu: Menu): Boolean {
+            val next = selectedLink()
+            val changed = next != link
+            link = next
+            menu.findItem(NativeTerminalSelectionCallback.ACTION_COPY_LINK)?.isVisible = next != null
+            menu.findItem(NativeTerminalSelectionCallback.ACTION_OPEN_LINK)?.isVisible = next != null
+            return changed
+        }
         actionMode = startActionMode(object : ActionMode.Callback {
             override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
                 if (!current()) return false
                 menu.add(0, ACTION_COPY, 0, "Copy")
                 menu.add(0, ACTION_PASTE, 1, "Paste")
                 menu.add(0, ACTION_SELECT_ALL, 2, "Select all")
+                menu.add(0, NativeTerminalSelectionCallback.ACTION_COPY_LINK, 0, "Copy link")
+                menu.add(0, NativeTerminalSelectionCallback.ACTION_OPEN_LINK, 1, "Open link")
+                updateLink(menu)
                 return true
             }
-            override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean = false
+            override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean = current() && updateLink(menu)
             override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
                 if (!current()) return true
                 when (item.itemId) {
+                    NativeTerminalSelectionCallback.ACTION_COPY_LINK, NativeTerminalSelectionCallback.ACTION_OPEN_LINK -> {
+                        val destination = link?.takeIf { it == selectedLink() } ?: return true
+                        val success = if (item.itemId == NativeTerminalSelectionCallback.ACTION_COPY_LINK)
+                            copyToClipboard(destination) else TerminalLinkOpener.open(context, destination)
+                        if (!success) return true
+                    }
                     ACTION_COPY -> if (!copySelection()) return true
                     ACTION_PASTE -> pasteFromClipboard()
                     ACTION_SELECT_ALL -> selectAll()

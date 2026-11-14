@@ -1,0 +1,21 @@
+// Dedicated host-only CMake fixture profile. Never applied to Android production.
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        def permitted = [
+            'com.baystudio.droide.core.CMakeBuildOwnerLeasesTest',
+            'com.baystudio.droide.core.CMakeOwnedProcessTest',
+            'com.baystudio.droide.core.CMakePrivateStateTest',
+            'com.baystudio.droide.core.CMakeHostOsTest',
+            'com.baystudio.droide.core.LocalUbuntuCMakeHostContractTest',
+            'com.baystudio.droide.core.LocalUbuntuCMakeLaunchPolicyTest',
+            'com.baystudio.droide.core.LocalUbuntuCMakePolicyTest'
+        ] as Set
+        doFirst {
+            def selected = filter.commandLineIncludePatterns as Set
+            if (selected.isEmpty() || !permitted.containsAll(selected)) {
+                throw new GradleException('CMake host fixture profile requires exact, bounded CMake class selectors')
+            }
+        }
+        jvmArgs '--add-opens=java.base/sun.nio.fs=ALL-UNNAMED', '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED', '--add-opens=java.base/java.io=ALL-UNNAMED'
+    }
+}

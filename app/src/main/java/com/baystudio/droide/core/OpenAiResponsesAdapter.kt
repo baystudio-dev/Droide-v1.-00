@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Stateless native Responses transport. Native output stays private and is replayed intact. */
 internal object OpenAiResponsesAdapter {
     internal const val PRIVATE_CONTENT_FIELD = "_droide_openai_responses_output"
     private val requestFields = setOf("model", "messages", "tools", "tool_choice", "stream", "max_tokens",
@@ -163,8 +164,11 @@ internal object OpenAiResponsesAdapter {
         return normalized(response, json)
     }
 
-    /** Public assistant-item boundaries only, after native response validation. */
-
+    /**
+     * Public assistant-item boundaries only, after native response validation. Offsets describe
+     * the unchanged public text; native reasoning and tool payloads remain private replay data.
+     * Unsupported metadata or an edited/truncated projection must not classify any text.
+     */
     fun publicTextSpans(message: JsonObject, publicText: String): List<AgentPublicTextSpan> {
         if (message["role"] != JsonPrimitive("assistant")) return emptyList()
         val content = message["content"] as? JsonPrimitive ?: return emptyList()
@@ -338,8 +342,8 @@ internal object OpenAiResponsesAdapter {
                 throw ProviderErrorPayloadException(response?.get("error")?.takeUnless { it == JsonNull }
                     ?: event["error"]?.takeUnless { it == JsonNull } ?: event)
             }
-            // Gateways may send typed heartbeats while the model is reasoning. They carry no answer, usage
-            // or completion evidence and must not enter replay.
+            // Gateways may send typed heartbeats while the model is reasoning. They
+            // carry no answer, usage or completion evidence and must not enter replay.
             if (type in HEARTBEAT_TYPES) {
                 event["error"]?.takeUnless { it == JsonNull }?.let { throw ProviderErrorPayloadException(it) }
                 require(event.keys.none { it in RESPONSE_PAYLOAD_FIELDS }) {
@@ -387,7 +391,7 @@ internal object OpenAiResponsesAdapter {
                     require(response["status"] == JsonPrimitive(type.removePrefix("response."))) {
                         "Responses terminal event and response status disagree"
                     }
-                    normalized(response, json)
+                    normalized(response, json) // HTTP 200 may still carry a failed or unsupported incomplete response.
                     val output = response["output"] as? JsonArray ?: bad("SSE terminal output is missing")
                     output.forEachIndexed { index, raw -> captureItem(index, raw as? JsonObject ?: bad("SSE terminal output item is malformed"), events) }
                     require(terminal == null || terminal == response) { "Conflicting Responses terminal events" }
@@ -404,8 +408,8 @@ internal object OpenAiResponsesAdapter {
 
         private fun captureItem(index: Int, item: JsonObject, events: MutableList<LlmStreamEvent>) {
             val type = string(item, "type")
-            // Malformed/custom streams may reuse an index. A prior message's phase cannot classify text
-            // after that index has become a non-message item.
+            // Malformed/custom streams may reuse an index. A prior message's phase
+            // cannot classify text after that index has become a non-message item.
             if (type != "message") publicPhases.remove(index)
             when (type) {
                 "function_call" -> {

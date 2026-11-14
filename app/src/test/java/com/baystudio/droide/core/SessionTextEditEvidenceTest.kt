@@ -51,8 +51,8 @@ class SessionTextEditEvidenceTest {
             assertEquals(2L, totals[TextEditIo.FILE_FORCE])
             assertEquals(8L, totals[TextEditIo.DIRECTORY_FORCE])
             assertEquals((index * 3).toLong(), totals[TextEditIo.DIRECTORY_ENTRY])
-            // Only filesystem-generated scalar widths vary. Subtract their exact JSON-escaped UTF-8 widths,
-            // never payload bytes, then require equality rather than a tolerance.
+            // Only filesystem-generated scalar widths vary. Subtract their exact JSON-escaped
+            // UTF-8 widths, never payload bytes, then require equality rather than a tolerance.
             fun scalarWidth(value: String?) = value?.let { JsonPrimitive(it).toString().toByteArray(Charsets.UTF_8).size - 2 } ?: 0
             val intent = record.intent
             val outcome = requireNotNull(record.outcome)
@@ -530,7 +530,7 @@ class SessionTextEditEvidenceTest {
             UUID.randomUUID().toString(), "call-one", "part-one", "write_file")
         suspend fun prepare(after: String = "b", session: DroideSession = this.session): Prepared {
             val owner = owner(session)
-            sessions.textEditCall(owner, { true }) { _, _, _ -> }
+            sessions.textEditCall(owner, { true }) { _, _, _ -> } // Capture root before backup preparation.
             val before = root.resolve("note.txt").readText()
             val observation = files.prepareTextWriteObservation("note.txt", after, DiskFileVersion.fromText(before))
             val backup = history.prepareBatch("edit note.txt", mapOf("note.txt" to before)).snapshots.single()

@@ -1,0 +1,36 @@
+// Host regression isolation only; no project/runtime dependencies are installed.
+def java21 = System.getProperty('droide.test.java21') ?: System.getenv('DROIDE_TEST_JAVA21')
+def java17 = System.getProperty('droide.test.java17') ?: System.getenv('DROIDE_TEST_JAVA17')
+if (!java21 || !java17 || !new File(java21).canExecute() || !new File(java17).canExecute()) {
+    throw new GradleException('Provide executable JDK21 and JDK17 java paths with -Ddroide.test.java21 and -Ddroide.test.java17')
+}
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        executable = java21
+    }
+}
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    def original = app.tasks.named('testDebugUnitTest', org.gradle.api.tasks.testing.Test).get()
+    original.filter.excludeTestsMatching('com.baystudio.droide.ui.*')
+    original.filter.excludeTestsMatching('com.baystudio.droide.core.LocalUbuntuJdkPolicyTest')
+    def registerGroup = { name, includePattern, executablePath, forkCount ->
+        app.tasks.register(name, org.gradle.api.tasks.testing.Test) {
+            dependsOn(original.taskDependencies.getDependencies(original))
+            testClassesDirs = original.testClassesDirs
+            classpath = original.classpath
+            systemProperties = original.systemProperties
+            jvmArgs = original.jvmArgs
+            jvmArgumentProviders.addAll(original.jvmArgumentProviders)
+            maxHeapSize = original.maxHeapSize
+            executable = executablePath
+            maxParallelForks = 1
+            forkEvery = forkCount
+            filter.includeTestsMatching(includePattern)
+            reports.junitXml.outputLocation = app.layout.buildDirectory.dir('test-results/' + name)
+            reports.html.outputLocation = app.layout.buildDirectory.dir('reports/tests/' + name)
+        }
+    }
+    registerGroup('testDebugUiIsolated', 'com.baystudio.droide.ui.*', java21, 1)
+    registerGroup('testDebugJdk17Health', 'com.baystudio.droide.core.LocalUbuntuJdkPolicyTest', java17, 0)
+}

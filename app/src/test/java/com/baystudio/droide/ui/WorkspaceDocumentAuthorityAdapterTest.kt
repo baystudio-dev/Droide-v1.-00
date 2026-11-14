@@ -208,7 +208,7 @@ class WorkspaceDocumentAuthorityAdapterTest {
         val document = state.document("Main.kt").also { it.ensureLoaded(files) }
         val authority = EditorWorkspaceDocumentAuthority(state, Dispatchers.Unconfined)
         val observed = authority.observeRecovery("Main.kt")
-
+        // This is the real full-buffer capture path used by release/late-native callbacks.
         document.captureNativeText("late native bytes")
         assertTrue(runCatching { observed.validate() }.isFailure)
         assertEquals("late native bytes", document.content)

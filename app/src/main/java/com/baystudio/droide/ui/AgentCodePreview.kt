@@ -64,9 +64,12 @@ internal fun legacyFileChange(output: String, path: String): AgentFileChange? {
     val lines = files.flatMap { file -> file.hunks.flatMap { it.lines } }
     if (lines.isEmpty()) return null
     val truncated = output.length > 16_000 || output.contains("more removed lines") || output.contains("more added lines")
-    return AgentFileChange(path, output.take(16_000),
+    val file = files.singleOrNull()
+    val displayPath = path.ifBlank { file?.newPath ?: file?.oldPath.orEmpty() }
+    val previousPath = file?.oldPath?.takeIf { file.newPath == displayPath && it != displayPath }
+    return AgentFileChange(displayPath, output.take(16_000),
         if (truncated) null else lines.count { it.kind == DiffLineKind.ADD },
-        if (truncated) null else lines.count { it.kind == DiffLineKind.REMOVE }, truncated)
+        if (truncated) null else lines.count { it.kind == DiffLineKind.REMOVE }, truncated, previousPath)
 }
 
 @Composable
@@ -100,11 +103,15 @@ internal fun AgentFileChangesPreview(changes: List<AgentFileChange>) {
                 border = BorderStroke(1.dp, DroideColors.Border), shape = MaterialTheme.shapes.extraSmall) {
                 Column {
                     Row(Modifier.fillMaxWidth().padding(7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(change.path, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
-                            color = DroideColors.Text, fontFamily = FontFamily.Monospace)
+                        if (change.path.isNotBlank()) {
+                            FileIdentityLabel(change.path, modifier = Modifier.weight(1f), iconSize = 14.dp,
+                                maxLines = Int.MAX_VALUE, monospaced = true, color = DroideColors.Text,
+                                style = MaterialTheme.typography.labelSmall)
+                        }
                         AgentChangeCounts(listOf(change))
                     }
-                    change.previousPath?.let { Text("Moved from $it", Modifier.padding(horizontal = 7.dp),
+                    change.previousPath?.let { FileIdentityLabel(it, "Moved from $it",
+                        Modifier.padding(horizontal = 7.dp), iconSize = 14.dp, maxLines = Int.MAX_VALUE,
                         style = MaterialTheme.typography.labelSmall, color = DroideColors.Muted) }
                     AgentFileDiffText(change)
                     if (change.truncated) Text("Preview shortened. Open the file to review all changes.", Modifier.padding(7.dp),

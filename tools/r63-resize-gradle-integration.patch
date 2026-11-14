@@ -1,0 +1,95 @@
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -51,7 +51,23 @@
+     layout.buildDirectory.set(layout.projectDirectory.dir("build-private-pty-derivative"))
+     apply(from = rootProject.file("tools/private-pty-derivative.gradle"))
+ }
+-val privatePackaging = privateDebugDeviceUnvalidated || privatePtyDerivative
++// R63 is a distinct false-default lane; R46 and historical admission remain intact.
++val privateR63ResizeDerivative = when (val value = providers.gradleProperty("DROIDE_PRIVATE_R63_RESIZE_DERIVATIVE").orNull) {
++    null, "false" -> false
++    "true" -> true
++    else -> throw GradleException("DROIDE_PRIVATE_R63_RESIZE_DERIVATIVE must be true or false, got $value")
++}
++if (privateR63ResizeDerivative) {
++    require(gradle.startParameter.projectProperties["DROIDE_PRIVATE_R63_RESIZE_DERIVATIVE"] == "true") {
++        "R63 resize requires explicit -PDROIDE_PRIVATE_R63_RESIZE_DERIVATIVE=true"
++    }
++    require(!hostJvmOnly && !privateDebugDeviceUnvalidated && !privatePtyDerivative) {
++        "R63 resize cannot be combined with another private or host mode"
++    }
++    layout.buildDirectory.set(layout.projectDirectory.dir("build-private-r63-resize-derivative"))
++    apply(from = rootProject.file("tools/private-r63-resize-derivative.gradle"))
++}
++val privatePackaging = privateDebugDeviceUnvalidated || privatePtyDerivative || privateR63ResizeDerivative
+ 
+ val releaseKeystorePath = providers.gradleProperty("DROIDE_KEYSTORE_PATH").orNull ?: System.getenv("DROIDE_KEYSTORE_PATH")
+ val releaseKeystorePassword = providers.gradleProperty("DROIDE_KEYSTORE_PASSWORD").orNull ?: System.getenv("DROIDE_KEYSTORE_PASSWORD")
+@@ -293,6 +309,40 @@
+         outputs.upToDateWhen { false }
+     }
+ }
++// The derivative AAR is built explicitly by the reviewed double-build tool, never implicitly.
++val verifyR63ResizeDerivative by tasks.registering(Exec::class) {
++    group = "verification"
++    description = "Verify the private Java-only derivative against its frozen baseline and double-build evidence"
++    dependsOn(verifyTermuxPtyDerivative)
++    workingDir(rootProject.projectDir)
++    commandLine("python3", "-B", rootProject.file("tools/verify_r63_resize_derivative.py"),
++        "--root", rootProject.projectDir)
++    outputs.upToDateWhen { false }
++}
++if (privateR63ResizeDerivative) {
++    val preparePrivateR63ResizeDerivative by tasks.registering(Delete::class) {
++        delete(layout.buildDirectory.file("outputs/private-r63-resize-derivative.json"),
++            layout.buildDirectory.file("outputs/Droide-private-r63-resize-derivative-device-unvalidated.apk"))
++    }
++    tasks.matching { it.name in setOf("preBuild", "verifyTermuxOverlay", "verifyTermuxPtyDerivative", "verifyR63ResizeDerivative", "verifyJGitAndroidCompat") }
++        .configureEach { dependsOn(preparePrivateR63ResizeDerivative) }
++    tasks.register<Exec>("assemblePrivateR63ResizeDerivative") {
++        group = "build"
++        description = "Build and verify a private, device-unvalidated Java resize derivative APK"
++        dependsOn("assembleDebug", "lintDebug", verifyR63ResizeDerivative)
++        workingDir(rootProject.projectDir)
++        commandLine("python3", "-B", rootProject.file("tools/verify_private_r63_resize_apk.py"),
++            "--root", rootProject.projectDir,
++            "--apk", layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile,
++            "--report", layout.buildDirectory.file("outputs/private-r63-resize-derivative.json").get().asFile,
++            "--build-tools", File(android.sdkDirectory, "build-tools/36.0.0"),
++            "--android-jar", File(android.sdkDirectory, "platforms/android-36/android.jar"),
++            "--r8-jar", rootProject.file(requireNotNull(gradle.startParameter.projectProperties["DROIDE_PRIVATE_R63_RESIZE_R8_JAR"])),
++            "--java-home", System.getProperty("java.home"),
++            "--debug-keystore", requireNotNull(android.signingConfigs.getByName("debug").storeFile))
++        outputs.upToDateWhen { false }
++    }
++}
+ val terminalEmulatorDependency = if (hostJvmOnly) {
+     // This distinct output is admitted only by the existing explicit host task-graph guard.
+     // It cannot update or satisfy the release AAR receipt and contains no native binaries.
+@@ -308,6 +358,12 @@
+     tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(compileTermuxHostTestJar) }
+     files(layout.buildDirectory.file("termux-test-only/terminal-emulator-TEST-ONLY.jar"))
+         .builtBy(compileTermuxHostTestJar)
++} else if (privateR63ResizeDerivative) {
++    tasks.matching { it.name == "preBuild" || it.name == "check" }.configureEach {
++        dependsOn(verifyR63ResizeDerivative)
++    }
++    files(rootProject.file("third_party/termux/derivatives/r63/build/terminal-emulator-r63-private.aar"))
++        .builtBy(verifyR63ResizeDerivative)
+ } else if (privatePtyDerivative) {
+     tasks.matching { it.name == "preBuild" || it.name == "check" }.configureEach {
+         dependsOn(verifyTermuxPtyDerivative)
+--- a/settings.gradle.kts
++++ b/settings.gradle.kts
+@@ -1,4 +1,11 @@
+ pluginManagement {
++    // Fail before resolution for the separate, explicit R63 lane.
++    if (providers.gradleProperty("DROIDE_PRIVATE_R63_RESIZE_DERIVATIVE").orNull == "true") {
++        require(gradle.startParameter.projectProperties["DROIDE_PRIVATE_R63_RESIZE_DERIVATIVE"] == "true") {
++            "R63 resize requires explicit CLI opt-in"
++        }
++        require(gradle.startParameter.isOffline) { "R63 resize requires --offline before plugin resolution" }
++    }
+     // Fail before plugin/buildscript resolution when the separate R46 mode is requested.
+     if (providers.gradleProperty("DROIDE_PRIVATE_PTY_DERIVATIVE").orNull == "true") {
+         require(gradle.startParameter.projectProperties["DROIDE_PRIVATE_PTY_DERIVATIVE"] == "true") {

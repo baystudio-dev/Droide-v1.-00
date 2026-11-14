@@ -10,6 +10,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
+/** One workspace operation at a time, with Stop admitted ahead of a debug startup. */
 internal class BuildRunDebugOperationGate<K>(
     // Factory must return an unstarted thread and must never run the action itself.
     private val cancellationThread: (Runnable) -> Thread = { action ->
@@ -18,15 +19,15 @@ internal class BuildRunDebugOperationGate<K>(
     private val onUnoccupied: (stopping: Boolean) -> Unit = {},
 ) {
     private open class Owner(val job: Job) {
-        var cancellation: Cancellation? = null
+        var cancellation: Cancellation? = null // Protected by admission.
     }
     private class Active<K>(val kind: K, job: Job) : Owner(job)
     private class Stop(job: Job) : Owner(job) {
         val completed = CompletableDeferred<Unit>()
     }
 
-    /** Job.cancel invokes transport cancellation handlers synchronously. Its return is a separate
-     * receipt from coroutine completion: either can precede the other. */
+    /** Job.cancel invokes transport cancellation handlers synchronously. Its return is a
+     * separate receipt from coroutine completion: either can precede the other. */
     private class Cancellation(val owner: Owner, private val reason: String) {
         class Attempt {
             val returned = CompletableDeferred<Outcome>()
@@ -45,8 +46,8 @@ internal class BuildRunDebugOperationGate<K>(
             }
             var worker: Thread? = null
             try {
-                // A blocked transport must not consume Main, the admission monitor, or the last shared IO worker
-                // needed to cancel a different owner.
+                // A blocked transport must not consume Main, the admission monitor, or
+                // the last shared IO worker needed to cancel a different owner.
                 worker = threadFactory(Runnable {
                     val outcome = runCatching { owner.job.cancel(CancellationException(reason)) }
                     attempt.returned.complete(Outcome(outcome))
@@ -65,8 +66,8 @@ internal class BuildRunDebugOperationGate<K>(
 
         suspend fun await(attempt: Attempt, waitForUnstarted: Boolean = false) {
             val outcome = attempt.returned.await()
-            // Exit can report a known dispatch failure without falsely certifying owner completion. Accepted
-            // Stop still joins startup before touching its adapter.
+            // Exit can report a known dispatch failure without falsely certifying owner
+            // completion. Accepted Stop still joins startup before touching its adapter.
             if (!outcome.definitelyNotStarted || waitForUnstarted) owner.job.join()
             outcome.result.getOrThrow()
         }
@@ -82,8 +83,8 @@ internal class BuildRunDebugOperationGate<K>(
     private var exitStop: Stop? = null
 
     suspend fun <T> run(kind: K, block: suspend () -> T): T = coroutineScope {
-        // Never store the caller Job: cancellation may be dispatched after this call returns and that
-        // caller has already moved on to unrelated work.
+        // Never store the caller Job: cancellation may be dispatched after this call
+        // returns and that caller has already moved on to unrelated work.
         val operation = Active(kind, currentCoroutineContext().job())
         synchronized(admission) {
             check(!closed) { "Build/Run/Debug is stopped for Exit" }
@@ -93,7 +94,7 @@ internal class BuildRunDebugOperationGate<K>(
         }
         observeCompletion(operation)
         try {
-
+            // Keep admission until children created by the operation finish too.
             coroutineScope { block() }
         } finally {
             finishActive(operation)
@@ -107,8 +108,8 @@ internal class BuildRunDebugOperationGate<K>(
         val request = synchronized(admission) {
             check(!closed) { "Build/Run/Debug is stopped for Exit" }
             stopping ?: owner.also {
-                // Reserve admission before dispatching startup cancellation. An unrelated build may coexist with
-                // a running debug session and must remain alive.
+                // Reserve admission before dispatching startup cancellation. An unrelated
+                // build may coexist with a running debug session and must remain alive.
                 stopping = it
                 owners.add(it)
                 startup = active?.takeIf { it.kind == debugKind }?.let {
@@ -123,8 +124,8 @@ internal class BuildRunDebugOperationGate<K>(
         }
         observeCompletion(request)
         val startupAttempt = startup?.let(::startCancellation)
-        // Once accepted, Stop is cleanup: cancellation must not release admission while the old startup
-        // or adapter is still running.
+        // Once accepted, Stop is cleanup: cancellation must not release admission while
+        // the old startup or adapter is still running.
         withContext(NonCancellable) {
             val result = finishAll(listOf(
                 { if (synchronized(admission) { active == null }) onUnoccupied(true) },
@@ -149,8 +150,8 @@ internal class BuildRunDebugOperationGate<K>(
                     .distinct().also { exitCancellations = it }
             }
         }
-        // Start every target before awaiting any receipt. A timeout only cancels this observer; later
-        // callers join the same requests and accepted Stop cleanup.
+        // Start every target before awaiting any receipt. A timeout only cancels this
+        // observer; later callers join the same requests and accepted Stop cleanup.
         val attempts = requests.map { it to startCancellation(it) }
         finishAll(attempts.map { (request, attempt) -> suspend { request.await(attempt) } } +
             listOf<suspend () -> Unit>({ exitStop?.completed?.await() })).getOrThrow()
@@ -173,8 +174,8 @@ internal class BuildRunDebugOperationGate<K>(
 
     private fun startCancellation(request: Cancellation): Cancellation.Attempt =
         request.start(cancellationThread) { returned, succeeded ->
-            // Failed cancellation remains visible to Exit. Successful cancellation's unfinished coroutine
-            // remains in owners until its own completion receipt.
+            // Failed cancellation remains visible to Exit. Successful cancellation's
+            // unfinished coroutine remains in owners until its own completion receipt.
             if (succeeded) synchronized(admission) { cancellations.remove(returned) }
         }
 
@@ -186,8 +187,8 @@ internal class BuildRunDebugOperationGate<K>(
         try {
             while (true) {
                 val isStopping = synchronized(admission) { stopping != null }
-                // Keep the active reservation while publishing, but never call external code under admission.
-                // Stop can enter or finish during publication.
+                // Keep the active reservation while publishing, but never call external
+                // code under admission. Stop can enter or finish during publication.
                 onUnoccupied(isStopping)
                 if (synchronized(admission) {
                         if ((stopping != null) == isStopping) {
@@ -202,8 +203,8 @@ internal class BuildRunDebugOperationGate<K>(
     }
 
     private fun finishStop(request: Stop) {
-        // A new operation cannot enter while this Stop still owns admission. If an unrelated active
-        // build retires concurrently, its finalizer publishes idle.
+        // A new operation cannot enter while this Stop still owns admission. If an
+        // unrelated active build retires concurrently, its finalizer publishes idle.
         val publishIdle = synchronized(admission) {
             if (active == null) true
             else {

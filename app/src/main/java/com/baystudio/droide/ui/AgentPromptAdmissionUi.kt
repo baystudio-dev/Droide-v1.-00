@@ -19,6 +19,7 @@ import com.baystudio.droide.core.AgentPendingInput
 import com.baystudio.droide.core.AgentPromptDelivery
 import com.baystudio.droide.core.AgentInputOrigin
 
+ 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AgentPendingPromptStrip(

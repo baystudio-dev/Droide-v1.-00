@@ -8,6 +8,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual child handles; no Android/PRoot or descendant-quiescence claim. */
 class LocalRawProcessAdoptionTest {
     private fun child() = ProcessBuilder("/bin/sh", "-c", "exec sleep 30").start()
     private fun scope() = CoroutineScope(SupervisorJob() + Dispatchers.IO)

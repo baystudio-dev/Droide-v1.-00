@@ -61,8 +61,8 @@ class LocalManagedProjectionRefreshTest {
             assertEquals("staged generation", File(staged, "interrupted").readText())
             assertEquals(correct, File(guest, "audit-tool").readText())
 
-            // Observe the real authority at every changed-name publication, not just before and after
-            // reconcile. Directory and unrelated command identities remain stable.
+            // Observe the real authority at every changed-name publication, not just before
+            // and after reconcile. Directory and unrelated command identities remain stable.
             val directoryKeys = listOf(host, guest).associateWith { identity(it).first }
             val stableFiles = listOf(File(host, "stable-tool"), File(guest, "stable-tool"))
             val stableIdentities = stableFiles.associateWith(::identity)

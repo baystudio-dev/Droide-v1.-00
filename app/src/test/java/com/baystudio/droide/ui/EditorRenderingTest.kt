@@ -96,7 +96,7 @@ class EditorRenderingTest {
             val bitmap = Bitmap.createBitmap(700, 300, Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(Color.MAGENTA)
             val canvas = Canvas(bitmap)
-
+            // Match the scrolled content canvas passed by Android's parent drawChild.
             canvas.translate(150f - editor.scrollX, 30f - editor.scrollY)
             editor.draw(canvas)
             var outsidePixels = 0

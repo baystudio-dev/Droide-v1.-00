@@ -49,8 +49,11 @@ class MediaCopyAttemptLedger(private val maxAttempts: Int = 32) {
         } else if (blockedSources[source]?.first == destination) blockedSources.remove(source)
     }
 
+    /** Capture a bounded schema, then serialize the WHOLE object. Path and map identity are never cut.
+     * Replaying a successful historical operation does not inspect or recreate today's destination.
+     */
     private fun historicalReplay(destination: String, result: String): String? {
-
+        // ChatMediaProjectAssets admits at most 500 path characters; retain every admitted one.
         if (destination.length > 500 || !result.startsWith(SUCCESS_PREFIX) || result.length > MAX_CAPTURE_CHARS) return null
         val original = try { Json.parseToJsonElement(result.removePrefix(SUCCESS_PREFIX)) as? JsonObject }
             catch (_: IllegalArgumentException) { null } ?: return null

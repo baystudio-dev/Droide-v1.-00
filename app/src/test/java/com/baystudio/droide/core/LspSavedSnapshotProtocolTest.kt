@@ -6,6 +6,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real framed JSON-RPC bytes, with a host fixture instead of an installed language server. */
 class LspSavedSnapshotProtocolTest {
     private class Host : StdioProcessHost, AutoCloseable {
         override val executionScope = ProcessExecutionScope.LOCAL_LINUX_ARM64

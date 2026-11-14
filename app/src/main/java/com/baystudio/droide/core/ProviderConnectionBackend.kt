@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+
 class ProviderConnectionBackend(context: Context) {
     enum class Status { DISCONNECTED, CONNECTED }
 
@@ -196,6 +197,7 @@ class ProviderConnectionBackend(context: Context) {
 
     suspend fun disconnect(providerId: String): Result<Unit> {
         val id = normalizeProviderId(providerId)
+        
 
         invalidateOAuthSessionsForProvider(id)
         return lockFor(id).withLock {
@@ -209,6 +211,7 @@ class ProviderConnectionBackend(context: Context) {
         }
     }
 
+     
     suspend fun beginGitHubDeviceOAuth(
         providerId: String,
         clientId: String,
@@ -266,7 +269,7 @@ class ProviderConnectionBackend(context: Context) {
             if (now < current.nextPollAtNanos) {
                 return@withLock OAuthPoll.Pending(secondsUntil(current.nextPollAtNanos, now))
             }
-
+            
             current.nextPollAtNanos = now + current.intervalSeconds * NANOS_PER_SECOND
             when (val result = try {
                 GitHubDeviceOAuth.pollOnce(current.clientId, current.device.deviceCode, current.intervalSeconds)
@@ -332,8 +335,8 @@ class ProviderConnectionBackend(context: Context) {
         val certifiedModels = runCatching { ProviderModelCertificationRegistry.validatedModels(models) }
             .getOrElse { return Result.failure(it) }
 
-        // OAuth callers additionally claim their exact still-current attempt immediately before durable
-        // writes.
+        // OAuth callers additionally claim their exact still-current attempt immediately before durable writes.
+
 
         if (commitGuard != null && !commitGuard()) {
             return Result.failure(IllegalStateException("oauth_session_cancelled"))
@@ -379,6 +382,7 @@ class ProviderConnectionBackend(context: Context) {
         require(value.toByteArray(Charsets.UTF_8).size <= MAX_CREDENTIAL_BYTES) { "Credential material is too large" }
         return value
     }
+
 
     private fun provider(providerId: String): AiProvider {
         val id = normalizeProviderId(providerId)

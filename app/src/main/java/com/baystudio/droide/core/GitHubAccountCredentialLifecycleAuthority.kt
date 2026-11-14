@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 internal class GitHubAccountCredentialLifecycleAuthority(
     private val epochSeconds: () -> Long = { System.currentTimeMillis() / 1_000L },
 ) {
@@ -58,6 +59,7 @@ internal class GitHubAccountCredentialLifecycleAuthority(
         claimed
     }
 
+     
     fun invalidate(): Long = synchronized(lock) {
         activeRefresh?.fence?.cancel()
         activeRefresh = null
@@ -68,7 +70,7 @@ internal class GitHubAccountCredentialLifecycleAuthority(
     internal fun generationForTest(): Long = synchronized(lock) { generation }
 
     companion object {
-
+         
         const val REFRESH_EARLY_SECONDS = 5L * 60L
         private val FINGERPRINT = Regex("[a-f0-9]{64}")
     }

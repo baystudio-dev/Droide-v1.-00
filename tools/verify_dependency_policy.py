@@ -29,11 +29,14 @@ def direct_runtime_dependencies(app: str) -> set[str]:
     for value in re.findall(r'implementation\(\s*"([^"]+)"\s*\)', app): out.add(value)
     for value in re.findall(r'implementation\(\s*platform\(\s*"([^"]+)"\s*\)\s*\)', app): out.add(value)
     for value in re.findall(r'implementation\(\s*files\(\s*"libs/([^"]+)"\s*\)\s*\)', app): out.add(f"local:{value}")
+    # The reviewed host/private lanes select this variable, while the normal release
+    # branch still supplies the original provenance-guarded AAR. Keep its legal
+    # mapping: do not mistake variable indirection for a removed dependency.
     if 'implementation(terminalEmulatorDependency)' in app:
-        expected = 'files(File(requireNotNull(sourceEngine), "terminal-engine.aar")).builtBy(buildSourceTerminalEngine)'
+        expected = 'files("libs/terminal-emulator-v0.118.0-droide-input.aar").builtBy(verifyTermuxOverlay)'
         if expected not in app:
-            fail("terminal engine must be built and verified from the pinned source recipe")
-        out.add("local:terminal-engine.aar")
+            fail("terminalEmulatorDependency release artifact/provenance binding changed")
+        out.add("local:terminal-emulator-v0.118.0-droide-input.aar")
     return out
 
 def inspect_jgit_compat(app: str) -> None:

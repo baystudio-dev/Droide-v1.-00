@@ -9,7 +9,9 @@ internal object SourceAwareChatHistoryWriter {
     sealed class Item {
         class Legacy(val message: JsonObject) : Item()
         class OwnedAssistant(val bound: NativeAssistantRegistry.BoundAssistant) : Item()
-
+        /** Native replay is admitted by the Chat adapter, with original reasoning/refusal and calls.
+         * The caller preserves ordering; settled results are emitted immediately after this assistant.
+         */
         class OwnedAssistantGroup(val turn: CanonicalChatTurnRegistry.BoundTurn) : Item() {
             val responseSession get() = turn.responseSession
             val assistant get() = turn.assistant
@@ -18,8 +20,9 @@ internal object SourceAwareChatHistoryWriter {
         }
 
     }
-    /** Writes only the messages array; request builder owns model/tools/settings and budget
-     * selection. */
+    /** Writes only the messages array; request builder owns model/tools/settings and budget selection.
+     * Callers must select complete assistant/result groups, never budget individual tool results away.
+     */
     fun writeMessages(items: List<Item>, target: ProviderReplayTarget, output: OutputStream,
         checkCancelled: () -> Unit = {}) {
         require(target.protocol == ProviderReplayTarget.Protocol.OPENAI_CHAT)

@@ -31,6 +31,7 @@ internal object LocalUbuntuZlsPolicy {
         }
     }
 
+    /** The original index uses version/target objects and string-valued tarball, shasum and size. */
     fun publisherRecipe(definition: LocalUbuntuVendorDefinition, text: String): LocalUbuntuVendorRecipe {
         require(text.toByteArray(Charsets.UTF_8).size <= 1_000_000) { "ZLS publisher index exceeds its bound" }
         val index = Json.parseToJsonElement(text) as? JsonObject ?: error("ZLS publisher index is not an object")
@@ -51,6 +52,7 @@ internal object LocalUbuntuZlsPolicy {
             .also { it.validate() }
     }
 
+    /** build.zig at 494486203c3a48927f2383aa3d5ce5fca112186d packages these three flat files. */
     @JvmOverloads
     fun requireTree(entry: File, version: String = VERSION) {
         val root = requireNotNull(entry.parentFile)

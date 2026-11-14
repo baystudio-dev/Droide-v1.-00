@@ -27,6 +27,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 
+/** Real native TerminalView gestures and emulator cells; no JNI child or Android device is started. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -40,7 +41,8 @@ class TerminalNativeLinkInteractionTest {
     private class Surface(val activity: Activity, width: Int, height: Int, rows: Int) {
         val writes = mutableListOf<ByteArray>()
         val model = DeviceTerminalEmulator({ writes += it.copyOf() }, 80, rows)
-
+        // Borrow the same actual emulator as the device-terminal fixture. A real
+        // native process is deliberately absent: these are view/gesture tests.
         val emulator = DeviceTerminalEmulator::class.java.getDeclaredField("emulator").let {
             it.isAccessible = true
             it.get(model) as TerminalEmulator
@@ -66,7 +68,8 @@ class TerminalNativeLinkInteractionTest {
             view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
             view.layout(0, 0, width, height)
-
+            // LEGACY ShadowPaint reports one pixel per glyph, unlike this
+            // 14-pixel monospace font, and would defeat the wrap/scrollback setup.
             assertTrue("Native font metrics must be used for cell hit testing", view.mRenderer.fontWidth > 1f)
             model.resize(floor(width / view.mRenderer.fontWidth).toInt().coerceAtLeast(4), rows)
             view.mEmulator = emulator
@@ -96,8 +99,8 @@ class TerminalNativeLinkInteractionTest {
         }
 
         fun settleTouch() {
-            // Termux waits for a confirmed single tap so pinch/double-tap gestures do not activate links.
-            // Advance only the virtual main Looper.
+            // Termux waits for a confirmed single tap so pinch/double-tap gestures
+            // do not activate links. Advance only the virtual main Looper.
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(350))
         }
 
@@ -150,6 +153,21 @@ class TerminalNativeLinkInteractionTest {
         assertTrue("Opening a URL must not send bytes to the shell", surface.writes.isEmpty())
     }
 
+    @Test fun tapOnExplicitlyWrappedCliUrlOpensTheWholeTarget() = withSurface(320, 640) { surface ->
+        val width = surface.emulator.mColumns
+        surface.model.appendFromWorker("\u001b[4;34m" + oauth.chunked(width).joinToString("\r\n") + "\u001b[0m\r\ncode:")
+        surface.touch(4, 1)
+        assertOpened(surface, oauth)
+        assertTrue(surface.writes.isEmpty())
+    }
+
+    @Test fun tapOnOsc8AuthenticationLabelOpensItsExactTarget() = withSurface(320, 640) { surface ->
+        surface.model.appendFromWorker("\u001b]8;;$oauth\u001b\\Click here to authenticate\u001b]8;;\u001b\\")
+        surface.touch(6, 0)
+        assertOpened(surface, oauth)
+        assertTrue(surface.writes.isEmpty())
+    }
+
     @Test fun landscapeTapOnWrappedAuthorizationUrlPreservesTheExactDestination() = withSurface(740, 320) { surface ->
         surface.model.appendFromWorker(oauth + "\r\nEnter authorization code:")
         assertTrue(oauth.length > surface.emulator.mColumns)
@@ -172,7 +190,8 @@ class TerminalNativeLinkInteractionTest {
         surface.model.appendFromWorker(url)
         surface.select(8, 0)
         assertTrue(surface.view.isSelectingText)
-
+        // Upstream uses wall-clock System.currentTimeMillis for its 300 ms
+        // selection-dismiss debounce, unlike its Looper-based tap recognizer.
         Thread.sleep(320)
         surface.touch(8, 0)
         assertFalse(surface.view.isSelectingText)
@@ -207,8 +226,8 @@ class TerminalNativeLinkInteractionTest {
             View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY))
         replacement.layout(0, 0, 320, 640)
         surface.currentView = replacement
-        // Both views remain attached: identity, rather than detach alone, must prevent the old
-        // GestureDetector from targeting a newly displayed URL.
+        // Both views remain attached: identity, rather than detach alone, must
+        // prevent the old GestureDetector from targeting a newly displayed URL.
         assertTrue(surface.view.isAttachedToWindow)
         assertTrue(replacement.isAttachedToWindow)
         surface.settleTouch()

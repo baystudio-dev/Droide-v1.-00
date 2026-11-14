@@ -102,8 +102,8 @@ class AgentLifecyclePublicationOwnershipBaselineTest {
                 try {
                     runBlocking {
                         withTimeout(15_000) {
-                            // Direct chat is intentionally owned by this test job. loadSession revokes its run/session
-                            // authority without cancelling this waiter.
+                            // Direct chat is intentionally owned by this test job. loadSession
+                            // revokes its run/session authority without cancelling this waiter.
                             val oldRun = launch(Dispatchers.Default) {
                                 agent.chat("Explain the old task", provider.config, maxTurns = 1)
                             }

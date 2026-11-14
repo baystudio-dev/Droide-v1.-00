@@ -21,6 +21,7 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual managed-save/cache-repair fixtures. Retain all fixture evidence for review. */
 class SessionCatalogSourceIdentityTest {
     private fun <T> workspace(block: suspend (File) -> T): T = runBlocking {
         val root = Files.createTempDirectory("session-source-identity-").toFile()
@@ -71,7 +72,7 @@ class SessionCatalogSourceIdentityTest {
         }
         var latest = original
         listOf("After!", "Latest").forEachIndexed { index, title ->
-
+            // Keeping old fixture inodes alive makes replacement-key assertions deterministic.
             Files.createLink(root.resolve("retained-primary-$index").toPath(), file.toPath())
             latest = original.copy(title = title, createdAt = 222L + index * 111,
                 parentId = "s-new-parent", messages = listOf(AgentMessage("user", "later")))

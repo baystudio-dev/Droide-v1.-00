@@ -9,8 +9,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** Exact handles launched by one ACP connection, including its client-side terminals. This is not
- * a claim that the workspace has no other writers. */
+/** Exact handles launched by one ACP connection, including its client-side terminals.
+ * This is not a claim that the workspace has no other writers.
+ */
 internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<SessionHostedProcessOwner>
 
@@ -35,12 +36,12 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
     }
     // Suspended cleanup receipts must not pin one native thread per retained process.
     private val receiptScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    // Only unconfirmed handles stay strongly owned. Weak identity tombstones deduplicate late
-    // handoffs without retaining completed processes, their streams or callbacks.
+    // Only unconfirmed handles stay strongly owned. Weak identity tombstones deduplicate
+    // late handoffs without retaining completed processes, their streams or callbacks.
     private val owned = IdentityHashMap<HostedStdioProcess, ProcessRecord>()
     private val collected = ReferenceQueue<HostedStdioProcess>()
-    // A natural exit can leave streams available to their readers. Keep only a weak identity, but
-    // still close any surviving handle when the session itself stops.
+    // A natural exit can leave streams available to their readers. Keep only a weak
+    // identity, but still close any surviving handle when the session itself stops.
     private val naturallyFinished = HashSet<CompletedKey>()
     private val completed = HashSet<CompletedKey>()
     private val launches = mutableSetOf<Job>()
@@ -76,8 +77,8 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
     }
 
     private fun observeNaturalCompletion(process: HostedStdioProcess, record: ProcessRecord) {
-        // A failed observation (including dispatcher rejection) never releases ownership. Explicit
-        // cleanup retains its own result and retry path.
+        // A failed observation (including dispatcher rejection) never releases ownership.
+        // Explicit cleanup retains its own result and retry path.
         val worker = receiptScope.launch(CoroutineExceptionHandler { _, _ -> }, start = CoroutineStart.LAZY) {
             try {
                 process.awaitExit()
@@ -103,8 +104,8 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
         }
         try { if (observe) worker.start() else worker.cancel() }
         catch (_: Throwable) {
-            // A synchronous dispatcher failure must leave the already-published handle owned. A later
-            // explicit stop has its own retryable observation worker.
+            // A synchronous dispatcher failure must leave the already-published handle
+            // owned. A later explicit stop has its own retryable observation worker.
         }
     }
 
@@ -117,7 +118,7 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
         try {
             withContext(this@SessionHostedProcessOwner) {
                 action().also { process ->
-
+                    // Also supports hosts with a synchronous return. Local/ADB hosts retain earlier.
                     retain(process)
                     check(!isClosing) { "CLI session closed during process launch" }
                 }
@@ -147,8 +148,8 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
             launches.toList() to starts
         }
         starts.forEach(::startStop)
-        // Stop dispatch is already independent. Arbitrary synchronous cancellation handlers can still
-        // hold this caller, but cannot prevent the known children from being stopped.
+        // Stop dispatch is already independent. Arbitrary synchronous cancellation handlers
+        // can still hold this caller, but cannot prevent the known children from being stopped.
         pending.forEach { it.cancel(CancellationException("CLI session is closing")) }
         return pending
     }
@@ -160,12 +161,12 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
     private fun startStop(attempt: StopAttempt) {
         if (!attempt.started.compareAndSet(false, true)) return
         try {
-            // Isolate only synchronous close. A blocked close cannot starve sibling stop requests, while a
-            // suspended exit receipt does not pin this native thread.
+            // Isolate only synchronous close. A blocked close cannot starve sibling stop
+            // requests, while a suspended exit receipt does not pin this native thread.
             val worker = Thread({
                 try {
-                    // A throwing close is already a failed request. Publish that failure promptly so a later
-                    // explicit retry can try stopping a still-live child.
+                    // A throwing close is already a failed request. Publish that failure
+                    // promptly so a later explicit retry can try stopping a still-live child.
                     attempt.process.close()
                     startReceiptObservation(attempt)
                 } catch (failure: Throwable) {
@@ -227,8 +228,8 @@ internal class SessionHostedProcessOwner : AbstractCoroutineContextElement(Key) 
         failure as? Exception ?: IllegalStateException("CLI process cleanup failed", failure)
 
     suspend fun stopAndAwait() = cleanup.withLock {
-        // Only a new explicit invocation retries an already-failed attempt. Pending and successful
-        // identities remain deduplicated, including after an observer timeout/cancel.
+        // Only a new explicit invocation retries an already-failed attempt. Pending and
+        // successful identities remain deduplicated, including after an observer timeout/cancel.
         closeAndDispatch(retryFailed = true).joinAll()
         val snapshot = synchronized(lock) { owned.values.map { checkNotNull(it.attempt) } }
         OwnedResourceCleanup.runSuspend(*snapshot.map { attempt -> suspend {

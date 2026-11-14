@@ -13,6 +13,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+
+
+
+
+
+
+
+
 class DeviceTerminalEmulator(
     private val writeToPty: (ByteArray) -> Unit,
     columns: Int = 120,
@@ -207,6 +215,11 @@ class DeviceTerminalEmulator(
 
     fun activeTranscriptRows(): Int = synchronized(lock) { emulator.screen.activeTranscriptRows }
     fun linkAt(column: Int, row: Int): String? = synchronized(lock) { TerminalLinks.atCell(emulator, column, row) }
+    fun selectedLink(selection: Selection): String? = synchronized(lock) {
+        val range = selection.normalized().clamped(emulator.mColumns, emulator.screen.activeTranscriptRows, emulator.mRows)
+        val first = TerminalLinks.atCell(emulator, range.startX, range.startY, explicitSelection = true)
+        first?.takeIf { it == TerminalLinks.atCell(emulator, range.endX, range.endY, explicitSelection = true) }
+    }
     fun columns(): Int = synchronized(lock) { emulator.mColumns }
     fun rows(): Int = synchronized(lock) { emulator.mRows }
     fun isAlternateBufferActive(): Boolean = synchronized(lock) { emulator.isAlternateBufferActive }
@@ -225,6 +238,7 @@ class DeviceTerminalEmulator(
         listener?.onScreenChanged()
     }
 
+     
     fun resetThemeColors() {
         synchronized(lock) { emulator.mColors.reset() }
         listener?.onScreenChanged()

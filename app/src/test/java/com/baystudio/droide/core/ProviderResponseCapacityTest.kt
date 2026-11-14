@@ -9,6 +9,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exercise the actual four streaming transports, including their HTTP-200 buffered fallback. */
 class ProviderResponseCapacityTest {
     @Test(timeout = 60_000) fun oversizedFirstLineFailsSafelyAcrossEveryTransport() = runBlocking {
         for (protocol in ProviderWireProtocol.entries) for (sse in listOf(true, false)) {
@@ -71,7 +72,7 @@ class ProviderResponseCapacityTest {
                     if (sse) output.write("\n\n".toByteArray())
                 }
             } catch (_: java.io.IOException) {
-
+                // The capacity rejection intentionally closes the response before the sender finishes.
             } finally { exchange.close() }
         }
         server.start()

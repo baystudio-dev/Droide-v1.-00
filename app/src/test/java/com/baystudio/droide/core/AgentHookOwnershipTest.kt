@@ -19,6 +19,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Finite literal-fake controls. No method delegates to an execution backend. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AgentHookOwnershipTest {

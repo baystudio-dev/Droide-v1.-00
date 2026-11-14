@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.security.MessageDigest
 
+/** Fixed private launch. No terminal Node, project compiler override, discovery fallback or sandbox claim. */
 internal object LspVueLaunchPolicy {
     const val PROFILE="vue-3.3.13-tslsp-6.0.2-ts-6.0.3-node-22.23.3-private-v1"
     const val POLICY_REVISION=PROFILE

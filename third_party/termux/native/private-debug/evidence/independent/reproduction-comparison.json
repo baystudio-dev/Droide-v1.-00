@@ -1,0 +1,84 @@
+{
+  "allEightFullUnstrippedFilesByteIdentical": true,
+  "executionEvidence": null,
+  "libraries": [
+    {
+      "abi": "arm64-v8a",
+      "filename": "libtermux.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 81392,
+      "independentSha256": "e31b4ce48b794cf07be9643c333a58e9805e3ad2b6f9c0d5cfeb2b84fa8d6594",
+      "primaryBytes": 81392,
+      "primarySha256": "e31b4ce48b794cf07be9643c333a58e9805e3ad2b6f9c0d5cfeb2b84fa8d6594"
+    },
+    {
+      "abi": "arm64-v8a",
+      "filename": "libdroide_files.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 29520,
+      "independentSha256": "52f7215cab4c6f05eab17f62ac38611753419d172b362e9d8a2facf5814c5615",
+      "primaryBytes": 29520,
+      "primarySha256": "52f7215cab4c6f05eab17f62ac38611753419d172b362e9d8a2facf5814c5615"
+    },
+    {
+      "abi": "armeabi-v7a",
+      "filename": "libtermux.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 64024,
+      "independentSha256": "139a46e994e326008d6f21d37d6f9e975e7854351bbd4b8e535eb175034b4941",
+      "primaryBytes": 64024,
+      "primarySha256": "139a46e994e326008d6f21d37d6f9e975e7854351bbd4b8e535eb175034b4941"
+    },
+    {
+      "abi": "armeabi-v7a",
+      "filename": "libdroide_files.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 25812,
+      "independentSha256": "e483fa273b266f99f17471122f332f2ade53940a048e007252cfbc84cc900413",
+      "primaryBytes": 25812,
+      "primarySha256": "e483fa273b266f99f17471122f332f2ade53940a048e007252cfbc84cc900413"
+    },
+    {
+      "abi": "x86",
+      "filename": "libtermux.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 65876,
+      "independentSha256": "5e65e9b0394afd61205b25bf117c20fb1c24e772e108e57581c1bd30d75cf952",
+      "primaryBytes": 65876,
+      "primarySha256": "5e65e9b0394afd61205b25bf117c20fb1c24e772e108e57581c1bd30d75cf952"
+    },
+    {
+      "abi": "x86",
+      "filename": "libdroide_files.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 25504,
+      "independentSha256": "551ddabb8bbd7a5c3712714de1549017014212d9b8402c6b72b6f45409f54886",
+      "primaryBytes": 25504,
+      "primarySha256": "551ddabb8bbd7a5c3712714de1549017014212d9b8402c6b72b6f45409f54886"
+    },
+    {
+      "abi": "x86_64",
+      "filename": "libtermux.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 78808,
+      "independentSha256": "aec7e11c45798469aafd05d860ca34ef792131f733089dce2c95317ad8892669",
+      "primaryBytes": 78808,
+      "primarySha256": "aec7e11c45798469aafd05d860ca34ef792131f733089dce2c95317ad8892669"
+    },
+    {
+      "abi": "x86_64",
+      "filename": "libdroide_files.so",
+      "fullUnstrippedBytesEqual": true,
+      "independentBytes": 28416,
+      "independentSha256": "02e1f27c87c2901911d6150c97a5080356d440b52e7130505ae2afbafcca3e80",
+      "primaryBytes": 28416,
+      "primarySha256": "02e1f27c87c2901911d6150c97a5080356d440b52e7130505ae2afbafcca3e80"
+    }
+  ],
+  "releaseCompatible": false,
+  "scope": "Two clean-root builds in the same toolchain and host environment only.",
+  "sourceArchiveSha256": "e767a89ace01569e1e0412b2bbd03de171194caa85c3989b770d4bfe9438d317",
+  "sourceTreeMatchesPrimary": true,
+  "sourceTreeUnchanged": true,
+  "status": "BUILD_ONLY_DEVICE_UNVALIDATED"
+}

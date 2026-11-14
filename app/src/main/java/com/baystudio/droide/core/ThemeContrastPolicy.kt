@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object ThemeContrastPolicy {
     fun opaque(color: Int): Int = color or 0xFF000000.toInt()
 

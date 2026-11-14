@@ -89,7 +89,7 @@ object ChatMediaCleanup {
                     currentCoroutineContext().ensureActive()
                     ensureAdmission(epoch)
                     val workspace = runCatching { ChatMediaAccess.workspace(app, entry.relative, requireExisting = false) }.getOrNull()
-
+                    // Media is outside source: expiry still reclaims its private cache after a project is removed.
                     if (workspace != null) {
                         if (entry.expiry > now) remaining += entry else {
                             try {
@@ -127,8 +127,8 @@ object ChatMediaCleanup {
         try {
             withTimeout(15_000L) {
                 workers.forEach { it.job.join() }
-                // Foreground import/send cleanup uses this same lock. Wait for an admitted filesystem step;
-                // queued callers fail their epoch check when they enter.
+                // Foreground import/send cleanup uses this same lock. Wait for an admitted
+                // filesystem step; queued callers fail their epoch check when they enter.
                 lock.withLock { }
             }
         } catch (failure: Throwable) { failures += failure }

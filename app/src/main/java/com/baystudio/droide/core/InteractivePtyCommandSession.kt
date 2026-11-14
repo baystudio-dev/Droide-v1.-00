@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 
+/** An explicitly approved Agent process, displayed in the selected existing terminal tab. */
 interface InteractivePtyCommandSession {
     val supportsInteractivePty: Boolean
     suspend fun execInteractivePty(

@@ -24,6 +24,7 @@ internal object LocalUbuntuNpmPolicy {
             it.copy(registryIntegrity = recipe.registryIntegrity) == recipe
         } == true)
 
+    // Original CLIs and editor adapters are separate entry points in the same dependency closure.
     fun commands(recipe: WorkstationInstallRecipe): Map<String, List<String>> = when (recipe.familyId) {
         LocalUbuntuMusePolicy.FAMILY -> linkedMapOf("muse-code-acp" to listOf("muse-code-acp"), "muse" to listOf("muse-code-acp", "--cli"))
         "plugin.codex" -> linkedMapOf("codex-acp" to listOf("codex-acp"), "codex" to listOf("codex"))
@@ -55,16 +56,18 @@ internal object LocalUbuntuNpmPolicy {
         if (recipe.familyId == LocalUbuntuSveltePolicy.FAMILY_ID) return LocalUbuntuSvelteLaunchPolicy.verifyProbe(root)
         if (recipe.familyId == LocalUbuntuPrismaPolicy.FAMILY_ID) return LocalUbuntuPrismaLaunchPolicy.verifyProbe(root)
         val file = File(root, "payload/${LocalUbuntuNpmLspHealth.FILE_NAME}")
+        val expected = if (recipe.familyId == LspMdxProfile.FAMILY) LspMdxProfile.healthScript else LocalUbuntuNpmLspHealth.script
         return file.isFile && !Files.isSymbolicLink(file.toPath()) &&
-            file.length() == LocalUbuntuNpmLspHealth.script.toByteArray(Charsets.UTF_8).size.toLong() &&
-            file.readText(Charsets.UTF_8) == LocalUbuntuNpmLspHealth.script
+            file.length() == expected.toByteArray(Charsets.UTF_8).size.toLong() &&
+            file.readText(Charsets.UTF_8) == expected
     }
 
     fun reviewedSelectorPreload(recipe: WorkstationInstallRecipe): String {
         require(recipe.familyId == "plugin.opencode" && recipe.packageName == "opencode-ai" &&
             recipe.allowLifecycleScripts && supports(recipe)) { "This recipe has no reviewed binary selector" }
-        // PRoot emulates successful hard links outside the managed tree, so request that fallback only
-        // for this reviewed lifecycle invocation.
+        // The original selector catches linkSync failures and copies the original binary instead.
+        // PRoot emulates successful hard links outside the managed tree, so request that fallback
+        // only for this reviewed lifecycle invocation. Never change the package or its binary.
         return """
             'use strict';
             const fs = require('node:fs');
@@ -156,7 +159,7 @@ internal object LocalUbuntuNpmPolicy {
             require(entries["node_modules/$name"]?.jsonObject?.get("version")?.jsonPrimitive?.content == version) {
                 "Additional npm dependency $name is not pinned to $version"
             }
-            if (recipe.familyId == "lsp.typescript" && name == "typescript" && version == LocalUbuntuTypeScriptServerPolicy.VERSION) {
+            if (recipe.familyId in setOf("lsp.typescript", LspMdxProfile.FAMILY) && name == "typescript" && version == LocalUbuntuTypeScriptServerPolicy.VERSION) {
                 require(entries["node_modules/$name"]?.jsonObject?.get("integrity")?.jsonPrimitive?.content == LocalUbuntuTypeScriptServerPolicy.INTEGRITY) {
                     "Reviewed TypeScript server integrity changed in npm lock"
                 }
@@ -174,7 +177,7 @@ internal object LocalUbuntuNpmPolicy {
         require(root.isDirectory && !Files.isSymbolicLink(root.toPath())) { "npm package tree is missing" }
         val base = root.canonicalFile.toPath()
         val files = sortedMapOf<String, String>(); val links = sortedMapOf<String, String>()
-
+        // One scratch buffer and digest per walk; every file is still read and hashed.
         val hashBuffer = ByteArray(64 * 1024)
         val fileDigest = MessageDigest.getInstance("SHA-256")
         var bytes = 0L

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 internal enum class AgentPromptDrainPhase { IDLE, STARTING, READY }
 
 internal data class AgentPromptDrainSnapshot(

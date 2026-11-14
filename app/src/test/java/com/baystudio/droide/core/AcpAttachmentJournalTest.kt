@@ -11,6 +11,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Direct synthetic regression sources; no provider, native rebuild or device execution. */
 class AcpAttachmentJournalTest {
     @Test fun successRequiresExactReceiptAndHistoricalReplayDoesNotRecreateDeletedDestination() = fixture { f ->
         var projections = 0
@@ -114,7 +115,7 @@ class AcpAttachmentJournalTest {
             if (mutation is FileRepository.Mutation.Write) {
                 val replacement = f.root.resolve("replacement.tmp").apply { writeText("later user bytes") }
                 Files.move(replacement.toPath(), f.root.resolve(mutation.path).toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-                throw foreign
+                throw foreign // Changed target makes Repository preserve the original callback exception.
             }
         })
         val access = f.bind(files = files)

@@ -24,7 +24,7 @@ internal fun TerminalLinkText(text: String, modifier: Modifier = Modifier) {
                 val shown = layout ?: return@detectTapGestures
                 val displayedText = shown.layoutInput.text.text
                 val offset = shown.getOffsetForPosition(position)
-
+                // getOffsetForPosition clamps blank-space taps to the nearest character.
                 if (offset !in displayedText.indices || !shown.getBoundingBox(offset).contains(position)) return@detectTapGestures
                 TerminalLinks.findAt(displayedText, offset)?.let { TerminalLinkOpener.open(context, it) }
             }

@@ -115,7 +115,7 @@ class AgentStreamedFileToolTest {
     }
     @Test fun cancellationAfterCandidateSealRetainsBothRecoveryHandles()=fixture {
         File(root,"a.txt").writeText("old");prepare("old","new".repeat(50000))
-        revokeAfterMetaCount=ownedMetaCount()+1
+        revokeAfterMetaCount=ownedMetaCount()+1 // snapshot may seal; revoke as candidate seals.
         val failure=runCatching{execute()}.exceptionOrNull()
         val cancelled=generateSequence(failure){it.cause}.filterIsInstance<StreamedDiskEditPreparation.Cancelled>().firstOrNull()
         assertNotNull("$failure",cancelled)

@@ -43,6 +43,7 @@ internal object LocalUbuntuClojureArchive {
         }
     }
 
+    /** One exact root member, regular Unix type (or unspecified), no ZIP64/encryption/prefix/trailer/gaps. */
     internal fun requireZipStructure(archive: File, active: () -> Unit = {}): Member {
         require(Files.isRegularFile(archive.toPath(), LinkOption.NOFOLLOW_LINKS)) { "Clojure LSP ZIP must be a regular nonlink file" }
         FileChannel.open(archive.toPath(), StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).use { input ->

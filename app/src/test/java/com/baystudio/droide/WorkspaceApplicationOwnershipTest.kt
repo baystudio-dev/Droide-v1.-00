@@ -22,6 +22,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowProcess
 
+/** Real ViewModel-store disposal and loopback provider transport, no cloud inference or Ubuntu setup. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = DroideApplication::class)
 class WorkspaceApplicationOwnershipTest {

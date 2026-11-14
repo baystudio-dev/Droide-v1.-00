@@ -40,6 +40,7 @@ internal data class PreparedToolCall(
         partId: String, repeatOrdinal: Int, signature: String, argumentError: String? = null) :
         this(index,id,name,PreparedToolInput.Legacy(rawArgs,args),partId,repeatOrdinal,signature,argumentError)
 
+    // A source call has no placeholder String/JsonObject. Any accidental legacy fallthrough fails closed.
     val rawArgs: String get() = (input as? PreparedToolInput.Legacy)?.raw
         ?: error("Source-backed arguments require their typed execution path")
     val args: JsonObject get() = (input as? PreparedToolInput.Legacy)?.parsed
@@ -62,6 +63,7 @@ internal data class ToolOutcome(
     val media: List<ChatMediaRef> = emptyList(),
 )
 
+ 
 internal object AgentToolTurnPlanner {
     fun prepare(
         toolCalls: JsonArray,
@@ -84,8 +86,8 @@ internal object AgentToolTurnPlanner {
             val argumentValue = fn["arguments"] as? JsonPrimitive
             val rawArgs = argumentValue?.takeIf { it.isString }?.contentOrNull.orEmpty()
             require(rawArgs.length <= maxArgumentChars) { "Tool arguments are too large" }
-            // Invalid provider arguments are a failed call, never implicit authority to invoke argument-free
-            // mutation tools with an empty object.
+            // Invalid provider arguments are a failed call, never implicit authority
+            // to invoke argument-free mutation tools with an empty object.
             val parsed = if (argumentValue?.isString == true) runCatching { json.parseToJsonElement(ProviderPayloadLimits.checkedJson(rawArgs)) }.getOrNull() else null
             val args = parsed as? JsonObject
             val argumentError = if (args == null)

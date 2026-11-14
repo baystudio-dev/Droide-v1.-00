@@ -2,12 +2,14 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
-/** Native multiline UTF-16 token spans adapted to the existing one-line painter. No lexical
- * inference, fixed legend indices, or partial recovery of invalid data. */
+/** Native multiline UTF-16 token spans adapted to the existing one-line painter.
+ * No lexical inference, fixed legend indices, or partial recovery of invalid data.
+ */
 internal object LspPowerShellSemanticTokens {
     fun parseFull(result: JsonElement, legend: LspSemanticTokenLegend, text: String): List<LspSemanticToken> =
         parseFullChecked(result, legend, text).orEmpty()
 
+    /** Null marks malformed native data; an empty list is a valid empty response. */
     fun parseFullChecked(result: JsonElement, legend: LspSemanticTokenLegend, text: String): List<LspSemanticToken>? {
         if (result == JsonNull) return emptyList()
         if (!LspPowerShellCompletionContext.acceptsText(text) || legend.tokenTypes.isEmpty() ||

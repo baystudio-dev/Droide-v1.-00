@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/toolchain/jdk-17.0.20.1+1/bin/javac",
+    "--release",
+    "8",
+    "-encoding",
+    "UTF-8",
+    "-g:none",
+    "-proc:none",
+    "-implicit:none",
+    "-sourcepath",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/empty-sourcepath",
+    "-classpath",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/dependencies/junit-4.13.2.jar:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/dependencies/hamcrest-core-1.3.jar",
+    "-d",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/fixture-classes",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/fixture-sources/TerminalOwnedProcessTest.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/fixture-sources/TerminalPtyReadProgressTest.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/fixture-sources/ReaderHealthyOutputTiming.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/fixture-sources/AarFixtureRunner.java"
+  ],
+  "cwd": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline",
+  "durationNanoseconds": 769417990,
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TZ": "UTC"
+  },
+  "expectedExit": 0,
+  "returnCode": 0,
+  "startedAtUtc": "2026-10-17T07:45:29.226221+00:00"
+}

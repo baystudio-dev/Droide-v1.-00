@@ -93,6 +93,7 @@ internal fun rememberExplorerExportUi(
         }
     }
 
+
     LaunchedEffect(context) {
         try { withContext(Dispatchers.IO) { ExportController.initialize(context) { ensureActive() } } }
         catch (cancelled: CancellationException) { throw cancelled }
@@ -130,8 +131,7 @@ internal fun rememberExplorerExportUi(
         }
         // Cancellation leaves the original configuration intact; it is not an export success/failure.
     }
-    // Returning from DocumentsUI may precede onResume. Do not start a foreground service in
-    // background.
+    // Returning from DocumentsUI may precede onResume. Do not start a foreground service in background.
     LaunchedEffect(destination, resumed) {
         val selected = destination
         if (selected != null && resumed) startPicked(selected)

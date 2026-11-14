@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+
 internal object LocalAndroidBuildArtifactCollector {
     fun collect(projectRoot: File, task: String, completedOutputRoots: List<File>): List<File> {
         val query = AndroidBuildArtifactPolicy.queryFor(task) ?: return emptyList()
@@ -26,8 +27,8 @@ internal object LocalAndroidBuildArtifactCollector {
                 if (!PathSecurity.contains(root, canonical)) return@forEach
                 val relative = canonical.relativeTo(root).invariantSeparatorsPath
                 if (AndroidBuildArtifactPolicy.matchesRelativePath(query, relative)) {
-                    // UP-TO-DATE/FROM-CACHE outputs need not have a fresh mtime. Only this invocation's successful
-                    // task output declarations admit an existing file.
+                    // UP-TO-DATE/FROM-CACHE outputs need not have a fresh mtime. Only this
+                    // invocation's successful task output declarations admit an existing file.
                     if (admittedRoots.none { output -> canonical == output || (output.isDirectory && PathSecurity.contains(output, canonical)) }) return@forEach
                     require(canonical.length() > 0L) { "Build artifact is empty: $relative" }
                     matches += canonical

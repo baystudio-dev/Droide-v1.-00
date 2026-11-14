@@ -19,6 +19,7 @@ internal class MediaAuthoringTools(
     private val worker: () -> String,
     private val documents: WorkspaceDocumentAuthority? = null,
     private val requireCurrent: () -> Unit = {},
+    private val onProducedFile: (String) -> Unit = {},
 ) {
     suspend fun execute(kind: String, args: JsonObject, mode: AgentMode, owner: String? = null,
                         current: () -> Unit = {}, permission: suspend (String, String) -> String?): String = withContext(Dispatchers.IO) {
@@ -36,8 +37,7 @@ internal class MediaAuthoringTools(
             return@withContext decode(result).toString()
         }
         val path = if (operation == "create_docx") null else string(args, "path")
-        // Ownership/path validation must precede approvals: a CLI cannot request access to another
-        // chat's blob.
+        // Ownership/path validation must precede approvals: a CLI cannot request access to another chat's blob.
         val input = path?.let { source(it, owner) }
         path?.let { permission("read", it)?.let { denied -> return@withContext denied } }
         val extension = input?.extension?.lowercase() ?: "bin"
@@ -73,7 +73,7 @@ internal class MediaAuthoringTools(
         val jobDirectory = File(files.root, job)
         var processCompleted = true
         var jobKey: Any? = null
-
+        // Keep raw parser/encoder writes inside the same export fence used by source runners.
         val writer = ExportWriterAdmission.beginWriter(files.root, "Media authoring")
         try {
             val inputPath = "$job/input.$extension"
@@ -141,10 +141,12 @@ internal class MediaAuthoringTools(
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
-                // FileRepository may already have published before an observer failed. Never imply it is safe to
-                // replay.
+                // FileRepository may already have published before an observer failed. Never imply it is safe to replay.
                 throw IllegalStateException("Media publication did not settle. Inspect $destination before any retry; it may already contain the result. Original preserved.", failure)
             }
+            try { onProducedFile(destination) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { /* A display observer cannot revoke a published file. */ }
             JsonObject(result.filterKeys { it != "output" } + mapOf("path" to JsonPrimitive(destination),
                 "source_sha256" to JsonPrimitive(sourceHash), "original_preserved" to JsonPrimitive(true),
                 "persisted_to_project" to JsonPrimitive(true))).toString()
@@ -157,8 +159,7 @@ internal class MediaAuthoringTools(
                     val attributes = Files.readAttributes(directory, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
                     if (jobKey != null && attributes.isDirectory && attributes.fileKey() == jobKey &&
                         files.resolveChecked(job).absoluteFile == jobDirectory.absoluteFile) {
-                        // Disposable job files are not Explorer deletions: do not retain 64 MiB inputs in folder
-                        // recovery.
+                        // Disposable job files are not Explorer deletions: do not retain 64 MiB inputs in folder recovery.
                         Files.newDirectoryStream(directory).use { entries ->
                             val children = entries.asSequence().take(16).toList()
                             if (children.size < 16 && children.all { child ->

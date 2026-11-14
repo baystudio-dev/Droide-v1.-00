@@ -5,17 +5,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ProviderWholePipelineCapacityTest {
-    @Test fun everyAccumulatorRejectsUnboundedRetainedText() {
-        val text = "x".repeat(100_000)
+    @Test fun everyAccumulatorRejectsManyIndividuallyValidPayloadsAtAggregateCapacity() {
         val consumers = listOf<Pair<(String) -> List<LlmStreamEvent>, String>>(
-            LlmClient.StreamAccumulator(Json)::accept to """{"choices":[{"delta":{"content":"$text"}}]}""",
-            AnthropicMessagesAdapter.StreamAccumulator(Json)::accept to """{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"$text"}}""",
-            GoogleGenerateContentAdapter.StreamAccumulator(Json)::accept to """{"candidates":[{"content":{"parts":[{"text":"$text"}]}}]}""",
-            OpenAiResponsesAdapter.StreamAccumulator(Json)::accept to """{"type":"response.output_text.delta","output_index":0,"content_index":0,"delta":"$text"}""",
+            LlmClient.StreamAccumulator(Json)::accept to "\"choices\":[]",
+            AnthropicMessagesAdapter.StreamAccumulator(Json)::accept to "\"type\":\"ping\"",
+            GoogleGenerateContentAdapter.StreamAccumulator(Json)::accept to "\"candidates\":[]",
+            OpenAiResponsesAdapter.StreamAccumulator(Json)::accept to "\"type\":\"response.created\"",
         )
-        for ((accept, payload) in consumers) {
-            val failure = assertThrows(IllegalStateException::class.java) { repeat(100) { accept(payload) } }
-            assertTrue(failure.message.orEmpty().contains("capacity"))
+        for ((accept, fields) in consumers) {
+            val payload = "{$fields,\"padding\":\"${"x".repeat(100000)}\"}"
+            val admitted = LlmClient.MAX_RESPONSE_CHARS / (payload.length + 1)
+            repeat(admitted) { accept(payload) }
+            val failure = assertThrows(IllegalStateException::class.java) { accept(payload) }
+            assertTrue(failure.message.orEmpty().contains("response capacity"))
         }
     }
 
@@ -41,12 +43,9 @@ class ProviderWholePipelineCapacityTest {
         val requestSized = " ".repeat(LlmClient.MAX_RESPONSE_CHARS + 1)
         assertSame(requestSized, ProviderPayloadLimits.checkedRequest(requestSized))
         assertThrows(IllegalStateException::class.java) { ProviderPayloadLimits.checkedJson(requestSized) }
-        val capacity = ProviderPayloadLimits.RetainedBudget(8)
-        capacity.reserve(3)
-        capacity.reserve(3)
-        assertThrows(IllegalStateException::class.java) { capacity.reserve(3) }
-        assertThrows(IllegalStateException::class.java) { capacity.reserve(Long.MAX_VALUE) }
-        capacity.reserve(2)
-        assertThrows(IllegalStateException::class.java) { capacity.reserve(1) }
+        val capacity = ProviderPayloadLimits.AccumulationBudget(8)
+        capacity.accept("{}")
+        capacity.accept("{}")
+        assertThrows(IllegalStateException::class.java) { capacity.accept("{}") }
     }
 }

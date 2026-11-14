@@ -142,6 +142,7 @@ class EditHistory(
         editor.validate()
     }
 
+    /** Streaming backup remains under the same repository root guard and checks reviewed CAS twice. */
     internal suspend fun prepareStream(path: String, reviewed: StreamFileVersion): PendingBatch =
         withContext(Dispatchers.IO) {
             checkNotNull(streamCommitAuthority) { "Streamed edit undo requires a fenced editor authority" }
@@ -266,7 +267,7 @@ class EditHistory(
         val syncPending = mutableListOf<String>()
         val restoredLive = mutableListOf<WorkspaceDocumentMutationResult.Applied>()
         val output = try {
-
+            // Discover existing conflicts for every target before changing the first file.
             for (snapshot in entry.snapshots) {
                 currentCoroutineContext().ensureActive()
                 requireBackup(snapshot)
@@ -304,7 +305,9 @@ class EditHistory(
                         if (restore(snapshot, backupText, writeObservation, deleteObservation, liveObservation)) syncPending += snapshot.path
                     } catch (failure: Throwable) {
                         // A returned live Applied receipt survives failed/cancelled LSP delivery.
-
+                        // The repository verifies this invocation's receipt under its original
+                        // guard, after observers finish. Matching backup bytes cannot prove
+                        // that Undo published them; do not reacquire or hash during cleanup.
                         if (liveObservation.applied == null &&
                             !(failure is CancellationException &&
                                 (writeObservation?.disposition == FileRepository.TextWriteDisposition.OWNED_CURRENT ||
@@ -394,6 +397,7 @@ class EditHistory(
         }
     }
 
+    /** Exact byte undo with fresh CAS and mandatory no-live-document commit barrier. */
     private suspend fun restoreStream(snapshot: Snapshot): Pair<Boolean, Throwable?> {
         val barrier = checkNotNull(streamCommitAuthority) { "Streamed undo editor fence unavailable" }
         val target = StreamFileVersion.capture(files.root, snapshot.path)
@@ -506,8 +510,8 @@ class EditHistory(
             val predecessorId = pending.predecessorIds[path] ?: return
             val captured = stack.indexOfFirst { it.id == predecessorId }
             if (captured < 0 || stack[captured].snapshots.none { it.path == path }) return
-            // The exact frontier was nearest before this batch began. Later commits must keep their own
-            // tokens; they cannot hide an attributable rollback from it.
+            // The exact frontier was nearest before this batch began. Later commits must
+            // keep their own tokens; they cannot hide an attributable rollback from it.
             rebasePredecessor(path, original.before, rollback.after.version, captured + 1)
         }
     }
@@ -556,6 +560,7 @@ class EditHistory(
     }
 }
 
+/** Keep both failures after completed rollbacks and remaining history have been settled. */
 internal fun rethrowLiveRollbackInterruption(original: Throwable, interruption: Throwable?) {
     val primary = when {
         original is Error -> original

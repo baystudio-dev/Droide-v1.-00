@@ -2,6 +2,14 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.Serializable
 
+
+
+
+
+
+
+
+
 @Serializable
 enum class AndroidToolchainExecutionMode {
     ANDROID_NATIVE,
@@ -68,6 +76,11 @@ object AndroidToolchainRuntime {
         AndroidToolchainExecutionMode.LINUX_X86_64_PROOT_QEMU -> true
     }
 
+    
+
+
+
+
     fun guestCommand(
         spec: AndroidToolchainRuntimeSpec,
         command: String,
@@ -95,6 +108,7 @@ object AndroidToolchainRuntime {
                 DeviceBridgeManager.requireSafeRemotePath(qemu)
                 append(" -q ").append(DeviceBridgeManager.shellQuote(qemu))
             }
+            
 
             append(" -b /dev -b /proc -b /sys -b /system -b /apex -b /data/local/tmp")
             if (workingDirectory != null) {

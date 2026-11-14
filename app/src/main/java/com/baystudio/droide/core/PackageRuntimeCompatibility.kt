@@ -2,6 +2,11 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.Serializable
 
+
+
+
+
+
 @Serializable
 enum class DeclarativeGuestProfile { ALPINE_3_24_MUSL_ARM64, UBUNTU_24_04_GLIBC_ARM64 }
 
@@ -16,6 +21,7 @@ enum class DeclarativeGuestCapability { LOOPBACK_TCP, PROCFS, PTRACE }
 
 enum class GuestCapabilitySupport { CERTIFIED, DEVICE_CERTIFICATION_REQUIRED, UNSUPPORTED }
 
+ 
 data class GuestRuntimeProfileDescriptor(
     val id: DeclarativeGuestProfile,
     val environmentId: String,
@@ -38,6 +44,7 @@ data class GuestRuntimeProfileDescriptor(
     }
 }
 
+ 
 object GuestRuntimeProfiles {
     val ALPINE_3_24_MUSL_ARM64 = GuestRuntimeProfileDescriptor(
         id = DeclarativeGuestProfile.ALPINE_3_24_MUSL_ARM64,
@@ -63,6 +70,7 @@ object GuestRuntimeProfiles {
         deviceCertificationCapabilities = setOf(DeclarativeGuestCapability.PTRACE),
     ).also(GuestRuntimeProfileDescriptor::validate)
 
+     
     val current: GuestRuntimeProfileDescriptor get() = ALPINE_3_24_MUSL_ARM64
 
     fun get(profile: DeclarativeGuestProfile): GuestRuntimeProfileDescriptor = when (profile) {
@@ -103,6 +111,7 @@ data class DeclarativeRuntimeCompatibility(
         }
     }
 
+     
     fun genericInstallerReady(): Boolean {
         validate()
         val descriptor = GuestRuntimeProfiles.get(guestProfile)

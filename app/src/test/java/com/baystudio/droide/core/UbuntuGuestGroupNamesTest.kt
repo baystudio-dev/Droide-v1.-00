@@ -11,8 +11,10 @@ import kotlinx.coroutines.sync.withLock
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Runs the actual generated policy only with fail-closed id/getent/groupadd stand-ins. */
-
+/** Runs the actual generated policy only with fail-closed id/getent/groupadd stand-ins.
+ * These tests exercise synthetic guest files, never real OS account/group commands or devices.
+ * Stub append semantics are not a claim that shadow preserves a whole database byte-for-byte.
+ */
 class UbuntuGuestGroupNamesTest {
     private class Fixture {
         val base = Files.createTempDirectory("ubuntu-group-names-").toFile()
@@ -67,7 +69,7 @@ class UbuntuGuestGroupNamesTest {
             repairer.repair(rootfs, execute, diagnostic = diagnostics::add)
         }
         suspend fun run(argv: List<String>, limit: Int, timeout: Long): ExecResult {
-
+            // Refuse a widened production contract rather than accidentally launching a host tool.
             check(argv == UbuntuGuestGroupNames.command() && argv.size == 8)
             check(argv.take(2) == listOf("/bin/sh", "-c"))
             check(argv.drop(4) == listOf("/etc", "/usr/bin/id", "/usr/bin/getent", "/usr/sbin/groupadd"))
@@ -369,8 +371,7 @@ class UbuntuGuestGroupNamesTest {
     }
 
     @Test(timeout = 60_000) fun sourceWiringIsBeforeEachHealthyAdmissionAndOutsideThePackageAttachFastPath() {
-        // Structural guard only: this does not instantiate the Android manager or prove a device
-        // startup.
+        // Structural guard only: this does not instantiate the Android manager or prove a device startup.
         val relative = "src/main/java/com/baystudio/droide/core/FoundryUbuntuGuestEnvironment.kt"
         val source = listOf(File(relative), File("app/$relative")).first { it.isFile }.readText()
         assertEquals(3, Regex("repairGuestGroupNamesUnlocked\\(checkCancelled\\)\\s+readinessCache\\.admit").findAll(source).count())

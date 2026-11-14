@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Inert metadata and authored ZIP fixtures. No original payload, JVM server or project execution. */
 class LocalUbuntuLemMinxPolicyTest {
     private val family = "lsp.lemminx"
     private val version = "0.31.2"
@@ -172,7 +173,7 @@ class LocalUbuntuLemMinxPolicyTest {
             val file = jar(root, manifest)
             val bytes = file.readBytes()
             val central = (0..bytes.size - 46).first { i -> bytes[i] == 0x50.toByte() && bytes[i + 1] == 0x4b.toByte() && bytes[i + 2] == 1.toByte() && bytes[i + 3] == 2.toByte() }
-            bytes[central + 5] = 3
+            bytes[central + 5] = 3 // Unix creator; the first entry is META-INF/MANIFEST.MF.
             bytes[central + 40] = (kind and 255).toByte()
             bytes[central + 41] = (kind ushr 8).toByte()
             file.writeBytes(bytes)

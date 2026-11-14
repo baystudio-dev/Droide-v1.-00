@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual production coordinator/coroutines; no PSES, process, Android or UI execution. */
 class LspPowerShellRequestsTest {
     private class Fixture(clock: () -> Long = System::nanoTime) : AutoCloseable {
         val managerJob = SupervisorJob()
@@ -229,8 +230,8 @@ class LspPowerShellRequestsTest {
             val release = CompletableDeferred<Unit>()
             val first = async { f.complete { entered.complete(Unit); release.await(); JsonPrimitive(1) } }
             entered.await()
-            // Inject pre-dispatch scheduling/admission delay, after the predecessor has completed, without
-            // spending wall-clock time in this one test.
+            // Inject pre-dispatch scheduling/admission delay, after the predecessor
+            // has completed, without spending wall-clock time in this one test.
             val expired = async(start = CoroutineStart.UNDISPATCHED) {
                 f.complete(current = { clock.set(6_000_000_000L); true }) {
                     fail("Only 3s remain; native 4s must not be truncated")

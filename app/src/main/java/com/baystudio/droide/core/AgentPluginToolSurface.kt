@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 data class AgentPluginToolSurface(
     val skills: SkillManager,
     val rules: AgentRuleManager,

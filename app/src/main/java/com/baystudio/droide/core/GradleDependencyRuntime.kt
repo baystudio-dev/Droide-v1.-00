@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+ 
 internal data class GradleReadOnlyDependencyCache(
     val root: String,
     val gradleVersion: String,
@@ -29,6 +30,7 @@ private data class GradleReadOnlyDependencyCacheMarker(
 )
 
 // Project files can never nominate an executable or dependency-cache path.
+
 
 internal class GradleReadOnlyDependencyCacheResolver(
     private val shell: suspend (String, Int) -> BridgeShellResult,
@@ -95,6 +97,7 @@ internal class GradleReadOnlyDependencyCacheResolver(
     }
 }
 
+ 
 object GradleProjectConfigurationFingerprint {
     private const val MAX_FILES = 2_048
     private const val MAX_FILE_BYTES = 2L * 1024L * 1024L
@@ -174,6 +177,7 @@ object GradleProjectConfigurationFingerprint {
     private val GRADLE_METADATA_EXTENSIONS = setOf("toml", "xml", "properties", "lockfile", "keys")
     private val BUILD_LOGIC_SOURCE_EXTENSIONS = setOf("kt", "java", "groovy", "properties", "toml", "xml", "json", "yaml", "yml")
 }
+
 
 internal class GradleDependencyRuntimeProbe internal constructor(
     private val shell: suspend (String, Int) -> BridgeShellResult,

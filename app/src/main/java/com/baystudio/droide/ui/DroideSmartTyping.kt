@@ -19,6 +19,7 @@ internal fun droideSymbolPairs(languageId: String): SymbolPairMatch {
     if (profile.doubleQuote) pairs.putPair('"', surroundPair("\"", "\""))
     if (profile.singleQuote) pairs.putPair('\'', surroundPair("'", "'"))
     if (profile.backtick) pairs.putPair('`', surroundPair("`", "`"))
+    
 
     return pairs
 }

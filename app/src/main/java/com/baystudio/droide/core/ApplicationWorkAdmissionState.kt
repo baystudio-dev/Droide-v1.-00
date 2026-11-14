@@ -25,7 +25,7 @@ internal class ApplicationWorkAdmissionState(
                 value = saved
                 closePersisted = !saved.open
             }
-
+            // An absent record starts closed, waiting for an explicit launch.
             initialized = true
         } catch (failure: Exception) {
             value = value.copy(open = false)

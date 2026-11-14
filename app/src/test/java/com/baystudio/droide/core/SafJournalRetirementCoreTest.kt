@@ -336,7 +336,7 @@ class SafJournalRetirementCoreTest {
         f.directories.clear()
         val state = SafJournalRetirement(f.reopen()).load {}!!
         assertTrue(state.outstanding.isEmpty())
-        assertEquals(2, f.directories.count { it == f.directory })
+        assertEquals(2, f.directories.count { it == f.directory }) // Current head link + all absent receipts.
         f.sentinel()
     }
 
@@ -452,7 +452,8 @@ class SafJournalRetirementCoreTest {
     }
 
     @Test(timeout = 30_000) fun oversizedProvenSuccessStaysChargedWhileLaterTinySuccessCanRetire(): Unit = runBlocking {
-
+        // SAF2 now supports the old 24-payload case (positive control in SectionsTest).
+        // This real single-node encoding exceeds recordBytes while the host path stays < 3 KiB.
         val f = Fixture(recordBytes = 4096, metadataBytes = 128L * 1024)
         WorkspaceFileMutationLocks.withRoot(f.workspace) { guard ->
             val source = f.workspace.resolve("deleted").apply { check(mkdir()) }

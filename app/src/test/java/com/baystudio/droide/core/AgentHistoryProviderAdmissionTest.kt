@@ -28,7 +28,7 @@ class AgentHistoryProviderAdmissionTest {
             val history = AgentConversationHistory()
             history.load(DroideSession("restored", "Restored", apiHistory = source,
                 forkHistory = listOf(user), forkHistoryVersion = SessionForkHistory.SCHEMA_VERSION))
-            assertNotEquals(source, history.completeActive())
+            assertNotEquals(source, history.completeActive()) // Old projection hides the evidence.
             val failure = assertThrows(IllegalArgumentException::class.java) { history.strictActiveForProvider() }
             assertTrue(failure.message.orEmpty().contains("incomplete or mismatched"))
             assertEquals(source, history.active)

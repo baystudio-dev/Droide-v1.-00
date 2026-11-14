@@ -52,8 +52,8 @@ internal class PackagedEngineAdmissionCache(
             val attributes = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, noFollow)
             check(attributes.isRegularFile && !attributes.isSymbolicLink && file.canExecute())
             val key = requireNotNull(attributes.fileKey())
-            // ctime also changes when bytes are changed and the old mtime is restored. Unsupported
-            // filesystem metadata disables reuse; it never admits an unknown file.
+            // ctime also changes when bytes are changed and the old mtime is restored.
+            // Unsupported filesystem metadata disables reuse; it never admits an unknown file.
             val changed = requireNotNull(Files.getAttribute(file.toPath(), "unix:ctime", noFollow))
             "${file.absolutePath}:$key:${attributes.size()}:${attributes.lastModifiedTime()}:$changed"
         }

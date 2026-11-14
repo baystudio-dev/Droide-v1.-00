@@ -242,8 +242,8 @@ class LocalUbuntuVendorResolver(
     }
     private fun JsonObject.string(key: String): String = this[key]?.jsonPrimitive?.contentOrNull ?: error("Publisher field '$key' missing")
     private companion object {
-        // Original archive's reviewed SHA256 above was computed only after matching this publisher
-        // SHA512 and the exact compatible Elixir row.
+        // Original archive's reviewed SHA256 above was computed only after
+        // matching this publisher SHA512 and the exact compatible Elixir row.
         const val HEX_SHA512 = "7cc7ef419c87a90b2cc86813501dcf8a46a24e9765940574fbd3d25571c388cb41134537154bffa1f8e4d388fb7231716f1f890478ed6aae9b5c4468afddf010"
     }
 }

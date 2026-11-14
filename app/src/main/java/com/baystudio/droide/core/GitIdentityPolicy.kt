@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import org.eclipse.jgit.lib.Repository
 
+ 
 data class GitIdentity(val name: String, val email: String)
 
 object GitIdentityPolicy {

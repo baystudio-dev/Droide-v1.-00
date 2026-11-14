@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.*
 
+/** JSON-RPC adapter over the existing workspace-bound CLI socket; no new listening port. */
 internal object ExternalIdeProtocol {
     val stdioScript = ExternalIdeMcpTransport.stdioScript
 
@@ -51,8 +52,8 @@ internal object ExternalIdeProtocol {
         val params = request["params"] ?: JsonObject(emptyMap())
         if (params !is JsonObject) return error(id, -32602, "params must be an object")
         return try {
-            // The same generation/cancellation gate applies, but install approval/download is not an
-            // observation and can legitimately take more than sixty seconds.
+            // The same generation/cancellation gate applies, but install approval/download is
+            // not an observation and can legitimately take more than sixty seconds.
             if (method == "tools/call") {
                 val name = (params["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
                     ?: return error(id, -32602, "Tool name must be a string")

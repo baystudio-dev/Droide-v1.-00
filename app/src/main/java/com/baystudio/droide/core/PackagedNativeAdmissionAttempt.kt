@@ -65,7 +65,7 @@ internal class PackagedNativeAdmissionAttempt internal constructor(
     private fun requireNamedFiles(checkCancelled: () -> Unit) {
         files.forEach { file ->
             checkCancelled()
-
+            // Inspect the named children before canonicalization can hide a symlink alias.
             check(Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS) &&
                 !Files.isSymbolicLink(file.toPath()) && file.canExecute()) {
                 "Packaged native artifact is missing, aliased or non-executable: ${file.name}"

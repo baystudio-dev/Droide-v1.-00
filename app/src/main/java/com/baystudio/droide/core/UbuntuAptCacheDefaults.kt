@@ -5,6 +5,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Files
 
+/** APT's normal small-disk behavior, including future apt-get calls from Agent/terminal. */
 internal object UbuntuAptCacheDefaults {
     const val CONTENT = "// Droide: keep signed indexes; discard package archives after successful installation.\n" +
         "// Explicit command-line APT options can override this default.\n" +
@@ -28,8 +29,8 @@ internal object UbuntuAptCacheDefaults {
         val target = File(directory, INDEX_FILE)
         if (Files.isSymbolicLink(target.toPath()) || (target.exists() && !target.isFile)) return false
         try {
-            // Never replace a customized Droide file. Check other files too, including nested APT syntax;
-            // uncertainty leaves the user's existing configuration in control.
+            // Never replace a customized Droide file. Check other files too, including nested
+            // APT syntax; uncertainty leaves the user's existing configuration in control.
             val owned = target.isFile && target.length() == INDEX_CONTENT.toByteArray().size.toLong() &&
                 target.readText() == INDEX_CONTENT
             if (target.exists() && !owned) return true
@@ -62,8 +63,8 @@ internal object UbuntuAptCacheDefaults {
             FileOutputStream(pending).use { out -> out.write(content.toByteArray()); out.fd.sync() }
             return pending.renameTo(target)
         } catch (_: IOException) {
-            // A full filesystem must not prevent opening a working terminal to inspect storage. Private
-            // installer cleanup remains active.
+            // A full filesystem must not prevent opening a working terminal
+            // to inspect storage. Private installer cleanup remains active.
             return false
         } finally { if (pending.exists()) pending.delete() }
     }

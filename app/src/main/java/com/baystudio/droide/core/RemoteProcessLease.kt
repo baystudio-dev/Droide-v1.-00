@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.util.UUID
 
+
 internal data class RemoteProcessLease private constructor(
     val pidFile: String,
     private val token: String,
@@ -57,6 +58,7 @@ internal data class RemoteProcessLease private constructor(
 
     val environment: Map<String, String> get() = mapOf("DROIDE_PROCESS_LEASE" to token)
 
+    
     fun recordLocalPid(pid: Int) {
         require(local) { "Only local process leases can register Android-host pids" }
         require(pid > 0) { "Invalid local process pid" }
@@ -90,6 +92,7 @@ internal data class RemoteProcessLease private constructor(
 
     fun cleanupCommand(): String = "rm -f ${DeviceBridgeManager.shellQuote(pidFile)}"
 
+     
     fun aliveCommand(): String {
         if (local) LocalExecutionSubstrate.requireSafeLocalPath(pidFile) else DeviceBridgeManager.requireSafeRemotePath(pidFile)
         val qFile = DeviceBridgeManager.shellQuote(pidFile)
@@ -99,6 +102,7 @@ internal data class RemoteProcessLease private constructor(
             "[ \"\$got\" = $qToken ]; " + ownedProcessShell("\$pid", "\$got")
     }
 
+     
     fun detachedCommand(command: String, logPath: String): String {
         DeviceBridgeManager.requireSafeRemotePath(logPath)
         val parent = logPath.substringBeforeLast('/')
@@ -126,6 +130,7 @@ internal data class RemoteProcessLease private constructor(
             return RemoteProcessLease("${LocalExecutionSubstrate.localRoot()}/run/$namespace-$token.pid", token, true)
         }
 
+         
         fun reapAllCommand(): String {
             val runDir = "${DeviceBridgeManager.remoteRoot()}/run"
             DeviceBridgeManager.requireSafeRemotePath(runDir)
@@ -145,8 +150,8 @@ internal data class RemoteProcessLease private constructor(
                 if (excludeNativePtyLeases) append("unresolved_native=0; ")
                 append("for f in \"${'$'}dir\"/*.pid; do [ -e \"${'$'}f\" ] || [ -L \"${'$'}f\" ] || continue; ")
                 if (excludeNativePtyLeases) {
-                    // Exclude historical native names before even the symlink deletion branch. Tokens/procfs do not
-                    // pin identity across a subsequent numeric signal.
+                    // Exclude historical native names before even the symlink deletion branch.
+                    // Tokens/procfs do not pin identity across a subsequent numeric signal.
                     append("case \"${'$'}{f##*/}\" in native-terminal-*.pid|agent-native-pty-*.pid) ")
                     append("unresolved_native=${'$'}((unresolved_native + 1)); continue;; esac; ")
                 }
@@ -160,7 +165,7 @@ internal data class RemoteProcessLease private constructor(
                 append(killGroupShell("${'$'}pid", "${'$'}tok"))
                 append("fi; kill_token_processes \"${'$'}tok\"; fi; rm -f \"${'$'}f\"; done")
                 if (excludeNativePtyLeases) {
-
+                    // Preserve the legacy loop's status while returning the unresolved count.
                     append("; cleanup_status=${'$'}?; printf '")
                     append(NativePtyCleanupReceipt.LEGACY_UNRESOLVED_PREFIX)
                     append("%s\\n' \"${'$'}unresolved_native\"; exit \"${'$'}cleanup_status\"")
@@ -187,6 +192,7 @@ internal data class RemoteProcessLease private constructor(
                 append("rm -f \"${'$'}f\"")
             }
         }
+
 
         private fun killTokenProcessesShell(token: String): String = buildString {
             append("for sig in TERM KILL; do matched=0; ")

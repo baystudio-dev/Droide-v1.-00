@@ -9,8 +9,11 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.*
 
-/** Preparation only. */
-
+/** Preparation only. Input snapshot must be captured from the version later bound into review/CAS.
+ * Never opens a model-supplied project path and never mutates the project. UTF8 sources are strict
+ * owned-store content; byte equality therefore preserves exact Unicode substring semantics.
+ * KMP counts NONOVERLAPPING matches, just like legacy indexOf(from = match + needle.length).
+ */
 internal object StreamedExactEdit {
     class Diagnostics {
         var patternCachePeak: Int = 0; internal set
@@ -81,7 +84,7 @@ internal object StreamedExactEdit {
                                     position++
                                     if(matched==pattern.bytes) {
                                         count++;if(first<0)first=position-pattern.bytes
-                                        matched=0
+                                        matched=0 // Deliberately discard overlap, matching legacy semantics.
                                     }
                                 }
                             }
@@ -106,8 +109,8 @@ internal object StreamedExactEdit {
         } catch(error: Exception) {
             primary=error
             if(error is MatchCount)throw error
-            // Writer handle is returned for reconciliation, including a failure after seal. Never silently
-            // claim all bytes were preserved; ENOSPC can leave only an incomplete prefix.
+            // Writer handle is returned for reconciliation, including a failure after seal. Never
+            // silently claim all bytes were preserved; ENOSPC can leave only an incomplete prefix.
             if(error is java.util.concurrent.CancellationException)throw PreparationCancelled(error,output?.recoveryHandle)
             throw PreparationFailure(error,output?.recoveryHandle)
         } finally {

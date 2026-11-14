@@ -59,6 +59,7 @@ internal fun rememberAccessoryImeMotion(): AccessoryImeMotion = rememberAccessor
     WindowInsets.ime, WindowInsets.imeAnimationSource, WindowInsets.imeAnimationTarget, WindowInsets.isImeVisible,
 )
 
+/** Injectable geometry for actual Compose layout tests; production uses the platform objects above. */
 @Composable
 internal fun rememberAccessoryImeMotion(
     ime: WindowInsets,
@@ -71,8 +72,7 @@ internal fun rememberAccessoryImeMotion(
     val motionEnabled = rememberDroideMotionEnabled()
     val visible = rememberUpdatedState(rawImeVisible)
     val controller = remember(ime, source, target, density, landscape) { AccessoryImeMotionController() }
-    // Remember a genuine hide/show boundary even while this pane does not own input or measure a
-    // deck.
+    // Remember a genuine hide/show boundary even while this pane does not own input or measure a deck.
     SideEffect { controller.observeRawVisibility(rawImeVisible) }
     // This is a mode boundary, never a composition dependency on each keyboard pixel.
     val nativeCoordinates by remember(ime, source, target, density) {
@@ -88,6 +88,7 @@ internal fun rememberAccessoryImeMotion(
     }
 }
 
+/** Callback-time guard also covers a press that started before a focus/visibility change. */
 internal val LocalAccessoryInputAllowed = staticCompositionLocalOf<() -> Boolean> { { true } }
 
 /** Measure the full key deck, then reveal real layout height without squashing its touch geometry. */
@@ -126,8 +127,12 @@ internal fun AccessoryHandleRevealLayout(
     }
 }
 
-/** The decorative branch has no pointer/indication node and does not alter ScrollState, so its
- * full measured row and logical scroll position survive a rapid hide/show reversal. */
+/**
+ * Stock scrolling while interactive; the identical saved horizontal viewport while exiting.
+ * Merely disabling horizontalScroll retains a pointer-input node in Foundation 1.7.0.
+ * The decorative branch has no pointer/indication node and does not alter ScrollState, so
+ * its full measured row and logical scroll position survive a rapid hide/show reversal.
+ */
 internal fun Modifier.accessoryHorizontalScroll(
     state: ScrollState,
     inputEnabled: Boolean,

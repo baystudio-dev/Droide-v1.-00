@@ -34,8 +34,8 @@ class SessionInteractionTest {
     @After fun release() { directory.deleteRecursively() }
 
     private fun showDrawer(onPick: (DroideSession) -> Unit = {}) {
-        // Keep the Android host at the device viewport while disk results change the drawer's content
-        // size, as in IdeScreen's bounded screen host.
+        // Keep the Android host at the device viewport while disk results change
+        // the drawer's content size, as in IdeScreen's bounded screen host.
         compose.setContent {
             DroideTheme {
                 Box(Modifier.fillMaxSize()) {

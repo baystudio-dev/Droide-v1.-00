@@ -21,8 +21,8 @@ internal object StreamedLiveEditPreparation {
     suspend fun prepare(prepared: StreamedFileArgumentExtractor.Prepared,
         session: OwnedResponseContentStore.Session, reviewed: WorkspaceDocumentSnapshot,
         requireCurrent: () -> Unit): StreamedFileArgumentExtractor.Source {
-        // This owner exists outside withContext: prompt cancellation on the return boundary cannot lose
-        // a snapshot/candidate which the IO operation already created or sealed.
+        // This owner exists outside withContext: prompt cancellation on the return boundary cannot
+        // lose a snapshot/candidate which the IO operation already created or sealed.
         val recovery = AtomicReference(Recovery())
         try {
             return withContext(Dispatchers.IO) {

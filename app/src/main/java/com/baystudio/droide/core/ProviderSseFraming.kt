@@ -25,8 +25,11 @@ internal class ProviderSseFraming(private val maximumChars: Int = LlmClient.MAX_
         val payload = data.toString()
         data.setLength(0)
         hasData = false
-        // Some compatible proxies serialize an empty flush as JSON null, or a keepalive comment as data.
-
+        // Some compatible proxies serialize an empty flush as JSON null, or a
+        // keepalive comment as data. Like an SSE comment these carry no model event;
+        // do not forward them to protocol decoders or reset the event-idle deadline.
+        // Keep this exact: arbitrary non-JSON data and real JSON objects still fail
+        // or validate in their protocol, and [DONE] retains its existing semantics.
         if (payload.isBlank() || payload.trim() in EMPTY_PROXY_FRAMES) return null
         return ProviderPayloadLimits.checkedJson(payload, maximumChars)
     }

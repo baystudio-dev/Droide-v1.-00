@@ -75,12 +75,13 @@ class ExtensionVerificationCancellationTest {
         assertTrue(resourceIndex >= 0)
         val installRoot = store.installRoot(record)
         assertTrue(File(installRoot, resources[resourceIndex]).length() > 128 * 1024)
-
+        // list entry + record entry + verify entry, then each earlier resource's
+        // file check + hash entry + chunk reads + EOF read + hash completion.
         val beforeResource = 3 + resources.take(resourceIndex).sumOf { relative ->
             4 + ((File(installRoot, relative).length() + 65_535L) / 65_536L).toInt()
         }
-        // Resource check, hash entry and first read have passed. Cancel immediately before the second 64
-        // KiB read, rather than an arbitrary midpoint.
+        // Resource check, hash entry and first read have passed. Cancel immediately
+        // before the second 64 KiB read, rather than an arbitrary midpoint.
         verifyCancellation(root, cancelAt = beforeResource + 4) { check -> store.listVerified(check) }
     }
 

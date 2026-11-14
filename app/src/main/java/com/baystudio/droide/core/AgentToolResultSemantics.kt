@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonPrimitive
 
 // The model must not collapse these states: - a callable tool was advertised.
 
+
 internal enum class AgentToolEvidenceState {
     SUCCEEDED,
     STARTED,
@@ -75,6 +76,7 @@ internal object AgentToolResultSemantics {
         return AgentToolEvidence(state, operationStarted, success, detail)
     }
 
+     
     fun stripAnnotation(raw: String): String = evidenceMarkerRegex.replaceFirst(raw.trimStart(), "")
 
     fun classify(tool: String, raw: String, operation: String? = null): AgentToolEvidence {
@@ -131,8 +133,8 @@ internal object AgentToolResultSemantics {
         val firstLine = control.substringBefore('\n').trimEnd('\r')
         if (tool == "capability" && (operation == "run" || firstLine == "CAPABILITY_RUN"))
             return AgentCapabilityResult.evidence(control)
-        // The producer-owned exit wrapper precedes stdout. Program text below it cannot declare a
-        // different session state or change its exit code.
+        // The producer-owned exit wrapper precedes stdout. Program text below
+        // it cannot declare a different session state or change its exit code.
         if (processOutput && firstLine.matches(Regex("exit=-?\\d+"))) {
             return processExit(firstLine.substringAfter('=').toIntOrNull())
         }
@@ -150,8 +152,8 @@ internal object AgentToolResultSemantics {
                         .takeWhile { !it.startsWith('{') }.joinToString("\n")
                     processExit(exitRegex.find(exitHeader)?.groupValues?.getOrNull(1)?.toIntOrNull())
                 }
-                // KILLED is the command controller's cancellation state. Joining its coroutine does not supply a
-                // native process-exit/cleanup receipt.
+                // KILLED is the command controller's cancellation state. Joining its
+                // coroutine does not supply a native process-exit/cleanup receipt.
                 "killed" -> if (operation == "kill" || (tool == "write_stdin" && stateHeader.contains("interrupted=true"))) AgentToolEvidence(AgentToolEvidenceState.STARTED, true, null, "Stop requested; process exit and cleanup are unconfirmed")
                     else AgentToolEvidence(AgentToolEvidenceState.FAILED, true, false, "Command execution was canceled; process exit and cleanup are unconfirmed")
                 else -> AgentToolEvidence(AgentToolEvidenceState.FAILED, true, false, "Background process ended in $state")

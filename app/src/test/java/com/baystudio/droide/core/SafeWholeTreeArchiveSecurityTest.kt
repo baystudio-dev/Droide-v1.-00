@@ -104,6 +104,7 @@ class SafeWholeTreeArchiveSecurityTest {
         archive.parentFile?.deleteRecursively()
     }
 
+
     @Test fun releasedProjectedFileIsRemovedWithoutDeletingSiblingPayloads() {
         val archive = tarGz(
             TarEntry("bin", type = '5', mode = 493),

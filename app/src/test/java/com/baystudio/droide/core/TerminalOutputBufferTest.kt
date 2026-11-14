@@ -33,7 +33,7 @@ class TerminalOutputBufferTest {
     @Test fun pairCrossingThePhysicalRingEndIsEvictedTogether() {
         val buffer = TerminalOutputBuffer(5)
         buffer.append("abcd")
-        buffer.append("😀")
+        buffer.append("😀") // The high surrogate is at index 4, the low surrogate at index 0.
         assertEquals("bcd😀", buffer.snapshot())
         buffer.append("xy")
         assertEquals("d😀xy", buffer.snapshot())
@@ -50,8 +50,8 @@ class TerminalOutputBufferTest {
         for (capacity in 1..11) {
             val buffer = TerminalOutputBuffer(capacity)
             val all = StringBuilder()
-            // Include a split pair at every possible chunk boundary. An incomplete input chunk is not
-            // rewritten; truncation must not create a new split.
+            // Include a split pair at every possible chunk boundary. An incomplete
+            // input chunk is not rewritten; truncation must not create a new split.
             for (unit in text) {
                 all.append(unit)
                 buffer.append(unit.toString())
@@ -68,7 +68,7 @@ class TerminalOutputBufferTest {
         buffer.append("\uDE00ab")
         assertEquals("ab", buffer.snapshot())
         buffer.clear()
-        buffer.append("\uDE00ab")
+        buffer.append("\uDE00ab") // No preceding high surrogate: preserve the input as supplied.
         assertEquals("\uDE00ab", buffer.snapshot())
     }
 
@@ -129,8 +129,8 @@ class TerminalOutputBufferTest {
             capture = buffer::snapshot,
             publish = { output.value = it },
         )
-        // Exercise the actual pipe reader and transcript components with a host shell. TerminalSession's
-        // production lease launcher requires Android's /system/bin.
+        // Exercise the actual pipe reader and transcript components with a host shell.
+        // TerminalSession's production lease launcher requires Android's /system/bin.
         val terminal = InteractiveTerminalProcess(scope,
             launchProcess = { ProcessBuilder("/bin/bash", "--noprofile", "--norc", "-s")
                 .directory(directory).redirectErrorStream(true).start() },
@@ -158,6 +158,7 @@ class TerminalOutputBufferTest {
         }
     }
 
+    /** Independent oracle: walk whole code points backwards instead of slicing UTF-16 units. */
     private fun codePointTail(text: String, limit: Int): String {
         var start = text.length
         var remaining = limit

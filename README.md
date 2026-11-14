@@ -1,93 +1,59 @@
 # Droide
 
-<p align="center">
-  <img src="resources/branding/droide-logo.svg" width="96" alt="Droide logo">
-</p>
+Droide is an Android code editor and development workspace by **BayStudio**.
+It combines an editor, interactive Linux terminal, Git, build tools, an integrated
+browser and optional AI agents on phones and tablets.
 
-**Code, run, and build on Android.** Droide is a native development environment by **BayStudio**, bringing a code editor, project files, a Linux terminal, Git, browser previews, and AI agents into one workspace.
+This branch contains the complete **1.01 (45) F-Droid candidate source**. It is
+prepared for packaging review; it is not an announcement of F-Droid acceptance.
+The application code comes from the latest device-tested development source.
 
-[Download v1.00](https://github.com/baystudio-dev/Droide-v1.-00/releases/tag/v1.00) · [Release notes](docs/releases/1.00.md) · [Build from source](docs/BUILDING.md) · [Report a bug](https://github.com/baystudio-dev/Droide-v1.-00/issues)
+## Features
 
-![Droide landscape workbench with a file sidebar, tabbed editor, and bottom panel](resources/screenshots/landscape-workbench.jpg)
+- Multi-tab editing, recovery drafts, search, syntax highlighting and on-demand language servers.
+- Ubuntu terminal, SSH, PTY applications, Run/Build, debugger and Git integration.
+- Optional built-in and external AI agents, MCP servers, skills and media tools.
+- Project import/export and adaptive portrait/landscape workspaces.
 
-## Get started
+![Editor](fastlane/metadata/android/en-US/images/phoneScreenshots/01-editor.jpg)
+![Landscape workspace](fastlane/metadata/android/en-US/images/phoneScreenshots/02-landscape.jpg)
+![Terminal](fastlane/metadata/android/en-US/images/phoneScreenshots/04-terminal.jpg)
 
-1. Download **Droide-1.00-release.apk** from [the v1.00 release](https://github.com/baystudio-dev/Droide-v1.-00/releases/tag/v1.00) and install it on **Android 10 or newer**.
-2. Open or create a project, then use **Files**, **Editor**, **Terminal**, **Git**, **Web**, and **Extensions** to work on it.
-3. Install the runtimes and development tools your project needs through **Extensions**. Configure a provider or external agent when you want AI assistance.
+## Install and build
 
-The signed APK is approximately **39.8 MiB**. Development toolchains and external agent packages are installed separately. AI services may require a provider account, credentials, and a network connection.
+Android 10 or newer is required. Ubuntu requires an ARM64 process. First use offers
+**Install environment** or **Not now**; the approximately 30 MB Canonical download
+requires explicit consent. Completed installations and user packages are reused.
+Editing remains available when setup is postponed.
 
-## Capabilities
+See [F-Droid build instructions](docs/distribution/fdroid.md) for the supported
+JDK, Gradle, Android SDK/NDK and exact build command. This source distribution
+does not contain prebuilt runtime libraries, a root filesystem, compilers, private
+keys or Gradle wrapper binaries. Use `tools/build_fdroid_candidate.py`; the regular
+binary-backed release instructions in historical documents do not apply here.
 
-| Workspace | What you can do |
-| --- | --- |
-| Editor | Work across tabs with syntax highlighting, language services, completion, diagnostics, navigation, formatting, and recovery drafts. |
-| Projects | Search, move, import, and export files and folders. |
-| Terminal | Use a persistent Linux workstation and install development tools on demand. |
-| AI agents | Follow tool activity, review code changes, connect MCP services, and use reusable skills and browser actions. |
-| Development | Build, run, debug, manage Git changes, and preview web projects. |
-| Adaptive workbench | Work in portrait or use the landscape editor with collapsible side panels on phones and tablets. |
+The [packaging recipe](tools/fdroid/com.baystudio.droide.yml) targets the immutable
+`v1.01-fdroid` tag. Native engines and compatibility libraries are compiled from
+their corresponding source. Dependencies remain locked and checksum-verified.
+Release builds run lint and APK, JNI, native, asset and alignment verification.
 
-Language services and tool availability depend on the installed extensions and runtimes.
+## Distribution and privacy
 
-## Screenshots
+AI services and external executables are optional. Providers may require accounts,
+API keys or payment. Downloaded tools bypass F-Droid's review; installation requires
+approval. Proprietary service integrations and third-party marks are disclosed in
+the packaging metadata and [legal notices](app/src/main/assets/legal/THIRD_PARTY_NOTICES.md).
 
-Original Android screenshots supplied by the project maintainer. Select an image to view it at full resolution.
+Test APKs use a development certificate and are not production updates. APKs signed
+with different keys cannot update each other. F-Droid signing and acceptance remain
+subject to the packaging review.
 
-<table>
-  <tr>
-    <th>Code editor</th>
-    <th>Agent activity and diffs</th>
-    <th>Terminal</th>
-  </tr>
-  <tr>
-    <td><a href="resources/screenshots/code-editor.jpg"><img src="resources/screenshots/code-editor.jpg" width="240" alt="Droide code editor showing Rust syntax highlighting and open file tabs"></a></td>
-    <td><a href="resources/screenshots/agent-activity.jpg"><img src="resources/screenshots/agent-activity.jpg" width="240" alt="Agent activity with terminal actions, inline code changes, and task progress"></a></td>
-    <td><a href="resources/screenshots/terminal.jpg"><img src="resources/screenshots/terminal.jpg" width="240" alt="An external coding agent running in Droide's terminal"></a></td>
-  </tr>
-  <tr>
-    <th>Project files</th>
-    <th>Extensions</th>
-    <th>Image generation</th>
-  </tr>
-  <tr>
-    <td><a href="resources/screenshots/project-files.jpg"><img src="resources/screenshots/project-files.jpg" width="240" alt="Project file explorer with folders and language-specific file icons"></a></td>
-    <td><a href="resources/screenshots/extensions.jpg"><img src="resources/screenshots/extensions.jpg" width="240" alt="Extensions catalog showing external coding agents and their installation status"></a></td>
-    <td><a href="resources/screenshots/image-generation.jpg"><img src="resources/screenshots/image-generation.jpg" width="240" alt="A generated image delivered in the agent chat with open and download actions"></a></td>
-  </tr>
-</table>
+## Project
 
-## Build and test
+- [Website](https://droide.rekacipta.biz.id)
+- [Issue tracker](https://github.com/baystudio-dev/Droide-v1.-00/issues)
+- [F-Droid packaging request](https://gitlab.com/fdroid/rfp/-/work_items/4776)
+- [License](LICENSE) and [third-party scope](LICENSE_SCOPE.md)
 
-Start with [the build guide](docs/BUILDING.md). It specifies the supported toolchain, source build commands, and signing configuration. Signing keys and credentials must remain outside the repository.
-
-Use [the testing guide](docs/TESTING.md) for repository checks, dependency verification, application tests, and device validation. The maintainer has tested v1.00 on Android and reported stable operation. Automated verification results are recorded in [the release notes](docs/releases/1.00.md).
-
-## Repository layout
-
-| Path | Purpose |
-| --- | --- |
-| `app/` | Android application, packaged resources, and application tests |
-| `backend/` | Optional authentication service |
-| `resources/` | Brand artwork, original screenshots, and provenance |
-| `third_party/` | Required upstream source, licensed assets, and pinned component provenance |
-| `tools/` | Build, release verification, and repository maintenance tools |
-| `docs/` | Architecture, development, testing, and distribution guides |
-| `.github/` | CI workflows and contribution templates |
-
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Development](docs/DEVELOPMENT.md)
-- [Build and signing](docs/BUILDING.md)
-- [Testing](docs/TESTING.md)
-- [Dependency maintenance](docs/DEPENDENCIES.md)
-- [Release process](docs/RELEASING.md)
-- [v1.00 release notes](docs/releases/1.00.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security reporting](SECURITY.md)
-
-## License
-
-Droide-owned code is licensed under **LGPL-3.0-only**. See [LICENSE](LICENSE), [COPYING](COPYING), [COPYING.LESSER](COPYING.LESSER), and [LICENSE_SCOPE.md](LICENSE_SCOPE.md). Third-party components retain their own licenses and attribution requirements. Distribution obligations are documented in [RELEASE_AND_COMPLIANCE.md](RELEASE_AND_COMPLIANCE.md).
+Droide-owned application code is LGPL-3.0-only. Dependencies retain their respective
+licenses. Corresponding sources, provenance and license texts are included.

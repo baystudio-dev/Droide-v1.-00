@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exact production manager/transport with authored framed peers. No original payload, native child, socket or compiler. */
 class LspVueIntegrationTest {
     @Test(timeout = 10000) fun validNativeParameterTupleRemainsAvailable() = runBlocking {
         Fixture().use { f ->

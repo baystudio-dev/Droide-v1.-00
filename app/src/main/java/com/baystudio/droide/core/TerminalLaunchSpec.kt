@@ -1,11 +1,13 @@
 package com.baystudio.droide.core
 
+ 
 data class TerminalLaunchSpec(
     val prefix: List<String> = emptyList(),
     val shell: String = "/system/bin/sh",
     val interactiveArgs: List<String> = listOf("-l", "-i"),
     val environment: Map<String, String> = emptyMap(),
     val interactiveEnvironment: Map<String, String> = emptyMap(),
+    val environmentOrigin: String = "Configured launch environment",
 ) {
     init {
         ProcessSecurityPolicy.validateArgv(prefix + listOf(shell) + interactiveArgs)
@@ -18,7 +20,8 @@ data class TerminalLaunchSpec(
 
     // An env -i guest launcher must receive the lease token after its environment reset.
     fun interactiveCommand(injectedEnvironment: Map<String, String> = emptyMap()): List<String> =
-        command(listOf(shell) + interactiveArgs, interactiveEnvironment + injectedEnvironment)
+        command(listOf(shell) + interactiveArgs,
+            TerminalPtyEnvironment.variables + interactiveEnvironment + injectedEnvironment)
 
     fun pipeCommand(injectedEnvironment: Map<String, String> = emptyMap()): List<String> =
         command(listOf(shell) + TerminalPipeShell.args(interactiveArgs),
@@ -35,10 +38,12 @@ data class TerminalLaunchSpec(
         ProcessSecurityPolicy.validateArgv(argv)
         ProcessSecurityPolicy.validateEnvironment(injectedEnvironment)
         require(argv.first().isNotBlank()) { "Executable is missing" }
+        
 
         return if (prefix.isEmpty()) argv else prefix + injectedEnvironment.map { (key, value) -> "$key=$value" } + argv
     }
 
+     
     val canReviveAsAndroidShell: Boolean
         get() = prefix.isEmpty() && shell == "/system/bin/sh" &&
             interactiveArgs in listOf(listOf("-l"), listOf("-l", "-i")) && environment.isEmpty() && interactiveEnvironment.isEmpty()

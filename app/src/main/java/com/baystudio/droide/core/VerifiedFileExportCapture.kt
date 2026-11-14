@@ -13,8 +13,8 @@ internal interface VerifiedFileExportCapturePermit : ExportCapturePermit {
     val verifySingleFile: Boolean
 }
 
-/** No atime: reading our source legitimately changes it. ctime must NOT be omitted or reduced to
- * seconds; an in-place writer can restore mtime and keep the same length and inode. */
+/** No atime: reading our source legitimately changes it. ctime must NOT be omitted or reduced
+ * to seconds; an in-place writer can restore mtime and keep the same length and inode. */
 internal data class ExportFileStamp(
     val device: Long,
     val inode: Long,
@@ -37,7 +37,7 @@ internal data class ExportFileStamp(
                 return ExportFileStamp(s.st_dev, s.st_ino, s.st_size, s.st_mode, s.st_uid.toLong(), s.st_gid.toLong(),
                     s.st_mtim.tv_sec, s.st_mtim.tv_nsec, s.st_ctim.tv_sec, s.st_ctim.tv_nsec)
             }
-
+            // Host fixture path. Unsupported precision fails closed; no coarse-time fallback.
             val s = Files.readAttributes(path, "unix:dev,ino,size,mode,uid,gid,lastModifiedTime,ctime", NOFOLLOW_LINKS)
             fun number(name: String) = (s.getValue(name) as Number).toLong()
             val mode = number("mode").toInt()

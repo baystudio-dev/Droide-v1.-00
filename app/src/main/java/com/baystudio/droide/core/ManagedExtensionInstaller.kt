@@ -179,6 +179,7 @@ val ExtensionInstallPlan.resolvedVersion: String
         is ExtensionInstallPlan.BundleProjection -> primaryRecipe.version
     }
 
+ 
 class ManagedExtensionInstaller(
     context: Context,
     private val androidDevelopment: AndroidDevelopmentManager,
@@ -197,13 +198,16 @@ class ManagedExtensionInstaller(
         val version: String? = null,
         val log: String = "",
         val operationActive: Boolean = false,
-
+        // Retained across progress/heartbeat updates while prerequisite restoration finishes.
         val verifiedCompletionMessage: String? = null,
     ) {
         val running: Boolean get() = operationActive || phase in setOf(Phase.RESOLVING, Phase.DOWNLOADING, Phase.INSTALLING, Phase.ACTIVATING, Phase.REPAIRING, Phase.REMOVING)
     }
 
     private val appContext = context.applicationContext
+    private val externalDownloadConsent = ExternalToolDownloadConsent(appContext)
+    internal fun externalDownloadNotice(plan: ExtensionInstallPlan): String? = externalDownloadConsent.notice(plan)
+    internal suspend fun acceptExternalDownloadFromUser(plan: ExtensionInstallPlan) = externalDownloadConsent.acceptFromUser(plan)
     private val longOperationJournal by lazy {
         LongRunningOperationJournal(
             java.io.File(appContext.filesDir, "operation-journal"),
@@ -312,7 +316,7 @@ class ManagedExtensionInstaller(
     }
 
     private fun activity(message: String) {
-
+        // Trusted activity copy is displayed separately from the redacted process-output stream.
         _state.update { it.copy(message = message.trim().take(200)) }
     }
 
@@ -662,7 +666,7 @@ class ManagedExtensionInstaller(
                 require(data["dist"]?.jsonObject?.get("integrity")?.jsonPrimitive?.content == expected) { "Reviewed npm integrity changed" }
             }
             val additional = when (entry.familyId) {
-                "lsp.typescript" -> mapOf("typescript" to resolveTypeScriptServerVersion())
+                "lsp.typescript", LspMdxProfile.FAMILY -> mapOf("typescript" to resolveTypeScriptServerVersion())
                 LocalUbuntuPerlNavigatorPolicy.FAMILY_ID -> if (exact == entry.reviewedVersion) LocalUbuntuPerlNavigatorPolicy.dependencies else emptyMap()
                 LocalUbuntuSveltePolicy.FAMILY_ID -> LocalUbuntuSveltePolicy.dependencies
                 LocalUbuntuPrismaPolicy.FAMILY_ID -> LocalUbuntuPrismaPolicy.dependencies
@@ -970,8 +974,8 @@ class ManagedExtensionInstaller(
     private suspend fun resolveTypeScriptServerVersion(): String {
         val latest = npmMetadata("typescript", "latest")
         return runCatching { LocalUbuntuTypeScriptServerPolicy.requireCompatibleMetadata(latest) }.getOrElse {
-            // Compiler releases that no longer ship tsserver cannot service the legacy LSP adapter. Keep a
-            // compatible analysis engine, not a compiler version cap.
+            // Compiler releases that no longer ship tsserver cannot service the
+            // legacy LSP adapter. Keep a compatible analysis engine, not a compiler version cap.
             LocalUbuntuTypeScriptServerPolicy.requireCompatibleMetadata(npmMetadata("typescript", LocalUbuntuTypeScriptServerPolicy.VERSION))
         }
     }
@@ -1068,14 +1072,15 @@ class ManagedExtensionInstaller(
         return ElpRuntimeHealthApprovalRequest(selection).also{it.validate()}
     }
 
-    suspend fun install(plan: ExtensionInstallPlan): String =
-        if (LocalUbuntuGraphqlPolicy.isFamily(plan.familyId)) installGraphqlPlan(plan)
+    suspend fun install(plan: ExtensionInstallPlan): String {
+        externalDownloadConsent.requireAccepted(plan)
+        return if (LocalUbuntuGraphqlPolicy.isFamily(plan.familyId)) installGraphqlPlan(plan)
         else if (plan is ExtensionInstallPlan.GuestPackage) LegacyAlpineRuntimeRetirement.reject()
         else operation(
         plan.familyId, plan.resolvedVersion, Phase.INSTALLING,
         timeoutMs = InstallerExecutionPolicy.INSTALL_OPERATION_DEADLINE_MS,
     ) {
-
+        // Reject stale/manual plans before journal creation or another guest's bootstrap.
         val localReviewed = when (plan) {
             is ExtensionInstallPlan.GitHubRelease ->
                 localReviewedRawInstaller.supports(plan.recipe) || localReviewedWholeTreeInstaller.supports(plan.recipe)
@@ -1169,6 +1174,9 @@ class ManagedExtensionInstaller(
         }
     }
 
+    }
+
+    /** One caller total begins before coordinator wait, journal, dependency verification or allocation. */
     private suspend fun installGraphqlPlan(plan:ExtensionInstallPlan):String {
         val deadline=GraphqlDeadline.install()
         return withTimeout(deadline.remainingMillis().coerceAtLeast(1)) {
@@ -1272,8 +1280,8 @@ class ManagedExtensionInstaller(
                 packageInstaller.activate(existing)
             }
         }
-        // Installing an exact dependency must not silently change an existing user default for that
-        // dependency family.
+        // Installing an exact dependency must not silently change an existing user default for that dependency family.
+
 
         plan.entries.asSequence().filter { it.familyId != plan.familyId }.map { it.familyId }.distinct().forEach { family ->
             val previous = activeBefore[family] ?: return@forEach
@@ -1410,8 +1418,8 @@ class ManagedExtensionInstaller(
         }
         require(plan.vueHelperDependency == null) { "Unexpected Vue prerequisite on another package plan" }
         if (plan.recipe.familyId == LocalUbuntuSveltePolicy.FAMILY_ID) {
-            // Svelte may only consume the already selected byte-verified Node generation. Do not enter
-            // generic prerequisite install, health, or default-restoration paths.
+            // Svelte may only consume the already selected byte-verified Node generation.
+            // Do not enter generic prerequisite install, health, or default-restoration paths.
             require(plan.nodeDependency == null) { LocalUbuntuSveltePolicy.PREREQUISITE_MESSAGE }
             val node = requireNotNull(selectedSvelteManagedNode()) { LocalUbuntuSveltePolicy.PREREQUISITE_MESSAGE }
             _state.value = State(Phase.INSTALLING, "Installing Svelte with the selected owned Node.js runtime…", plan.familyId, plan.requestedVersion)
@@ -1457,6 +1465,7 @@ class ManagedExtensionInstaller(
             "Installed ${record.familyId} ${record.version}."
         }
     }
+
 
     private suspend fun installPyPiRecipe(plan: ExtensionInstallPlan.PyPi): String {
         _state.value = State(Phase.INSTALLING, "Provisioning exact Python dependency and installing hash-locked PyPI wheel closure…", plan.familyId, plan.requestedVersion)
@@ -1862,7 +1871,7 @@ class ManagedExtensionInstaller(
             val result = when (item.version.installKind) {
                 ExtensionInstallKind.ANDROID_MANAGED_TOOLCHAIN -> {
                     ManagedPackageMutationGate.mutex.withLock {
-
+                        
                         val result = androidDevelopment.removeToolchain()
                         registry.replaceAll(
                             registry.list().filterNot {
@@ -1938,8 +1947,8 @@ class ManagedExtensionInstaller(
         val layer = registry.find(familyId, version) ?: return
         if (!localPackageAuthority.owns(layer)) return
 
-        // Remove only the durable ownership anchor and its transaction files. Shared distro packages may
-        // also belong to terminal users and remain available after integration removal.
+        // Remove only the durable ownership anchor and its transaction files. Shared distro
+        // packages may also belong to terminal users and remain available after integration removal.
         localPackageAuthority.uninstall(layer)
         runSuspendCatching {
             localUbuntuEnvironment.releaseLayer(contract.requiredGuestPackages)

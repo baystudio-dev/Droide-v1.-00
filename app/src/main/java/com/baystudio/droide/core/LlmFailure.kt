@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+/** Provider failures shared by pure request admission and the HTTP transport. */
 open class LlmRequestTooLargeException(
     val requestChars: Int,
     detail: String = "LLM request is too large ($requestChars chars); compact the session",
@@ -24,15 +25,16 @@ class LlmHttpException(
         val rawMessage = evidence.message.lowercase()
         if (rawMessage.trim() in CONTEXT_OVERFLOW_CODES) return true
 
-        // Quoted field names, echoed prompts and documentation examples are not provider assertions
-        // about this request's context size.
+        // Quoted field names, echoed prompts and documentation examples are not
+        // provider assertions about this request's context size.
         val message = QUOTED_TEXT.replace(rawMessage, " ")
         if (INPUT_OVERFLOW.any { it.containsMatchIn(message) }) return true
         val contextOverflow = CONTEXT_OVERFLOW.any { it.containsMatchIn(message) }
         if (!contextOverflow) return false
 
-        // Reducing history cannot fix max_tokens/max_output_tokens validation.
-
+        // A model's output ceiling can be lower than its context window. Reducing
+        // history cannot fix max_tokens/max_output_tokens validation. A combined
+        // prompt + output context overflow, however, can still be compacted.
         val outputConfiguration = OUTPUT_CONFIGURATION.containsMatchIn(rawMessage) ||
             OUTPUT_CONFIGURATION.containsMatchIn(evidence.param.orEmpty().lowercase())
         return !outputConfiguration || message.split('.', '!', '?', ';', '\n').any { clause ->
@@ -54,8 +56,8 @@ class LlmHttpException(
             if (text.first() !in listOf('{', '[', '"')) {
                 return OverflowEvidence(emptyList(), text.take(MAX_ERROR_MESSAGE_CHARS), null)
             }
-            // Malformed structured bodies must not fall back to searching raw JSON, HTML or arbitrary custom
-            // metadata for incidental keywords.
+            // Malformed structured bodies must not fall back to searching raw
+            // JSON, HTML or arbitrary custom metadata for incidental keywords.
             val root = runCatching { json.parseToJsonElement(text) }.getOrNull() ?: return null
             if (root is JsonPrimitive && root.isString) {
                 return OverflowEvidence(emptyList(), root.content.take(MAX_ERROR_MESSAGE_CHARS), null)

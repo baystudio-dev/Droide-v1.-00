@@ -13,6 +13,7 @@ internal data class LocalDirectoryRecoveryProgress(
     val totalBytes: Long? = null,
 )
 
+/** Request-local, synchronous projection. No timer, queued callback or worker outlives the call. */
 internal class AgentLocalDirectoryRecoveryProgress(
     private val emit: (AgentToolProgress) -> Unit,
     private val nanoTime: () -> Long = System::nanoTime,
@@ -38,7 +39,8 @@ internal class AgentLocalDirectoryRecoveryProgress(
         val entries = progress.entries?.let { " · $it entries" }.orEmpty()
         val bytes = progress.totalBytes?.let { " · ${progress.bytes}/$it bytes" }
             ?: " · ${progress.bytes} bytes"
-
+        // COMPLETED_VERIFIED reports source accounting, unlike TAR verification's
+        // archive-byte count. This milestone intentionally carries no misleading size.
         val detail = if (progress.phase == LocalDirectoryRecoveryPhase.STAGED_TAR_VERIFIED) label
             else label + entries + bytes
         emit(AgentToolProgress(detail = detail))

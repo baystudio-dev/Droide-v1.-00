@@ -48,7 +48,7 @@ private class ExpandedTrackedWebView(context: Context, val page: String) : WebVi
     override fun stopLoading() { stops++; super.stopLoading() }
     override fun onPause() { pauses++; super.onPause() }
     override fun destroy() { destroyed++; super.destroy() }
-
+    // Override the hidden runtime frame hook through the real Android View contract.
     fun setFrame(left: Int, top: Int, right: Int, bottom: Int): Boolean =
         org.robolectric.shadow.api.Shadow.directlyOn(this, View::class.java, "setFrame",
             org.robolectric.util.ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, left),
@@ -62,8 +62,11 @@ private class ExpandedTrackedWebView(context: Context, val page: String) : WebVi
     }
 }
 
-/** Authored regression coverage for native ownership and measured chrome geometry, without
- * Chromium. */
+/**
+ * Authored regression coverage for native ownership and measured chrome geometry, without Chromium.
+ * Static review only in R48: the Gradle dependency environment is blocked; these tests have not
+ * been compiled or run. Device WebView, keyboard, accessibility and motion QA remain necessary.
+ */
 @RunWith(RobolectricTestRunner::class)
 @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], application = Application::class, qualifiers = "w400dp-h900dp",
@@ -390,7 +393,7 @@ class BrowserExpandedPaneTest {
                 ReflectionHelpers.ClassParameter.from(Boolean::class.javaPrimitiveType!!, true))
         }
         org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(32, java.util.concurrent.TimeUnit.MILLISECONDS)
-
+        // Pump Compose after native traversal before querying the dialog's semantics roots.
         val environment = ReflectionHelpers.getField<Any>(compose, "environment")
         val idler = ReflectionHelpers.getField<Any>(environment, "composeIdlingResource")
         ReflectionHelpers.callInstanceMethod<Boolean>(idler, "isIdleNow")
@@ -462,7 +465,7 @@ class BrowserExpandedReducedMotionTest {
         val before = views.single().height
         compose.mainClock.autoAdvance = false
         compose.onNodeWithContentDescription("Collapse Keep active controls").performClick()
-
+        // One frame applies the new target and one frame settles the zero-duration transition.
         compose.mainClock.advanceTimeByFrame()
         compose.mainClock.advanceTimeByFrame()
         compose.waitForIdle()

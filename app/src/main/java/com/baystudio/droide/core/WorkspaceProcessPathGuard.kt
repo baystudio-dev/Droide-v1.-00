@@ -4,8 +4,8 @@ import java.io.File
 import java.nio.file.Files
 
 internal object WorkspaceProcessPathGuard {
-    // A positive cwd observation is a useful refusal. An empty scan is NOT a writer-exit receipt:
-    // descriptors, changed cwd, and processes outside this view are not inventoried.
+    // A positive cwd observation is a useful refusal. An empty scan is NOT a writer-exit
+    // receipt: descriptors, changed cwd, and processes outside this view are not inventoried.
     data class Occupant(val pid: Int, val deleted: Boolean)
 
     fun requireUnused(directory: File, proc: File = File("/proc")) {

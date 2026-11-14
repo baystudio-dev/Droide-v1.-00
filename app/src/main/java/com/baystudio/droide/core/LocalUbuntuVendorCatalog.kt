@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Local Ubuntu overlays preserve the original remote catalog and select original publisher bytes. */
 enum class LocalUbuntuVendorFormat { RAW, GZIP_RAW, TAR_GZ, TAR_XZ, ZIP }
 enum class LocalUbuntuVendorAdmission { GLIBC_ARM64, STATIC_ARM64, INTERPRETED }
 
@@ -23,7 +24,8 @@ data class LocalUbuntuVendorDefinition(
     val pinnedSha256: String? = null,
     val lsp: Boolean = false,
 ) {
-
+    // Zig changed target ordering after 0.14.0. Keep the same deterministic
+    // layout for resolution, extraction and receipt revalidation.
     private fun templateForVersion(template: String, version: String): String {
         if (familyId != "toolchain.zig") return template
         require(version.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")))
@@ -34,7 +36,8 @@ data class LocalUbuntuVendorDefinition(
     fun entry(version: String) = templateForVersion(entryTemplate, version).replace("{version}", version)
     fun asset(version: String) = templateForVersion(assetTemplate, version).replace("{version}", version)
     // Existing historical pins attest known releases without capping publisher versions.
-
+    // Publisher selection is separate from integration compatibility and historical artifact pins.
+    // Hex uses its package manager for other versions because its index signs SHA-512.
     val supportsPublisherVersionSelection get() = familyId != LocalUbuntuElpPolicy.FAMILY && !LocalUbuntuGraphqlPolicy.isFamily(familyId) && !LocalUbuntuTomlPolicy.isFamily(familyId) && !LocalUbuntuVuePolicy.isFamily(familyId) && !LocalUbuntuNimPolicy.isFamily(familyId) && familyId !in setOf("package.hex", LocalUbuntuPowerShellRuntimePolicy.FAMILY, LocalUbuntuPowerShellEditorServicesPolicy.FAMILY, LocalUbuntuSqruffPolicy.FAMILY, LocalUbuntuClojurePolicy.FAMILY, LocalUbuntuMakePolicy.FAMILY, LocalUbuntuLemMinxPolicy.FAMILY)
     val offeredVersion get() = if (familyId == LocalUbuntuElpPolicy.FAMILY) LocalUbuntuElpPolicy.VERSION
         else if (familyId == LocalUbuntuGraphqlNodePolicy.FAMILY) LocalUbuntuGraphqlNodePolicy.VERSION
@@ -122,7 +125,7 @@ data class LocalUbuntuVendorRecipe @JvmOverloads constructor(
             "Reviewed js-debug release size changed"
         }
         val expectedUrl = when (familyId) {
-            LocalUbuntuAgentDistributions.ANTIGRAVITY, LocalUbuntuAgentDistributions.MUSE_RUNTIME -> assetUrl
+            LocalUbuntuAgentDistributions.ANTIGRAVITY, LocalUbuntuAgentDistributions.MUSE_RUNTIME -> assetUrl // Independently admitted above.
             LocalUbuntuElpPolicy.FAMILY -> LocalUbuntuElpPolicy.ASSET_URL
             LocalUbuntuGraphqlNodePolicy.FAMILY -> LocalUbuntuGraphqlNodePolicy.ASSET_URL
             LocalUbuntuTomlNodePolicy.FAMILY -> LocalUbuntuTomlNodePolicy.ASSET_URL

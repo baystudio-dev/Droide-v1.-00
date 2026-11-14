@@ -1,0 +1,26 @@
+{
+  "sourceArchiveSha256": "61075027beed497b7665c05b383d222984d32ee95fc31ae85b212afba76d846a",
+  "sourceSha256": {
+    "third_party/kadb/mdns-source/androidMain/com/flyfishxu/kadb/mdns/KadbMdnsAndroid.kt": "205bd0983c955952efa0e5e4dc121e96a5abf23ae5c969e067bc6a3896eb8687",
+    "third_party/kadb/mdns-source/androidMain/com/flyfishxu/kadb/mdns/internal/AndroidDiscoveryListener.kt": "cdbf1000c03a3870387e351e595fbb3da8590431617305b8f58df53ee21b86aa",
+    "third_party/kadb/mdns-source/androidMain/com/flyfishxu/kadb/mdns/internal/AndroidResolveListener.kt": "f5b6eb89a8e01a2c543c6019741eea5b7052289ee76e514835d9adb4d6831809",
+    "third_party/kadb/mdns-source/androidMain/com/flyfishxu/kadb/mdns/internal/AndroidServiceInfoCallback.kt": "aae3a6bf490fe0cdc335348ab9d7f8f2a7423d527fe4efc8268ecfc12198725a",
+    "third_party/kadb/mdns-source/androidMain/com/flyfishxu/kadb/mdns/internal/NsdServiceInfoMapper.kt": "3f24a0f9546fca5ce5ef48f8a0f318008e6a5ac0ccff7ebff279652e187cb50d",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/KadbMdns.kt": "6fbb3310b70814a5078066cd54d72427dacef7e3c0de0b812c593063ca277742",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/MdnsConfig.kt": "d0ed34d0a4f2928be2f0fca72021c3810ed9aba1dcaeb8beb606ee071b73580b",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/MdnsDiscoveryState.kt": "2b3552877a09b625d2d192e933cbd6b64f6f6fd550e33dba2fdc29b0c6659533",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/MdnsEndpoint.kt": "9dc581f8502d56273d716fdb718a96aea6e29606a4f338b8e0c15c410faf0ac2",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/MdnsServiceType.kt": "778e37301999dc67eb53864513cc7096c4fab98a0c2cd42084f7c5bf3ea0aa50",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/MdnsStatus.kt": "32509e577d0d5d545707d545f024e92370339ec133b74d572a9dbdf6d18cb5c3",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/internal/MdnsRegistry.kt": "adcfe8f9d3612dc4d130032287cd76ae1d4beba4cdd9ecc35c466f4a0232aa01",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/internal/MdnsServiceKey.kt": "9c1f3b634cab32ed42df3cc2b61034d91840ff4dfc0f0e716d73793d3e2f3d64",
+    "third_party/kadb/mdns-source/commonMain/com/flyfishxu/kadb/mdns/internal/MdnsServiceTypeParser.kt": "b55c7634c3f147d3b1fa5db7ba0bb7a463c0a6ec8b02ecd672476429735fd9bd"
+  },
+  "localChanges": [
+    {
+      "path": "third_party/kadb/mdns-source/androidMain/com/flyfishxu/kadb/mdns/internal/AndroidServiceInfoCallback.kt",
+      "upstreamSha256": "75e63bb8422dc76b912413fb8fca6123c5406d4ee3400482c0368a50925caea4",
+      "change": "Declare RequiresApi(34) on the ServiceInfoCallback implementation; construction already has an SDK_INT >= 34 guard. No runtime algorithm or API branch change."
+    }
+  ]
+}

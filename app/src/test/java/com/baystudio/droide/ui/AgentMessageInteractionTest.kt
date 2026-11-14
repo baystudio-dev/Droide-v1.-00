@@ -242,6 +242,7 @@ class AgentMessageInteractionTest {
     }
 }
 
+/** Host has no Surface-backed magnifier popup. Text layout, selection gestures and copy stay real. */
 @Implements(Magnifier::class)
 class AgentSelectionMagnifierShadow {
     @Implementation fun show(sourceCenterX: Float, sourceCenterY: Float) = Unit

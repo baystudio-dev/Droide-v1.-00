@@ -4,6 +4,7 @@ import com.baystudio.droide.core.FileRepository
 import com.baystudio.droide.core.LspWorkspaceEdit
 import com.baystudio.droide.core.TextEditApplier
 
+ 
 internal object LspWorkspaceEditPreflight {
     fun requireCurrent(edit: LspWorkspaceEdit) {
         check(edit.applicationGuard?.invoke() != false) {
@@ -29,7 +30,7 @@ internal object LspWorkspaceEditPreflight {
             revisions[path] = doc.changeVersion
             updates[path] = TextEditApplier.apply(doc.content, edits.map { it.range })
         }
-
+        
         for ((path, revision) in revisions) {
             val doc = state.peek(path)
             check(doc != null && doc === owners[path] && doc.agentEditable &&

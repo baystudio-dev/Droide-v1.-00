@@ -5,6 +5,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Pure insertion contract used by the real UI; actual provider/application replay is in the host lane. */
 class CMakeCompletionWorkflowTest {
     @Test fun plainNativePrefixInsertionUsesCapturedUtf16Coordinates() {
         val text="😀 𐐀pro"

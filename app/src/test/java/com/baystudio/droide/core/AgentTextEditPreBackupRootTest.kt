@@ -53,7 +53,7 @@ class AgentTextEditPreBackupRootTest {
                     }
                 }
                 try { runBlocking { withTimeout(15_000) {
-                    assertNull(agent.currentSessionId)
+                    assertNull(agent.currentSessionId) // No create/load path may prime the store beforehand.
                     val work = async(Dispatchers.Default) { runCatching { agent.chat("Write b to note.txt", config, maxTurns = 2) } }
                     try {
                         val waitingApproval = async { requireNotNull(agent.approvals.pending.first { it?.kind == "write_file" }) }
@@ -93,8 +93,8 @@ class AgentTextEditPreBackupRootTest {
                         val added = afterMetadata.keys - beforeMetadata.keys
                         val changed = beforeMetadata.count { (name, bytes) -> afterMetadata[name]?.contentEquals(bytes) != true }
                         val backups = root.resolve(".droide/backups").listFiles().orEmpty().filter { it.isFile }
-                        // Report preparatory/ordinary-session effects separately; do not claim this sidecar guard
-                        // already fences every existing .droide writer.
+                        // Report preparatory/ordinary-session effects separately; do not claim
+                        // this sidecar guard already fences every existing .droide writer.
                         println("PRE_BACKUP_ROOT metadata_added=${added.size} metadata_changed=$changed preparatory_backup_files=${backups.size}")
                         println("PRE_BACKUP_ROOT added_relative_paths=${added.sorted().joinToString(",")}")
                         assertEquals("Root replacement during approval must not create a preparatory backup", 0, backups.size)

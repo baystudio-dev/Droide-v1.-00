@@ -12,7 +12,7 @@ class McpManagement internal constructor(
 ) {
     private val configuration = McpWorkspaceConfiguration(files) {
         McpToolRegistry.invalidate(files.root)
-        manager.list()
+        manager.list() // Retire processes whose configuration changed, including disabled servers.
     }
 
     suspend fun load(): McpConfigurationSnapshot = withContext(Dispatchers.IO) {
@@ -52,7 +52,7 @@ class McpManagement internal constructor(
         check(permission(review.selection.runtimeIdentity) != PermEffect.DENY) {
             "Connection is now blocked by Agent Permissions."
         }
-        manager.discoverTools(review.selection)
+        manager.discoverTools(review.selection) // Revalidates configuration and executable provenance.
         McpToolRegistry.invalidate(files.root, review.server.name)
         checkNotNull(McpHealthRegistry.observe(files.root).value.firstOrNull { it.serverName == review.server.name })
     }

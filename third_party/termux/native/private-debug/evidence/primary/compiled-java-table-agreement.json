@@ -1,0 +1,66 @@
+{
+  "evidenceKind": "STATIC_CLASSFILE_AND_ELF_TABLE_PARSING_ONLY",
+  "class": {
+    "className": "com/termux/terminal/JNI",
+    "majorVersion": 52,
+    "minorVersion": 0,
+    "nativeStaticMethods": [
+      {
+        "name": "ownedProcessApiVersion",
+        "descriptor": "()I"
+      },
+      {
+        "name": "reserveOwnedProcess",
+        "descriptor": "()J"
+      },
+      {
+        "name": "createOwnedSubprocess",
+        "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I"
+      },
+      {
+        "name": "requestOwnedStop",
+        "descriptor": "(JI)I"
+      },
+      {
+        "name": "waitForOwnedProcess",
+        "descriptor": "(J)J"
+      },
+      {
+        "name": "releaseOwnedProcess",
+        "descriptor": "(J)Z"
+      },
+      {
+        "name": "readOwnedPtyOnce",
+        "descriptor": "(J[BII)J"
+      },
+      {
+        "name": "writeOwnedPtyOnce",
+        "descriptor": "(J[BII)J"
+      },
+      {
+        "name": "pollOwnedPtyOnce",
+        "descriptor": "(JII)J"
+      },
+      {
+        "name": "cancelOwnedPtyIo",
+        "descriptor": "(JI)V"
+      },
+      {
+        "name": "releaseOwnedPtyLane",
+        "descriptor": "(JI)Z"
+      },
+      {
+        "name": "resizeOwnedPty",
+        "descriptor": "(JII)Z"
+      }
+    ]
+  },
+  "aarSha256": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+  "classesJarSha256": "57d86325ce93620e859e088cfbb82c23453365a30c026f280a5e907c2a0c6790",
+  "jniClassSha256": "0f46033d6a7753e9bf7fa4784811c430a04b897462759b7df281553a6608782a",
+  "allFourCompiledNativeTablesMatchCompiledJavaClass": true,
+  "compiledClassMatchesJavaSourceAndSourceContract": true,
+  "producerComparisonSha256": "ed77c4005499c814534b9d6b771037f393a3f6d4ab5dd40c40ec4e36549028aa",
+  "executionEvidence": null,
+  "classInitializationOrJniRegistrationExecuted": false
+}

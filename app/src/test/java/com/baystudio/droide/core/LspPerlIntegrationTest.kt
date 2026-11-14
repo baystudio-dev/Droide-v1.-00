@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Reconstructed regression fixtures: production manager/transport, no executable server. */
 class LspPerlIntegrationTest {
     @Test(timeout=10000) fun passiveOperationsNeverPromptDiscoverStartOrFallback() = runBlocking<Unit> {
         Fixture().use { f ->

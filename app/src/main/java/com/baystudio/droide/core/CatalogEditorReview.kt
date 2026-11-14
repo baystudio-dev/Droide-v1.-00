@@ -36,14 +36,14 @@ internal class CatalogEditorReview(
         terminals?.validate()
         editor.validate()
         validateOwner()
-        // The owner/root check may suspend. Refresh editor evidence after it, then validate the
-        // non-suspending ledger snapshots last, without further owner IO.
+        // The owner/root check may suspend. Refresh editor evidence after it, then
+        // validate the non-suspending ledger snapshots last, without further owner IO.
         editor.validate()
-        // The last editor validation may dispatch to its owner. Check coordinator identity afterward
-        // without restarting root IO, then finish with ledger-only validation.
+        // The last editor validation may dispatch to its owner. Check coordinator identity
+        // afterward without restarting root IO, then finish with ledger-only validation.
         validateIdentity()
-        // No suspending observer follows this final metadata phase. These checks detect known callback
-        // mutations, not concurrent writer exclusion or an atomic snapshot.
+        // No suspending observer follows this final metadata phase. These checks detect
+        // known callback mutations, not concurrent writer exclusion or an atomic snapshot.
         terminals?.validateMetadata()
         children?.validateMetadata()
         processes?.validate()
@@ -62,7 +62,7 @@ internal class CatalogEditorReview(
             editor.pendingSaves.sorted(), editor.pendingSync.sorted(),
             (editor.retainedPaths + if (handoffPending) setOf("retained-editor-handoff") else emptySet()).sorted(),
         )
-
+        // Participating process observations always retain explicit coverage/closure unknowns.
         return CatalogReleasePreflight.evaluate(selectedAt, current, selection, evidence, processes = processes?.evidence(terminals?.evidence(), children?.evidence()))
     }
 }

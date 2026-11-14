@@ -5,8 +5,9 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-/** One supported vertical route; not a replacement for the general54-tool executor. Caller
- * durably records the completed call before invocation. No streamed deltas execute here. */
+/** One supported vertical route; not a replacement for the general54-tool executor.
+ * Caller durably records the completed call before invocation. No streamed deltas execute here.
+ */
 internal object AgentStreamedFileTool {
     suspend fun execute(
         prepared: StreamedFileArgumentExtractor.Prepared,
@@ -50,7 +51,7 @@ internal object AgentStreamedFileTool {
                 result = AgentStreamedWriteTool.Result.Rejected("DENIED (policy): edit $path")
                 return@toolSource requireNotNull(result).output
             }
-
+            // Capture rejects aliases and invalid components before any review/backup mutation.
             val before = StreamFileVersion.capture(c.files.root, path)
             if (documents.snapshot(path) != null) {
                 result = AgentStreamedWriteTool.Result.Rejected("The target is open in the editor. Large live-editor replacement is not supported; no disk fallback was used")
@@ -94,7 +95,7 @@ internal object AgentStreamedFileTool {
             val observation = StreamedTextEditObservation(c.files, path, before,
                 StreamContentVersion(true, content.bytes, content.sha256), prepared.originalArguments.sha256,
                 barrier, ::admitted)
-
+            // The journal records approval/execution intent before any project publication.
             onApproved(observation)
             admitted()
             val pending = c.history.prepareStream(path, before)

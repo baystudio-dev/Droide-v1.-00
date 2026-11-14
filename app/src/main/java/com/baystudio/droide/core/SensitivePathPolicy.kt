@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object SensitivePathPolicy {
     fun isSensitive(path: String): Boolean {
         val normalized = path.replace('\\', '/').trim().trimStart('/').lowercase()
@@ -7,8 +8,7 @@ object SensitivePathPolicy {
         val segments = normalized.split('/').filter { it.isNotEmpty() && it != "." }
         val base = segments.lastOrNull().orEmpty()
 
-        // Monorepos, submodules and nested worktrees must receive the same protection as workspace-root
-        // metadata.
+        // Monorepos, submodules and nested worktrees must receive the same protection as workspace-root metadata.
 
         if (segments.any { it == ".droide" || it == ".git" }) return true
         if (base == ".env" || base.startsWith(".env.")) return true

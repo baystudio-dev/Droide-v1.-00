@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Three original acquisition/receipt units, exactly one language server. */
 internal object LocalUbuntuCSharpPolicy {
     const val FAMILY = "lsp.csharp-ls"
     const val VERSION = "0.28.0"

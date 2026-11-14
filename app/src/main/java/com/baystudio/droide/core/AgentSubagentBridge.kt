@@ -5,12 +5,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+ 
 data class SubagentInputProjection(
     val messages: List<AgentMessage>,
     val apiEntries: List<JsonObject>,
     val deliveryReceipts: List<SubagentDeliveryReceipt> = emptyList(),
 )
 
+ 
 class AgentSubagentBridge(
     files: FileRepository,
     terminal: ITerminalSession,
@@ -110,7 +112,8 @@ class AgentSubagentBridge(
         pending.forEach { record ->
             val receipt = SubagentDeliveryReceipt.from(record)
             deliveryReceipts += receipt
-
+            // Live history can be unsaved. Even a matching receipt needs the caller's
+            // successful parent checkpoint before acknowledging this exact attempt.
             if (receipt in existingReceipts) return@forEach
             val text = render(record)
             messages += AgentMessage("assistant", "", streamPart = AgentStreamPart(

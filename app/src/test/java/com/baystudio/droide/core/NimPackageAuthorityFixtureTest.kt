@@ -15,6 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import android.app.Application
 
+/** Real three-package tree/receipt proof over authored ELF/config data; no original or native process. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, manifest = Config.NONE)
 class NimPackageAuthorityFixtureTest {

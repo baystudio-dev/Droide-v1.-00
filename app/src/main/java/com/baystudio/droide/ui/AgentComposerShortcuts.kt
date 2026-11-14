@@ -7,6 +7,9 @@ internal enum class AgentComposerCommand(val token: String, val description: Str
     MCP("/mcp", "Manage MCP servers"),
     PLUGINS("/plugins", "Manage installed plugins"),
     COMPACT("/compact", "Compact this conversation"),
+    RESULTS("/results", "Open this session's files and media"),
+    WORKFLOWS("/workflows", "Choose a reusable task plan"),
+    RESUME("/resume", "Review and continue an unfinished task"),
 }
 
 internal data class AgentComposerQuery(val start: Int, val end: Int, val token: String) {
@@ -39,8 +42,11 @@ internal object AgentComposerShortcuts {
         return candidates.filter { it.token.drop(1).contains(filter, true) || it.title.contains(filter, true) }.take(8)
     }
 
-    fun command(text: String, hasAttachments: Boolean): AgentComposerCommand? =
-        if (hasAttachments) null else AgentComposerCommand.entries.firstOrNull { it.token == text.trim() }
+    fun command(
+        text: String,
+        hasAttachments: Boolean,
+        commands: List<AgentComposerCommand> = AgentComposerCommand.entries,
+    ): AgentComposerCommand? = if (hasAttachments) null else commands.firstOrNull { it.token == text.trim() }
 
     fun insert(text: String, query: AgentComposerQuery, choice: AgentComposerChoice): Pair<String, Int> {
         require(query.start in 0..query.end && query.end <= text.length && text.substring(query.start, query.end) == query.token) {

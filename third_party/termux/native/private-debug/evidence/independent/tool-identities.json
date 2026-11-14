@@ -1,0 +1,65 @@
+{
+  "clang": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19",
+    "sha256": "6156dd4e5e466333197a00b8d20bca72c292186643b749dcaaa3aa9164afb1de",
+    "sizeBytes": 135276024,
+    "versionStdout": "Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin\n"
+  },
+  "cmake": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+    "sha256": "c8c39aee0443330e9b1866e1d85cc2405a4eec5dfbb468c5017c3eaecb4964f5",
+    "sizeBytes": 14435544,
+    "versionStdout": "cmake version 3.22.1-g37088a8\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\n"
+  },
+  "javac": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javac",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javac",
+    "sha256": "50d09f424b513525af1f0b05cd948ed7890a8d60fef7f7797e20892705b0067d",
+    "sizeBytes": 16368,
+    "versionStdout": "javac 17.0.20.1\n"
+  },
+  "javap": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javap",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javap",
+    "sha256": "f90ade56cebc2168984c1b0011b5325326953c05b4315074a2a434e4ba12add9",
+    "sizeBytes": 16336,
+    "versionStdout": "17.0.20.1\n"
+  },
+  "ld.lld": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/lld",
+    "sha256": "0bb0398c038e4c8b5e01e61061f6d9349961fb495efb4cbf2552e36058acf0be",
+    "sizeBytes": 60914016,
+    "versionStdout": "LLD 19.0.1 (compatible with GNU linkers)\n"
+  },
+  "llvm-dwarfdump": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-dwarfdump",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-dwarfdump",
+    "sha256": "d57fedf286415d722d5cc7e82fc17e5c88b895b37a5e84cc75c09ffffb8f904e",
+    "sizeBytes": 13061080,
+    "versionStdout": "LLVM (http://llvm.org/):\n  LLVM version 19.0.1 (/mnt/disks/build-disk/src/android/llvm-r530567/out/llvm-project/llvm 97a699bf4812a18fb657c2779f5296a4ab2694d2)\n  Optimized build.\n"
+  },
+  "llvm-nm": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm",
+    "sha256": "03819456497648810122861e4ca20d9b87fde7acdd43dd5c47da883d4df43928",
+    "sizeBytes": 16122800,
+    "versionStdout": "llvm-nm, compatible with GNU nm\nLLVM (http://llvm.org/):\n  LLVM version 19.0.1 (/mnt/disks/build-disk/src/android/llvm-r530567/out/llvm-project/llvm 97a699bf4812a18fb657c2779f5296a4ab2694d2)\n  Optimized build.\n"
+  },
+  "llvm-readelf": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readobj",
+    "sha256": "2a28d786027488ebd0e260efe59d15c5dedb939eacbae34a6a9065a3a2f6d054",
+    "sizeBytes": 7256448,
+    "versionStdout": "LLVM (http://llvm.org/):\n  LLVM version 19.0.1 (/mnt/disks/build-disk/src/android/llvm-r530567/out/llvm-project/llvm 97a699bf4812a18fb657c2779f5296a4ab2694d2)\n  Optimized build.\n"
+  },
+  "ninja": {
+    "path": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+    "resolvedPath": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+    "sha256": "6fa84be1efc3ab25d1cf397d0bb35891e5f99316a35d89cd8c04be5898730174",
+    "sizeBytes": 323208,
+    "versionStdout": "1.10.2\n"
+  }
+}

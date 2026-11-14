@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Independent review probes; all OS children belong exclusively to these fixtures. */
 class SessionOwnerIndependentReviewTest {
     private open class Peer : HostedStdioProcess {
         override val stdin = ByteArrayOutputStream()

@@ -316,7 +316,7 @@ class AcpMirrorEditReconciliationTest {
         effect = PermEffect.ASK, initial = { File(it, "file.txt").writeText("original") },
     ) { f ->
         val work = async { f.start() }; val prompt = f.peer.prompt(); approveEdit(f, work)
-        delay(15_100)
+        delay(15_100) // Existing direct-write ledger TTL is 15 seconds; this is the same live native turn.
         File(f.working, "file.txt").writeText("approved"); f.peer.finish(prompt)
         assertEquals(listOf("file.txt"), withTimeout(5_000) { work.await() }.changedFiles)
     }

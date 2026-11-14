@@ -71,7 +71,7 @@ class CatalogEditorObservationTest {
     @Test fun pendingFlagSubstitutionCannotHideBehindSamePath() = runBlocking {
         val state=EditorWorkspaceState().apply{completeRecovery()};val doc=state.document("a");doc.markSaveNotificationPending()
         val observed=EditorWorkspaceDocumentAuthority(state,Dispatchers.Unconfined).observeAllDocuments()
-
+        // Exact flag transition injection, no alternate observation producer.
         EditorDocument::class.java.getDeclaredField("saveNotificationPending").also {it.isAccessible=true}.setBoolean(doc,false)
         EditorDocument::class.java.getDeclaredField("saveSynchronizationPending").also {it.isAccessible=true}.setBoolean(doc,true)
         assertTrue(runCatching {observed.validate()}.isFailure)

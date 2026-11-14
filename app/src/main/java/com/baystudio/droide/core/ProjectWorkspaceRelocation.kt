@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
+/** Cooperative project registry authority. It neither excludes arbitrary writers nor releases payloads. */
 internal class ProjectWorkspaceRelocation(
     appFilesDir: File,
     private val checkpoint: (String) -> Unit = {},
@@ -34,8 +35,8 @@ internal class ProjectWorkspaceRelocation(
     private val observedRecords = mutableMapOf<Intent, RecordVersion>()
     private var ownedOperation: String? = null // Access only under the shared authority.
 
-    // Owned by this authority frame, never a global readiness assertion. Both names stay reserved
-    // through publication and exact-intent recovery, including cancellation.
+    // Owned by this authority frame, never a global readiness assertion. Both names
+    // stay reserved through publication and exact-intent recovery, including cancellation.
     private class NamespaceLease(val intent: Intent, private val captures: List<AutoCloseable>) : AutoCloseable {
         override fun close() {
             var failure: Throwable? = null
@@ -82,8 +83,9 @@ internal class ProjectWorkspaceRelocation(
 
     fun requireHeld() { heldLease?.requireHeld() }
 
-    // Lock order: shared registry mutex, dedicated inode lease, manager recents lock, non-waiting
-    // namespace admission, store publication.
+    // Lock order: shared registry mutex, dedicated inode lease, manager recents lock,
+    // non-waiting namespace admission, store publication. No managed-owner callbacks.
+    // Keep acquisition ownership in this frame so prompt cancellation cannot leak the lease.
     suspend fun <T> withLock(readOnly: Boolean = false, action: suspend () -> T): T = mutex.withLock {
         var failure: Throwable? = null
         readOnlyScope = readOnly
@@ -117,8 +119,8 @@ internal class ProjectWorkspaceRelocation(
         }
     }
 
-    // Healthy writable startup or a requested new relocation enrolls this authority only after
-    // existing startup evidence has passed its own admission checks.
+    // Healthy writable startup or a requested new relocation enrolls this authority only
+    // after existing startup evidence has passed its own admission checks.
     suspend fun activate() {
         check(!readOnlyScope) { "Read-only inspection cannot enroll workspace relocation authority" }
         if (heldLease == null) withContext(Dispatchers.IO) { heldLease = acquire(readOnly = false) }
@@ -139,7 +141,7 @@ internal class ProjectWorkspaceRelocation(
         try {
             if (!Files.exists(lockFile.toPath(), NOFOLLOW_LINKS)) {
                 try { anchor.createNew(lockFile.name).use { it.force(384) } }
-                catch (_: java.nio.file.FileAlreadyExistsException) {   }
+                catch (_: java.nio.file.FileAlreadyExistsException) { /* Another cooperative runtime enrolled it. */ }
             }
             val input = anchor.openRead(lockFile.name)
             try {
@@ -246,8 +248,10 @@ internal class ProjectWorkspaceRelocation(
 
     fun abandon() { ownedOperation = null }
 
-    /** Pending operations resolve only against their exact catalog before/after revisions. */
-
+    /** Pending operations resolve only against their exact catalog before/after revisions.
+     * Terminal receipts admit unrelated edits, but never a different source or retained tree.
+     * Read-only recovery validates these invariants without moving or publishing anything.
+     */
     suspend fun recover(store: ProjectStore, readOnly: Boolean = false) {
         val entries = records()
         if (entries.isEmpty()) return
@@ -309,8 +313,8 @@ internal class ProjectWorkspaceRelocation(
                         else -> error("Catalog changed during workspace relocation; retained evidence needs review")
                     }
                 }
-                // A prior rename may have become visible before its durability confirmation. Writable recovery
-                // re-confirms terminal namespace and receipt persistence.
+                // A prior rename may have become visible before its durability confirmation.
+                // Writable recovery re-confirms terminal namespace and receipt persistence.
                 if (!readOnly && intent.state != State.PREPARED) {
                     files.forceDirectory()
                     confirmRecord(intent)

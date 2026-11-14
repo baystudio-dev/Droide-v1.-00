@@ -14,8 +14,9 @@ internal data class AgentMessageSelection(
 
         fun fromMarkdown(markdown: String, checkCancellation: () -> Unit = {}): AgentMessageSelection {
             checkCancellation()
-            // The display parser is not a storage format.
-
+            // The display parser is not a storage format. Avoid splitting/parsing/copying a
+            // multi-megabyte response merely to display its first selectable page. Source
+            // mode is explicit in the dialog and preserves every original character.
             if (markdown.length > MAX_FORMATTED_SELECTION_CHARS)
                 return fromText(markdown, sourceMode = true, checkCancellation = checkCancellation)
             val text = AgentMarkdownParser.parse(markdown).joinToString("\n\n") { block ->
@@ -52,8 +53,8 @@ internal data class AgentMessageSelection(
                 checkCancellation()
                 var end = minOf(start + PAGE_CHARS, text.length)
                 if (end < text.length) {
-                    // Search only this page's latter half. An unbounded lastIndexOf would repeatedly rescan the
-                    // whole prefix of a long one-line response.
+                    // Search only this page's latter half. An unbounded lastIndexOf would
+                    // repeatedly rescan the whole prefix of a long one-line response.
                     val minimum = start + PAGE_CHARS / 2
                     var newline = end - 1
                     while (newline > minimum && text[newline] != '\n') newline--

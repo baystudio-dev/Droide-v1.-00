@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exact real OS children; completion is deliberately withheld after stop. */
 class ExitProcessStopFanoutTest {
     @Test(timeout = 15_000) fun pendingReceiptCannotPreventOtherOwnedChildrenReceivingStop() = runBlocking {
         val registry = ExitHostedProcessOwners(isOpen = { false }, isCurrentOpen = { false })

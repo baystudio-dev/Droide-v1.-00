@@ -18,6 +18,7 @@ import com.baystudio.droide.core.SqlitePluginConversationHistory
 /** Captured before opening a picker; a returned URI never decides its own conversation. */
 internal data class AgentMediaDraftToken(val root: File, val ownerId: String, val generation: Long)
 
+/** Retained presentation/admission state; it contains no Activity, View, or UI callback. */
 class AgentWorkspaceUiState internal constructor(
     parent: CoroutineScope,
     context: Context? = null,
@@ -78,8 +79,8 @@ class AgentWorkspaceUiState internal constructor(
         mediaPickerPending.value = false
         pendingMediaPicker = null
         val selected = attachments.value.toList()
-        // Legacy attachments have no durable media reference. Preserve every available name and preview,
-        // but never claim that the archive contains the original file bytes.
+        // Legacy attachments have no durable media reference. Preserve every available name
+        // and preview, but never claim that the archive contains the original file bytes.
         val records = buildList {
             add(com.baystudio.droide.core.ExitDraftRecord(backendId.value, mediaConversation?.sessionId,
                 input.value, selected.map { com.baystudio.droide.core.ExitDraftAttachment(it.name, it.text, it.media, it.previewTruncated) }))
@@ -101,8 +102,8 @@ class AgentWorkspaceUiState internal constructor(
         if (store != null) {
             exitDraftOperationBusy.value = true
             try {
-                // Existing attachment retention/expiry policy stays intact; the recovery UI identifies
-                // references and previews explicitly, never a guaranteed byte backup.
+                // Existing attachment retention/expiry policy stays intact; the recovery UI
+                // identifies references and previews explicitly, never a guaranteed byte backup.
                 val approvedReferenceOnly = referenceOnlyExitApprovals.toSet()
                 val attachmentRoot = mediaRoot
                 val unconfirmed = kotlinx.coroutines.withContext(Dispatchers.IO) {
@@ -141,8 +142,8 @@ class AgentWorkspaceUiState internal constructor(
             exitDraftError.value = "That saved draft is no longer available. Choose another saved copy."
             return false
         }
-        // Exact text only. Keep the current backend/session; switching could start plugin setup. The
-        // archive copy stays available until the user explicitly confirms deleting it.
+        // Exact text only. Keep the current backend/session; switching could start plugin setup.
+        // The archive copy stays available until the user explicitly confirms deleting it.
         input.value = record.text
         exitDraftError.value = null
         exitDraftNotice.value = if (record.text.length > com.baystudio.droide.core.AgentService.MAX_USER_MESSAGE_CHARS)

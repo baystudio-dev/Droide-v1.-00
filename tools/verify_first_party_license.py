@@ -4,7 +4,7 @@ from pathlib import Path
 import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
-
+# Full unmodified GNU texts, already carried by the third-party legal bundle.
 TEXT_HASHES = {
     'LGPL-3.0.txt': 'e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118',
     'GPL-3.0.txt': '3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986',

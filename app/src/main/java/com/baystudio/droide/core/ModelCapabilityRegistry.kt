@@ -30,6 +30,7 @@ data class ModelCapabilities(
 
 // Catalog metadata may disable a feature but never invents a wire implementation.
 
+
 object ModelCapabilityRegistry {
     private val catalog = AtomicReference<Map<String, ModelCapabilities>>(emptyMap())
     private val runtime = AtomicReference<Map<String, ModelCapabilities>>(emptyMap())
@@ -114,6 +115,7 @@ object ModelCapabilityRegistry {
             .toList()
     }
 
+    // Explicit false is authoritative.
     fun allowsToolUse(providerId: String, modelId: String): Boolean {
         val declared = resolve(providerId, modelId)?.toolCall
         if (declared != null) return declared

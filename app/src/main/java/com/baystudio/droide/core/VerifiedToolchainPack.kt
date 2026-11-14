@@ -8,6 +8,7 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
+ 
 internal object VerifiedToolchainPack {
     class Snapshot internal constructor(val file: File, val sha256: String) : Closeable {
         override fun close() {

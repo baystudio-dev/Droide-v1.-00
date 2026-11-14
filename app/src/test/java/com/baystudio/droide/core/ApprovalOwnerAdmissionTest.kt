@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Pure finite controls: no Agent, files, terminal, provider, process or network. */
 class ApprovalOwnerAdmissionTest {
     @Test(timeout = 10_000)
     fun aStaleOwnerCannotPublishPendingAfterTheLegacyCheck() = bounded {

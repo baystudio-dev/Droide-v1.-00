@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "STATIC_SOURCE_INSPECTION_ONLY",
+  "sourceArchiveSha256": "e767a89ace01569e1e0412b2bbd03de171194caa85c3989b770d4bfe9438d317",
+  "contractStatusUnchanged": "UNBUILT",
+  "releaseCompatible": false,
+  "registeredNativeMethodCount": 12,
+  "cTableJavaDeclarationContractAgreement": true,
+  "registrationCountUsesEntireTable": true,
+  "className": "com/termux/terminal/JNI",
+  "methods": [
+    {
+      "name": "ownedProcessApiVersion",
+      "descriptor": "()I",
+      "cFunction": "owned_process_api_version"
+    },
+    {
+      "name": "reserveOwnedProcess",
+      "descriptor": "()J",
+      "cFunction": "reserve_owned_process"
+    },
+    {
+      "name": "createOwnedSubprocess",
+      "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+      "cFunction": "create_owned_subprocess"
+    },
+    {
+      "name": "requestOwnedStop",
+      "descriptor": "(JI)I",
+      "cFunction": "request_owned_stop"
+    },
+    {
+      "name": "waitForOwnedProcess",
+      "descriptor": "(J)J",
+      "cFunction": "wait_for_owned_process"
+    },
+    {
+      "name": "releaseOwnedProcess",
+      "descriptor": "(J)Z",
+      "cFunction": "release_owned_process"
+    },
+    {
+      "name": "readOwnedPtyOnce",
+      "descriptor": "(J[BII)J",
+      "cFunction": "read_owned_pty_once"
+    },
+    {
+      "name": "writeOwnedPtyOnce",
+      "descriptor": "(J[BII)J",
+      "cFunction": "write_owned_pty_once"
+    },
+    {
+      "name": "pollOwnedPtyOnce",
+      "descriptor": "(JII)J",
+      "cFunction": "poll_owned_pty_once"
+    },
+    {
+      "name": "cancelOwnedPtyIo",
+      "descriptor": "(JI)V",
+      "cFunction": "cancel_owned_pty_io"
+    },
+    {
+      "name": "releaseOwnedPtyLane",
+      "descriptor": "(JI)Z",
+      "cFunction": "release_owned_pty_lane"
+    },
+    {
+      "name": "resizeOwnedPty",
+      "descriptor": "(JII)Z",
+      "cFunction": "resize_owned_pty"
+    }
+  ],
+  "javaDeclarations": [
+    {
+      "name": "ownedProcessApiVersion",
+      "descriptor": "()I"
+    },
+    {
+      "name": "reserveOwnedProcess",
+      "descriptor": "()J"
+    },
+    {
+      "name": "createOwnedSubprocess",
+      "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I"
+    },
+    {
+      "name": "requestOwnedStop",
+      "descriptor": "(JI)I"
+    },
+    {
+      "name": "waitForOwnedProcess",
+      "descriptor": "(J)J"
+    },
+    {
+      "name": "releaseOwnedProcess",
+      "descriptor": "(J)Z"
+    },
+    {
+      "name": "readOwnedPtyOnce",
+      "descriptor": "(J[BII)J"
+    },
+    {
+      "name": "writeOwnedPtyOnce",
+      "descriptor": "(J[BII)J"
+    },
+    {
+      "name": "pollOwnedPtyOnce",
+      "descriptor": "(JII)J"
+    },
+    {
+      "name": "cancelOwnedPtyIo",
+      "descriptor": "(JI)V"
+    },
+    {
+      "name": "releaseOwnedPtyLane",
+      "descriptor": "(JI)Z"
+    },
+    {
+      "name": "resizeOwnedPty",
+      "descriptor": "(JII)Z"
+    }
+  ],
+  "forbiddenLegacyExports": [
+    "Java_com_termux_terminal_JNI_createSubprocess",
+    "Java_com_termux_terminal_JNI_waitFor",
+    "Java_com_termux_terminal_JNI_setPtyWindowSize",
+    "Java_com_termux_terminal_JNI_close"
+  ],
+  "sourceInputs": {
+    "app/build.gradle.kts": {
+      "sha256": "6d95f10e0b46e9915e1b7e8b76bc72ec1da4c323407a1e0261f62714e433b40f",
+      "sizeBytes": 13503,
+      "mode": "0o644"
+    },
+    "app/src/main/cpp/CMakeLists.txt": {
+      "sha256": "5822f744df7b90c4473ad690a8d068e82094a3e5a4be730c750e9aa80fd8982c",
+      "sizeBytes": 516,
+      "mode": "0o644"
+    },
+    "app/src/main/cpp/droide_files.c": {
+      "sha256": "8161f13dcca6e7df65c2ffe8be3298465c2593ace41f56114340475885fb5ea3",
+      "sizeBytes": 3009,
+      "mode": "0o644"
+    },
+    "third_party/termux/native/OWNED_PROCESS_ABI.json": {
+      "sha256": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+      "sizeBytes": 3542,
+      "mode": "0o644"
+    },
+    "third_party/termux/native/REBUILD.json": {
+      "sha256": "f2c9660006eefb353655994c92c6253c35533e038638e005b0aab11ab5732105",
+      "sizeBytes": 977,
+      "mode": "0o644"
+    },
+    "third_party/termux/native/termux.c": {
+      "sha256": "e6e4e563865857af85fd6e101021fb3e247ecfc93f9261e1242d0ef637edc000",
+      "sizeBytes": 31893,
+      "mode": "0o644"
+    },
+    "third_party/termux/patches/REBUILD.json": {
+      "sha256": "e5c6db221f5b7402576285b2daba828fb5cd85f21da61631c8170e57e1c09cdb",
+      "sizeBytes": 10244,
+      "mode": "0o644"
+    },
+    "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java": {
+      "sha256": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3",
+      "sizeBytes": 4745,
+      "mode": "0o644"
+    },
+    "third_party/termux/patches/src/com/termux/terminal/JNI.java": {
+      "sha256": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
+      "sizeBytes": 1612,
+      "mode": "0o644"
+    },
+    "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java": {
+      "sha256": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f",
+      "sizeBytes": 4318,
+      "mode": "0o644"
+    },
+    "third_party/termux/patches/src/com/termux/terminal/TerminalPtyIo.java": {
+      "sha256": "c306cd096e1bf181f9f2c93616df5cc1f72811c33024d0e75943142fa309bbef",
+      "sizeBytes": 6033,
+      "mode": "0o644"
+    },
+    "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java": {
+      "sha256": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae",
+      "sizeBytes": 26303,
+      "mode": "0o644"
+    },
+    "tools/verify_release_source.sh": {
+      "sha256": "bb1c4f1d3c95720bc44dff2f152317c3a7d2f83f65cc2de1d8021a72c3655f3b",
+      "sizeBytes": 4343,
+      "mode": "0o755"
+    },
+    "tools/verify_termux_provenance.py": {
+      "sha256": "9a2b277a99bf0fffd8be1751f846cc91237c2e11ad13e2f07081fa3857792637",
+      "sizeBytes": 15041,
+      "mode": "0o644"
+    }
+  },
+  "executionEvidence": null,
+  "limitations": [
+    "Static source descriptors only; JNI registration not executed.",
+    "No compiled outputs existed when this source inspection was produced.",
+    "Native process, descriptor, PTY, signal and kernel behavior remains unvalidated."
+  ]
+}

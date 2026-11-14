@@ -41,8 +41,8 @@ class CMakeBuildOwnerLeases private constructor(private val directory: File) {
     }
     fun starting(lease: Lease) = synchronized(lock) {
         requireLive(lease); check(lease.phase == "RESERVED")
-        // RESERVED was durably recorded before entering the protected factory. An app restart without
-        // READY remains quarantined regardless of this in-memory phase. No disk I/O here.
+        // RESERVED was durably recorded before entering the protected factory. An app restart
+        // without READY remains quarantined regardless of this in-memory phase. No disk I/O here.
         lease.phase = "STARTING"
     }
     fun ready(lease: Lease, proof: CMakeReadyProof) = synchronized(lock) {
@@ -152,7 +152,7 @@ class CMakeBuildOwnerLeases private constructor(private val directory: File) {
                 catch (failure: ErrnoException) { failure.errno == OsConstants.ESRCH }
             if (!groupGone || !originalAbsent(proof.outer) || !originalAbsent(proof.supervisor)) return@forEach
             val file = File(directory, "$id.json")
-
+            // Recheck the entire immutable record immediately before removing this exact tombstone.
             if (file.length() <= 16_384 && CMakeControlRecords.read(file) == record && file.delete()) {
                 CMakePrivateState.syncDirectory(directory); recovered++
             }
@@ -168,8 +168,8 @@ class CMakeBuildOwnerLeases private constructor(private val directory: File) {
         catch (failure: ErrnoException) { return failure.errno == OsConstants.ENOENT || failure.errno == OsConstants.ESRCH }
         catch (_: Exception) { return false }
         return try {
-            // FileNotFoundException also means EACCES on Android. Only an exact native absence observation,
-            // or a successfully read different birth, permits recovery.
+            // FileNotFoundException also means EACCES on Android. Only an exact native
+            // absence observation, or a successfully read different birth, permits recovery.
             CMakeControlRecords.procStartTicks(birth.pid) != birth.startTicks
         } catch (_: Exception) { absentNow() }
     }

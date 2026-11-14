@@ -93,7 +93,7 @@ class AgentFirstClassMcpEnvelopeTest {
                                 val id = request["id"] ?: continue
                                 if (method == "tools/call") {
                                     toolEntered.countDown()
-
+                                    // deterministic in-memory reply
                                 }
                                 val result = when (method) {
                                     "initialize" -> """{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"fake","version":"1"}}"""

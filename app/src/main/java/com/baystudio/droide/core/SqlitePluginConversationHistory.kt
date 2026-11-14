@@ -32,8 +32,8 @@ class SqlitePluginConversationHistory(
     internal var lifecycleCheckpoint: (String) -> Unit = {}
     private val mutex = Mutex()
     private var database: SQLiteDatabase? = null
-    // Raw capture stays blocked for the connection lifetime. Coordinated export checkpoints under
-    // this owner's mutex without closing the history session.
+    // Raw capture stays blocked for the connection lifetime. Coordinated export
+    // checkpoints under this owner's mutex without closing the history session.
     private var databaseWriter: AutoCloseable? = null
     private var closed = false
     private val ownerId = UUID.randomUUID().toString()
@@ -115,20 +115,22 @@ class SqlitePluginConversationHistory(
                 opened.version = 3
             }
             if (opened.version == 3) transaction(opened) {
-                // Legacy TEXT stays untouched. New rows preserve UTF-16 code units, including a surrogate pair
-                // split across durable stream checkpoints.
+                // Legacy TEXT stays untouched. New rows preserve UTF-16 code units,
+                // including a surrogate pair split across durable stream checkpoints.
                 opened.execSQL("ALTER TABLE live_parts ADD COLUMN content_utf16 BLOB")
                 opened.execSQL("ALTER TABLE message_parts ADD COLUMN content_utf16 BLOB")
                 opened.version = 4
             }
             if (opened.version == 4) transaction(opened) {
-
+                // Version 5 marks deferred checkpoint promotion after owner-authored
+                // retirement. Older binaries must reject before their next turn can
+                // overlook and discard the retained non-RUNNING live_parts.
                 opened.version = 5
                 lifecycleCheckpoint("before-retirement-version-commit")
             }
             if (opened.version == 5) transaction(opened) {
-                // One generation and receipt per conversation. Superseding this metadata never removes
-                // transcript, live checkpoint or media evidence.
+                // One generation and receipt per conversation. Superseding this metadata
+                // never removes transcript, live checkpoint or media evidence.
                 opened.execSQL("ALTER TABLE conversations ADD COLUMN turn_id TEXT")
                 opened.execSQL("ALTER TABLE conversations ADD COLUMN finish_digest TEXT")
                 opened.execSQL("ALTER TABLE conversations ADD COLUMN finish_message_count INTEGER")
@@ -137,8 +139,8 @@ class SqlitePluginConversationHistory(
                 opened.version = 6
                 lifecycleCheckpoint("before-finish-schema-commit")
             }
-            // The connection can write its database and sidecars, not arbitrary project files. Individual
-            // operations retain their broader fence.
+            // The connection can write its database and sidecars, not arbitrary
+            // project files. Individual operations retain their broader fence.
             val identity = Files.readAttributes(target.toPath(), BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS).fileKey()
             databaseWriter = ExportWriterAdmission.beginManagedWriter(File(workspace, ".droide/sessions"),
                 "Open plugin conversation database", object : ExportCaptureParticipant {
@@ -153,6 +155,7 @@ class SqlitePluginConversationHistory(
         }
     }
 
+    /** Keep the same live session, but hold all history operations until capture is sealed. */
     private suspend fun <T> withExportQuiescence(connection: SQLiteDatabase, target: File, identity: Any?,
         action: suspend () -> T): T = withContext(Dispatchers.IO) {
         mutex.withLock {
@@ -165,8 +168,8 @@ class SqlitePluginConversationHistory(
                 arrayOf(PluginHistoryStatus.RUNNING.name, ownerId)).use {
                 check(!it.moveToFirst()) { "An external Agent turn is active; stop or finish it before exporting chat history" }
             }
-            // Checkpoint every committed WAL page before reading the main file. A busy reader/writer is an
-            // explicit refusal, never a partial snapshot.
+            // Checkpoint every committed WAL page before reading the main file.
+            // A busy reader/writer is an explicit refusal, never a partial snapshot.
             connection.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use {
                 check(it.moveToFirst() && it.getInt(0) == 0 && it.getLong(1) == it.getLong(2)) {
                     "Chat history is busy; retry export after its current transaction finishes"
@@ -263,8 +266,8 @@ class SqlitePluginConversationHistory(
             return@transaction window(db, id, beforePart,
                 "This saved turn is still active or its owner did not close cleanly. The original is preserved. Use New Session to start independent work without the old CLI context.")
         }
-        // A non-RUNNING status is durable owner-authored retirement. Validate and promote its retained
-        // checkpoints atomically; malformed evidence survives.
+        // A non-RUNNING status is durable owner-authored retirement. Validate and
+        // promote its retained checkpoints atomically; malformed evidence survives.
         if (hasLiveParts(db, id)) movePartialToMessages(db, id, entry.status)
         activate(db, checkNotNull(summary(db, id)))
         window(db, id, beforePart)
@@ -293,8 +296,8 @@ class SqlitePluginConversationHistory(
                 }
             }
         }
-        // Each range is indexed and bounded before decoding. Do not materialize or sort the full
-        // transcript to present a read-only checkpoint suffix.
+        // Each range is indexed and bounded before decoding. Do not materialize or
+        // sort the full transcript to present a read-only checkpoint suffix.
         if (readOnlyReason != null && end > saved.partCount) {
             read("SELECT ${saved.partCount}+ordinal,NULL,'assistant',activity,$historyTextProjection FROM live_parts WHERE conversation_id=? AND ordinal<? ORDER BY ordinal DESC LIMIT 80",
                 arrayOf(id, (end - saved.partCount).toString()))
@@ -340,8 +343,10 @@ class SqlitePluginConversationHistory(
         return PluginHistoryWindow(entry, messages, keys, parts.firstOrNull()?.ordinal ?: end, parts.lastOrNull()?.ordinal?.plus(1) ?: end, readOnlyReason)
     }
 
-    /** SQLite TEXT conversion cannot preserve isolated UTF-16 code units in a stream delta. */
-
+    /** SQLite TEXT conversion cannot preserve isolated UTF-16 code units in a stream delta.
+     * Store code units directly, not via a Charset encoder (which replaces unpaired surrogates).
+     * The nullable column distinguishes new payloads from unchanged legacy TEXT rows.
+     */
     private fun ContentValues.putHistoryText(text: String) {
         require(text.length <= MAX_PART_CODE_UNITS) { "Plugin history part exceeds storage budget" }
         val bytes = ByteArray(text.length * 2)
@@ -353,8 +358,8 @@ class SqlitePluginConversationHistory(
         put("content_utf16", bytes)
     }
 
-    // Reject malformed storage without projecting an unbounded BLOB into CursorWindow or allocating
-    // it through getBlob. Type/length distinguish rejection from legacy NULL.
+    // Reject malformed storage without projecting an unbounded BLOB into CursorWindow
+    // or allocating it through getBlob. Type/length distinguish rejection from legacy NULL.
     private val historyTextProjection = """CASE WHEN content_utf16 IS NULL THEN content ELSE NULL END AS content,
         (typeof(content)='text' AND content COLLATE BINARY = '') AS history_text_legacy_empty,
         typeof(content_utf16) AS history_text_kind,
@@ -652,8 +657,8 @@ class SqlitePluginConversationHistory(
                 if (appendReply) appendMessage(db, id, "assistant", checkNotNull(reply), media)
                 else if (media.isNotEmpty()) saveMedia(db, id, checkNotNull(summary(db, id)).messageCount - 1, media)
             } else if (reply != null) {
-                // A final reply supersedes partial output only after every retained payload is readable.
-                // Malformed evidence must survive a failed finish.
+                // A final reply supersedes partial output only after every retained
+                // payload is readable. Malformed evidence must survive a failed finish.
                 db.rawQuery("SELECT $historyTextProjection FROM live_parts WHERE conversation_id=? ORDER BY ordinal", arrayOf(id)).use { cursor ->
                     while (cursor.moveToNext()) cursor.historyText()
                 }
@@ -695,8 +700,9 @@ class SqlitePluginConversationHistory(
     override suspend fun close(): Unit = withContext(NonCancellable + Dispatchers.IO) {
         ExportWriterAdmission.withWriterAfterCapture(workspace, "Close plugin conversation database") {
             mutex.withLock {
-                // Retire only this exact owner's rows, never a foreign UUID.
-
+                // Admission closes permanently under the same mutex as every operation.
+                // Retire only this exact owner's rows, never a foreign UUID. A retry uses
+                // the retained connection even after admission has closed.
                 closed = true
                 var failure: Throwable? = null
                 fun record(error: Throwable) {
@@ -706,15 +712,15 @@ class SqlitePluginConversationHistory(
                     try {
                         lifecycleCheckpoint("before-retirement")
                         transaction(connection) {
-                            // Retirement does not read, rewrite or discard checkpoint payloads. Even malformed evidence can
-                            // be safely retained while closing.
+                            // Retirement does not read, rewrite or discard checkpoint payloads.
+                            // Even malformed evidence can be safely retained while closing.
                             connection.execSQL("UPDATE conversations SET status=? WHERE owner_id=? AND status=?",
                                 arrayOf(PluginHistoryStatus.INTERRUPTED.name, ownerId, PluginHistoryStatus.RUNNING.name))
                             lifecycleCheckpoint("before-retirement-commit")
                         }
                     } catch (error: Throwable) { record(error) }
-                    // A failed retirement must not strand a replaced controller's open connection forever. Its
-                    // unchanged RUNNING rows remain read-only.
+                    // A failed retirement must not strand a replaced controller's open
+                    // connection forever. Its unchanged RUNNING rows remain read-only.
                     try {
                         lifecycleCheckpoint("before-database-close")
                         connection.close()

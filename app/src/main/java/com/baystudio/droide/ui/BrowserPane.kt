@@ -56,6 +56,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
+
 @Composable
 fun BrowserPane(
     url: String = "https://github.com",
@@ -99,7 +100,7 @@ internal fun WorkspaceBrowserPane(
     var urlFieldFocused by remember { mutableStateOf(false) }
     // Chrome resize/focus changes must not overwrite an unsent URL draft or republish the same page.
     var appliedNavigationUrl by rememberSaveable(agentBrowser) { mutableStateOf(url) }
-
+    // Disclosure is a saved chrome preference, independent of expanded mode and retention.
     var keepActiveDisclosure by rememberSaveable { mutableStateOf(false) }
     var browserMenuOpen by remember { mutableStateOf(false) }
     val retention by agentBrowser.retention.collectAsState()
@@ -207,9 +208,10 @@ internal fun WorkspaceBrowserPane(
                             }
                         },
                     )
-
+                    // Narrow sidebars keep Expand visible in the same toolbar row; disclosure
+                    // moves to the menu instead of costing another 48dp of viewport height.
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-
+                        // The same menu remains reachable in expanded mode, while loading, and on errors.
                         Box {
                             IconButton(onClick = { browserMenuOpen = true }, enabled = presented,
                                 modifier = Modifier.size(48.dp).semantics { stateDescription = browserStatus }) {
@@ -282,8 +284,8 @@ internal fun WorkspaceBrowserPane(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
                     maxLines = 1,
                 )
-                // Animate measured height, not alpha/translation: every frame returns real space to the weighted
-                // native viewport. Compose honors Android's animator duration scale.
+                // Animate measured height, not alpha/translation: every frame returns real space
+                // to the weighted native viewport. Compose honors Android's animator duration scale.
                 AnimatedVisibility(
                     visible = keepActiveDisclosure,
                     enter = expandVertically(animationSpec = tween(220, easing = FastOutSlowInEasing), expandFrom = Alignment.Top),
@@ -401,8 +403,8 @@ internal fun WorkspaceBrowserPane(
     LaunchedEffect(presented) {
         // A retained hidden browser must never leave a popup over another workspace pane.
         if (!presented) browserMenuOpen = false
-        // Disabling the field normally clears its focus. Never clear a newly focused editor or chat
-        // field merely because the browser became hidden.
+        // Disabling the field normally clears its focus. Never clear a newly
+        // focused editor or chat field merely because the browser became hidden.
         if (!presented && urlFieldFocused) focusManager.clearFocus(force = true)
     }
 
@@ -435,8 +437,8 @@ internal fun WorkspaceBrowserPane(
                     agentBrowser.respondHumanDialog(dialog.id, accept, promptText.takeIf { dialog.type == "prompt" && accept })
                 }
             }
-            // Hiding the panel never answers or dismisses a native website dialog. Keep the prompt draft
-            // here, outside the presented-only modal window.
+            // Hiding the panel never answers or dismisses a native website dialog.
+            // Keep the prompt draft here, outside the presented-only modal window.
             if (presented) AlertDialog(
                 onDismissRequest = { respond(false) },
                 title = { Text(when (dialog.type) {
@@ -446,8 +448,9 @@ internal fun WorkspaceBrowserPane(
                 }) },
                 text = {
                     Column(Modifier.heightIn(max = 280.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // The read-only website message owns vertical scrolling. Reserve a separately constrained answer
-                        // field instead of measuring an editor inside the scroller's unbounded vertical content area.
+                        // The read-only website message owns vertical scrolling. Reserve a
+                        // separately constrained answer field instead of measuring an editor
+                        // inside the scroller's unbounded vertical content area.
                         Column(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             val origin = runCatching { dialog.sourceUrl?.let { java.net.URI(it) }?.let { uri ->

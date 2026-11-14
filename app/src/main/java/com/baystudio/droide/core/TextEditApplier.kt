@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 data class TextRangeEdit(
     val startLine: Int,
     val startColumn: Int,
@@ -19,7 +20,8 @@ object TextEditApplier {
             val end = offset(text, edit.endLine, edit.endColumn)
             require(start <= end) { "Text edit range is reversed" }
             OffsetEdit(start, end, edit.newText, inputIndex)
-
+        // Apply equal-position insertions in reverse input order so the final text
+        // retains the server's array order rather than reversing their contents.
         }.sortedWith(compareByDescending<OffsetEdit> { it.start }.thenByDescending { it.end }
             .thenByDescending { it.inputIndex })
 
@@ -37,7 +39,7 @@ object TextEditApplier {
     private fun offset(text: String, line: Int, column: Int): Int {
         var currentLine = 1
         var lineStart = 0
-
+        // LSP lines are separated by CR, LF, or one CRLF pair; keep original bytes.
         var index = 0
         while (currentLine < line && index < text.length) {
             when (text[index++]) {

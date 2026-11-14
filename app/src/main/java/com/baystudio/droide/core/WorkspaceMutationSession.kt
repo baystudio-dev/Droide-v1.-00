@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Optional internal repository seam. C1 deliberately supplies no SAF implementation. */
 internal fun interface WorkspaceMutationParticipant {
     suspend fun begin(guard: WorkspaceMutationGuard, mutation: FileRepository.Mutation): WorkspaceMutationSession
 }
@@ -43,10 +44,15 @@ internal abstract class WorkspaceMutationSession(
     /** Pure, nonthrowing disposition once durable local evidence forbids repository rollback. */
     open val retainLocalOnSyncFailure: Boolean get() = false
 
-    /** Optional Delete-only destination, selected before the existing local move. */
-
+    /**
+     * Optional Delete-only destination, selected before the existing local move. Null keeps
+     * sibling staging. A nonnull `.droide/saf-delete-custody/<operation-id>/original` path
+     * requires this session's durable exclusive operation/parent binding; its leaf is absent
+     * and real parents already exist. Returning a path does not authorize later cleanup.
+     */
     open suspend fun prepareDeleteStage(): String? = null
 
+    /** Call before the first provider/manifest invocation, including one that may throw. */
     fun markExternalEffectAttempted() {
         guard.requireRoot(guard.canonicalRoot)
         externalEffectAttempted = true
@@ -59,8 +65,13 @@ internal abstract class WorkspaceMutationSession(
     /** Small receipt only; returned=false cannot prove that the local invocation had no effect. */
     open fun localReturned(receipt: WorkspaceLocalReceipt) {}
     open suspend fun synchronize() {}
-    /** True takes durable custody of that stage; the repository must not recursively clean it. */
-
+    /**
+     * Called after successful synchronization with this invocation's exact DELETE_STAGE receipt.
+     * True takes durable custody of that stage; the repository must not recursively clean it.
+     * False preserves ordinary cleanup. An owned but mismatching/unverified stage must throw,
+     * never return false. This small synchronous check performs no tree scan or cleanup.
+     * Throwing retains the stage and surfaces the failure without rolling back synchronization.
+     */
     open fun retainsDeleteStage(receipt: WorkspaceLocalReceipt): Boolean = false
     /** Exactly once after begin returns a valid session, before releasing ownership/IO dispatch. */
     open fun finish(outcome: WorkspaceMutationOutcome) {}

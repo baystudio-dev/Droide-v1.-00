@@ -89,8 +89,8 @@ internal data class SafJournalLimits(
     val recordBytes: Long = 1024L * 1024,
     val manifestBytes: Long = 16L * 1024 * 1024,
     val aggregateMetadataBytes: Long = 512L * 1024 * 1024,
-    // Payloads stream to disk. Metadata retains its allocation limits; bytes are admitted by disk
-    // capacity and per-operation reservations, not fixed GiB caps.
+    // Payloads stream to disk. Metadata retains its allocation limits; bytes are
+    // admitted by disk capacity and per-operation reservations, not fixed GiB caps.
     val aggregatePayloadBytes: Long = Long.MAX_VALUE,
     val actionsPerOperation: Int = 200_000,
     val evidenceFilesPerOperation: Int = 200_000,
@@ -122,7 +122,7 @@ internal class SafOperationJournal private constructor(
     internal var retirementDiagnostic: String? = null
     /** Captured coroutine cancellation only. Never an arbitrary caller callback. */
     internal fun ensureVerificationActive() { cancellationJob?.ensureActive() }
-
+    /** Production has a captured Job; legacy internal callers retain their explicit callback API. */
     internal fun admissionPoll(caller: () -> Unit): () -> Unit {
         caller()
         return if (cancellationJob == null) caller else ::ensureVerificationActive
@@ -200,8 +200,8 @@ internal class SafOperationJournal private constructor(
         requireUuid(id)
         check(head?.checkpoint?.receipts?.none { it.id == id } != false)
         val target = File(directory, id)
-        // Caller callbacks supply cancellation, not enduring authority. Renew exact ownership after the
-        // last one; no caller callback occurs between this seal and directory creation.
+        // Caller callbacks supply cancellation, not enduring authority. Renew exact ownership
+        // after the last one; no caller callback occurs between this seal and directory creation.
         poll()
         val renewed = renewAdmission(afterMaintenance)
         if (renewed !== afterMaintenance)
@@ -217,7 +217,7 @@ internal class SafOperationJournal private constructor(
         val bytes = encode(SafOperationEnvelope.serializer(), envelope)
         check(bytes.size.toLong() <= reservation.metadataBytes)
         check(bytes.size.toLong() <= reservation.indexBytes)
-
+        // A failed write is deliberately retained; a subsequent index rejects partial evidence.
         val identity = storage.writeNew(File(target, "operation.json"), bytes, ::ensureVerificationActive)
         return Operation(owner, envelope, identity, mutableSetOf("operation.json"), identity.bytes, identity.bytes, 0, linkedMapOf(), true,
             admittedVisible = admittedVisible)
@@ -569,8 +569,7 @@ internal class SafOperationJournal private constructor(
 
     internal fun <T> ownedWrite(operation: Operation, checkActive: () -> Unit = {}, block: () -> T): T {
         val ownedLiveHandle = operation.owner === owner && liveHandles[operation.id]?.get() === operation
-        // Any other mutation makes a previously issued local token stale. Foreign owners cannot revoke
-        // it.
+        // Any other mutation makes a previously issued local token stale. Foreign owners cannot revoke it.
         if (ownedLiveHandle) operation.pendingLocalAdmission = null
         return try {
             validate(operation, checkActive)
@@ -764,8 +763,9 @@ internal class SafOperationJournal private constructor(
         }
     }
 
-    // Only fully admitted terminal records release unused headroom.
-
+    // Only fully admitted terminal records release unused headroom. These counters
+    // include retained local artifacts and the conservatively charged manifest candidate. Pending
+    // operations keep their entire reservation, including after a failed or uncertain write.
     private fun chargedMetadata(operation: Operation) = if (isTerminal(operation)) operation.metadataBytes else operation.envelope.reservation.metadataBytes
     private fun chargedIndex(operation: Operation) = if (isTerminal(operation)) operation.indexBytes else operation.envelope.reservation.indexBytes
     private fun chargedPayload(operation: Operation) = if (isTerminal(operation)) operation.payloadBytes else operation.envelope.reservation.payloadBytes
@@ -867,7 +867,7 @@ internal class SafOperationJournal private constructor(
     /** Renew after the last arbitrary callback, using only the captured coroutine Job. */
     internal fun renewAdmission(previous: Admission): Admission {
         if (cancellationJob != null) {
-
+            // No arbitrary caller callback followed the original deep admission in this branch.
             requireNamespaceUnchanged(previous)
             return previous
         }
@@ -985,7 +985,7 @@ internal class SafOperationJournal private constructor(
                             records.getOrPut(record.actionId) { arrayListOf() }.add(record)
                             check(records.size <= operation.envelope.reservation.actions)
                         }
-                        name in manifestNames -> Unit
+                        name in manifestNames -> Unit // Admitted by the manifest protocol below.
                         name == "abandoned.json" -> {
                             val abandoned = read(operation, name, SafAbandonedOperation.serializer(), checkActive)
                             require(abandoned == SafAbandonedOperation(1, operation.id, operation.envelopeIdentity.sha256))
@@ -1091,8 +1091,8 @@ internal class SafOperationJournal private constructor(
     private fun validatePlan(operation: Operation, plan: SafEffectPlan, checkActive: () -> Unit = {}) {
         checkActive()
         validPath(plan.path, allowRoot = plan.kind == SafEffectKind.LOCAL_ACTIVATION)
-        // Old unlinked v2 evidence had only validPath's byte/component limits. Keep it recoverable; all
-        // new live preparation and linked v3 evidence still obey the full lexical depth bound.
+        // Old unlinked v2 evidence had only validPath's byte/component limits. Keep it recoverable;
+        // all new live preparation and linked v3 evidence still obey the full lexical depth bound.
         if (plan.parentCreationActionId != null || plan.replacementDeleteActionId != null)
             require(plan.path.count { it == '/' } + 1 <= limits.treeDepth)
         require(operation.scopes.any { contains(it, plan.path) })
@@ -1172,8 +1172,8 @@ internal class SafOperationJournal private constructor(
             listOfNotNull(local.previous, local.intended).forEach { admitPayload(operation, it, admission, checkActive) }
             if (local.beforeInventory != null) localInventory(operation, local, checkActive).entries.forEach {
                 checkActive()
-                // Exact protected custody was admitted by validateLocalPlan. Preserve the user subtree's logical
-                // source path/depth; generic protected-path denial stays intact.
+                // Exact protected custody was admitted by validateLocalPlan. Preserve the user
+                // subtree's logical source path/depth; generic protected-path denial stays intact.
                 val root = if (local.deleteCustody == null) local.destination.path else requireNotNull(local.source).path
                 val target = root + if (it.path.isEmpty()) "" else "/${it.path}"
                 validPath(target, false)
@@ -1346,6 +1346,7 @@ internal class SafOperationJournal private constructor(
         }
     }
 
+    /** One exact same-operation destructive prerequisite; no disk I/O in this structural check. */
     internal fun replacementDeletion(operation: Operation, plan: SafEffectPlan): SafEffectRecord {
         val id = requireNotNull(plan.replacementDeleteActionId)
         requireUuid(id)

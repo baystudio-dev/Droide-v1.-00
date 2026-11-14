@@ -6,6 +6,30 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TerminalLaunchSpecTest {
+    @Test fun nativeTerminalCapabilitiesSurviveEnvResetButDoNotLeakIntoCommandMode() = runBlocking {
+        val report = "printf '%s|%s|%s' \"\${TERM-unset}\" \"\${COLORTERM-unset}\" \"\${TERM_PROGRAM-unset}\""
+        val spec = TerminalLaunchSpec(prefix = listOf("/usr/bin/env", "-i"), shell = "/bin/sh",
+            interactiveArgs = listOf("-c", report))
+        val cwd = File(requireNotNull(System.getProperty("java.io.tmpdir")))
+        val native = LocalProcessSupervisor.capture(spec.interactiveCommand(), cwd)
+        assertEquals(0, native.exitCode)
+        assertEquals("xterm-256color|truecolor|Droide", native.output)
+        val command = LocalProcessSupervisor.capture(spec.shellCommand(report), cwd)
+        assertEquals("unset|unset|unset", command.output)
+        assertFalse(spec.pipeCommand().any { it == "COLORTERM=truecolor" })
+        assertTrue(spec.pipeCommand().contains("TERM=dumb"))
+    }
+
+    @Test fun explicitlySelectedTerminalCapabilitiesOverrideTheDefaults() = runBlocking {
+        val spec = TerminalLaunchSpec(prefix = listOf("/usr/bin/env", "-i"), shell = "/bin/sh",
+            interactiveArgs = listOf("-c", "printf '%s|%s' \"\$TERM\" \"\$COLORTERM\""),
+            interactiveEnvironment = mapOf("TERM" to "vt100", "COLORTERM" to ""))
+        val result = LocalProcessSupervisor.capture(spec.interactiveCommand(),
+            File(requireNotNull(System.getProperty("java.io.tmpdir"))))
+        assertEquals(0, result.exitCode)
+        assertEquals("vt100|", result.output)
+    }
+
     @Test fun interactiveLeaseSurvivesGuestEnvironmentReset() = runBlocking {
         val spec = TerminalLaunchSpec(prefix = listOf("/usr/bin/env", "-i"), shell = "/bin/sh",
             interactiveArgs = listOf("-c", "printf '%s' \"\$DROIDE_PROCESS_LEASE\""))

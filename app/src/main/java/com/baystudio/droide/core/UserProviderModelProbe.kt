@@ -11,7 +11,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 internal object UserProviderModelProbe {
     suspend fun validate(provider: AiProvider, key: String, client: OkHttpClient): List<String> {
         require(provider.id.startsWith("user.") && provider.configuredModels.size in 1..UserProviderDefinition.MAX_MODELS)
-
+        // Collect all results before the connection backend publishes any certification.
         return provider.configuredModels.map { model ->
             ProviderModelRequestPolicy.requireConversational(provider, model)
             val request = request(provider, model)

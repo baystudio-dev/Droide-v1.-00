@@ -10,12 +10,13 @@ import java.nio.file.Path
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 
+/** Android source opens are O_NOFOLLOW|O_NONBLOCK, then fstat-bound before any byte read. */
 internal object ExportSourceReader {
     fun <T> read(path:Path, device:Long, inode:Long, size:Long, action:(InputStream)->T):T {
         if(System.getProperty("java.vm.name") == "Dalvik") {
             val fd=Os.open(path.toString(),OsConstants.O_RDONLY or OsConstants.O_NOFOLLOW or OsConstants.O_NONBLOCK or OsConstants.O_CLOEXEC,0)
-            // Android FileInputStream(FileDescriptor) borrows rather than owns this descriptor. Closing the
-            // stream alone leaks the fd returned by Os.open.
+            // Android FileInputStream(FileDescriptor) borrows rather than owns this
+            // descriptor. Closing the stream alone leaks the fd returned by Os.open.
             return withExportOwnedDescriptor(
                 openInput = { FileInputStream(fd) },
                 closeDescriptor = { if (fd.valid()) Os.close(fd) },

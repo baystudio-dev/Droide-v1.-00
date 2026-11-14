@@ -232,8 +232,7 @@ class MembershipCommandCompletionTest {
     @Test fun changedAckDuringHistoricalReviewRefusesOriginalProofInsteadOfRebasing() = fixture { f ->
         val r = staged(f); val result = complete(f, r)
         f.hook = { if (it == "membership-completed-result-reviewed") f.db { db ->
-            // Synthetic concurrent-state fixture: valid atomic acknowledgement, outside the normal shared
-            // mutex.
+            // Synthetic concurrent-state fixture: valid atomic acknowledgement, outside the normal shared mutex.
             db.beginTransaction()
             try { CatalogMembershipCommands.acknowledge(db, result.token, result.outcome!!); db.setTransactionSuccessful() }
             finally { db.endTransaction() }

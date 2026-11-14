@@ -15,7 +15,8 @@ class TerminalCombiningOutputTest {
 
     @Test fun ordinaryMixedZwjVariationAndCombiningSequencesRemainExact() {
         val terminal = DeviceTerminalEmulator({}, 80, 24)
-
+        // Woman technologist, combining accents, and heart-on-fire. Every cell
+        // is below the budget; retain the existing emulator's complete text.
         val expected = "\uD83D\uDC69\u200D\uD83D\uDCBB\uFE0F e\u0301\u0323 " +
             "\u2764\uFE0F\u200D\uD83D\uDD25"
         terminal.appendFromWorker(expected)

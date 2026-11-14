@@ -242,6 +242,7 @@ class ArtifactTransferStoreTest {
         finally { root.deleteRecursively() }
     }
 
+    // These tests exercise file-backed transfer state; URL/DNS policy has separate coverage.
     private fun spec(expectedBytes: Long? = 100L): TrustedArtifactDescriptor = object : TrustedArtifactDescriptor {
         override val id = "test-artifact"
         override val url = "https://example.com/test-artifact.bin"

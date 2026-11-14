@@ -1,13 +1,11 @@
-# Documentation
+# Droide documentation
 
-| Guide | Scope |
-| --- | --- |
-| [Architecture](ARCHITECTURE.md) | Application components and ownership boundaries |
-| [Development](DEVELOPMENT.md) | Source conventions and local workflow |
-| [Building](BUILDING.md) | Toolchain, debug/release builds, and signing |
-| [Testing](TESTING.md) | Repository, application, and device checks |
-| [Dependencies](DEPENDENCIES.md) | Locked dependencies, provenance, and license maintenance |
-| [Releasing](RELEASING.md) | Release preparation, validation, and artifacts |
-| [Droide 1.00](releases/1.00.md) | Release features, installation, and verification results |
+These are the current source guides:
 
-The application also packages an [agent handbook](../app/src/main/assets/agent-handbook/about%20droide.md) for user support and troubleshooting. Required notices and license texts are in [the legal assets](../app/src/main/assets/legal/).
+- [Architecture and workspace boundaries](ARCHITECTURE.md)
+- [Development and build requirements](DEVELOPMENT.md)
+- [Testing and release evidence](TESTING.md)
+
+`verification/r106-batch/research.json`, `verification/r107-ini/research.json`, and `verification/r120-explorer-export/dependency-provenance.json` are frozen upstream provenance cited by the packaged third-party notices. They establish the identity of those inputs, not the release status of Droide.
+
+Historical checkpoint reports, handoff notes, archived test runners and old outputs are outside the application source. Consult the current development release ledger before treating an archived result as applicable to a changed revision.

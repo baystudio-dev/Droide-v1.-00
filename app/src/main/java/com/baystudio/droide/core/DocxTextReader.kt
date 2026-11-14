@@ -84,7 +84,7 @@ object DocxTextReader {
                     if (++count > MAX_ENTRIES) fail(Reason.LIMIT_EXCEEDED, "DOCX has more than 2,048 ZIP entries.")
                     val entry = enumeration.nextElement()
                     validateName(entry.name)
-
+                    // Also reject case aliases and file/directory aliases, though nothing is extracted.
                     val key = entry.name.removeSuffix("/").lowercase(Locale.ROOT)
                     if (!names.add(key)) fail(Reason.CORRUPT, "DOCX contains duplicate or ambiguous ZIP entries.")
                     if (key.endsWith("/vbaproject.bin") || key.endsWith("/vbadata.xml")) {
@@ -125,6 +125,7 @@ object DocxTextReader {
         }
     }
 
+    /** Bound ZipFile's eager central-directory allocation before constructing it. */
     private fun preflightZip(file: File, checkCancelled: () -> Unit) {
         RandomAccessFile(file, "r").use { input ->
             val length = input.length()
@@ -294,7 +295,8 @@ object DocxTextReader {
         zip: ZipFile, entry: ZipEntry, budget: ByteBudget, limit: Long,
         handler: SecureHandler, checkCancelled: () -> Unit,
     ) {
-
+        // Ratio uses the ZIP compressed-size field; the hard actual-byte cap is independent
+        // of ZIP metadata and remains the primary decompression-bomb defense.
         if (entry.compressedSize < 0 || entry.compressedSize > MAX_ARCHIVE_BYTES ||
             entry.size > limit || entry.size > MAX_XML_BYTES - budget.used ||
             entry.size > maxOf(1L, entry.compressedSize) * MAX_COMPRESSION_RATIO) {
@@ -309,8 +311,8 @@ object DocxTextReader {
         secureReader(reader, handler)
         zip.getInputStream(entry).use { input ->
             val bounded = BoundedEntry(input, entry, budget, limit, checkCancelled)
-            reader.parse(InputSource(bounded)) // No systemId: never interpret a URL or file path as XML input. Verify actual size and CRC even
- // if a parser stops reading just after the root closes.
+            reader.parse(InputSource(bounded)) // No systemId: never interpret a URL or file path as XML input.
+            // Verify actual size and CRC even if a parser stops reading just after the root closes.
             val tail = ByteArray(8192)
             while (bounded.read(tail) != -1) checkCancelled()
         }
@@ -324,7 +326,8 @@ object DocxTextReader {
                 reader.setFeature(SAX_FEATURE + name, value)
                 if (reader.getFeature(SAX_FEATURE + name) != value) throw SAXException("Feature not applied")
             }
-
+            // Expat on Android lacks Xerces disallow-doctype-decl. Its lexical startDTD callback
+            // rejects every DOCTYPE before declarations are processed, for every XML encoding.
             reader.setProperty(LEXICAL, handler)
             if (reader.getProperty(LEXICAL) !== handler) throw SAXException("Lexical handler not applied")
             reader.entityResolver = handler
@@ -462,7 +465,7 @@ object DocxTextReader {
                 }
                 mainFound = true
             }
-
+            // All other relationships, including external hyperlinks and images, are ignored.
         }
     }
 

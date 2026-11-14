@@ -106,10 +106,12 @@ class ExplorerProjectWorkflowTest {
 
     private fun await(condition: () -> Boolean) = compose.waitUntil(5_000) {
         compose.mainClock.advanceTimeByFrame()
-        // Import progress returns from real I/O through Android's Main handler, which is distinct from
-        // the Compose test clock even without a dialog.
+        // Import progress returns from real I/O through Android's Main handler,
+        // which is distinct from the Compose test clock even without a dialog.
         Shadows.shadowOf(Looper.getMainLooper()).idle()
-
+        // Repository completions can enable the field or insert an error after
+        // the button action has returned. Traverse that same native dialog
+        // before each normal semantics fetch, just as after focus/text changes.
         if (hasNativeDialogWindow()) traverseNativeDialogWindow()
         condition()
     }
@@ -142,8 +144,11 @@ class ExplorerProjectWorkflowTest {
         return present
     }
 
-    // Same bounded SDK 35 window traversal used by BrowserHumanDialogTest.
-
+    // Same bounded SDK 35 window traversal used by BrowserHumanDialogTest. The
+    // default host traversal can strand the dialog text-selection layout, then
+    // accumulate ShadowTrace records while the normal idler repeatedly lays it
+    // out. Perform real owner work; do not clear requests, disable animation or
+    // enlarge memory/time budgets. A recurring layout still fails this check.
     private fun traverseNativeDialogWindow() {
         assertTrue("Automatic Compose idling stays enabled", compose.mainClock.autoAdvance)
         var idleAfterTraversal = false
@@ -186,8 +191,10 @@ class ExplorerProjectWorkflowTest {
     }
 
     private fun chooseLanguage(label: String, scroll: Boolean = false) {
-        // DropdownMenu creates another native Popup owner inside the dialog.
-
+        // DropdownMenu creates another native Popup owner inside the dialog. Complete its
+        // actual host traversal before the normal semantics idler tries to query its items.
+        // Animation/timeouts/idling policies stay unchanged; this is the same SDK35 fixture
+        // traversal used for the parent AlertDialog, not a direct model/callback invocation.
         compose.mainClock.advanceTimeBy(400)
         traverseNativeDialogWindow()
         val item = compose.onNode(hasText(label) and hasClickAction())
@@ -201,7 +208,7 @@ class ExplorerProjectWorkflowTest {
     }
 
     private fun openActions(leaf: String) {
-
+        // Target the button in this row rather than relying on row index or sort order.
         compose.onNodeWithText(leaf, useUnmergedTree = true).onParent().onChildren()
             .filter(hasClickAction() and hasAnyDescendant(hasContentDescription("File actions")))
             .onFirst().performClick()

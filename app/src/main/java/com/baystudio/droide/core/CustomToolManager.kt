@@ -38,7 +38,8 @@ class CustomToolManager internal constructor(private val workDir: File, private 
                 val digest = MessageDigest.getInstance("SHA-256")
                     .digest(file.name.toByteArray(Charsets.UTF_8))
                     .joinToString("") { "%02x".format(it) }.take(12)
-
+                // Counter makes collisions resolvable even against deliberately chosen legacy names.
+                // The finite occupied-name set bounds the counter search.
                 val name = (0..used.size).asSequence().map { counter ->
                     val suffix = "_${digest}_$counter"
                     legacy.take(56 - suffix.length) + suffix
@@ -91,8 +92,8 @@ class CustomToolManager internal constructor(private val workDir: File, private 
         return value.substring(0, end)
     }
 
-    // Preserve the script input contract exactly; launch failures belong to execArgv, never silently
-    // substitute a truncated argument before execution.
+    // Preserve the script input contract exactly; launch failures belong to execArgv,
+    // never silently substitute a truncated argument before execution.
     fun argv(name: String, input: String): List<String>? {
         val def = discover().firstOrNull { it.name == name } ?: return null
         return argv(def, input)

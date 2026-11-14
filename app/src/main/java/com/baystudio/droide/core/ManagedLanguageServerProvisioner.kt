@@ -5,8 +5,8 @@ import android.os.Build
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 
-// This does not alter Extensions UI metadata and never turns an unpromoted artifact into an
-// installable package.
+// This does not alter Extensions UI metadata and never turns an unpromoted artifact into an installable package.
+
 
 class ManagedLanguageServerProvisioner(
     context: Context,
@@ -53,13 +53,15 @@ class ManagedLanguageServerProvisioner(
 
     // Opening/editing a file never downloads tools.
 
+
     suspend fun ensureAvailable(
         serverId: String,
         supportedAbis: List<String> = Build.SUPPORTED_ABIS.toList(),
     ): Boolean {
         val server = ManagedLanguageServerPlan.forServer(serverId) ?: return false
         if(server.packageFamilyId==LocalUbuntuElpPolicy.FAMILY) return false // Typed owner admission only; never generic health or PATH fallback.
-
+        // Discovery is not package installation or historical Device Workstation certification.
+        // Ubuntu Extensions owns explicit, reviewed installation; the live client negotiates LSP.
         return verifyLocalRuntimeCommands(server)
     }
 

@@ -56,14 +56,14 @@ class MirrorProcessCleanupReceiptsTest {
             assertNotNull(runCatching { authority().requireNoPendingProcessOwners() }.exceptionOrNull())
             assertNotNull(runCatching { authority().processCustody().acquire(working).also { it.withFactory({}, {}) } }.exceptionOrNull())
             assertNotNull(runCatching { ExportWriterAdmission.beginCapture(working).close() }.exceptionOrNull())
-            // A root PID/cwd scan is not proof: the live child has changed cwd while its inherited
-            // descriptor still names a file in this working copy.
+            // A root PID/cwd scan is not proof: the live child has changed cwd while
+            // its inherited descriptor still names a file in this working copy.
             assertEquals("original", working.resolve("file").readText())
         } finally {
             child?.let { it.destroyForcibly(); assertTrue(it.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) }
         }
-        // Test-only exact child cleanup cannot retroactively certify an unknown production factory or
-        // clear its durable/memory ownership.
+        // Test-only exact child cleanup cannot retroactively certify an unknown
+        // production factory or clear its durable/memory ownership.
         assertEquals(1, owners().size)
         assertTrue(directory.resolve("process-cleanup-receipts").listFiles().orEmpty().isEmpty())
     }
@@ -206,7 +206,7 @@ class MirrorProcessCleanupReceiptsTest {
             MirrorProcessCustodyLedger.Owner(UUID.randomUUID().toString(), oldRuntime)
         }
         assertNotNull(runCatching { store.requireCapacity(pending) }.exceptionOrNull())
-        store.record(pending.first(), pending)
+        store.record(pending.first(), pending) // its reserved completion slot still works
         assertNotNull(runCatching { store.requireCapacity(pending) }.exceptionOrNull())
         assertEquals(pending.drop(1), store.remaining(pending))
     }

@@ -13,6 +13,7 @@ data class PluginHistoryFinishRequest(
     val media: List<ChatMediaRef> = emptyList(),
 )
 
+/** Optional capability. Legacy history APIs remain strict and keep their existing ABI. */
 interface PluginHistoryCheckpointStore {
     suspend fun beginCheckpointTurn(id: String?, agentId: String, prompt: String, mode: WorkspaceAgentMode,
                                     nativeSessionId: String?, media: List<ChatMediaRef> = emptyList()): PluginHistoryTurnAdmission

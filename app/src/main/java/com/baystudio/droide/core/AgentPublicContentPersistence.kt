@@ -1,7 +1,8 @@
 package com.baystudio.droide.core
 
 /** Message-manifest admission is distinct from model-facing API history. Never add owned
- * capabilities to provider messages. All blob checks occur off the UI thread in SessionManager. */
+ * capabilities to provider messages. All blob checks occur off the UI thread in SessionManager.
+ */
 internal object AgentPublicContentPersistence {
     fun verify(messages: List<AgentMessage>, archive: AgentPublicContentArchive) {
         messages.forEach { message ->

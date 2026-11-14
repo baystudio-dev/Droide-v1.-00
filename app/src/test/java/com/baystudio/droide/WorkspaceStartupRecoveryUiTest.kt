@@ -126,7 +126,7 @@ class WorkspaceStartupRecoveryUiTest {
             var expanded by mutableStateOf(false)
             compose.setContent {
                 val selected = workspaceAgentPluginsForStartup(enabled, host)
-
+                // Same nullable host and lifecycle observer used by the actual AgentPane callsite.
                 val availability = rememberWorkspaceAgentAvailability(selected, expanded) { selected?.availability().orEmpty() }
                 androidx.compose.material3.Text("${availability.size} available Agent entries")
             }

@@ -30,6 +30,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Real Explorer clicks into initially unloaded documents and their Android editor surface. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w360dp-h640dp-port")
 class ExplorerFileOpenRegressionTest {
@@ -211,7 +212,7 @@ class ExplorerFileOpenRegressionTest {
         compose.onNode(hasText("src", substring = false) and hasClickAction()).performClick()
         await { explorerState.children["src"]?.any { it.path == "src/child.kt" } == true }
         compose.waitForIdle()
-
+        // This row displays the leaf while its callback opens the full relative path.
         compose.onNode(hasText("child.kt", substring = false) and hasClickAction()).performClick()
         await { editorState.peek("src/child.kt")?.loaded == true }
         compose.waitForIdle()

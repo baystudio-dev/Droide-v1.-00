@@ -38,6 +38,7 @@ interface ProjectStore {
 /** A caller-owned observation, not an immutable filesystem generation or CAS token. */
 data class ProjectCatalogSnapshot(val projects: List<DroideProject>, val revision: DiskFileVersion)
 
+/** Explicit capability; legacy/custom stores keep their existing unversioned contract. */
 interface VersionedProjectStore : ProjectStore {
     suspend fun loadCatalog(): ProjectCatalogSnapshot
     suspend fun catalogRevision(all: List<DroideProject>): DiskFileVersion
@@ -245,7 +246,7 @@ class FileProjectStore internal constructor(
                     }
                 }
                 ProjectMetadataPublication.writeChecked(f, text, publish, durability, replaceExisting, beforeReplace = {
-
+                    // Creation is no-replace; existing-file replacement still needs journal integration for external races.
                     if (expected != null && observeCatalogRevision() != expected) {
                         throw ProjectCatalogConflictException()
                     }
@@ -256,6 +257,7 @@ class FileProjectStore internal constructor(
             }
         }
 
+    /** Raw observation, deliberately independent of startup's missing-with-existing-projects policy. */
     private fun observeCatalogRevision(): DiskFileVersion {
         val path = f.toPath()
         if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) return DiskFileVersion.fromText(null)
@@ -294,8 +296,8 @@ class FileProjectStore internal constructor(
     }
 
     override suspend fun loadActiveId(): String? = withContext(Dispatchers.IO) {
-        // This read also resolves an ambiguous atomic-write return. The byte bound is enforced while
-        // decoding, not just by a racy pre-read file-length check.
+        // This read also resolves an ambiguous atomic-write return. The byte bound is
+        // enforced while decoding, not just by a racy pre-read file-length check.
         if (!Files.isDirectory(active.parentFile!!.toPath(), LinkOption.NOFOLLOW_LINKS) ||
             !Files.isRegularFile(active.toPath(), LinkOption.NOFOLLOW_LINKS)) return@withContext null
         try {
@@ -333,8 +335,8 @@ class FileProjectStore internal constructor(
     private fun replaceWithAdmission(source: Path, target: Path, options: Array<CopyOption>, file: File) {
         try { replace(source, target, options) }
         catch (failure: Throwable) {
-            // A failed native return can follow publication. Mode evidence must not be lost when manager
-            // cancellation recovery reads back bytes equal to the proposal.
+            // A failed native return can follow publication. Mode evidence must not be lost
+            // when manager cancellation recovery reads back bytes equal to the proposal.
             try { requireWriteAdmission() }
             catch (modeFailure: Throwable) {
                 val primary = if (modeFailure is Error && failure !is Error) modeFailure else failure

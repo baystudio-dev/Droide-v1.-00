@@ -121,7 +121,7 @@ class AcpAttachmentAccessTest {
             val access = lease(destinationAvailable = { relative ->
                 host.workspaceIo.requireNewPath(mapper.localRelativeToRemote(relative))
             }, saved = { relative ->
-
+                // A concurrent terminal wins AFTER preflight and the canonical copy commits.
                 if (relative == "imports/existing.zip") {
                     conflicting.parentFile.mkdirs(); conflicting.writeText("CLI work in progress")
                 }
@@ -142,7 +142,7 @@ class AcpAttachmentAccessTest {
                 assertEquals("CLI work in progress", conflicting.readText())
                 assertArrayEquals(original, root.resolve("imports/existing.zip").readBytes())
                 assertTrue(conflicting.renameTo(File(conflicting.parentFile, "renamed-CLI-work.zip")))
-
+                // Preserve the user's renamed copy via the source before resolving the old path.
                 root.resolve("imports/renamed-CLI-work.zip").writeText("CLI work in progress")
                 reopened.workspaceIo.refresh()
                 assertArrayEquals(original, conflicting.readBytes())

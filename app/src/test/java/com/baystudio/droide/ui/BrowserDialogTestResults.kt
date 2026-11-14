@@ -7,6 +7,7 @@ import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadow.api.Shadow
 
+/** Android exposes no result constructor in the SDK; create its real hidden receiver contract for host fixtures. */
 internal object BrowserDialogTestResults {
     fun alert(): JsResult = create(JsResult::class.java)
     fun prompt(): JsPromptResult = create(JsPromptResult::class.java)

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.contentOrNull
 import java.util.concurrent.ConcurrentHashMap
 
+
 object ModelContextRegistry {
     private val contextTokens = ConcurrentHashMap<String, Int>()
 
@@ -78,17 +79,18 @@ data class ContextEstimate(
 }
 
 object ContextBudget {
-
+     
     const val KEEP_RECENT_TOKENS = 75_000
-
+     
     const val BUFFER_TOKENS = 20_000
     // Unknown catalogs never get a fabricated token limit.
-
+    // This is a bounded mobile request working set, not a claimed model token limit.
+    // Exact conversation history remains in the disk ledger after compaction.
     const val MOBILE_COMPACT_CHARS = 1_200_000
     const val UNKNOWN_LIMIT_COMPACT_CHARS = MOBILE_COMPACT_CHARS
     const val UNKNOWN_OVERFLOW_KEEP_TOKENS = 4_000
-    // Approximate image allowance only. Providers tokenize resized image patches differently; base64
-    // wire bytes are never a token count. Actual usage still comes from the response.
+    // Approximate image allowance only. Providers tokenize resized image patches differently;
+    // base64 wire bytes are never a token count. Actual usage still comes from the response.
     private const val ESTIMATED_IMAGE_TOKENS = 4_096
 
     fun estimate(
@@ -101,6 +103,7 @@ object ContextBudget {
     ): ContextEstimate = estimate(systemText, history, tools, providerId, modelId, transport,
         ProviderRequestBudget.defaultOutputTokens(providerId, modelId))
 
+    /** Use the same reservation as the request, including its selected reasoning mode. */
     fun estimate(
         systemText: String,
         history: List<JsonObject>,
@@ -130,8 +133,8 @@ object ContextBudget {
         }
         val chars = (systemText.length.toLong() + historyChars +
             (tools?.let(::serializedChars) ?: 0) + 1_024).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        // Keep the original representation for the independent mobile working-set guard. Only token
-        // accounting uses the matching adapter's validated native selection.
+        // Keep the original representation for the independent mobile working-set guard.
+        // Only token accounting uses the matching adapter's validated native selection.
         val projectedBytes = (utf8Bytes(systemText).toLong() + projectedHistoryBytes +
             (tools?.let(::serializedUtf8Bytes) ?: 0) + 1_024).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         val tokens = (estimateTokensFromChars(projectedBytes).toLong() + imageCount.toLong() * ESTIMATED_IMAGE_TOKENS)
@@ -173,8 +176,8 @@ object ContextBudget {
     private fun effectiveBufferTokens(inputLimit: Int): Int =
         BUFFER_TOKENS.coerceAtMost((inputLimit / 4).coerceAtLeast(1))
 
-    // Coarse UTF-8 bytes/4 estimate; this is not a tokenizer upper bound.
-
+    // Coarse UTF-8 bytes/4 estimate, like Codex. This is not a tokenizer upper bound;
+    // provider usage and overflow recovery remain authoritative for each model.
     fun estimateTokens(text: String): Int = estimateTokensFromChars(utf8Bytes(text))
     fun estimateTokensFromChars(chars: Int): Int = if (chars <= 0) 0 else ((chars.toLong() + 3) / 4).toInt()
 
@@ -192,7 +195,7 @@ object ContextBudget {
                 ch.code < 0x80 -> 1
                 ch.code < 0x800 -> 2
                 ch.isHighSurrogate() && index < text.length && text[index].isLowSurrogate() -> { index++; 4 }
-                ch.isSurrogate() -> 1
+                ch.isSurrogate() -> 1 // JVM UTF-8 encoder replaces an unpaired surrogate with '?'.
                 else -> 3
             }
         }

@@ -12,8 +12,13 @@ internal object AgentActivityMotion {
 /** Stream part IDs are local to a run (for example tool:1:0), never globally unique. */
 internal fun agentActivityItemKey(runId: Long, partId: String): String = "stream:$runId:$partId"
 
-/** Seed with the whole initial live snapshot, not only visible rows, so reopening/restoring a
- * pane never stages old activity. */
+/**
+ * At-most-once decoration for one mounted conversation/run. Seed with the whole initial live
+ * snapshot, not only visible rows, so reopening/restoring a pane never stages old activity.
+ * Claims are consumed even when motion is disabled or the reader is away from the live tail.
+ * The UI thread owns this bounded ledger. A speculative composition may consume a claim and
+ * omit one fade; it can never replay a fade or change a tool's state. Fail closed at the cap.
+ */
 internal class AgentActivityEntrancePolicy(
     initialPartIds: Iterable<String>,
     private val capacity: Int = AgentActivityMotion.MaxRememberedEntrances,

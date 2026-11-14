@@ -1,0 +1,590 @@
+[
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:41.835937+00:00",
+    "label": "tool-cmake",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:41.830891+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "90cd757f403ff8f205a0b6a5c35cb226381cfdf7aedd87b2ca34df02bb51ef99"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:41.839824+00:00",
+    "label": "tool-ninja",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:41.837261+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "50020f5178d4e42fca05b2455fbe25f0a8a19b7537bab9fa87429ec5ebe20de1"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.002618+00:00",
+    "label": "tool-clang",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:41.992166+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "b6d66cde29660871542999b7eb72a27e29909c7e13a24dd97a771c6635cf6baa"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.074853+00:00",
+    "label": "tool-ld-lld",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.064863+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "beb081d9d28d09dd4f1c22c71aafbfde911fabc5e08b870749953232eb57c07f"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.087734+00:00",
+    "label": "tool-llvm-readelf",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.084152+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "94808aded17d65b49712a685424bdb641a02b7dbfdd6f5a648b7c89061b5c097"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.111955+00:00",
+    "label": "tool-llvm-nm",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.106656+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "cd217ec0c676f167944beb9155e9de10d7aa73ac10c8380f6c205ab32c59dca2"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-dwarfdump",
+      "--version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.150166+00:00",
+    "label": "tool-llvm-dwarfdump",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.142305+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "94808aded17d65b49712a685424bdb641a02b7dbfdd6f5a648b7c89061b5c097"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javac",
+      "-version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.516063+00:00",
+    "label": "tool-javac",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.153541+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "fc1904a51a7019658c64e5d4870c6640cb45d29f50e02643a0f045af6fd0b15c"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javap",
+      "-version"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.715449+00:00",
+    "label": "tool-javap",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.517209+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "c3acff369b4d247a4433dc362a8eff2ebd709578597bcbfafab10b06fb7f0e45"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "-S",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source/app/src/main/cpp",
+      "-B",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/arm64-v8a",
+      "-G",
+      "Ninja",
+      "-DCMAKE_MAKE_PROGRAM=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/build/cmake/android.toolchain.cmake",
+      "-DANDROID_ABI=arm64-v8a",
+      "-DANDROID_PLATFORM=android-29",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+      "-DCMAKE_C_FLAGS=-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358 -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:42.910929+00:00",
+    "label": "arm64-v8a-configure",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.717674+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "e3e548a44ae57487f3861ed2812cb8ed91759aa9edea8a58acd4ad0eb1a4c15b"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "--build",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/arm64-v8a",
+      "--target",
+      "termux",
+      "droide_files",
+      "--parallel",
+      "2",
+      "--verbose"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:43.227715+00:00",
+    "label": "arm64-v8a-build",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:42.911527+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "e59722b005fd1a005bd9abc10de0951f950e34150f11192221dd40ae94d8e49f"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/arm64-v8a",
+      "-t",
+      "commands",
+      "termux",
+      "droide_files"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:43.232778+00:00",
+    "label": "arm64-v8a-actual-commands",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:43.229457+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "22565ff4663cdb0be207e8688f394f8f595e7bee1a3f7f426694ddce50807cdb"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "-S",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source/app/src/main/cpp",
+      "-B",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/armeabi-v7a",
+      "-G",
+      "Ninja",
+      "-DCMAKE_MAKE_PROGRAM=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/build/cmake/android.toolchain.cmake",
+      "-DANDROID_ABI=armeabi-v7a",
+      "-DANDROID_PLATFORM=android-29",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+      "-DCMAKE_C_FLAGS=-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358 -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:43.423438+00:00",
+    "label": "armeabi-v7a-configure",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:43.233549+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "1e4fc9a807bbf9b41b13d9a272bf735f2884ec959d4813a68c140d1b640bc117"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "--build",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/armeabi-v7a",
+      "--target",
+      "termux",
+      "droide_files",
+      "--parallel",
+      "2",
+      "--verbose"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:43.729815+00:00",
+    "label": "armeabi-v7a-build",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:43.424850+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "e59a802496f07adbbd1b70e688b0d35c3a5c0b4afe886167a50d87cc0bcf5059"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/armeabi-v7a",
+      "-t",
+      "commands",
+      "termux",
+      "droide_files"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:43.735554+00:00",
+    "label": "armeabi-v7a-actual-commands",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:43.732025+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "3d14c12a3d31636bfe80f0a63efb5c6c3f281edef6f72fc350d77d5b36c9ecd1"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "-S",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source/app/src/main/cpp",
+      "-B",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/x86",
+      "-G",
+      "Ninja",
+      "-DCMAKE_MAKE_PROGRAM=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/build/cmake/android.toolchain.cmake",
+      "-DANDROID_ABI=x86",
+      "-DANDROID_PLATFORM=android-29",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+      "-DCMAKE_C_FLAGS=-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358 -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:44.012434+00:00",
+    "label": "x86-configure",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:43.736465+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "032ee05aaaf1585d1a7f28db0562c7817fabf5b6c7d01d586f88b840af76a672"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "--build",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/x86",
+      "--target",
+      "termux",
+      "droide_files",
+      "--parallel",
+      "2",
+      "--verbose"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:44.282463+00:00",
+    "label": "x86-build",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:44.013428+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "7ea55938073a9278ca80acda4ef6ef536869faea259cb060019e02fe5f1d6773"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/x86",
+      "-t",
+      "commands",
+      "termux",
+      "droide_files"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:44.288160+00:00",
+    "label": "x86-actual-commands",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:44.283184+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "b6613d3634f200f33b16ce9600771e5e3fef549a0420ea4b79df1e63769e468a"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "-S",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source/app/src/main/cpp",
+      "-B",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/x86_64",
+      "-G",
+      "Ninja",
+      "-DCMAKE_MAKE_PROGRAM=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-DCMAKE_TOOLCHAIN_FILE=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/build/cmake/android.toolchain.cmake",
+      "-DANDROID_ABI=x86_64",
+      "-DANDROID_PLATFORM=android-29",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+      "-DCMAKE_C_FLAGS=-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358 -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:44.710539+00:00",
+    "label": "x86_64-configure",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:44.288844+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "e07e5ec0e7863e9ed762ba683ac9953f9d725a4fd45ab2adc0b53396b839c40f"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/cmake",
+      "--build",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/x86_64",
+      "--target",
+      "termux",
+      "droide_files",
+      "--parallel",
+      "2",
+      "--verbose"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:45.035222+00:00",
+    "label": "x86_64-build",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:44.712525+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "d3ada32fb4d72cabc143fe619d04e47039801df76ebc6aa43ba1348e8e663e1d"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/x86_64",
+      "-t",
+      "commands",
+      "termux",
+      "droide_files"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:45.039043+00:00",
+    "label": "x86_64-actual-commands",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:45.035935+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "0d26b38340aba776d91b8d1f9fb6e71f865882017f007a2f1f43dd88fbe530cb"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javac",
+      "--release",
+      "8",
+      "-proc:none",
+      "-d",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/java-signatures",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source/third_party/termux/patches/src/com/termux/terminal/JNI.java"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:46.493353+00:00",
+    "label": "compile-java-declarations",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:45.039966+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/jdk-17.0.20.1+1/bin/javap",
+      "-p",
+      "-s",
+      "-classpath",
+      "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/java-signatures",
+      "com.termux.terminal.JNI"
+    ],
+    "cwd": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent",
+    "environment": {
+      "HOME": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/evidence/native-independent/home",
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/cmake/3.22.1/bin:/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin",
+      "TMPDIR": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent/tmp",
+      "TZ": "UTC"
+    },
+    "finishedUtc": "2026-10-16T19:26:46.767242+00:00",
+    "label": "inspect-java-declarations",
+    "returnCode": 0,
+    "startedUtc": "2026-10-16T19:26:46.495933+00:00",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdoutSha256": "f90aa42bb4ea34631727776690ab93a07a758db9ca1b524a1e6f73af02812e67"
+  }
+]

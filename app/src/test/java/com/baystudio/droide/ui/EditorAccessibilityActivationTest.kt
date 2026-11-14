@@ -58,8 +58,8 @@ class EditorAccessibilityActivationTest {
             editor.measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(220, View.MeasureSpec.EXACTLY))
             editor.layout(0, 0, 400, 220)
-            // Sora computes layout on a worker, then posts completion to Main. Draining Main once does not
-            // guarantee that the editor can already accept input.
+            // Sora computes layout on a worker, then posts completion to Main. Draining
+            // Main once does not guarantee that the editor can already accept input.
             val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
             do {
                 shadowOf(Looper.getMainLooper()).idle()

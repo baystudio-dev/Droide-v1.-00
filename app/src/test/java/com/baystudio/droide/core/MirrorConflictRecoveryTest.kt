@@ -187,8 +187,8 @@ class MirrorConflictRecoveryTest {
         var admissions = 0
         val failure = runCatching {
             process.retainedRecovery.reviewRetention(selected, documents) {
-                // First admission is before inspection; second is inside the first history page, which contains
-                // only completed/non-pending records.
+                // First admission is before inspection; second is inside the first
+                // history page, which contains only completed/non-pending records.
                 if (++admissions == 2) throw CancellationException("cancelled history scan")
             }
         }.exceptionOrNull()
@@ -313,8 +313,8 @@ class MirrorConflictRecoveryTest {
     @Test fun persistedOwnerFromAnEarlierRuntimeBlocksAcknowledgementWithoutAMemoryTicket() = fixture {
         val review = host.inspectRetainedAcknowledgement(item()); val original = original(); val retained = original.readBytes()
         authority.processCustody(java.util.UUID.randomUUID().toString()).acquire(working).also { it.withFactory({}, {}) }.use {
-            // A recreated authority has only the durable row, with no process handle in this runtime.
-            // Export's in-memory registry alone would allow this mutation.
+            // A recreated authority has only the durable row, with no process handle in
+            // this runtime. Export's in-memory registry alone would allow this mutation.
             ExportWriterAdmission.beginCapture(working).close()
             val metadata = metadata()
             val error = runCatching { host.acknowledgeRetainedVersion(review) }.exceptionOrNull()

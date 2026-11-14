@@ -2,13 +2,14 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+
 internal object AndroidBuildToolsPayload {
     val architectureNeutralFiles = setOf(
         "apksigner", "d8", "lib/apksigner.jar", "lib/d8.jar", "core-lambda-stubs.jar",
         "source.properties", "runtime.properties", "NOTICE.txt",
     )
-    // sdklib validates these paths even for the AAPT2 build path. Preserve the original Google bytes
-    // as non-executable compatibility files; legacy AAPT/dexdump execution is unsupported.
+    // sdklib validates these paths even for the AAPT2 build path. Preserve the original Google
+    // bytes as non-executable compatibility files; legacy AAPT/dexdump execution is unsupported.
     val compatibilityFiles = setOf("aapt", "dexdump")
     val requiredFiles = architectureNeutralFiles + compatibilityFiles
     val archiveFiles = requiredFiles + "package.xml" // sdkmanager may generate this; ZIP need not contain it.
@@ -43,8 +44,8 @@ internal object AndroidBuildToolsPayload {
         require(file.isFile && !PathSecurity.isSymbolicLink(file) && file.length() in 20L..8_192L) {
             "Google Build Tools $name launcher is unavailable"
         }
-        // The pinned scripts begin with an Apache license block. The jar identity is below that block,
-        // outside the first 256 bytes. Read the complete bounded script, not a partial read.
+        // The pinned scripts begin with an Apache license block. The jar identity is below that
+        // block, outside the first 256 bytes. Read the complete bounded script, not a partial read.
         val script = file.readText(Charsets.UTF_8)
         require(script.startsWith("#!/bin/bash\n") && script.lineSequence().any { it == "jarfile=$name.jar" }) {
             "Google Build Tools $name launcher identity check failed"

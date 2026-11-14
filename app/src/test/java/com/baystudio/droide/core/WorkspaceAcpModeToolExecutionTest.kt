@@ -12,8 +12,12 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Only the ACP provider and OS launch adapter are fixtures. */
-
+/**
+ * Frozen HOST206 production host/RPC/file/terminal/mirror handlers. Only the ACP
+ * provider and OS launch adapter are fixtures. Terminal commands actually run
+ * /bin/sh in the temporary execution mirror, under an exact argv allowlist.
+ * No provider, account, network, Android device, native build, or editor changes.
+ */
 class WorkspaceAcpModeToolExecutionTest {
     private class Peer(val provider: String) : AutoCloseable {
         val sid = "actual_tools_fixture"
@@ -189,7 +193,7 @@ class WorkspaceAcpModeToolExecutionTest {
         suspend fun close() {
             try {
                 withTimeout(10_000) { host.closeAndAwait() }
-
+                // Assert the production shutdown result before the fixture safety cleanup.
                 assertTrue("Production host shutdown leaked a real subprocess", processes.none { it.isAlive })
                 assertNull(approvals.pending.value)
             } finally {
@@ -307,7 +311,7 @@ class WorkspaceAcpModeToolExecutionTest {
         assertEquals("seed\n", File(f.working, "fixture.txt").readText())
         assertFalse(File(f.working, "terminal-before-ack.txt").exists())
         assertFalse(build.isCompleted)
-
+        // Recheck after both denied requests, directly at the acknowledgment boundary.
         assertEquals(1, f.peer.requests.count { it["method"]?.jsonPrimitive?.content == "session/prompt" })
         f.peer.finishMode(mode)
         val buildPrompt = f.peer.prompts.receive()

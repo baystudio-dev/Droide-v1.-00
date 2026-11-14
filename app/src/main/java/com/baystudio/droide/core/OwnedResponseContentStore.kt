@@ -12,8 +12,14 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.UUID
 
-/** Not a provider parser or tool execution authorization. */
-
+/** App-private immutable response blobs. Not a provider parser or tool execution authorization.
+ *
+ * The host must supply a private, trusted root and an authorized Owner. Provider strings are
+ * never paths. NOFOLLOW, random names and root-identity checks reduce accidental traversal;
+ * portable JVM APIs do NOT protect against a hostile same-UID process racing directory changes.
+ * A completed blob means the caller supplied validated protocol completion, not that arbitrary
+ * JSON is executable. Tool admission and its exactly-once journal remain separate responsibilities.
+ */
 internal class OwnedResponseContentStore(
     root: Path,
     private val admission: DiskAdmission,
@@ -26,6 +32,7 @@ internal class OwnedResponseContentStore(
         fun reserve(bytes: Long): AutoCloseable
     }
 
+    /** Share ONE instance across stores/writers using the same filesystem. No logical output cap. */
     class HeadroomAdmission(private val freeBytes: () -> Long, private val headroomBytes: Long) : DiskAdmission {
         private var reserved = 0L
         init { require(headroomBytes >= 0) }
@@ -73,7 +80,7 @@ internal class OwnedResponseContentStore(
         class InlineSmall internal constructor(
             override val handle: Handle, override val byteLength: Long, override val utf16Length: Long,
             override val kind: Kind, override val state: State, override val sha256: String,
-
+            // No byte-array getter: immutable API even for the fast path.
             private val bytes: ByteArray,
         ) : Content()
         class FileBacked internal constructor(
@@ -96,7 +103,7 @@ internal class OwnedResponseContentStore(
             if (count < 0) return null
             if (count > 0 && Character.isHighSurrogate(chars[count - 1])) {
                 reader.unread(chars[count - 1].code); count--
-                if (count == 0) {
+                if (count == 0) { // Reader may legally return a single UTF-16 code unit.
                     chars[0] = reader.read().toChar(); val low = reader.read()
                     if (low < 0 || !Character.isLowSurrogate(low.toChar())) throw IOException("Incomplete stored Unicode")
                     chars[1] = low.toChar(); count = 2
@@ -120,7 +127,7 @@ internal class OwnedResponseContentStore(
     fun authorize(owner: Owner): Session = Session(ownerHash(owner))
 
     inner class Session internal constructor(private val owner: ByteArray) {
-
+        /** Internal scratch shares this store's filesystem headroom coordinator. No path is sent to a provider. */
         internal fun scratchResources(): Pair<Path, DiskAdmission> {
             checkCancelled(); checkRoot()
             return directory to admission
@@ -187,8 +194,8 @@ internal class OwnedResponseContentStore(
             val source = if (Files.exists(part, LinkOption.NOFOLLOW_LINKS)) part else blob
             val scan = scanFile(source)
             val meta = lease.copy(state = State.INCOMPLETE, bytes = scan.first, chars = -1, digest = scan.second)
-            // Interrupted writes can end in a partial UTF-8 sequence: byte export is exact; strict text
-            // paging reports malformed Unicode rather than inventing characters.
+            // Interrupted writes can end in a partial UTF-8 sequence: byte export is exact;
+            // strict text paging reports malformed Unicode rather than inventing characters.
             commit(handle, meta, source == part)
             open(handle)
         }
@@ -237,11 +244,13 @@ internal class OwnedResponseContentStore(
             private var utf8TailReliable = true
             private val decoded = CharBuffer.allocate(4096)
 
+            /** Incremental UTF-16; a high surrogate may be completed by the next append. */
             @Synchronized fun append(text: CharSequence) = guarded {
                 require(inputMode != 2) { "Do not mix UTF-16 and UTF-8 writer modes" }; inputMode = 1
                 appendChars(text)
             }
 
+            /** Incremental strict UTF-8, including byte chunks splitting multibyte scalars. */
             @Synchronized fun appendUtf8(data: ByteArray, offset: Int = 0, length: Int = data.size - offset) = guarded {
                 require(offset >= 0 && length >= 0 && offset <= data.size - length)
                 require(inputMode != 1) { "Do not mix UTF-16 and UTF-8 writer modes" }; inputMode = 2
@@ -255,8 +264,10 @@ internal class OwnedResponseContentStore(
                 }
             }
 
-            /** Caller must already have validated provider completion. */
-
+            /** Caller must already have validated provider completion. Validator must consume EOF.
+             * Tool callers must supply full argument validation here before obtaining Completed.
+             * This foundation intentionally does not manufacture protocol/JSON validation evidence.
+             */
             @Synchronized fun sealCompleted(validate: (InputStream) -> Unit): Completed = guarded {
                 finishEncoding()
                 persistMemory(); channel!!.force(true); channel!!.close(); channel = null
@@ -274,11 +285,13 @@ internal class OwnedResponseContentStore(
 
             /** Deliberately publish inspectable partial content without execution eligibility. */
             @Synchronized fun sealIncomplete(): Content = guarded {
-
+                // UTF-16 has no valid UTF-8 representation for an unpaired surrogate.
+                // Fail explicitly rather than silently omit it or manufacture replacement text.
                 check(pendingHigh == null) { "Cannot seal partial UTF-16 with an unpaired surrogate" }
                 val rawTail = if (inputMode == 2) utf8Buffer.position() else 0
                 if (rawTail > 0) {
-
+                    // Preserve received incomplete UTF-8 bytes verbatim for byte export.
+                    // Text paging is strict and will report the malformed final scalar.
                     utf8TailReliable = false
                     writeBytes(utf8Buffer.array(), rawTail)
                     utf8Buffer.clear(); utf8TailReliable = true
@@ -291,17 +304,21 @@ internal class OwnedResponseContentStore(
                 open(recoveryHandle)
             }
 
-            /** Terminal Stop checkpoint, NOT a cancellation reset or provider continuation. */
-
+            /** Terminal Stop checkpoint, NOT a cancellation reset or provider continuation.
+             * Only this writer's already-held bounded buffer and existing owned file may be
+             * persisted. New input/completion are disabled first. Root/disk/lock checks remain.
+             * A prior failed append may have accepted only a prefix; that limitation is explicit.
+             * ENOSPC/I/O can still prevent checkpointing. This method never produces Completed.
+             */
             @Synchronized fun abortToIncomplete(): AbortCheckpoint {
                 check(!closed && !sealed && !abortAttempted) { "Owned writer cannot be checkpointed" }
                 abortAttempted = true
                 val wasFailed = failed
-                failed = true
+                failed = true // no append or completed seal can resume, even if checkpoint fails
                 check(leaseLock.isValid) { "Owned writer lease is no longer held" }
                 checkRoot()
                 check(!Files.exists(path(recoveryHandle, ".meta"), LinkOption.NOFOLLOW_LINKS)) { "Published content is retained" }
-                val inline = memory?.toByteArray()
+                val inline = memory?.toByteArray() // at most inlineThreshold
                 val tail = if (utf8TailReliable && inputMode == 2) utf8Buffer.array().copyOf(utf8Buffer.position()) else ByteArray(0)
                 val status = when {
                     pendingHigh != null -> AbortTailStatus.UNPAIRED_UTF16_NOT_REPRESENTABLE
@@ -313,8 +330,8 @@ internal class OwnedResponseContentStore(
                 val blob = path(recoveryHandle, ".blob")
                 val source = if (Files.exists(blob, LinkOption.NOFOLLOW_LINKS)) blob else part
 
-                // This scope is deliberately local: no shared cancellation flag is changed, and normal
-                // methods/other writers/readers cannot use these cleanup operations.
+                // This scope is deliberately local: no shared cancellation flag is changed,
+                // and normal methods/other writers/readers cannot use these cleanup operations.
                 fun checkpointWrite(target: FileChannel, data: ByteBuffer) {
                     while (data.hasRemaining()) {
                         check(leaseLock.isValid); checkRoot()
@@ -332,8 +349,8 @@ internal class OwnedResponseContentStore(
                 if (!Files.exists(source, LinkOption.NOFOLLOW_LINKS)) checkpointNew(source).close()
                 FileChannel.open(source, StandardOpenOption.READ, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS).use { file ->
                     if (inline != null) {
-                        // A failed spill can leave a prefix of the inline buffer on disk. Verify it before completing
-                        // the remainder, never append it twice.
+                        // A failed spill can leave a prefix of the inline buffer on disk.
+                        // Verify it before completing the remainder, never append it twice.
                         check(file.size() <= inline.size) { "Failed spill does not match retained inline buffer" }
                         val existing = file.size().toInt()
                         val checkBytes = ByteBuffer.allocate(minOf(8192, maxOf(existing, 1)))
@@ -351,8 +368,8 @@ internal class OwnedResponseContentStore(
                     checkpointWrite(file, ByteBuffer.wrap(tail))
                     file.force(true)
                 }
-                // Hash the actual persisted prefix, not optimistic append counters after a partial write.
-                // Bounded memory; work is finite in existing staged-file size.
+                // Hash the actual persisted prefix, not optimistic append counters after a
+                // partial write. Bounded memory; work is finite in existing staged-file size.
                 val scan = FileChannel.open(source, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).use { file ->
                     val buffer = ByteBuffer.allocate(65536)
                     val digest = MessageDigest.getInstance("SHA-256")
@@ -373,8 +390,8 @@ internal class OwnedResponseContentStore(
                 if (source == part) Files.move(part, blob, StandardCopyOption.ATOMIC_MOVE)
                 Files.move(seal, path(recoveryHandle, ".meta"), StandardCopyOption.ATOMIC_MOVE)
                 sealed = true; memory = null
-                // Return metadata only. Normal read APIs remain cancelled until the caller opens a new
-                // non-cancelled authorized session/store after Stop has settled.
+                // Return metadata only. Normal read APIs remain cancelled until the caller
+                // opens a new non-cancelled authorized session/store after Stop has settled.
                 val content = Content.FileBacked(recoveryHandle, meta.bytes, meta.chars, meta.kind, State.INCOMPLETE, hex(meta.digest))
                 return AbortCheckpoint(content, status, wasFailed)
             }
@@ -480,7 +497,7 @@ internal class OwnedResponseContentStore(
     private fun checkCancelled() { if (cancelled()) throw java.util.concurrent.CancellationException("Response content operation cancelled") }
     private fun newChannel(path: Path): FileChannel {
         checkCancelled(); checkRoot()
-
+        // Admit filesystem metadata allocation too, including an empty response.
         return admission.reserve(4096).use {
             FileChannel.open(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)
         }
@@ -500,8 +517,8 @@ internal class OwnedResponseContentStore(
         val channel = newChannel(path)
         try { channel.use { writeChannel(it, ByteBuffer.wrap(bytes)); it.force(true) } }
         catch (failure: Exception) {
-            // This call created the unpublished metadata file, so it can clean its own failed partial write.
-            // In particular begin() must not orphan an unusable lease.
+            // This call created the unpublished metadata file, so it can clean its own
+            // failed partial write. In particular begin() must not orphan an unusable lease.
             try { deleteOwnedRegular(path) } catch (cleanup: Exception) { failure.addSuppressed(cleanup) }
             throw failure
         }

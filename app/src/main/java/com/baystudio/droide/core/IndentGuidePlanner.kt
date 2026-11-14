@@ -2,12 +2,20 @@ package com.baystudio.droide.core
 
 import java.util.ArrayDeque
 
+ 
 data class IndentGuideSegment(
     val column: Int,
     val startLine: Int,
     val endLine: Int,
     val toBottomOfEndLine: Boolean,
 )
+
+
+
+
+
+
+
 
 object IndentGuidePlanner {
     const val MAX_LINES = 100_000
@@ -69,7 +77,7 @@ object IndentGuidePlanner {
                 else -> return columns
             }
         }
-
+        
         return null
     }
 }

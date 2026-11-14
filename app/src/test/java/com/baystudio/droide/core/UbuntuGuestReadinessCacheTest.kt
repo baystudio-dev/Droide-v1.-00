@@ -26,8 +26,8 @@ class UbuntuGuestReadinessCacheTest {
         guest.resolve(".apt-index-cache.json").writeText("metadata")
         guest.resolve("rootfs/usr/bin/python3").writeText("new user-installed command")
         guest.resolve("rootfs/var/lib/dpkg/status").apply { parentFile!!.mkdirs(); writeText("installed packages") }
-        // Package checks still query dpkg separately. Directory contents do not replace the launcher,
-        // receipt or the executables on which this short admission depends.
+        // Package checks still query dpkg separately. Directory contents do not replace
+        // the launcher, receipt or the executables on which this short admission depends.
         assertTrue("A dependency install discarded a still-valid Ubuntu admission", cache.mayReuse(seal()))
     }
 

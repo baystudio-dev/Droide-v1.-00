@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Check transfer permissions in source and, optionally, Android merged manifests."""
+"""Check transfer permissions in source and, optionally, Android merged manifests.
+
+JobScheduler's network-permission enforcement is not supplied by Robolectric's
+scheduler shadow. Validate this admission contract before a source release and
+against the manifests produced by Android's merger in CI.
+"""
 import argparse
 import json
 from pathlib import Path

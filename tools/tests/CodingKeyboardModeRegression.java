@@ -2,6 +2,7 @@ import com.baystudio.droide.core.CodingKeyboardMode;
 import java.util.HashSet;
 import java.util.Set;
 
+
 public final class CodingKeyboardModeRegression {
     private static int checks;
 

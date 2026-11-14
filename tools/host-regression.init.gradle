@@ -1,0 +1,28 @@
+// Test runtime only. Unlike checkpoint-specific selectors, compile ALL test sources.
+// The normal host-jvm-only.gradle guard still requires exact --tests selections.
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        def javaExecutable = System.getProperty('droide.test.java')
+        if (javaExecutable) executable = javaExecutable
+        def robolectricDirectory = System.getProperty('droide.robolectric.dir')
+        if (robolectricDirectory) {
+            systemProperty 'robolectric.offline', 'true'
+            systemProperty 'robolectric.dependency.dir', robolectricDirectory
+        }
+    }
+}
+
+// Optional fresh-JVM isolation for framework/application static owners. Match only
+// the exact CLI classes so forkEvery does not create empty workers for unrelated tests.
+if (System.getProperty('droide.test.isolate') == 'true') {
+    gradle.taskGraph.whenReady { graph ->
+        graph.allTasks.findAll { it instanceof org.gradle.api.tasks.testing.Test }.each { test ->
+            def selections = test.filter.commandLineIncludePatterns
+            if (selections.empty || selections.any { !(it ==~ /(?:[a-z][a-z0-9_]*\.)+[A-Z][A-Za-z0-9_$]*/) }) {
+                throw new GradleException('Isolated host runs require fully qualified class --tests selectors')
+            }
+            test.forkEvery = 1
+            test.setIncludes(selections.collect { it.replace('.', '/') + '.class' })
+        }
+    }
+}

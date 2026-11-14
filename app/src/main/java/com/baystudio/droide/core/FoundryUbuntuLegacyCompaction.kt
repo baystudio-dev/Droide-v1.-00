@@ -12,8 +12,9 @@ internal data class LegacyUbuntuCompactionTransaction(
     val estimatedReclaimBytes: Long,
 )
 
-internal class FoundryUbuntuLegacyCompactor(
 
+internal class FoundryUbuntuLegacyCompactor(
+    
     private val finalRoot: String,
     private val launcher: String,
 ) {
@@ -41,6 +42,8 @@ internal class FoundryUbuntuLegacyCompactor(
             addAll(canonicalBaseRoots.map(::normalizePackage))
             addAll(baselineRoots.map(::normalizePackage))
             protectedPackageSets.flatten().mapTo(this, ::normalizePackage)
+            // Preserve every other pre-existing manual package except historical r1 broad roots too.
+
 
             addAll(manualBefore.filterNot { it in legacy })
         }.filter { it in installed }.sorted()
@@ -63,6 +66,7 @@ internal class FoundryUbuntuLegacyCompactor(
         try {
             markInstalled("manual", protected)
             // Original ownership marks are persisted for rollback.
+
 
             markInstalled("auto", candidates)
             // Any unrelated pre-existing auto-orphan must abort the transaction before apply.
@@ -110,7 +114,7 @@ internal class FoundryUbuntuLegacyCompactor(
                 check(printUris.exitCode == 0) { "Could not plan offline rollback cache for legacy Ubuntu compaction" }
                 val rollbackDownloadBytes = uriDownloadBytes(printUris.output)
                 DeviceWorkstationStorageGuard.requireHeadroom(
-
+                    
                     additionalBytes = Math.addExact(rollbackDownloadBytes, ROLLBACK_OVERHEAD_BYTES),
                     purpose = "stage an offline rollback cache before compacting the legacy Ubuntu runtime",
                 )

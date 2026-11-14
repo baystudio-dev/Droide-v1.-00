@@ -16,6 +16,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+ 
 internal data class TerminalReviveDescriptor(
     val id: String,
     val title: String,
@@ -27,8 +28,8 @@ internal data class TerminalReviveSnapshot(
     val activeId: String?,
 )
 
-// After process death Droide relaunches a fresh shell; it never pretends that the killed process
-// survived.
+// After process death Droide relaunches a fresh shell; it never pretends that the killed process survived.
+
 
 internal class TerminalReviveStore(
     appFilesDir: File,
@@ -152,6 +153,7 @@ internal class TerminalReviveStore(
     }
 }
 
+ 
 internal object TerminalProcessExitPolicy {
     fun allowRevive(context: Context): Boolean = StartupRecoveryPolicy.forProcess(context).allowTerminalRevive
 }

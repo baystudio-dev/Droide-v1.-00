@@ -13,7 +13,7 @@ class DroideCliTool(
             "Invalid bound CLI workspace identity"
         }
     }
-
+    
     suspend fun execute(args: List<String>): String {
         val result = executeResult(args)
         return when {
@@ -157,8 +157,8 @@ class DroideCliTool(
                 require(boundWorkspaceId == null || explicitWorkspace == null || explicitWorkspace == boundWorkspaceId) {
                     "This CLI endpoint is bound to workspace $boundWorkspaceId"
                 }
-                // A socket published inside a workspace-bound terminal defaults to that workspace. The legacy
-                // in-process/unbound CLI keeps null = global for backward compatibility.
+                // A socket published inside a workspace-bound terminal defaults to that workspace.
+                // The legacy in-process/unbound CLI keeps null = global for backward compatibility.
                 val workspace = explicitWorkspace ?: boundWorkspaceId
                 transaction(authority.activate(family, version, workspace))
             }
@@ -184,8 +184,8 @@ class DroideCliTool(
     }
 
     private suspend fun managedToolchain(operation: String, family: String, version: String): DroideCliExecutionResult? {
-        // An unbound in-process CLI retains its package API. Workspace terminals use the same
-        // permission/license workflow as chat; a disabled tool cannot fall through.
+        // An unbound in-process CLI retains its package API. Workspace terminals use the
+        // same permission/license workflow as chat; a disabled tool cannot fall through.
         if (boundWorkspaceId == null) return null
         if (ExternalIdeToolRegistry.binding(boundWorkspaceId) == null)
             return failure(DroideCliExitCode.UNAVAILABLE, "Workspace toolchain approval is unavailable; reopen the workspace before installing.")

@@ -6,6 +6,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
+/** Publisher channels resolve updates; the selected release remains immutable in each receipt. */
 internal object LocalUbuntuAgentDistributions {
     const val ANTIGRAVITY = "plugin.antigravity"
     const val ANTIGRAVITY_VERSION = "1.5.3"
@@ -59,7 +60,7 @@ internal object LocalUbuntuAgentDistributions {
 
     suspend fun resolve(family: String, requestedVersion: String?, fetch: suspend (String) -> String): LocalUbuntuVendorRecipe {
         val release = requireNotNull(find(family))
-
+        // Historical releases keep their independent checksum. Latest always consults the publisher.
         if (requestedVersion == release.definition.pinnedVersion) return release.recipe()
         suspend fun objectAt(url: String): JsonObject {
             val text = fetch(url)
@@ -98,6 +99,7 @@ internal object LocalUbuntuAgentDistributions {
         return recipe
     }
 
+    /** URL admission is independent of the manifest, including when revalidating saved receipts. */
     fun requirePublisher(recipe: LocalUbuntuVendorRecipe) {
         val release = requireNotNull(find(recipe.familyId))
         require(recipe.provenanceUrl == release.provenance && recipe.releaseTag == recipe.version)

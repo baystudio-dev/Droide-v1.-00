@@ -60,8 +60,8 @@ class AgentToolPublicationOwnershipBaselineTest {
                                 agent.loadSession(replacement)
                                 assertNotEquals(oldSession, agent.currentSessionId)
                                 newRun = launch(Dispatchers.Default) { agent.chat("Ask me which option to choose", fixture.config, maxTurns = 2) }
-                                // A question suspends without acquiring the root mutation mutex still held by the old write. Its
-                                // part reuses tool:1:0.
+                                // A question suspends without acquiring the root mutation mutex
+                                // still held by the old write. Its part reuses tool:1:0.
                                 val pendingQuestion = agent.questions.pending.first {
                                     it?.provenance?.sessionId == replacement.id
                                 }
@@ -83,8 +83,8 @@ class AgentToolPublicationOwnershipBaselineTest {
                                 assertEquals("This regression must not execute any terminal process", 0, terminal.executionCalls.get())
                             } finally {
                                 releaseOld.complete(Unit)
-                                // Cancellation clears the question continuation. Bound cleanup even if the enclosing assertion
-                                // or timeout already failed.
+                                // Cancellation clears the question continuation. Bound cleanup
+                                // even if the enclosing assertion or timeout already failed.
                                 withContext(NonCancellable) {
                                     withTimeout(5_000) {
                                         oldRun.cancelAndJoin()

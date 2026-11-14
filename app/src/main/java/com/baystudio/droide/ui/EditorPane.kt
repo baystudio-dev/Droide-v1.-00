@@ -48,6 +48,7 @@ import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
 import kotlinx.coroutines.*
 
+
 @Composable
 internal fun EditorPane(
     files: FileRepository,
@@ -121,6 +122,7 @@ internal fun EditorPane(
             document.status = "Editor action failed: ${failure.message ?: failure::class.java.simpleName}"
         }, block = block,
     )
+    
 
     val effectiveWordWrap = wordwrap && !document.largeFileOptimized
     val languageId = remember(path) { LanguageRegistry.forFile(path)?.id ?: "plaintext" }
@@ -195,7 +197,7 @@ internal fun EditorPane(
         val ed = editorRef ?: return@LaunchedEffect
         val line = navigateLine ?: return@LaunchedEffect
         if (!document.loaded || document.kind != EditorDocumentKind.TEXT) return@LaunchedEffect
-
+        
         val lineIndex = (line - 1).coerceIn(0, (ed.text.lineCount - 1).coerceAtLeast(0))
         val lineLength = runCatching { ed.text.getColumnCount(lineIndex) }.getOrDefault(0)
         val columnIndex = (navigateColumn - 1).coerceIn(0, lineLength)
@@ -205,6 +207,7 @@ internal fun EditorPane(
     }
     BindDroideSoraFeatures(editorRef, document, lsp, files, path)
 
+
     LaunchedEffect(document, findQuery, document.content, document.performanceMode) {
         findCount = if (document.largeFileOptimized || findQuery.length < 2) 0 else countOccurrences(document.content, findQuery)
     }
@@ -212,13 +215,13 @@ internal fun EditorPane(
         val captureSnapshot: () -> Unit = {
             val editor = editorRef
             if (editor != null && !editor.isReleased) {
-
+                
                 editor.nativeCapture?.invoke()
             }
         }
         bridge.snapshot = captureSnapshot
         onDispose {
-
+            // Dispose this pane's buffer even if a new pane has already bound the bridge.
             runUiCatching(onError = { document.status = "Could not capture editor: ${it.message}" }) { captureSnapshot() }
             if (bridge.nativeHandoff?.owner === editorRef) bridge.nativeHandoff = null
             if (bridge.snapshot === captureSnapshot) bridge.clear()
@@ -279,6 +282,7 @@ internal fun EditorPane(
         codeIntelBusy = false
         showCodeActions = true
     }
+
 
     fun requestCallHierarchy() = launchEditorAction {
         if (!requireFullIntelligence("Call Hierarchy")) return@launchEditorAction
@@ -430,7 +434,7 @@ internal fun EditorPane(
         val cur = ed.cursor?.left ?: 0
         val idx = text.indexOf(findQuery, cur).let { if (it >= 0) it else text.indexOf(findQuery) }
         if (idx != -1) {
-
+            
             ed.setSelectionOffsets(idx, idx + findQuery.length)
             ed.commitText(replaceQuery, false)
         }
@@ -606,6 +610,7 @@ internal fun EditorPane(
             confirmButton = { TextButton(onClick = { symbolItems = emptyList() }) { Text("Close") } },
         )
     }
+
 
     locationTitle?.let { title ->
         AlertDialog(
@@ -1083,7 +1088,7 @@ internal fun EditorPane(
                         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                         applyDroideTheme(theme)
                         document.viewport?.let { setTextSize(it.textSizeSp) }
-
+                        
                         setLineNumberEnabled(true)
                         setPinLineNumber(true)
                         setFirstLineNumberAlwaysVisible(true)
@@ -1098,7 +1103,7 @@ internal fun EditorPane(
                         val highlightController = if (document.fullIntelligence) DroideEditorHighlightController(this, path, languageId, lsp, scope, codeStyle) else null
                         highlightControllerRef[0]?.release()
                         highlightControllerRef[0] = highlightController
-
+                        
                         props.autoCompletionOnComposing = true
                         props.cancelCompletionNs = 25L * 1_000_000L
                         getComponent(EditorAutoCompletion::class.java).apply {
@@ -1155,7 +1160,7 @@ internal fun EditorPane(
                                 val selectionEnd = document.selectionEnd.coerceIn(0, replacement.length)
                                 applyingDocumentText = true
                                 try {
-
+                                    // Keep the existing Content and its undo history. No setText/IME restart.
                                     if (expectedText != replacement) {
                                         text.beginBatchEdit()
                                         try { text.replace(0, text.length, replacement) }
@@ -1166,7 +1171,7 @@ internal fun EditorPane(
                                     publish()
                                     document.captureSelection(selectionStart, selectionEnd)
                                     lastAppliedRevision = document.revision
-
+                                    // Mirroring listeners were suppressed; refresh their non-content work once.
                                     signatureControllerRef[0]?.onContentChanged(ContentChangeEvent.ACTION_SET_NEW_TEXT, replacement)
                                     highlightControllerRef[0]?.installSafeBaseStyles(replacement)
                                     if (document.fullIntelligence) highlightControllerRef[0]?.schedule(replacement, immediate = true)

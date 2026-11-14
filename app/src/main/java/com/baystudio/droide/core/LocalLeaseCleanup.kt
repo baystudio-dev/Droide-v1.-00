@@ -29,8 +29,8 @@ internal object LocalLeaseCleanup {
             primaryFailure = failure
             throw failure
         } finally {
-            // A timed-out helper must not outlive its owner. Keep the existing bounded termination/reaping
-            // policy, without repeating a lease scan or deleting it.
+            // A timed-out helper must not outlive its owner. Keep the existing bounded
+            // termination/reaping policy, without repeating a lease scan or deleting it.
             try { LocalProcessSupervisor.terminate(process) }
             catch (cleanup: Throwable) {
                 val original = primaryFailure

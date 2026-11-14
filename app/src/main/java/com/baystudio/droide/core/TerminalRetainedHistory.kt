@@ -3,8 +3,13 @@ package com.baystudio.droide.core
 import java.io.OutputStream
 import java.util.Collections
 
-/** Runtime capture owns choosing the retained tail; this helper does no work for terminal output
- * events. */
+/**
+ * An on-demand, immutable copy of an already-retained terminal transcript.
+ *
+ * All lengths and offsets are UTF-16 units. Capture rejects oversized or malformed
+ * input rather than silently trimming it or changing bytes. Runtime capture owns
+ * choosing the retained tail; this helper does no work for terminal output events.
+ */
 internal class TerminalRetainedHistory private constructor(val text: String) {
     data class Match(
         val startUtf16: Int,
@@ -19,8 +24,16 @@ internal class TerminalRetainedHistory private constructor(val text: String) {
         val capped: Boolean,
     )
 
-    /** Case-insensitive comparison uses Kotlin/JVM regionMatches semantics without case-folded
-     * copies, locale dependence, or changed offsets. */
+    /**
+     * Finds literal, non-overlapping matches in original-text order. Empty queries
+     * have no matches. Case-insensitive comparison uses Kotlin/JVM regionMatches
+     * semantics without case-folded copies, locale dependence, or changed offsets.
+     * Snippets preserve the original text, including whitespace and newlines.
+     *
+     * The callback may throw to cancel; its exception is propagated unchanged.
+     * It runs between blocks of at most 256 candidate comparisons, each comparing
+     * at most MAX_QUERY_UTF16 units. Results never retain an unbounded match list.
+     */
     fun search(
         query: String,
         ignoreCase: Boolean = false,
@@ -47,8 +60,8 @@ internal class TerminalRetainedHistory private constructor(val text: String) {
                 val end = candidate + query.length
                 var snippetStart = (candidate - SNIPPET_CONTEXT_UTF16).coerceAtLeast(0)
                 var snippetEnd = (end + SNIPPET_CONTEXT_UTF16).coerceAtMost(text.length)
-                // Move context cuts inward so the bound is never exceeded and a complete match is kept even when
-                // adjacent context contains emoji.
+                // Move context cuts inward so the bound is never exceeded and a
+                // complete match is kept even when adjacent context contains emoji.
                 if (snippetStart < text.length && Character.isLowSurrogate(text[snippetStart])) {
                     snippetStart++
                 }
@@ -66,8 +79,16 @@ internal class TerminalRetainedHistory private constructor(val text: String) {
         return SearchResult(Collections.unmodifiableList(matches), capped = false)
     }
 
-    /** Writes precisely this snapshot as UTF-8, without a BOM, header, or added newline. */
-
+    /**
+     * Writes precisely this snapshot as UTF-8, without a BOM, header, or added
+     * newline. At most MAX_UTF8_BYTES bytes can be written, in pair-safe chunks of
+     * at most 4096 UTF-16 units. Returns the number of bytes successfully written.
+     *
+     * The caller owns the stream: this method neither flushes nor closes it.
+     * Cancellation and output errors are propagated unchanged and can leave a
+     * partial document; the caller owns destination cleanup and success reporting.
+     * No terminal content is logged or included in validation error messages.
+     */
     fun writeUtf8(output: OutputStream, checkCancelled: () -> Unit = {}): Int {
         var start = 0
         var written = 0

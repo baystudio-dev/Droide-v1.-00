@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real adapter/child processes and TCP sockets; Android LocalSocket/native CLI are separate gates. */
 class ExternalIdeMcpTransportTest {
     @get:org.junit.Rule val applicationWork: org.junit.rules.TestRule = ApplicationWorkAdmissionFixture()
 
@@ -225,7 +226,7 @@ class ExternalIdeMcpTransportTest {
     @Test(timeout = 15_000) fun cancelBeforeSpawnAndMalformedNotificationsNeverExecuteTools() {
         Host().use { host ->
             val client = host.client()
-
+            // One write makes both messages available before an invocation can start.
             val call = request(JsonPrimitive(9), "never", true)
             val cancel = """{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":9}}"""
             client.send(call.toString() + "\n" + cancel)

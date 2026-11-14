@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Independent F149 review. All fixtures and failed-publication evidence are retained. */
 class SessionCatalogIdentityIndependentReviewTest {
     private fun <T> workspace(block: suspend (File) -> T): T = runBlocking {
         val root = Files.createTempDirectory("f149-independent-identity-").toFile()
@@ -96,8 +97,8 @@ class SessionCatalogIdentityIndependentReviewTest {
         val source = file.readBytes()
         val oldCache = meta(root, session.id).readBytes()
         val stamp = attributes(file)
-        // The host provider supplies a real key. Inject only the publisher's source observation, not an
-        // artificial production I/O abstraction or a claim of provider integration.
+        // The host provider supplies a real key. Inject only the publisher's source observation,
+        // not an artificial production I/O abstraction or a claim of provider integration.
         val stampClass = Class.forName("com.baystudio.droide.core.SessionFileStamp")
         val constructor = stampClass.declaredConstructors.single { it.parameterCount == 4 }.apply { isAccessible = true }
         val unavailableSource = constructor.newInstance(stamp.size(), stamp.lastModifiedTime().toMillis(), null, stamp.lastModifiedTime())

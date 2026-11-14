@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real SessionManager save/get/fork, with the same optional hook installed by AgentService. */
 class SessionRetainedOutputForkIntegrationTest {
     private fun <T> fixture(block: suspend (File, File) -> T): T = runBlocking {
         val directory = Files.createTempDirectory("session-output-fork-").toFile()
@@ -61,7 +62,7 @@ class SessionRetainedOutputForkIntegrationTest {
         assertEquals(saved.forkHistory, latest.forkHistory)
         assertTrue(store.read(latest.id, first.reference).endsWith("first exact output"))
         assertTrue(store.read(latest.id, later.reference).endsWith("later exact output"))
-
+        // UI index1 is the completed first tool group, before its assistant text.
         val historical = requireNotNull(sessions.fork(parent.id, 1))
         assertEquals(saved.forkHistory.take(3), historical.forkHistory)
         assertTrue(store.read(historical.id, first.reference).endsWith("first exact output"))
@@ -115,7 +116,8 @@ class SessionRetainedOutputForkIntegrationTest {
         val sessionDir = root.resolve(".droide/sessions")
         val sourceBytes = sessionDir.resolve("${parent.id}.json").readBytes()
         var collision: File? = null
-
+        // Observe the real write boundary, then create an actual filesystem
+        // publication collision. No fake SessionManager/save implementation.
         sessions.textEditIoProbe = { event, _ ->
             if (event == TextEditIo.SESSION_WRITE) {
                 val temporary = sessionDir.listFiles()?.firstOrNull { it.name.startsWith(".s-") && ".json.tmp-" in it.name }

@@ -1,0 +1,27 @@
+// Focused F112 recovery/writer coverage plus CLI and capture lifecycle controls.
+// Production sources are unchanged by this selector. Use exact --tests class names.
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    app.tasks.named('testDebugUnitTest').configure {
+        def hostJni = System.getProperty('droide.test.jni.dir')
+        if (hostJni) {
+            // Load an explicitly supplied host fixture; this script never builds native code.
+            doFirst { systemProperty 'java.library.path', hostJni }
+        }
+    }
+    app.tasks.named('compileDebugUnitTestKotlin').configure {
+        setSource(app.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('WorkspaceProcessWriteAdmissionTest.kt', 'MirrorRecoveryWriterFenceTest.kt',
+                'MirrorConflictRecoveryTest.kt', 'MirrorInterruptedRecoveryTest.kt',
+                'ApplicationWorkAdmissionFixture.kt',
+                'WorkspaceAcpHostTurnBoundaryR30Test.kt', 'SessionHostedProcessOwnerTest.kt',
+                'AcpTerminalAuthorityR118Test.kt', 'LocalHostedProcessLifecycleTest.kt',
+                'LocalHostedProcessHandoffR40Test.kt', 'ProcessExitOwnershipR64Test.kt',
+                'OwnedResourceCleanupTest.kt', 'RemoteHostedProcessReceiptTest.kt',
+                'LocalProcessSupervisorTest.kt', 'LocalProcessSupervisorBaselineR39Test.kt',
+                'LocalProcessSupervisorDrainR39Test.kt', 'LocalProcessSupervisorWorkerStartupTest.kt',
+                'LocalProcessSupervisorStartupBaselineTest.kt',
+                'ExportSourceAdmissionTest.kt', 'ExportManagedDatabaseTest.kt')
+        })
+    }
+}

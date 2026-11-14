@@ -5,8 +5,13 @@ import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.serialization.json.*
 
-/** A durable observation of exact old owners, NOT evidence that they stopped. */
-
+/** A durable observation of exact old owners, NOT evidence that they stopped.
+ * A later boot on the same local Android device/proof source can discharge those
+ * owners, including legacy rows with unknown birth boots. Production boot identity
+ * attests that this mirror is in app-private local storage, never a remote mount.
+ * Called only under the authority's SQLite write transaction. Proof survives a
+ * failed launch transaction; no runtime/PID/liveness guess grants admission.
+ */
 internal class MirrorProcessRebootBarrier(private val directory: File, private val binding: String,
     private val checkpoint: (String) -> Unit = {},
 ) {
@@ -20,8 +25,8 @@ internal class MirrorProcessRebootBarrier(private val directory: File, private v
             }
             authority.openDirectory(FOLDER).use { files ->
                 val names = names(files)
-                // Retire only against the committed snapshot, never removals that this transaction has not
-                // committed. UUID reuse is not permitted.
+                // Retire only against the committed snapshot, never removals that
+                // this transaction has not committed. UUID reuse is not permitted.
                 for (id in names - owners.mapTo(mutableSetOf()) { it.id }) {
                     read(authority, files, id)
                     val key = files.openRead(id + SUFFIX).use { checkNotNull(it.observe().attributes.fileKey()) }
@@ -39,8 +44,9 @@ internal class MirrorProcessRebootBarrier(private val directory: File, private v
                     } else {
                         check(names(files).size < MirrorProcessCustodyLedger.MAX_OWNERS) { "CLI reboot observation capacity is full; work was preserved" }
                         val observation = Observation(current, listOf(owner))
-                        // An interrupted private staging file never authorizes cleanup. Publish only complete forced
-                        // bytes under the final owner name, so a crash cannot poison that name.
+                        // An interrupted private staging file never authorizes
+                        // cleanup. Publish only complete forced bytes under the
+                        // final owner name, so a crash cannot poison that name.
                         val stage = ".process-reboot-stage-${UUID.randomUUID()}"
                         authority.createNew(stage).use { output -> output.write(encode(authority, observation)); output.force(384) }
                         checkpoint("writer-reboot-observation-before-publish")

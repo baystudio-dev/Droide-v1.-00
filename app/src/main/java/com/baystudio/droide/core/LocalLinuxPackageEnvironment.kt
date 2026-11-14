@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 object LocalLinuxPackageEnvironment {
     private val supportedKinds = setOf(
         LocalUbuntuElpPolicy.KIND,
@@ -56,6 +57,7 @@ object LocalLinuxPackageEnvironment {
         .distinct()
         .take(64)
 
+    
     fun guestEnvironment(
         records: List<ManagedPackageRecord>,
         workspaceSelections: Map<String, String>,

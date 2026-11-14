@@ -35,6 +35,13 @@ class TerminalLinkOpenerTest {
         assertNull(shadowOf(context).nextStartedActivity)
     }
 
+    @Test fun explicitHyperlinkDoesNotTrimValidTrailingPathPunctuation() {
+        val context = RuntimeEnvironment.getApplication()
+        val url = "https://example.test/exact-path."
+        assertTrue(TerminalLinkOpener.open(context, url))
+        assertEquals(url, shadowOf(context).nextStartedActivity.dataString)
+    }
+
     @Test fun missingOrRestrictedBrowserIsRecoverableWithoutExposingAuthUrl() {
         for (failure in listOf(ActivityNotFoundException("missing"), SecurityException("denied"))) {
             val context = object : ContextWrapper(RuntimeEnvironment.getApplication()) {

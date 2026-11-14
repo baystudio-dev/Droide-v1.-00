@@ -12,6 +12,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
+/** Real framework/native SQLite, recreated managers and filesystem faults; no CLI or model requests. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 @SQLiteMode(SQLiteMode.Mode.NATIVE)

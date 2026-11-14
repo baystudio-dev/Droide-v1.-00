@@ -45,8 +45,8 @@ class AgentStreamContinuationTest {
                     runBlocking { withTimeout(15_000) { agent.chat("Write a file and explain", fixture.config, maxTurns = 3) } }
                     val id = agent.currentSessionId!!
                     val first = runBlocking { agent.sessions.get(id)!! }
-                    // The existing lifecycle clears completed live task UI after saving durable messages. Assert the
-                    // persisted error, not stale live state.
+                    // The existing lifecycle clears completed live task UI after saving
+                    // durable messages. Assert the persisted error, not stale live state.
                     assertEquals(AgentStreamState.Status.IDLE, agent.streamState.value.status)
                     assertFalse(agent.busy.value)
                     assertTrue(first.messages.any { it.content.contains("Provider response error inside HTTP 200") })

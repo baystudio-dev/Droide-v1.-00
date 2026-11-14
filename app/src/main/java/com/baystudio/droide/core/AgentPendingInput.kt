@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 
 // API keys are deliberately never persisted.
 
+
 @Serializable
 enum class AgentPromptDelivery { STEER, QUEUE }
 
@@ -24,7 +25,7 @@ data class AgentPendingInput(
     val origin: AgentInputOrigin = AgentInputOrigin.USER,
     val sourceId: String? = null,
     val images: List<AgentImageRef> = emptyList(),
-
+     
     val ideContext: AgentIdeContextSnapshot? = null,
     @EncodeDefault val createdAt: Long = System.currentTimeMillis(),
     val media: List<ChatMediaRef> = emptyList(),

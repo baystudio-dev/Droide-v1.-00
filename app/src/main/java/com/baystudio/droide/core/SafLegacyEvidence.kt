@@ -24,8 +24,8 @@ internal data class SafLegacyAdmission(
 ) {
     private var cancelled = false
     val requiresFullRefreshMigration: Boolean get() = manifestState == SafLegacyManifestState.PATH_LIST
-    /** Deep, cancellable evidence rehash; consume this unchanged baseline immediately under the same
-     * root guard. */
+    /** Deep, cancellable evidence rehash; consume this unchanged baseline immediately under the same root guard.
+     * This observation is never a reusable lease or an authority to clear/replay legacy evidence. */
     fun revalidateAndRequireDisjoint(workspace: File, paths: List<String>, checkActive: () -> Unit) {
         check(!cancelled) { "Legacy admission was cancelled" }
         try {
@@ -111,8 +111,7 @@ internal class SafLegacyEvidence(
         }
         fun unaliased(path: String, poll: () -> Unit = checkActive) {
             poll()
-            // Retained scopes must be checked as well as incoming paths; never resolve an alias into
-            // authority.
+            // Retained scopes must be checked as well as incoming paths; never resolve an alias into authority.
             storage.requireRealAncestors(File(workspace, path))
         }
         fun directory(file: File): String {
@@ -149,8 +148,7 @@ internal class SafLegacyEvidence(
             return out
         }
         fun revalidate(poll: () -> Unit) {
-            // Deep reads can take time. Namespace/absence checks must be LAST, after all content
-            // revalidation.
+            // Deep reads can take time. Namespace/absence checks must be LAST, after all content revalidation.
             sources.forEach {
                 poll()
                 val file = File(it.path)
@@ -291,7 +289,8 @@ internal class SafLegacyEvidence(
         .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
     private fun <T> decode(serializer: KSerializer<T>, bytes: ByteArray): T {
         val value = omittedDefaults.decodeFromString(serializer, utf8(bytes))
-
+        // Admit both encodings actually emitted by the old writer / explicit version fixtures.
+        // Duplicate keys, unknown keys and noncanonical ambiguous metadata remain blockers.
         require(omittedDefaults.encodeToString(serializer, value).toByteArray(Charsets.UTF_8).contentEquals(bytes) ||
             includedDefaults.encodeToString(serializer, value).toByteArray(Charsets.UTF_8).contentEquals(bytes))
         return value

@@ -130,8 +130,8 @@ class ArtifactTransferSchedulingTest {
         val failure = SecurityException(
             "android.permission.ACCESS_NETWORK_STATE required for jobs with a connectivity constraint",
         )
-        // Inject the documented framework rejection. Robolectric's scheduler shadow does not enforce
-        // this permission; the separate test above checks the actual merged manifest.
+        // Inject the documented framework rejection. Robolectric's scheduler shadow does not
+        // enforce this permission; the separate test above checks the actual merged manifest.
         val rejected = shadowOf(scheduler) as RejectedSchedulerShadow
         rejected.failure = failure
         val transfer = UserInitiatedArtifactTransfer(app)

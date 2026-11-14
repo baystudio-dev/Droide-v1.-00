@@ -291,6 +291,7 @@ internal class SessionTextEditEvidence(
         return Evidence(session.id, session.createdAt, records, problems.take(64))
     }
 
+    /** Caller holds the session mutex; the ordinary save has already released its admission monitor. */
     fun retire(session: DroideSession, savedIdentity: ProjectCopyEvidence.Identity) {
         val parts = session.messages.mapNotNull { message ->
             message.streamPart?.takeIf { it.kind == AgentStreamPartKind.TOOL && it.state == AgentStreamPartState.COMPLETED }
@@ -325,7 +326,7 @@ internal class SessionTextEditEvidence(
                     Triple(directory, key, listOf(outcomeFile to ProjectCopyEvidence.identity(outcomeFile),
                         intentFile to ProjectCopyEvidence.identity(intentFile)))
                 } catch (cancelled: CancellationException) { throw cancelled }
-                catch (_: Exception) { null }
+                catch (_: Exception) { null } // Uncertain evidence remains occupied and is exposed on deliberate load.
             }
             if (eligible.isEmpty()) return
             requireParents(parents)
@@ -352,7 +353,7 @@ internal class SessionTextEditEvidence(
                     Files.delete(directory.toPath())
                     forceDirectory(parents.last().first)
                 } catch (cancelled: CancellationException) { throw cancelled }
-                catch (_: Exception) {   }
+                catch (_: Exception) { /* Incomplete cleanup stays an occupied, visible uncertainty. */ }
             }
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { /* Retirement failure cannot reject an already-committed ordinary conversation. */ }
@@ -443,8 +444,8 @@ internal class SessionTextEditEvidence(
             if (ProjectCopyEvidence.identityOrAbsent(file) == null) Files.createDirectory(file.toPath())
             result += file to realDirectory(file)
         }
-        // Existing normal-session mkdirs did not force ancestors. Establish reachability for this
-        // authoritative intent even when those directories predate this store.
+        // Existing normal-session mkdirs did not force ancestors. Establish reachability
+        // for this authoritative intent even when those directories predate this store.
         forceDirectory(root)
         result.forEach { (file, _) -> forceDirectory(file) }
         requireParents(result)

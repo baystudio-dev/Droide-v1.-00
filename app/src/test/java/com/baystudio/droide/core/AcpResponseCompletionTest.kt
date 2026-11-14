@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exercises the production completion component called synchronously by the ACP reader. */
 class AcpResponseCompletionTest {
     private fun json(text: String) = Json.parseToJsonElement(text).jsonObject
     private fun result(body: String = "{}") = json("{\"result\":$body}")

@@ -3,6 +3,13 @@ package com.baystudio.droide.core
 import java.io.File
 import java.security.MessageDigest
 
+
+
+
+
+
+
+
 object WorktreeProvenance {
     fun repositoryIdentity(workTree: File, gitDirectory: File): String {
         val payload = buildString {
@@ -16,6 +23,7 @@ object WorktreeProvenance {
             .joinToString(separator = "") { byte -> (byte.toInt() and 0xff).toString(16).padStart(2, '0') }
     }
 
+     
     fun validateMergeBinding(
         expectedParentBranch: String,
         currentParentBranch: String,

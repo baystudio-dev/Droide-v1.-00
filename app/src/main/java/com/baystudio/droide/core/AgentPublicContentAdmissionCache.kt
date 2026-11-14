@@ -2,8 +2,9 @@ package com.baystudio.droide.core
 
 import java.security.MessageDigest
 
-/** Process-local optimization of immutable admission, never a content-read integrity cache. Cold
- * reads/export still verify bytes. Unrelated metadata saves need not detect new bit rot. */
+/** Process-local optimization of immutable admission, never a content-read integrity cache.
+ * Cold reads/export still verify bytes. Unrelated metadata saves need not detect new bit rot.
+ */
 internal class AgentPublicContentAdmissionCache(private val capacity: Int = 128) {
     private data class Key(val session: String, val ref: AgentPublicContentRef,
         val abort: PublicAnswerAbortCheckpoint?, val preview: String)

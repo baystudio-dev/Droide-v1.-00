@@ -34,6 +34,7 @@ interface TomlHostedProcess:HostedStdioProcess {
     suspend fun stopAndAwaitOwnedGroup():TomlTeardownReceipt
 }
 
+/** One monotonic budget. Blocking filesystem calls remain cooperative; late success is rejected. */
 internal class TomlDeadline private constructor(val endNanos:Long,private val now:()->Long) {
     val expired:Boolean get()=now()>=endNanos
     fun remainingMillis():Long=((endNanos-now()).coerceAtLeast(0)/1_000_000L)
@@ -202,7 +203,7 @@ internal class LocalTomlHostedProcess(private val process:Process,override val o
         }
         if(process.isAlive){attempt("destroy"){process.destroy()}.await(deadline.limited(250));if(process.isAlive)attempt("kill"){process.destroyForcibly()}.await(deadline.limited(250))}
         attempt("stdout-close"){envelopes.close()};attempt("stderr-close"){process.errorStream.close()}
-
+        // Leave time for the private-directory receipt. Unsettled workers retain exact custody.
         val settle=deadline.reserve(500)
         while(!settle.expired&&(attempts.any{!it.complete}||activeWrites.get()!=0||activeErrorReads.get()!=0||!envelopes.readerSettled))delay(10)
         val reaped=reaping.succeeded&&!process.isAlive

@@ -27,8 +27,10 @@ import kotlinx.serialization.Serializable
 internal data class SafManifestCommitResult(val operationId: String, val revision: Long, val acknowledged: Boolean,
     val retainedAcknowledgementFailure: Throwable?)
 
-/** Isolated protocol core. Caller must hold the root-shared lease (Phase C). No provider replay,
- * rollback, evidence deletion, or local-publication durability claim is made by this class. */
+/**
+ * Isolated protocol core. Caller must hold the root-shared lease (Phase C). No provider replay,
+ * rollback, evidence deletion, or local-publication durability claim is made by this class.
+ */
 internal class SafDurableManifestCommit(private val journal: SafOperationJournal) {
     private val storage get() = journal.storage
     private val metadata get() = File(journal.workspace, ".droide")
@@ -90,6 +92,7 @@ internal class SafDurableManifestCommit(private val journal: SafOperationJournal
         return current
     }
 
+    /** Before any new operation/effect, admit global lineage and the exact currently visible inode. */
     internal fun admitBeforeEffects(operations: List<SafOperationJournal.Operation>, checkActive: () -> Unit): SafStoredFile? {
         return admitBeforeEffects(SafOperationJournal.Admission(operations, SafJournalRetirement(journal).load(checkActive)), checkActive)
     }
@@ -155,7 +158,8 @@ internal class SafDurableManifestCommit(private val journal: SafOperationJournal
             val deltaBytes = SafJournalCodec.encode(SafManifestDelta.serializer(), SafManifestDelta(1, edits))
             poll()
             check(imageBytes.size.toLong() <= journal.limits.manifestBytes && deltaBytes.size.toLong() <= journal.limits.manifestBytes)
-
+            // Charge the additional namespace candidate before any planning file is written.
+            // Its reservation remains charged even after replacement or an uncertain partial write.
             val total = base.bytes.size.toLong() + imageBytes.size.toLong() * 2 + deltaBytes.size
             check(total <= operation.envelope.reservation.payloadBytes - operation.payloadBytes)
             poll()
@@ -171,8 +175,8 @@ internal class SafDurableManifestCommit(private val journal: SafOperationJournal
             journal.requireNamespaceUnchanged(renewed)
             journal.requireDisjointLinks(disjointLinks)
             requireVisibleContinuity(visibleContinuity)
-            // Only captured Job cancellation may run after this cut, including nested writes. No observed
-            // admission state is reused after the first actual mutation.
+            // Only captured Job cancellation may run after this cut, including nested writes.
+            // No observed admission state is reused after the first actual mutation.
             if (storage.attributes(metadata) == null) storage.createDirectory(metadata)
             val metadataKey = storage.key(metadata, true)
             val trustedRef = journal.writeAdmittedTrustedBase(operation, base.bytes)
@@ -208,8 +212,8 @@ internal class SafDurableManifestCommit(private val journal: SafOperationJournal
             check(visibleIdentity(checkActive) == plan.expectedVisible)
             check(storage.describe(candidateFile, journal.limits.manifestBytes, checkActive) == candidate.identity)
             checkActive()
-            // The single move and final force/receipt sequence deliberately do not poll cancellation. All
-            // substantial historical/payload validation above remains cancellable.
+            // The single move and final force/receipt sequence deliberately do not poll cancellation.
+            // All substantial historical/payload validation above remains cancellable.
             storage.replace(candidateFile, visible)
             completeBarrierAndAcknowledge(operation, plan, candidate)
         }
@@ -234,10 +238,10 @@ internal class SafDurableManifestCommit(private val journal: SafOperationJournal
         check(visibleIdentity() == candidate.identity)
         storage.syncFile(visible)
         storage.syncDirectory(metadata)
-        storage.syncDirectory(journal.workspace)
+        storage.syncDirectory(journal.workspace) // Includes the possibly new .droide link.
         requireMetadata(plan)
         check(visibleIdentity() == candidate.identity)
-
+        // This branch is the sole authority to write acknowledgement: all exact publication barriers returned.
         val failure = try {
             // Includes acknowledgement construction: digest reads can fail after publication is durable.
             val acknowledgement = SafManifestAcknowledgement(1, operation.id, planDigest(operation),

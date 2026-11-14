@@ -5,8 +5,8 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
-/** This is not a JavaScript sandbox. */
-
+/** Source-bound finite CJS correspondence, before import. This is not a JavaScript sandbox.
+ * Only the five exact SHA-512 originals are inputs. Unsupported emitted syntax/load forms stop admission. */
 internal object LocalUbuntuGraphqlDataAdmission {
     const val LIMITATION="Original compiled-layout/import/notice and genuine runtime/semantic/device acceptance are unrun in this source checkpoint. Literal import inspection is a conservative trusted-original correspondence gate, not arbitrary-JavaScript safety or a hostile same-UID sandbox."
     val entries=mapOf("service" to "node_modules/graphql-language-service/dist/index.js","graphql" to "node_modules/graphql/index.js")
@@ -65,8 +65,8 @@ internal object LocalUbuntuGraphqlDataAdmission {
             ?.also{require(it.endsWith(".js")||it.endsWith(".json"))}?:error("Unresolved original GraphQL import: $parent -> $request")
     }
     private data class Token(val value:String,val quoted:Boolean=false)
-    /** A bounded emitted-JS lexer identifies literals, comments, regex and template expressions. */
-
+    /** A bounded emitted-JS lexer identifies literals, comments, regex and template expressions.
+     * This does not certify arbitrary JS. Exact archive bytes and the runtime resolver guard remain required. */
     private class Lexer(private val source:String) {
         val tokens=ArrayList<Token>();private var at=0
         private fun add(value:String,quoted:Boolean=false){require(tokens.size<200_000);tokens+=Token(value,quoted)}

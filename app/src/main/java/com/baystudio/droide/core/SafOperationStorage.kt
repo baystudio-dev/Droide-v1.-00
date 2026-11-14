@@ -22,6 +22,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 internal data class SafStoredFile(val key: String, val bytes: Long, val sha256: String)
 
+/** Optional fixture counter, with no callback and no per-file growing cache. */
 internal class SafFrameReadCounter(val file: File) {
     var reads: Long = 0; internal set
     var bytes: Long = 0; internal set
@@ -155,10 +156,11 @@ internal class SafOperationStorage(
         }
     }
 
+    /** One physical sequential read, including its digest. No whole-frame byte array is made. */
     internal fun <T> readFrame(file: File, maximum: Long, checkActive: () -> Unit,
         decode: (FrameReader) -> T): Pair<T, SafStoredFile> {
         checkActive()
-        beforeRead(file)
+        beforeRead(file) // The same truthful physical-read observation seam as read/describe.
         countedRead(file)
         require(maximum >= 0)
         requireRealAncestors(file)

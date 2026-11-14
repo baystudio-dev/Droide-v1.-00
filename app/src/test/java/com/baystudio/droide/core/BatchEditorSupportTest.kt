@@ -44,7 +44,8 @@ class BatchEditorSupportTest {
         val spans = renderActualGrammarTokens(source)
         assertFalse(spans.any { it.line == 0 && it.kind == DroideHighlightKind.COMMENT })
         val start = source.indexOf("%PATH%")
-
+        // TextMate can split delimiters from the variable body; assert the rendered
+        // UTF-16 coverage rather than prescribing the grammar's token boundaries.
         for (column in start until start + 6) {
             assertTrue(spans.toString(), spans.any {
                 it.line == 0 && column in it.start until it.end && it.kind == DroideHighlightKind.VARIABLE
@@ -162,7 +163,7 @@ class BatchEditorSupportTest {
                 return tokenized[nextLine++]
             }
         }
-
+        // Regex execution is verified above; this pass verifies production span conversion separately from cold-start timing.
         val spans = requireNotNull(DeclarativeTextMateRegistry.highlightGrammar(replay, text, 1_000))
         assertEquals(inputs.size, nextLine)
         return spans

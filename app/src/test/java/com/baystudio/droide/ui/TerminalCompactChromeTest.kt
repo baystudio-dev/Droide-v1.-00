@@ -131,7 +131,7 @@ class TerminalCompactChromeTest {
         }
         compose.onNodeWithTag("terminal-session-header").assertHeightIsEqualTo(52.dp)
         compose.onNodeWithText("Shell ready").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Send Ctrl+C / interrupt shell").assertHeightIsEqualTo(48.dp).performClick()
+        compose.onNodeWithContentDescription("Send Ctrl+C").assertHeightIsEqualTo(48.dp).performClick()
         compose.onNodeWithTag("header-keys").assertHeightIsEqualTo(48.dp).performClick()
         compose.runOnIdle { assertEquals(1, session.interrupts); assertEquals(1, keys); assertEquals(0, session.clears) }
         compose.onNodeWithContentDescription("Clear terminal output").assertDoesNotExist()
@@ -173,7 +173,7 @@ class TerminalCompactChromeTest {
         compose.onNodeWithText("Connection active").assertIsDisplayed()
         compose.onNodeWithTag("terminal-viewport").assertHeightIsAtLeast(216.dp)
         compose.runOnIdle { width = 640; height = 240; fontScale = 2f }
-        compose.onNodeWithContentDescription("Send Ctrl+C / interrupt shell").assertHeightIsEqualTo(48.dp).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Send Ctrl+C").assertHeightIsEqualTo(48.dp).assertIsDisplayed()
         compose.onNodeWithTag("header-keys").assertHeightIsEqualTo(48.dp).assertIsDisplayed()
         compose.onNodeWithTag("terminal-viewport").assertHeightIsAtLeast(110.dp)
         compose.onNodeWithText("Commands").performClick()

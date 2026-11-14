@@ -5,6 +5,7 @@ import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/** ACP text policy is separate from unrestricted-size streamed workspace artifacts. */
 internal object AcpWorkspaceText {
     const val MAX_BYTES = 2_000_000L
 
@@ -14,8 +15,8 @@ internal object AcpWorkspaceText {
 
     private suspend fun observe(files: FileRepository, relative: String): Observation = withContext(Dispatchers.IO) {
         val file = PathSecurity.resolveWithin(files.root, relative)
-        // Validate text before hashing: a text write must not replace an arbitrary binary or scan a
-        // multi-GiB output just because the new content happens to be small.
+        // Validate text before hashing: a text write must not replace an arbitrary binary
+        // or scan a multi-GiB output just because the new content happens to be small.
         val content = if (Files.exists(file.toPath(), NOFOLLOW_LINKS)) {
             require(!Files.isSymbolicLink(file.toPath())) { "ACP text path cannot be a symbolic link" }
             files.readTextForEdit(relative, MAX_BYTES)

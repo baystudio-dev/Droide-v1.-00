@@ -14,8 +14,15 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-/** Stable identity/size/mtime/ctime then avoid rehashing large artifacts during publication. */
-
+/**
+ * A streamed byte-file observation, separate from the editor's smaller text version.
+ *
+ * Capture hashes once. Stable identity/size/mtime/ctime then avoid rehashing large artifacts
+ * during publication. Providers without ctime receive a cancellable content recheck instead.
+ * Repository mutations share a root lock; arbitrary native/terminal writes do not. Neither
+ * these observations nor a rename constitute filesystem compare-and-swap against an external
+ * writer in the final check/rename interval (or a filesystem with imprecise timestamps).
+ */
 class StreamFileVersion private constructor(
     private val canonicalRoot: File,
     private val relativePath: String,
@@ -27,6 +34,7 @@ class StreamFileVersion private constructor(
     val bytes: Long get() = observed?.bytes ?: 0L
     val executable: Boolean get() = observed?.permissions?.contains(PosixFilePermission.OWNER_EXECUTE) == true
 
+    /** No content allocation, and no following links at the leaf or in project parents. */
     internal fun requireMetadataMatches(root: File, relative: String) {
         require(root.canonicalFile == canonicalRoot && normalize(relative) == relativePath) {
             "File version belongs to a different workspace path"
@@ -73,7 +81,7 @@ class StreamFileVersion private constructor(
             val observed = observe(file)
             val digest = if (observed == null) "" else hash(file, observed.bytes)
             StreamFileVersion(canonicalRoot, relative, parents, observed, digest).also {
-
+                // Reject replacement, growth, chmod or ordinary in-place edits during hashing.
                 it.requireMetadataMatches(root, relative)
                 currentCoroutineContext().ensureActive()
             }
@@ -90,7 +98,7 @@ class StreamFileVersion private constructor(
         private fun checkedPath(root: File, relative: String): File {
             var current = root
             val parts = relative.split('/')
-
+            // Inspect lexical components before canonical resolution; in-root symlinks are aliases too.
             for (index in -1 until parts.size) {
                 if (index >= 0) current = File(current, parts[index])
                 val attrs = try {

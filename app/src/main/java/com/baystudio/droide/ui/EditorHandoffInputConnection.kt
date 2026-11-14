@@ -13,8 +13,11 @@ import android.view.inputmethod.InputContentInfo
 import android.view.inputmethod.TextAttribute
 import androidx.annotation.RequiresApi
 
-/** External IME gate only. */
-
+/**
+ * External IME gate only. Sora keeps its real EditorInputConnection internally.
+ * In particular, reject keys before BaseInputConnection can route them through IMM
+ * to another focused ViewRoot. Keys already forwarded before admission cannot be recalled.
+ */
 internal fun editorHandoffInputConnection(
     editor: DroideCodeEditor,
     delegate: InputConnection,
@@ -85,8 +88,8 @@ private open class EditorHandoffInputConnection(
         if (editor.acceptsFeatureUpdates) super.getExtractedText(request, flags) else null
 
     override fun closeConnection() {
-        // Admission already finished composition and refused undrained batches. A late close must not
-        // reset the real delegate while the exact lease is tentative.
+        // Admission already finished composition and refused undrained batches. A late
+        // close must not reset the real delegate while the exact lease is tentative.
         if (editor.acceptsMutations) super.closeConnection()
     }
 }
@@ -103,6 +106,8 @@ private open class EditorHandoffInputConnection31(
         editor.acceptsFeatureUpdates && super.performSpellCheck()
 }
 
+// New parameter types stay out of the minSdk29 class. InputConnectionWrapper forwards
+// these overloads directly to its target, bypassing our old-method overrides.
 @RequiresApi(33)
 private open class EditorHandoffInputConnection33(
     editor: DroideCodeEditor,
@@ -134,6 +139,8 @@ private class EditorHandoffInputConnection34(
         textAttribute: TextAttribute?,
     ): Boolean = editor.acceptsMutations && super.replaceText(start, end, text, newCursorPosition, textAttribute)
 
-    // Pinned Sora 0.24.6 and BaseInputConnection do not implement handwriting or text-bounds
-    // operations.
+    // Pinned Sora 0.24.6 and BaseInputConnection do not implement handwriting or
+    // text-bounds operations. InputConnection's defaults report unsupported (preview
+    // returns false); they do not mutate the editor. Reads/snapshots remain delegated.
+    // This gate is not a contract for arbitrary delegates or retained raw Content.
 }

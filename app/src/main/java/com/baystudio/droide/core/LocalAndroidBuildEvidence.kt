@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import java.util.UUID
 
+
 internal object LocalAndroidBuildEvidence {
     data class Session(val directory: File, val initScript: File, val manifest: File)
     private const val MAX_BYTES = 512L * 1024L

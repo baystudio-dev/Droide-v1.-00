@@ -5,6 +5,12 @@ import java.security.MessageDigest
 import java.util.Properties
 import java.util.concurrent.ConcurrentHashMap
 
+
+
+
+
+
+
 data class GradleWrapperDescriptor(
     val distributionUrl: String,
     val declaredVersion: String?,
@@ -76,6 +82,7 @@ object GradleWrapperInspector {
     }
 }
 
+ 
 class GradleWrapperRuntimeProbe internal constructor(
     private val shell: suspend (String, Int) -> BridgeShellResult,
 ) {

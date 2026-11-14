@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+ 
 data class DebugStopSnapshot(
     val generation: Long,
     val reason: String,
@@ -13,17 +14,21 @@ data class DebugStopSnapshot(
     val hitBreakpointIds: List<Int>,
 )
 
+ 
 enum class DebugAdapterTransport {
-
+     
     STDIO,
 
+     
     LOOPBACK_TCP_SERVER,
 
     JAVASCRIPT_DEBUG_TCP_SERVER,
 
+     
     AUTHENTICATED_REVERSE_TCP,
 }
 
+ 
 data class AuthenticatedReverseTcpContract(
     val connectArgument: String,
     val authTokenArgument: String,
@@ -108,8 +113,8 @@ object DebugAdapterRegistry {
             source = "built-in:managed-delve",
             transport = DebugAdapterTransport.LOOPBACK_TCP_SERVER,
             configurationTypes = setOf("go-delve", "go"),
-            // Delve controls native processes with ptrace. An executable alone is not evidence that it can
-            // trace a process already traced by PRoot.
+            // Delve controls native processes with ptrace. An executable alone is
+            // not evidence that it can trace a process already traced by PRoot.
             autoConfigure = false,
             nativeDebugger = true,
         ),
@@ -136,8 +141,8 @@ object DebugAdapterRegistry {
     fun byConfigurationType(type: String, extra: List<Spec> = emptyList()): Spec? {
         val specs = (extra + builtIns).distinctBy(Spec::id)
         byId(type, extra)?.let { return it }
-        // Debugger contributions require source-qualified identifiers.
-
+        // VS Code extension debugger contributions use source-qualified ids.
+        // Ambiguous aliases must be configured with adapterId explicitly.
         return specs.singleOrNull { type in it.configurationTypes || it.id.substringAfterLast(':') == type }
     }
 

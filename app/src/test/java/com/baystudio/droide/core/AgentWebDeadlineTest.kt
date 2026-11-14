@@ -92,7 +92,7 @@ class AgentWebDeadlineTest {
         }
         try {
             entered.await()
-            time.advanceMs(100_000)
+            time.advanceMs(100_000) // Exceeds both the default 12-second attempt and 60-second total budgets.
             yield()
             assertFalse(operation.isCompleted)
             assertEquals(1, requests.size)
@@ -128,7 +128,7 @@ class AgentWebDeadlineTest {
         var callbackEntered = false
         val failure = runCatching {
             withAgentWebDeadline(60_000, time::nanoTime) { deadline ->
-
+                // No suspension lets the timer run between consuming the budget and requesting a pause.
                 time.advanceMs(60_000)
                 deadline.withoutTime { callbackEntered = true }
             }
@@ -158,7 +158,7 @@ class AgentWebDeadlineTest {
             withAgentWebDeadline(60_000, time::nanoTime) {
                 entered = true
                 time.advanceMs(60_000)
-
+                // The timer first runs once this active operation suspends, then observes the consumed budget.
                 try { awaitCancellation() } finally { cleanedUp = true }
             }
         }.exceptionOrNull()

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Explicit offline TEST-ONLY Java compilation; never builds an AAR or native code."""
+"""Explicit offline TEST-ONLY Java compilation; never builds an AAR or native code.
+
+--build compiles the nine reviewed overlay families into a host-test classes JAR.
+--verify-only reads the source, receipt and JAR without invoking a compiler.
+The fixed output location is separate from every distributable artifact/receipt.
+"""
 from __future__ import annotations
 
 import argparse
@@ -105,8 +110,11 @@ def reviewed_inputs() -> tuple[dict[str, str], list[Path], dict[str, bytes]]:
     source_paths = []
     for name, patch_name, original in OVERLAYS:
         relative = PREFIX + name + ".java"
-        path = PATCH_ROOT / "src" / relative
-        patch = PATCH_ROOT / patch_name
+        path = ROOT / "third_party/termux/recording/owned" / relative if name == "TerminalSession" else PATCH_ROOT / "src" / relative
+        patch = ROOT / "third_party/termux/recording/owned-output-observer.patch" if name == "TerminalSession" else PATCH_ROOT / patch_name
+        if name in ("TerminalRow", "TerminalBuffer", "TerminalEmulator"):
+            path = ROOT / "third_party/termux/links/src" / relative
+            patch = ROOT / "third_party/termux/links" / (name + ".patch")
         content = path.read_bytes()
         before = source_entries[relative] if original else b""
         expected = "".join(difflib.unified_diff(

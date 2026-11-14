@@ -13,6 +13,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Host boundary controls; neither Android device nor native-runtime certification. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = android.app.Application::class, shadows = [VueHostFileStat::class])
 class VueHostFileStatTest {

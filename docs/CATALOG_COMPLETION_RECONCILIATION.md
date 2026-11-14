@@ -1,0 +1,13 @@
+# Same-attempt completed catalog reconciliation
+
+The explicitly selected JournaledProjectStore can reconcile one ordinary exception after it has received this attempt's PreparedOperation. It reads the exact archived result; it never retries publication, creates another operation, or resumes pending work. Cancellation and Error bypass this ordinary-error path. During proof, cancellation/Error remain primary with the original ordinary failure suppressed. An ordinary proof refusal preserves the original failure with proof diagnostics suppressed, then retains existing unconfirmed classification.
+
+PreparedOperation freezes full UUID/kind/path/parent/before/proposal identity plus enrollment binding. Existing Prepared constructor, copy and prepare API remain unchanged. Both prepare entry points share one original preparation body; there is no global request registry. The resolver verifies actual persisted receipt and current publication identity/custody under updater serialization and requires original history to remain unchanged. Selected authority binding is checked before and after proof.
+
+Successful read-only proof returns the revision through the existing store/manager normal-success path. No manager uncertainty or selection guard is explicitly cleared. The manager remains responsible for its ordinary state/recents/relocation behavior. Errors outside this save attempt are not covered. Lost early preparation returns and pending staged/publication records remain blocked. Matching current bytes alone is not proof.
+
+This is neither durable delivery acknowledgement nor metadata/custody retirement. It does not activate schema3, the dormant request contract, journaled defaults, or migration. It does not establish arbitrary writer/process/descriptor exclusion. A normal return can still be lost to cancellation/restart; existing uncertainty and explicit recovery remain authoritative.
+
+Tests use actual selected JournaledProjectStore and ProjectManager with fresh synthetic roots. RED reproduces both store and manager committed-but-lost-return failures. Verification covers exactly one admission/proof, no resolver file mutation, owner/receipt/custody/inode mismatches, interrupted preparation/archive, immutable parent snapshots, cancellation/fatal priority, fresh selected-store/manager reopen, and normal retained relocation. Injected failures/reopens are not power-loss/device tests. Native fixture reuse is not a native rebuild.
+
+VS Code lifecycle references remain analogous only: operation completion and failure notifications are distinct from durable acknowledgement. No upstream exactly-once protocol is assumed or copied.

@@ -8,14 +8,19 @@ import com.baystudio.droide.core.EditorSelectionSnapshot
 import com.baystudio.droide.core.EditorStateStore
 import kotlinx.coroutines.CompletableDeferred
 
-/** Main-owned Exit preparation. */
-
+/**
+ * Main-owned Exit preparation. Dirty buffers remain dirty; no project-file Save is performed.
+ * The caller must retain this owner through failures and must not unmount the editor until
+ * saveAndVerify and the other Exit barriers succeed, followed by commitForRelease. Unavoidable
+ * Activity loss uses allowNativeReleaseForRecreation before the original pane is disposed.
+ */
 internal suspend fun prepareEditorExitCheckpoint(
     state: EditorWorkspaceState,
     store: EditorStateStore,
 ): EditorExitCheckpoint {
     requireEditorExitMain()
-
+    // The application has closed new work admission. Join an already accepted Save before
+    // freezing its model; its publication may still update the original disk baseline.
     while (true) {
         val saving = state.allDocuments().filter { it.isSaveInProgress }
         if (saving.isEmpty()) break
@@ -24,6 +29,7 @@ internal suspend fun prepareEditorExitCheckpoint(
     return prepareEditorExitCheckpointNow(state, store)
 }
 
+/** Also usable before Activity.onDestroy disposes the original pane. Performs no I/O or wait. */
 internal fun prepareEditorExitCheckpointNow(
     state: EditorWorkspaceState,
     store: EditorStateStore,
@@ -41,6 +47,7 @@ private data class ExitDocumentVersion(
     val diskVersion: DiskFileVersion?,
 )
 
+/** Reversible until native release is allowed; always retains its data through preservation. */
 internal class EditorExitCheckpoint internal constructor(
     private val state: EditorWorkspaceState,
     private val store: EditorStateStore,
@@ -98,7 +105,8 @@ internal class EditorExitCheckpoint internal constructor(
         token = store.tryRetireWrites()
         try {
             state.sealForProjectHandoff(owner)
-
+            // begin settles the existing IME delegate, rejects pending batches, and captures
+            // text delivered by finishComposingText before its native mutation gate closes.
             nativeLease = native?.begin(::onReleased)
             capturePreparedSnapshot()
             prepared = true
@@ -123,8 +131,8 @@ internal class EditorExitCheckpoint internal constructor(
         operationRunning = true
         try {
             awaitRecreationRelease()
-            // A raw native callback can deliver text while frozen. Each explicit retry takes the latest
-            // exact-owner snapshot, never reuses an older failed immutable copy.
+            // A raw native callback can deliver text while frozen. Each explicit retry takes
+            // the latest exact-owner snapshot, never reuses an older failed immutable copy.
             val previousVersions = versions
             val previousSnapshot = pendingSnapshot
             capturePreparedSnapshot()
@@ -135,8 +143,8 @@ internal class EditorExitCheckpoint internal constructor(
             initialVerified = false
             val snapshot = checkNotNull(pendingSnapshot)
             preserveSnapshot(snapshot, committed = false)
-            // Activity destruction can happen while the store is on IO. Its exact release receipt is
-            // mandatory; a changed final buffer requires an explicit fresh save.
+            // Activity destruction can happen while the store is on IO. Its exact release
+            // receipt is mandatory; a changed final buffer requires an explicit fresh save.
             awaitRecreationRelease()
             validatePreparedSnapshot()
             verifiedModelSnapshot = snapshot
@@ -151,8 +159,12 @@ internal class EditorExitCheckpoint internal constructor(
         }
     }
 
-    /** Commits only the exact native lease so release can acknowledge its final capture even while
-     * store preservation is still tentative/in flight. */
+    /**
+     * Called synchronously by the ORIGINAL Activity before its composition is destroyed.
+     * Commits only the exact native lease so release can acknowledge its final capture even
+     * while store preservation is still tentative/in flight. A replacement Activity must
+     * show the Exit panel, never mount a new editor against this sealed workspace.
+     */
     fun allowNativeReleaseForRecreation() {
         requireEditorExitMain()
         check(prepared && !aborted) { "Editor Exit preparation is no longer available" }
@@ -167,8 +179,10 @@ internal class EditorExitCheckpoint internal constructor(
         }
     }
 
-    /** No suspension. After this succeeds the caller unmounts the workspace UI, but retains this
-     * checkpoint and a stopped recovery panel until awaitReleaseAndCheckpoint succeeds. */
+    /**
+     * No suspension. After this succeeds the caller unmounts the workspace UI, but retains
+     * this checkpoint and a stopped recovery panel until awaitReleaseAndCheckpoint succeeds.
+     */
     fun commitForRelease() {
         requireEditorExitMain()
         if (releaseCommitted) return
@@ -208,13 +222,13 @@ internal class EditorExitCheckpoint internal constructor(
             requireSuccessfulRelease()
             requireNoReplacementOwner()
             if (finalVerified) return
-            // Native release has already captured before AND after super.release. Do not call a
-            // disposed/replaced pane's bridge; preserve the retained model directly.
+            // Native release has already captured before AND after super.release. Do not call
+            // a disposed/replaced pane's bridge; preserve the retained model directly.
             val finalSnapshot = snapshot()
             pendingSnapshot = finalSnapshot
             val finalVersions = documentVersions()
-            // The store is exclusively retired to us. Reuse a verified checkpoint only when the exact
-            // release receipt has the same model; final IME deltas still get saved.
+            // The store is exclusively retired to us. Reuse a verified checkpoint only when
+            // the exact release receipt has the same model; final IME deltas still get saved.
             if (finalSnapshot != verifiedModelSnapshot) preserveSnapshot(finalSnapshot, committed = true)
             requireSuccessfulRelease()
             requireNoReplacementOwner()
@@ -306,8 +320,8 @@ internal class EditorExitCheckpoint internal constructor(
         val nav = state.navigation
         val captured = state.recoverySnapshot(nav?.openFiles.orEmpty(), nav?.activeFile.orEmpty())
             ?: state.emptyRecoverySnapshot()
-        // Mirror the existing v6 presentation bounds without truncating a dirty/conflict body. Dirty
-        // files beyond the ordinary tab bound are still restored by EditorTabRetention.
+        // Mirror the existing v6 presentation bounds without truncating a dirty/conflict body.
+        // Dirty files beyond the ordinary tab bound are still restored by EditorTabRetention.
         val open = captured.openFiles.distinct().take(32)
         val relevant = (open + captured.dirtyPaths).toSet()
         return captured.copy(
@@ -322,8 +336,8 @@ internal class EditorExitCheckpoint internal constructor(
     private fun onReleased(failure: Throwable?) {
         if (release.isCompleted) return
         releaseFailure = failure
-        // Retain a valid copy even when release itself failed. Failure is never relabeled as durable
-        // success: retryFinalCheckpoint keeps a capture/release blocker visible.
+        // Retain a valid copy even when release itself failed. Failure is never relabeled as
+        // durable success: retryFinalCheckpoint keeps a capture/release blocker visible.
         try {
             requireNoReplacementOwner()
             releasedSnapshot = snapshot()
@@ -392,8 +406,8 @@ internal class EditorExitCheckpoint internal constructor(
 
     private suspend fun preserveSnapshot(model: EditorRecoverySnapshot, committed: Boolean) {
         val writeToken = token ?: store.retireWritesAfterPendingIo().also { token = it }
-        // An unrestored backup is not a new unsaved edit. Do not rewrite, decrypt, or remove it merely
-        // to close a clean workspace, including one whose recovery load failed.
+        // An unrestored backup is not a new unsaved edit. Do not rewrite, decrypt, or remove
+        // it merely to close a clean workspace, including one whose recovery load failed.
         if (preserveUnrestoredRecovery && model.dirtyPaths.isEmpty() && model.conflictPaths.isEmpty()) return
         val checkpoint = if (preserveUnrestoredRecovery) {
             if (!unrestoredLoaded) {
@@ -401,8 +415,8 @@ internal class EditorExitCheckpoint internal constructor(
                 unrestoredLoaded = true
             }
             mergeUnrestoredExitRecovery(model, unrestoredSnapshot).let { merged ->
-                // Keep only older copies not adopted by the live model. This also makes retries/final native
-                // deltas safe if publication succeeded but readback failed.
+                // Keep only older copies not adopted by the live model. This also makes
+                // retries/final native deltas safe if publication succeeded but readback failed.
                 unrestoredSnapshot = merged.retained
                 merged.checkpoint
             }

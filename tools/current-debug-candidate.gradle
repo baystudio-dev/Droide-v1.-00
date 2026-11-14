@@ -1,0 +1,100 @@
+// Current candidate only. Passing this graph is NOT final APK admission.
+if (gradle.startParameter.projectProperties['DROIDE_CURRENT_DEBUG_VERIFIED'] != 'true') throw new GradleException('Explicit current CLI mode required')
+['DROIDE_HOST_JVM_TESTS_ONLY','DROIDE_PRIVATE_DEBUG_DEVICE_UNVALIDATED','DROIDE_PRIVATE_PTY_DERIVATIVE','DROIDE_PRIVATE_R63_RESIZE_DERIVATIVE'].each {
+    if (providers.gradleProperty(it).orNull == 'true') throw new GradleException('Mutually exclusive current mode')
+}
+['DROIDE_CURRENT_COMPOSITE','DROIDE_CURRENT_CONTEXT','DROIDE_CURRENT_DEBUG_KEYSTORE'].each {
+    if (!gradle.startParameter.projectProperties[it]?.trim()) throw new GradleException('Explicit input required: ' + it)
+}
+def currentContracts = providers.gradleProperty('DROIDE_CURRENT_APP_RUNTIME_CONTRACTS').orNull == 'true'
+if (currentContracts && gradle.startParameter.projectProperties['DROIDE_CURRENT_APP_RUNTIME_CONTRACTS'] != 'true') {
+    throw new GradleException('Current app contracts require explicit CLI opt-in')
+}
+def currentRoot = currentContracts ? ':app:verifyCurrentAppRuntimeContracts' : ':app:assembleCurrentDebugCandidate'
+if (gradle.startParameter.taskNames != [currentRoot]) throw new GradleException('Only the exact current root is allowed')
+if (!gradle.startParameter.offline || !gradle.startParameter.excludedTaskNames.empty) throw new GradleException('Offline and no exclusions required')
+if (gradle.startParameter.configurationCacheRequested || gradle.startParameter.buildCacheEnabled) throw new GradleException('Caches forbidden')
+if (gradle.startParameter.projectProperties['android.builder.sdkDownload'] != 'false') throw new GradleException('SDK download must be disabled')
+if (gradle.startParameter.dependencyVerificationMode.name() != 'STRICT') throw new GradleException('Strict verification required')
+if (!gradle.startParameter.writeDependencyVerifications.empty || gradle.startParameter.writeDependencyLocks || !gradle.startParameter.lockedDependenciesToUpdate.empty) throw new GradleException('Verification and lock mutation forbidden')
+def allowedNames = [
+    'assembleCurrentDebugCandidate', 'verifyCurrentComposite', 'assembleDebug', 'preBuild', 'preDebugBuild',
+    'verifyJGitAndroidCompat', 'checkKotlinGradlePluginConfigurationErrors',
+    'generateDebugBuildConfig', 'checkDebugAarMetadata', 'processDebugNavigationResources',
+    'compileDebugNavigationResources', 'generateDebugResValues', 'mapDebugSourceSetPaths',
+    'generateDebugResources', 'mergeDebugResources', 'packageDebugResources', 'parseDebugLocalResources',
+    'createDebugCompatibleScreenManifests', 'extractDeepLinksDebug', 'processDebugMainManifest',
+    'processDebugManifest', 'processDebugManifestForPackage', 'processDebugResources',
+    'compileDebugKotlin', 'javaPreCompileDebug', 'compileDebugJavaWithJavac',
+    'mergeDebugShaders', 'compileDebugShaders', 'generateDebugAssets', 'mergeDebugAssets',
+    'compressDebugAssets', 'processDebugJavaRes', 'mergeDebugJavaResource',
+    'checkDebugDuplicateClasses', 'desugarDebugFileDependencies', 'mergeExtDexDebug',
+    'mergeLibDexDebug', 'dexBuilderDebug', 'mergeProjectDexDebug',
+    'mergeDebugJniLibFolders', 'mergeDebugNativeLibs', 'stripDebugDebugSymbols',
+    'validateSigningDebug', 'writeDebugAppMetadata', 'writeDebugSigningConfigVersions',
+    'packageDebug', 'createDebugApkListingFileRedirect',
+    'mergeDebugNativeDebugMetadata', 'mergeDebugGlobalSynthetics',
+    'generateDebugLintReportModel', 'preDebugUnitTestBuild',
+    'lintDebug', 'lintReportDebug', 'lintAnalyzeDebug', 'lintAnalyzeDebugUnitTest',
+    'lintAnalyzeDebugAndroidTest', 'generateDebugLintModel', 'generateDebugUnitTestLintModel',
+    'generateDebugAndroidTestLintModel', 'extractProguardFiles', 'bundleDebugClassesToCompileJar'
+] as Set
+def mandatoryNames = [
+    'assembleCurrentDebugCandidate', 'verifyCurrentComposite', 'assembleDebug', 
+    'verifyJGitAndroidCompat', 'mergeDebugNativeLibs', 'stripDebugDebugSymbols', 'packageDebug', 'lintDebug'
+] as Set
+if (currentContracts) {
+    allowedNames.addAll([
+        'verifyCurrentAppRuntimeContracts', 'bundleDebugClassesToRuntimeJar',
+        'compileDebugUnitTestKotlin', 'javaPreCompileDebugUnitTest',
+        'compileDebugUnitTestJavaWithJavac', 'packageDebugUnitTestForUnitTest',
+        'processDebugUnitTestManifest', 'generateDebugUnitTestConfig',
+        'processDebugUnitTestJavaRes', 'testDebugUnitTest'
+    ])
+    mandatoryNames.addAll([
+        'verifyCurrentAppRuntimeContracts', 'compileDebugUnitTestKotlin',
+        'compileDebugUnitTestJavaWithJavac', 'generateDebugUnitTestConfig', 'testDebugUnitTest'
+    ])
+}
+gradle.taskGraph.whenReady { graph ->
+    def bad = graph.allTasks.findAll { it.project.path != ':app' || !allowedNames.contains(it.name) || !it.enabled }
+    if (!bad.empty) throw new GradleException('Unreviewed/disabled current tasks: ' + bad*.path.join(', '))
+    if (!graph.allTasks*.name.containsAll(mandatoryNames)) throw new GradleException('Missing mandatory current provenance/build/lint tasks')
+    logger.lifecycle('CURRENT_DEBUG_UNADMITTED graph: ' + graph.allTasks*.path.join(', '))
+}
+// Record actual resolved program/library dependencies; no caller-selected class allowlist.
+afterEvaluate {
+    def measure = {
+        def result = [:]
+        ['debugCompileClasspath', 'debugRuntimeClasspath'].each { name ->
+            def config = configurations.getByName(name)
+            def rows = config.incoming.artifacts.artifacts.collect { artifact ->
+                def digest = java.security.MessageDigest.getInstance('SHA-256')
+                artifact.file.withInputStream { stream ->
+                    byte[] buffer = new byte[65536]; int count
+                    while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+                }
+                [component: artifact.id.componentIdentifier.displayName.replace(rootProject.projectDir.absolutePath, "<SOURCE>"),
+                 fileName: artifact.file.name, filePath: artifact.file.absolutePath, sha256: digest.digest().encodeHex().toString()]
+            }.sort { a, b -> (a.component + a.fileName) <=> (b.component + b.fileName) }
+            result[name] = rows
+        }
+        result
+    }
+    tasks.named('verifyCurrentComposite').configure {
+        doLast {
+            def out = layout.buildDirectory.file('current-resolved-inputs-before.json').get().asFile
+            out.parentFile.mkdirs()
+            out.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(measure()))
+        }
+    }
+    tasks.named('assembleCurrentDebugCandidate').configure {
+        doLast {
+            def before = layout.buildDirectory.file('current-resolved-inputs-before.json').get().asFile
+            def now = measure()
+            if (new groovy.json.JsonSlurper().parse(before) != now) throw new GradleException('Resolved dependencies changed during build')
+            def out = layout.buildDirectory.file('current-resolved-inputs-after.json').get().asFile
+            out.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(now))
+        }
+    }
+}

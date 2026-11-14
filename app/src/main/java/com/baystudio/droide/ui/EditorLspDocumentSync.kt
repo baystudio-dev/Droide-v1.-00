@@ -23,8 +23,8 @@ internal fun EditorLspDocumentEffect(document: EditorDocument, path: String, lsp
         if (enabled && lastVersion == version) return@LaunchedEffect
         val action = editorLspTransition(mayBeOpen, enabled, path, document.content)
         if (action != null) {
-            // Managers may register text before suspending to notify a server. Remember that ownership even
-            // when recomposition cancels the first open midway.
+            // Managers may register text before suspending to notify a server. Remember
+            // that ownership even when recomposition cancels the first open midway.
             if (enabled) mayBeOpen = true
             lastVersion = null
             runSuspendCatching {
@@ -38,6 +38,7 @@ internal fun EditorLspDocumentEffect(document: EditorDocument, path: String, lsp
     }
 }
 
+/** Immutable notifications captured with the editor mutation, before dispatch may suspend. */
 internal sealed interface EditorLspAction {
     data class Open(val path: String, val content: String) : EditorLspAction
     data class Change(val path: String, val content: String) : EditorLspAction

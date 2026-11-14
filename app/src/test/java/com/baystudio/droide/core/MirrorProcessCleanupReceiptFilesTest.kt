@@ -6,6 +6,7 @@ import java.util.UUID
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real anchored/JNI file operations; ledger transaction integration is tested separately. */
 class MirrorProcessCleanupReceiptFilesTest {
     private class Interrupted : RuntimeException()
     private fun owner(boot: WorkspaceProcessBootIdentity.Identity? = null) =

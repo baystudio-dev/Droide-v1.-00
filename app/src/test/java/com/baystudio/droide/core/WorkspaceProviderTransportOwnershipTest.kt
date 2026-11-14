@@ -8,6 +8,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real LlmClient requests delayed until after another project's catalog has published. */
 class WorkspaceProviderTransportOwnershipTest {
     @Test(timeout = 10_000)
     fun delayedOldRuntimeTransportCannotBorrowNewProjectEndpoint() = runBlocking {
@@ -27,7 +28,7 @@ class WorkspaceProviderTransportOwnershipTest {
                     assertTrue(withTimeout(3_000) { delayed.await() }.contains("old-project"))
                     assertEquals(1, first.requests.get())
                     assertEquals(0, second.requests.get())
-
+                    // Unscoped clients retain the endpoint mismatch guard.
                     assertTrue(runCatching {
                         LlmClient().chatCompletions(original.id, original.baseUrl, "", MODEL, BODY)
                     }.isFailure)

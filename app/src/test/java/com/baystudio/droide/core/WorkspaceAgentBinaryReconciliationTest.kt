@@ -545,6 +545,7 @@ class WorkspaceAgentBinaryReconciliationTest {
         assertEquals(WorkspaceAgentSyncPhase.SYNCED, f.host.workspaceSyncState.value.phase)
     }
 
+
     @Test(timeout = 45_000) fun cliChangesDuringApprovalRemainPendingWithoutUnreviewedPublication() = fixture(
         effect = PermEffect.ASK, initial = { File(it, "removed.txt").writeText("retain source until review") },
     ) { f ->

@@ -14,6 +14,9 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+
+
+/** Exact manager/transport with authored peers and real local observation. No upstream execution. */
 class LspSvelteIntegrationTest {
     @Test(timeout=12000) fun passiveEventsRequireConsentAndManagedIdentity()=runBlocking<Unit>{Fixture().use{f->
         f.file("App.svelte");f.manager.didOpen("App.svelte","<h1>dirty</h1>")

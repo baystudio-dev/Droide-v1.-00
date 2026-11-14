@@ -76,8 +76,7 @@ internal object CSharpSdkSelection {
                 val normalized=candidate.toPath().toAbsolutePath().normalize().toFile()
                 val project=candidate.canonicalFile
                 require(project==normalized) { "Direct solution project paths must not cross symbolic links" }
-                // Referenced projects outside the identity-bound workspace are not silently inspected in a
-                // different guest view.
+                // Referenced projects outside the identity-bound workspace are not silently inspected in a different guest view.
                 require(project.toPath().startsWith(workspace.toPath())) { "A direct solution project is outside the supported workspace mapping" }
                 canonicalDirectory(requireNotNull(project.parentFile))
                 require(project.extension.lowercase()=="csproj") { "Unsupported direct solution project type" }
@@ -88,8 +87,7 @@ internal object CSharpSdkSelection {
                 ancestorPolicy(project.parentFile)
             }
         }
-        // Bounded metadata scan finds nested known project SDK policies without evaluating project files
-        // or running discovery.
+        // Bounded metadata scan finds nested known project SDK policies without evaluating project files or running discovery.
         var visited = 0
         Files.walk(root.toPath(), 24).use { paths -> paths.forEach { p ->
             require(++visited <= 32_768) { "C# metadata scan bound exceeded" }
@@ -115,8 +113,7 @@ internal object CSharpSdkSelection {
             val pattern=Regex("""^Project\("\{([0-9A-Fa-f-]{36})\}"\)\s*=\s*"[^"]*",\s*"([^"]+)",\s*"\{[0-9A-Fa-f-]{36}\}"\s*$""")
             text.lineSequence().map(String::trim).filter { it.startsWith("Project(") }.mapNotNull { line ->
                 val match=requireNotNull(pattern.matchEntire(line)) { "Unsupported solution project record" }
-                // Serialized MSBuild solution-folder kind; automation API kinds do not grant a project
-                // exemption.
+                // Serialized MSBuild solution-folder kind; automation API kinds do not grant a project exemption.
                 if(match.groupValues[1].equals("2150E333-8FDC-42A3-9474-1A3956D46DE8",ignoreCase=true))null else match.groupValues[2]
             }.toList()
         } else {

@@ -216,7 +216,7 @@ class LspNimIntegrationTest {
             f.enableAndReady()
             f.host.peers.single().locationResult = buildJsonArray {
                 add(location(f.uri("b.nim"), 3, 9))
-                add(location(f.uri("b.nim"), 1, 2))
+                add(location(f.uri("b.nim"), 1, 2)) // Split astral UTF-16 boundary.
                 add(location(f.uri("closed.nim"), 0, 6))
                 add(location("file:///outside.nim", 0, 1))
             }
@@ -390,8 +390,7 @@ class LspNimIntegrationTest {
             check(identity == this.identity && owner.identity == identity)
             creationEntered.complete(Unit)
             try {
-                // Deliberately finish host preparation after cancellation: manager's actual protected callback
-                // must fence creation.
+                // Deliberately finish host preparation after cancellation: manager's actual protected callback must fence creation.
                 withContext(NonCancellable) { withTimeout(3000) { creationGate?.await() } }
                 return admitStart {
                     protectedCreations.incrementAndGet()

@@ -4,8 +4,8 @@ import java.security.MessageDigest
 import kotlinx.serialization.json.*
 import kotlinx.coroutines.ensureActive
 
-// Installation/repair is possible only for entries that the normal Extensions subsystem already
-// marks AVAILABLE/INSTALLED.
+// Installation/repair is possible only for entries that the normal Extensions subsystem already marks AVAILABLE/INSTALLED.
+
 
 class AgentToolchainActions private constructor(
     private val extensions: DevelopmentExtensionsManager,
@@ -17,7 +17,7 @@ class AgentToolchainActions private constructor(
         fun forWorkspace(extensions: DevelopmentExtensionsManager, terminals: TerminalManager) =
             AgentToolchainActions(extensions, ToolchainEnvironmentRefresh(terminals))
     }
-
+    /** Shared by the native agent and workspace CLI/MCP; neither can submit an acceptance flag. */
     internal suspend fun execute(args: JsonObject, mode: AgentMode, permissions: PermissionEngine,
         approvals: ApprovalManager, scope: String, provenance: AgentRequestProvenance,
         requireCurrent: () -> Unit = {}, progress: (String) -> Unit = {}): String {
@@ -35,8 +35,8 @@ class AgentToolchainActions private constructor(
         }.orEmpty()
         val op = value("operation").ifBlank { "list" }
         val family = value("family")
-        // An omitted selection keeps the currently installed choice, as before; it must not become a
-        // literal search for an installed version named latest.
+        // An omitted selection keeps the currently installed choice, as before;
+        // it must not become a literal search for an installed version named latest.
         val version = value("version").ifBlank { if (op == "use_workspace") "" else "latest" }
         if (op in setOf("install", "repair", "use_workspace", "refresh_environment") && mode != AgentMode.BUILD)
             return "DENIED ($mode mode): toolchain changes require BUILD mode."
@@ -86,7 +86,8 @@ class AgentToolchainActions private constructor(
                     }, install = {
                         report("Installing approved toolchain")
                         install(prepared.copy(needsLicenseAcceptance = false))
-                    })
+                    }, externalDownloadNotice = extensions.installer.externalDownloadNotice(prepared.plan),
+                    acceptExternalDownload = { extensions.installer.acceptExternalDownloadFromUser(prepared.plan) })
             }
             "repair" -> {
                 val (item, preview) = repairPreview(family, version)
@@ -188,14 +189,16 @@ class AgentToolchainActions private constructor(
         if (prepared.needsLicenseAcceptance) {
             return "UNAVAILABLE: Android SDK license approval is required; use the reviewed toolchain install workflow."
         }
-
+        
+        
         val result = extensions.unifiedAuthority.installPrepared(prepared.plan)
         if (!result.success) return "TOOLCHAIN_INSTALL_RESULT\nsuccess=false\nmessage=${result.message.take(6_000)}"
-
+        // A successful user update has already passed the installer's command health probe.
+        // It intentionally creates no sealed managed receipt or fabricated exact-version proof.
         val userManaged = prepared.plan is ExtensionInstallPlan.UserManaged
         val refreshed = if (userManaged) null else extensions.unifiedAuthority.info(prepared.plan.familyId, prepared.plan.resolvedVersion)
         val verifiedState = AgentToolchainInstallResultPolicy.state(userManaged, refreshed?.state)
-
+        
         return buildString {
             append("TOOLCHAIN_INSTALL_RESULT\n")
             append("success=").append(result.success).append('\n')
@@ -221,15 +224,15 @@ class AgentToolchainActions private constructor(
     }
 
     suspend fun repair(item: ExtensionVersionState): String {
-
+        
         val result = extensions.unifiedAuthority.repairVersion(item.family.id, item.version.version)
         if (!result.success) return "TOOLCHAIN_REPAIR_RESULT\nsuccess=false\nmessage=${result.message.take(6_000)}"
-
+        
         val refreshed = extensions.unifiedAuthority.info(item.family.id, item.version.version)
         require(refreshed?.state == "active" || refreshed?.state == "inactive") {
             "Managed repair returned but unified authority did not prove INSTALLED: state=${refreshed?.state}"
         }
-
+        
         return "TOOLCHAIN_REPAIR_RESULT\nsuccess=${result.success}\nmessage=${result.message.take(6_000)}\nverified_state=${refreshed.state}\n" +
             ToolchainEnvironmentRefresh.NEXT_STEP
     }
@@ -237,9 +240,10 @@ class AgentToolchainActions private constructor(
     suspend fun activateWorkspace(familyId: String, version: String, workspaceId: String? = null): String {
         val item = find(familyId, version)
         require(item.state == ExtensionState.INSTALLED) { "Install the managed package before selecting it for this workspace" }
-
+        
+        
         val result = extensions.unifiedAuthority.activate(item.family.id, item.version.version, workspaceId ?: extensions.workspaceId)
-
+        
         return "TOOLCHAIN_WORKSPACE_SELECTION family=${item.family.id} version=${item.version.version} status=${if (result.success) "selected" else "failed"} message=${result.message}" +
             if (result.success) "\n" + ToolchainEnvironmentRefresh.NEXT_STEP else ""
     }

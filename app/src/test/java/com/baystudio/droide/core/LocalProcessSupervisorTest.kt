@@ -34,8 +34,8 @@ class LocalProcessSupervisorTest {
         assertEquals(0, r.exitCode); assertTrue(r.output.endsWith("[output truncated]\n")); assertTrue(r.output.length < 1100)
     }
     @Test fun timesOutWithoutWaitingForOutput() = runBlocking {
-        // On loaded CI, JVM scheduling and creating a child can take >2.5 seconds. Deadline behavior is
-        // verified with a monotonic synthetic-clock test.
+        // On loaded CI, JVM scheduling and creating a child can take >2.5 seconds.
+        // Deadline behavior is verified with a monotonic synthetic-clock test.
         val r = LocalProcessSupervisor.capture(listOf("/bin/sh", "-c", "exec sleep 20"), cwd, timeoutMs = 150)
         assertEquals(124, r.exitCode)
         assertTrue(r.timedOut)

@@ -23,6 +23,7 @@ internal object NimRuntimeClosure {
     data class Closure(val files: Map<String,String>, val sha256: String)
     fun sha256(text: String): String = MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
 
+    /** Complete magic-based native inventory, including binaries hidden under data suffixes. */
     fun inspectTree(root: File, executables: Set<String>, required: Set<String>, maxFiles: Int, maxBytes: Long,
         top: String? = null, safeLinks: Boolean = false, active: () -> Unit = {}): Inventory {
         requireDirectory(root)
@@ -66,12 +67,12 @@ internal object NimRuntimeClosure {
 
     private const val SSL_SUFFIXES = "(.3|.1.1|.1.0.2|.1.0.1|.1.0.0|.0.9.9|.0.9.8|.48|.47|.46|.45|.44|.43|.41|.39|.38|.10|)"
     private val loaderPatterns = mapOf("libssl.so" to "libssl.so$SSL_SUFFIXES", "libcrypto.so" to "libcrypto.so$SSL_SUFFIXES", "libpcre.so" to "libpcre.so(.3|.1|)")
-    /** Positive original data evidence for the ordinary source-default loader path, not a universal
-     * dlopen or SBOM proof. */
+    /** Positive original data evidence for the ordinary source-default loader path, not a universal dlopen or SBOM proof.
+     * Missing evidence does not imply static linkage. Unknown sslVersion/alternative identities are unsupported. */
     fun requireDefaultLoaderEvidence(inventories: List<Inventory>, active: () -> Unit = {}): Map<String,String> {
         val evidence = linkedMapOf<String,String>()
         for (inventory in inventories) for ((relative,image) in inventory.native) {
-            if (relative == LocalUbuntuNimHelperPolicy.ENTRY) continue
+            if (relative == LocalUbuntuNimHelperPolicy.ENTRY) continue // Original Node uses its separately checked build configuration.
             val observed = linkedSetOf<String>()
             image.needed.filter { name -> loaderPatterns.keys.any { name.startsWith(it) } }.forEach(observed::add)
             loadIdentifiers(inventory,relative,image,active).filter { value -> loaderPatterns.keys.any { value.contains(it) } }.forEach { value ->
@@ -101,8 +102,9 @@ internal object NimRuntimeClosure {
         return evidence.toSortedMap()
     }
 
+    // Source-bound conservative .3 capability profile, plus positive original direct-loader identifiers.
     // Nim commit8e8fbf6 wrappers: openssl SHA6277b2b1..., pcre SHA7933860c...; optional nullable
-    // compatibility names are deliberately not blanket requirements.
+    // compatibility names are deliberately not blanket requirements. This is not a binary call graph.
     internal val ordinaryMandatoryExports=mapOf(
         "libssl.so.3" to setOf("OPENSSL_init_ssl","TLS_method","TLS_client_method","TLS_server_method","SSL_in_init","SSL_CTX_set_ciphersuites","SSL_get1_peer_certificate","SSL_new","SSL_free","SSL_CTX_new","SSL_CTX_free"),
         "libcrypto.so.3" to setOf("ERR_get_error","ERR_error_string","BIO_new","BIO_free"),
@@ -249,8 +251,8 @@ internal object NimRuntimeClosure {
         return done.fold(base) { at, p -> at.resolve(p) }.toFile()
     }
 
-    /** All matching cache targets must resolve to the inspected file; unknown/hwcaps variants are not
-     * guessed. */
+    /** Modern glibc 1.1 cache layout: glibc-2.39/sysdeps/generic/dl-cache.h and linux/aarch64/dl-cache.h.
+     * All matching cache targets must resolve to the inspected file; unknown/hwcaps variants are not guessed. */
     private fun requireGuestLoaderConfiguration(root: File, expected: Map<String, String>, active: () -> Unit) {
         resolveGuestFile(root, "/etc/ld.so.preload", active)?.let {
             require(readBytes(it, 16_384, active, allowEmpty = true).all { byte -> byte.toInt().toChar() in " \t\r\n" }) {
@@ -347,8 +349,7 @@ internal object NimRuntimeClosure {
                 else { require(value >= 0); tags.getOrPut(tag) { mutableListOf() }.add(value) }
             }
             require(ended); tags.filterKeys { it != 1L }.values.forEach { require(it.size == 1) { "Nim duplicate ELF dynamic singleton" } }
-            // Finite ELF64/AArch64 ABI metadata only. DT_CONFIG, audit, filters and unknown extensions fail
-            // closed.
+            // Finite ELF64/AArch64 ABI metadata only. DT_CONFIG, audit, filters and unknown extensions fail closed.
             val standardTags = (1L..30L).toSet() + (32L..37L).toSet()
             val gnuTags = setOf(0x6ffffef5L, 0x6ffffff0L, 0x6ffffff9L, 0x6ffffffaL, 0x6ffffffbL,
                 0x6ffffffcL, 0x6ffffffdL, 0x6ffffffeL, 0x6fffffffL)
@@ -447,8 +448,8 @@ internal object NimRuntimeClosure {
                 val versym=tag(0x6ffffff0L)?.let { read(map(it,2L*count),2*count) }
                 var lookupWork=0
                 fun hashAccessible(symbol:String,index:Int):Boolean {
-                    // glibc chooses GNU lookup when present; a valid SYSV table cannot rescue a malformed GNU
-                    // bloom/bucket/chain or make its unreachable export usable.
+                    // glibc chooses GNU lookup when present; a valid SYSV table cannot rescue
+                    // a malformed GNU bloom/bucket/chain or make its unreachable export usable.
                     sysvData?.takeIf { gnuBuckets==null }?.let { data ->
                         var hash=0L;for(c in symbol) { hash=(hash shl 4)+c.code;val high=hash and 0xf0000000L;if(high!=0L)hash=hash xor (high ushr 24);hash=hash and high.inv() }
                         var current=data.getInt(8+4*(hash%sysvBuckets).toInt()).toLong() and 0xffffffffL;val seen=hashSetOf<Long>()

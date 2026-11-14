@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import okio.BufferedSource
 
+/** Bound wire data before creating Strings or entering the recursive JSON parser. */
 internal object ProviderPayloadLimits {
     const val MAX_JSON_DEPTH = 128
 
@@ -9,12 +10,13 @@ internal object ProviderPayloadLimits {
         require(maxBytes > 0)
         val newline = source.indexOf('\n'.code.toByte(), 0, maxBytes.toLong() + 1)
         if (newline >= 0) return source.readUtf8LineStrict(newline)
-        // indexOf reads at most the bounded prefix plus an Okio segment. Never call an unbounded
-        // readUtf8Line: a server can otherwise send an endless line and OOM.
+        // indexOf reads at most the bounded prefix plus an Okio segment. Never call an
+        // unbounded readUtf8Line: a server can otherwise send an endless line and OOM.
         check(source.buffer.size <= maxBytes) { "Provider response line exceeds the mobile response capacity" }
         return if (source.buffer.size == 0L) null else source.readUtf8()
     }
 
+    /** Bounds all direct decoder entry points, including string-encoded tool arguments. */
     fun checkedJson(text: String, maxChars: Int = LlmClient.MAX_RESPONSE_CHARS): String {
         check(text.length <= maxChars) { "Provider JSON exceeds the supported response capacity" }
         var depth = 0
@@ -45,8 +47,10 @@ internal object ProviderPayloadLimits {
         return checkedJson(text, LlmClient.MAX_MULTIMODAL_REQUEST_CHARS)
     }
 
-    /** Count only state retained by adapters, not disposable SSE envelope traffic. */
-
+    /** Count only state retained by adapters, not disposable SSE envelope traffic.
+     * Units approximate UTF-16 characters plus node overhead; this is an in-memory
+     * safety envelope, not a project/file size or total streamed-wire limit.
+     */
     class RetainedBudget(private val maximumChars: Int = 8_000_000) {
         private var retained = 0L
         private val slots = mutableMapOf<String, Long>()

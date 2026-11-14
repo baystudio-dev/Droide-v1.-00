@@ -10,6 +10,7 @@ internal object AndroidBuildRouting {
         return BuildBackend.LOCAL_UBUNTU
     }
 
+    /** Production workstation admission; device routing below is a legacy primitive. */
     suspend fun <L : Any, R> executeUbuntu(
         requiredBackend: BuildBackend?,
         resolveLocal: suspend () -> L?,

@@ -173,8 +173,8 @@ object LocalProcessSupervisor {
             val bytes = ByteArrayOutputStream().also { outputMonitor = it }
             val tail = if (keepTail) TailByteBuffer(maxOutputBytes) else null
             var truncated = false
-            // Buffer acceptance and the final snapshot share this monitor. An observer is never called while
-            // holding it; observers must remain non-blocking.
+            // Buffer acceptance and the final snapshot share this monitor. An observer
+            // is never called while holding it; observers must remain non-blocking.
             fun recordFailure(error: Throwable) {
                 synchronized(bytes) { if (acceptingOutput) failure.compareAndSet(null, error) }
             }
@@ -220,8 +220,8 @@ object LocalProcessSupervisor {
             var timedOut = false
             var rootExit: Int? = null
             var drainExpired = false
-            // The runtime deadline belongs only to a living root. In particular, lease cleanup and inherited
-            // pipes cannot turn a known exit into 124.
+            // The runtime deadline belongs only to a living root. In particular,
+            // lease cleanup and inherited pipes cannot turn a known exit into 124.
             while (true) {
                 currentCoroutineContext().ensureActive()
                 if (!process.isAlive) {
@@ -238,8 +238,9 @@ object LocalProcessSupervisor {
             }
             if (rootExit != null) {
                 abortInput()
-                // Release the owned lease once, then give buffered output a separate drain.
-
+                // A descendant may retain stdout after its root exits. Release
+                // the owned lease once, then give buffered output a separate drain.
+                // Cleanup failures remain errors; they are never process timeouts.
                 releaseOwnedLease()
                 val drainDeadline = MonotonicProcessDeadline(nowNanos(), OUTPUT_DRAIN_MS)
                 while (outputWorker.isAlive || inputWorker.isAlive) {
@@ -265,8 +266,9 @@ object LocalProcessSupervisor {
             operationFailure = error
             throw error
         } finally {
-            // A blocked reader/callback is not forcibly stoppable.
-
+            // A blocked reader/callback is not forcibly stoppable. Freeze byte
+            // acceptance before closing streams; already-admitted observers may
+            // finish later and must not be treated as a new process completion.
             try {
                 outputMonitor?.let { monitor -> synchronized(monitor) { acceptingOutput = false } }
                 val cleanupError = withContext(NonCancellable + Dispatchers.IO) {
@@ -284,11 +286,12 @@ object LocalProcessSupervisor {
                         catch (error: Throwable) { retain(error); true }
                     val receiptFailure = cleanupFailure ?: leaseCleanupFailure ?: if (unconfirmed)
                         IllegalStateException("Process or I/O worker cleanup is unconfirmed") else null
-                    // Preserve ordinary bounded capture semantics, but let Exit owners retain a failed receipt after
-                    // their execution coroutine leaves the active set.
+                    // Preserve ordinary bounded capture semantics, but let Exit owners retain
+                    // a failed receipt after their execution coroutine leaves the active set.
                     try { onCleanupCompleted?.invoke(receiptFailure) } catch (error: Throwable) { retain(error) }
-                    // Throwing it inside withContext can copy it during coroutine stack recovery and sever the
-                    // original receipt/cleanup identity used by its owner.
+                    // Return the exact failure across the dispatcher boundary. Throwing it
+                    // inside withContext can copy it during coroutine stack recovery and
+                    // sever the original receipt/cleanup identity used by its owner.
                     cleanupFailure
                 }
                 if (cleanupError != null) throw cleanupError

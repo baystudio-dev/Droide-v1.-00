@@ -5,6 +5,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Deterministic host regression source for semantic reconstruction; no remote provider is contacted. */
 class ProviderContextAllocationTest {
     private val providerId = "budget.fixture"
     private val model = "budget-model"

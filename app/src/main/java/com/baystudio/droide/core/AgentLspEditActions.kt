@@ -8,6 +8,7 @@ import java.security.MessageDigest
 
 // The language server may propose edits, but it never receives mutation authority.
 
+
 class AgentLspEditActions(
     private val files: FileRepository,
     private val lsp: LspManager,
@@ -67,8 +68,8 @@ class AgentLspEditActions(
 
     suspend fun prepareFormat(path: String): Prepared {
         files.resolveChecked(path)
-        // Style detection is not edit ownership: prepare() still captures/revalidates the server
-        // proposal against the current live/disk document afterwards.
+        // Style detection is not edit ownership: prepare() still captures/revalidates
+        // the server proposal against the current live/disk document afterwards.
         val defaults = codeStyleDefaults()
         val live = documents?.snapshot(path)?.takeIf { it.loaded }
         val style = withContext(Dispatchers.IO) {
@@ -86,7 +87,7 @@ class AgentLspEditActions(
     suspend fun apply(prepared: Prepared, requireSaveCurrent: () -> Unit = {}): String {
         require(prepared.after.isNotEmpty()) { "Workspace edit has no effective text changes" }
         requireCurrent(prepared.workspaceEdit)
-
+        
         for ((path, expectedText) in prepared.before) {
             val live = documents?.snapshot(path)?.takeIf { it.loaded }
             if (live != null) {
@@ -108,8 +109,8 @@ class AgentLspEditActions(
         val uncertainDisk = linkedSetOf<String>()
         val syncPending = mutableListOf<String>()
         val output = try {
-            // Preparation can suspend. Admit the exact captured owner again immediately before the first
-            // mutation; our own writes may then invalidate its capture.
+            // Preparation can suspend. Admit the exact captured owner again immediately
+            // before the first mutation; our own writes may then invalidate its capture.
             requireCurrent(prepared.workspaceEdit)
             for ((path, updated) in prepared.after) {
                 val expectedVersion = prepared.liveVersions[path]
@@ -186,8 +187,8 @@ class AgentLspEditActions(
                             files.writeTextIfUnchanged(path, prepared.before.getValue(path),
                                 DiskFileVersion.fromText(prepared.after.getValue(path)))
                         } catch (saved: ProjectFileSyncException) {
-                            // The rollback itself reached disk. Its downstream sync status must not turn it into another
-                            // blind rewrite of a newer file.
+                            // The rollback itself reached disk. Its downstream sync status
+                            // must not turn it into another blind rewrite of a newer file.
                             require(saved.relativePath == path &&
                                 saved.bytes == prepared.before.getValue(path).toByteArray(Charsets.UTF_8).size.toLong())
                             syncPending += path

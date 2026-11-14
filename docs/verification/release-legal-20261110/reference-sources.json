@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/microsoft/vscode",
+  "commit": "e646868227c3e3a9e3f24277c8c7220be42c0be7",
+  "files": [
+    {
+      "path": "src/vs/workbench/services/workingCopy/electron-browser/workingCopyBackupTracker.ts",
+      "sha256": "d103f286c98d06056f0e060f420413d74258a2686fc0ab572ae3ec9b95cc13d6"
+    },
+    {
+      "path": "src/vs/workbench/services/lifecycle/electron-browser/lifecycleService.ts",
+      "sha256": "4429c3671b0a158443cde17a799fd327376e5474d6d0db98f38f1c738d8a3ec7"
+    }
+  ],
+  "observedBehavior": [
+    "Reuse backups for the same content version.",
+    "Start independent shutdown joiners before awaiting them; join final owners last.",
+    "Keep backup failures visible instead of silently discarding modified content."
+  ],
+  "platformDifference": "Droide uses Android service/native surface ownership; desktop lifecycle calls were not copied."
+}

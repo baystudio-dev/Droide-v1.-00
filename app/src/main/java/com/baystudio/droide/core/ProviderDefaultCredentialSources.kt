@@ -15,6 +15,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 // Keep untrusted input and output bounded.
 
+
 internal object ProviderDefaultCredentialSources {
     private const val MAX_RESPONSE_BYTES = 256 * 1024L
     private const val METADATA_TIMEOUT_SECONDS = 3L
@@ -147,7 +148,7 @@ internal object ProviderDefaultCredentialSources {
                 require(source.buffer.size <= MAX_RESPONSE_BYTES) { "Credential-source response is too large" }
                 val text = source.buffer.readUtf8()
                 if (!response.isSuccessful) throw ProviderCredentialResponsePolicy.httpFailure(response.code, text, "Credential source")
-
+                // Some metadata/STS routes intentionally return text or XML.
                 text
             }
         } catch (cancelled: CancellationException) {

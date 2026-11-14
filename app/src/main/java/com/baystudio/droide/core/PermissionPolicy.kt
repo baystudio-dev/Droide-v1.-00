@@ -4,6 +4,7 @@ import java.util.Collections
 
 // Durable user-owned permission policy for one Droide project.
 
+
 data class PermissionPolicyDocument(
     val schemaVersion: Int = SCHEMA_VERSION,
     val rules: List<PermRule> = emptyList(),
@@ -55,3 +56,4 @@ data class PermissionPolicyDocument(
         }
     }
 }
+

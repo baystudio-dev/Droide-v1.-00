@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Delayed NDJSON peers exercise the same bootstrap/control path for every catalog integration. */
 class WorkspaceAgentTimeoutTest {
     @Test(timeout = 10_000) fun openCodeCanLoadModelsWithoutLoginEvenWhenOptionalAuthenticationIsAdvertised() = withFixture { root, scope -> runBlocking {
         val host = SlowHost(root, advertiseAuth = true)

@@ -30,8 +30,12 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 
-/** Passive artifact observations are not an exhaustive filesystem syscall trace. */
-
+/**
+ * Frozen existing-API before/after assertions. Exactly two tiny full Refresh cases.
+ * Uses the reviewed R24 DocumentsProvider bridge and SafPreservationDirectoryOs fixture.
+ * No maintenance API, production seam, real provider, device, native, PTY, or process work.
+ * Passive artifact observations are not an exhaustive filesystem syscall trace.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [SafPreservationDirectoryOs::class])
 class SafUnchangedRefreshBaselineTest {
@@ -66,8 +70,8 @@ class SafUnchangedRefreshBaselineTest {
 
         val result = runCatching { f.refresh(observations) }
 
-        // These must pass before the intended assertion. A routing/fsync/fixture error is not evidence
-        // of the unchanged-Refresh defect.
+        // These must pass before the intended assertion. A routing/fsync/fixture error is not
+        // evidence of the unchanged-Refresh defect.
         assertTrue("fixture: full Refresh must finish successfully: ${result.exceptionOrNull()}", result.isSuccess)
         assertEquals("fixture: successful full Refresh result", "SAF synchronized: 2 files", result.getOrNull())
         f.assertPayload(original)
@@ -75,6 +79,7 @@ class SafUnchangedRefreshBaselineTest {
         assertTrue("fixture: real provider reads must occur", f.provider.readOpens > 0)
         assertTrue("fixture: artifact observation must remain readable", observations.failures.isEmpty())
 
+        // Central intended baseline failure on R24: identical bytes currently bootstrap a journal.
         assertFalse("UNCHANGED_REFRESH_ALLOCATED_JOURNAL: trusted equal trees must not bootstrap owned history", f.journal.exists())
         assertTrue("unchanged Refresh must never stage or back up: ${observations.artifacts}", observations.artifacts.isEmpty())
         assertArrayEquals("legacy manifest bytes must be retained exactly", manifestBefore, f.manifest.readBytes())
@@ -123,6 +128,7 @@ class SafUnchangedRefreshBaselineTest {
             assertEquals("existing journal object must retain identity and bytes: $path", objectBefore, journalAfter[path])
         }
 
+        // Central intended baseline failure on R24: one more operation appears despite equality.
         assertEquals("UNCHANGED_REFRESH_GREW_JOURNAL: no new operation, checkpoint, receipt or other object is allowed",
             journalBefore.keys, journalAfter.keys)
         assertEquals("journal object count must not change", journalBefore.size, journalAfter.size)

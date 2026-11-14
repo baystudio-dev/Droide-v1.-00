@@ -28,6 +28,9 @@ internal fun isMarkdownPreviewPath(path: String): Boolean {
     return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdown") || lower.endsWith(".mkd")
 }
 
+// Keep this path fail-closed at the trust boundary.
+
+
 @Composable
 internal fun MarkdownFilePreview(
     document: EditorDocument,

@@ -111,6 +111,7 @@ class ManagedPackageInstaller(
         }
     }
 
+
     private suspend fun installTermuxExecutable(
         artifact: File,
         entry: ManagedPackageCatalogEntry,
@@ -186,6 +187,7 @@ class ManagedPackageInstaller(
                 )
                 check(extraction.exitCode == 0) { "Could not extract reviewed Termux executable: ${extraction.combined}" }
 
+                
                 val elf = bridge.shellBounded(
                     "set -eu; F=${DeviceBridgeManager.shellQuote(stagedExecutable)}; " +
                         "test \"${'$'}(toybox od -An -tx1 -N5 \"${'$'}F\" | tr -d ' \\n')\" = 7f454c4602; " +
@@ -644,6 +646,7 @@ class ManagedPackageInstaller(
             return bridge.shell("test -d ${DeviceBridgeManager.shellQuote(record.installRoot)}").exitCode == 0
         }
 
+
         if (verifyInstalledRecord(record)) {
             withContext(NonCancellable) { cleanupInterruptedPackagePaths(previousCandidates, stagingRoot, patterns) }
             return true
@@ -686,8 +689,7 @@ class ManagedPackageInstaller(
             commands = record.commands.mapValues { (_, value) -> relocate(value) },
         )
     }
-    // Admit a source-reviewed live-ecosystem install after its local integrity manifest and health
-    // checks pass.
+    // Admit a source-reviewed live-ecosystem install after its local integrity manifest and health checks pass.
     suspend fun adoptReviewedRecord(record: ManagedPackageRecord) =
         ManagedPackageMutationGate.mutex.withLock {
             requireOwner(record)
@@ -701,8 +703,7 @@ class ManagedPackageInstaller(
             activateUnlocked(record)
         }
 
-    // Admit a reviewed release artifact after exact download digest, local integrity and health
-    // checks pass.
+    // Admit a reviewed release artifact after exact download digest, local integrity and health checks pass.
     suspend fun adoptTrustedArtifactRecord(record: ManagedPackageRecord) = ManagedPackageMutationGate.mutex.withLock {
         requireOwner(record)
         requireFamilyOwner(record, registry.list())
@@ -714,6 +715,9 @@ class ManagedPackageInstaller(
         require(verifyInstalledRecord(record)) { "Trusted release artifact failed integrity or health verification" }
         activateUnlocked(record)
     }
+
+    // The wrapper projection and registry update are one rollback-safe mutation.
+
 
     suspend fun rebindDependencies(record: ManagedPackageRecord, dependencyKeys: List<String>): ManagedPackageRecord =
         ManagedPackageMutationGate.mutex.withLock {
@@ -843,6 +847,7 @@ class ManagedPackageInstaller(
 
         // Never let an old, weaker health contract grandfather a guest runtime into READY.
 
+
         val currentGuestRecipe = WorkstationGuestPackageCatalog.find(candidate.familyId, candidate.version)
         if (currentGuestRecipe != null && candidate.artifactSha256 == null) {
             if (candidate.commands.keys != currentGuestRecipe.commands.keys) return false
@@ -917,9 +922,8 @@ class ManagedPackageInstaller(
                 }
             }
         }
-
-        // Do not project the unauthenticated local CLI prototype onto an ADB target, even when it is the
-        // same phone.
+        
+        // Do not project the unauthenticated local CLI prototype onto an ADB target, even when it is the same phone.
 
         val droideWrapper = "$managedBin/droide"
         val droideScript = "#!/system/bin/sh\necho 'Package CLI unavailable on DEVICE_ADB; use Droide Extensions.' >&2\nexit 69\n"
@@ -980,6 +984,7 @@ class ManagedPackageInstaller(
             require(manifest == reviewed) { "Managed package manifest changed after candidate review" }
         }
     }
+
 
     companion object {
         private const val MAX_ENTRIES = 4096

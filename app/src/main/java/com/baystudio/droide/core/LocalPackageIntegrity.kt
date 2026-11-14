@@ -42,8 +42,8 @@ internal object LocalPackageIntegrity {
         val manifest = base.resolve("SHA256SUMS")
         require(!Files.isSymbolicLink(manifest)) { "Checksum manifest is a symbolic link" }
         Files.write(manifest, text.toByteArray(Charsets.UTF_8))
-        // The bytes were hashed above in this owned staging transaction. Admission reads the published
-        // tree again; re-reading every staged byte here adds no independent authority.
+        // The bytes were hashed above in this owned staging transaction. Admission reads the
+        // published tree again; re-reading every staged byte here adds no independent authority.
         hash(base, manifest, digest, buffer)
     }
 
@@ -105,7 +105,8 @@ internal object LocalPackageIntegrity {
     private fun checkedRoot(root: File): Path {
         val base = root.toPath().toAbsolutePath().normalize()
         require(Files.isDirectory(base, NOFOLLOW_LINKS) && !Files.isSymbolicLink(base)) { "Package root is unavailable" }
-
+        // Android's /data/data and /data/user/0 may alias the same app directory. Resolve
+        // the trusted root once while still refusing links inside the package itself.
         return root.canonicalFile.toPath()
     }
 

@@ -97,7 +97,7 @@ internal fun composeAgentPrompt(userText: String, attachments: List<AgentAttache
     if (attachments.isEmpty()) return userText
     val out = StringBuilder()
     fun appendChecked(value: String) {
-
+        // Check before appending, so no oversized combined prompt is allocated or truncated.
         if (value.length > limit - out.length) throw AgentPromptLimitException()
         out.append(value)
     }

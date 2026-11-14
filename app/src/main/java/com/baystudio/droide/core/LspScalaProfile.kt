@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import kotlinx.serialization.json.*
 
+/** Upstream user-installed launcher; no runtime provisioning or exact-version admission. */
 internal object LspScalaProfile {
     const val ID = "metals"
     const val IDENTITY = "metals-user-managed-initial-import-v1"
@@ -27,6 +28,7 @@ internal object LspScalaProfile {
     }
     fun projectAvailable(project: File): Boolean = Files.isDirectory(project.toPath(), NOFOLLOW_LINKS)
 
+    // Metals pulls these settings before starting build imports in WorkspaceLspService.
     fun settings(): JsonObject = buildJsonObject {
         put("autoImportBuilds", "initial")
         put("startMcpServer", false)

@@ -7,8 +7,12 @@ internal class UserEnvironmentCleanupUnconfirmed(cause: Throwable) :
     IllegalStateException("User toolchain environment process cleanup is unconfirmed", cause)
 
 internal object UserToolchainEnvironmentCleanup {
-    /** A failed receipt is fatal even when the supervisor preserves bounded-capture semantics and
-     * returns normally. */
+    /**
+     * The supervisor invokes its completion receipt synchronously before returning/throwing.
+     * A failed receipt is fatal even when the supervisor preserves bounded-capture semantics
+     * and returns normally. Throw outside the capture's timeout cancellation, otherwise
+     * withTimeoutOrNull could turn unknown cleanup into an apparently safe fallback.
+     */
     suspend fun <T> capture(block: suspend ((Throwable?) -> Unit) -> T): T {
         val receiptFailure = AtomicReference<Throwable?>(null)
         var operationFailure: Throwable? = null

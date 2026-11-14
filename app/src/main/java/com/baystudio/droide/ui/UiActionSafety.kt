@@ -17,6 +17,7 @@ fun <T> runUiCatching(onError: (Throwable) -> Unit, block: () -> T): T? = try {
     null
 }
 
+ 
 fun CoroutineScope.launchUiCatching(
     onError: suspend (Throwable) -> Unit = {},
     block: suspend () -> Unit,

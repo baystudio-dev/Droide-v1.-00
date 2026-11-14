@@ -220,6 +220,7 @@ class EditorPaneInteractionTest {
         }
     }
 
+
     @Test fun leavingTheEditorPaneAndReturningKeepsTheLastReadViewport() {
         mount((0 until 400).joinToString("\n") { "line $it ${"wide ".repeat(60)}" })
         var savedY = 0
@@ -409,8 +410,12 @@ class EditorPaneInteractionTest {
 
 }
 
-/** Supply the CharacterIterator boundary contract only for this host word-wrap test. */
-
+/**
+ * Robolectric uses the host JDK line breaker. Sora's iterator returns the first character
+ * instead of DONE when previous() reaches the start, making that JDK breaker loop forever.
+ * Supply the CharacterIterator boundary contract only for this host word-wrap test. The
+ * real Sora breaker, layout, reflow, editor and reset action are otherwise unchanged.
+ */
 @org.robolectric.annotation.Implements(
     value = io.github.rosemoe.sora.text.CharSequenceIterator::class,
     isInAndroidSdk = false,

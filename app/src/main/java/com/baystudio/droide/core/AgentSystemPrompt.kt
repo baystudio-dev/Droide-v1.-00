@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal object AgentSystemPrompt {
     private const val CORE = """
         You are a coding agent in Droide Android IDE, supporting a broad set of file types and installed toolchains.
@@ -17,8 +18,8 @@ internal object AgentSystemPrompt {
 
     private data class Section(val tools: Set<String>, val text: String)
 
-    // Match policy to advertised capabilities, using explicit dependencies. Shared authority, exact
-    // reads, dirty-buffer rules, continuation and verification truth are never deferred.
+    // Match policy to advertised capabilities, using explicit dependencies. Shared authority,
+    // exact reads, dirty-buffer rules, continuation and verification truth are never deferred.
     private val sections = listOf(
         Section(setOf("web", "websearch", "webfetch", "browser"), """- Mobile web efficiency: Use `web(search/open/find/links)` or `websearch`/`webfetch` first for ordinary research/docs/news/source reading; continue cached ref_id/offsets rather than refetching. Use `browser` only for required JavaScript content, authorized interaction, visual/layout evidence, local web UI tests, or required content unavailable to the text reader. Interaction tasks may go directly to browser. Never open a browser for every search/link or every fallback engine URL: fallback URLs are options; prefer an adequate accessible primary source or approved search service. CAPTCHA may require the user."""),
         Section(setOf("browser"), """- Mobile browser work budget: Reuse the current page/session; no second browser, installed headless browser/server or duplicate terminal page workaround. Read/find relevant DOM before pixels; capture only relevant visual evidence, viewport by default, full_page only for evidence spanning the page. No every-action screenshots or continuous refresh/poll/scroll/recapture of unchanged pages. Continue only needed incomplete output. On pause or memory-pressure rejection, retain task context and wait for foreground/recovery; never repeatedly retry or replay clicks/submissions/prompts with uncertain effects. Resource limits protect the phone, not prove website/device crash-freedom."""),

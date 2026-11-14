@@ -5,6 +5,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
+
 enum class WorkspaceDocumentKind { TEXT, IMAGE, BINARY, LARGE }
 
 data class WorkspaceDocumentSnapshot(
@@ -28,6 +29,7 @@ data class WorkspaceDocumentSnapshot(
         require(changeVersion >= 0) { "Workspace document changeVersion is negative" }
         require(savedContentLength >= 0) { "Workspace document savedContentLength is negative" }
         if (kind == WorkspaceDocumentKind.LARGE && !editable) {
+            
 
             require(selectionStart >= 0) { "selectionStart is negative" }
             require(selectionEnd >= 0) { "selectionEnd is negative" }
@@ -37,6 +39,7 @@ data class WorkspaceDocumentSnapshot(
         }
     }
 
+     
     val divergedFromSavedBaseline: Boolean get() = dirty
 }
 
@@ -54,6 +57,7 @@ data class WorkspaceDocumentVersion(
 
 val WorkspaceDocumentSnapshot.version: WorkspaceDocumentVersion
     get() = WorkspaceDocumentVersion(revision, changeVersion, documentId)
+
 
 data class WorkspacePersistedReconciliation(
     val refreshed: List<String> = emptyList(),
@@ -80,10 +84,11 @@ sealed interface WorkspaceDocumentMutationResult {
     ) : WorkspaceDocumentMutationResult
 }
 
+
 class WorkspaceRecoveryEditorUnavailableException(message: String) : IllegalStateException(message)
 
-/** Generation-bound observation. Mutation support is opt-in and must hold a genuine nonblocking
- * editor barrier. Production adapters currently do not provide it. */
+/** Generation-bound observation. Mutation support is opt-in and must hold a
+ * genuine nonblocking editor barrier. Production adapters currently do not provide it. */
 class WorkspaceRecoveryEditorObservation internal constructor(
     val snapshots: List<WorkspaceDocumentSnapshot>,
     val pendingPaths: Set<String>,
@@ -106,8 +111,8 @@ class WorkspaceRecoveryEditorObservation internal constructor(
     }
 }
 
-/** All live documents and retained editor work, observed without capture/save/commit. The
- * validator detects stale ownership; it never drains or fences writers. */
+/** All live documents and retained editor work, observed without capture/save/commit.
+ * The validator detects stale ownership; it never drains or fences writers. */
 class WorkspaceEditorObservation internal constructor(
     snapshots: List<WorkspaceDocumentSnapshot>, pendingSaves: Set<String>, pendingSync: Set<String>,
     retainedPaths: Set<String>, private val validateOwner: suspend () -> Unit,
@@ -159,6 +164,7 @@ interface WorkspaceDocumentAuthority : StreamedDiskCommitAuthority {
 
     // Implementations must never persist the new content to disk as a side effect.
 
+
     suspend fun replaceText(
         path: String,
         expected: WorkspaceDocumentVersion,
@@ -166,8 +172,10 @@ interface WorkspaceDocumentAuthority : StreamedDiskCommitAuthority {
         reason: String,
     ): WorkspaceDocumentMutationResult = WorkspaceDocumentMutationResult.NotLive
 
-    /** Optional native source publication. No disk fallback and no implicit save. The fence must wrap
-     * the entire non-suspending native transaction, not just its preflight. */
+     
+    /** Optional native source publication. No disk fallback and no implicit save.
+     * The fence must wrap the entire non-suspending native transaction, not just its preflight.
+     */
     suspend fun replaceSourceText(
         path: String, expected: WorkspaceDocumentVersion, replacement: WorkspaceSourceTextReplacement,
         reason: String, requireCurrent: () -> Unit,
@@ -178,9 +186,11 @@ interface WorkspaceDocumentAuthority : StreamedDiskCommitAuthority {
 
     suspend fun validatePersistedMutation(mutation: FileRepository.Mutation) = Unit
 
+     
     suspend fun persistedMutation(mutation: FileRepository.Mutation): WorkspacePersistedReconciliation =
         WorkspacePersistedReconciliation()
 
+     
     suspend fun reconcilePersistedWorkspace(): WorkspacePersistedReconciliation =
         WorkspacePersistedReconciliation()
 
@@ -199,8 +209,8 @@ internal suspend fun WorkspaceDocumentAuthority.reconcileAfterExternalCommand():
     } ?: error("Workspace refresh timed out; file changes were retained")
 }
 
-// Bindings are generation-scoped: closing an old binding can never detach a newer editor
-// authority.
+// Bindings are generation-scoped: closing an old binding can never detach a newer editor authority.
+
 
 class WorkspaceDocumentAuthorityBridge(
     private val onPersistedChange: () -> Unit = {},
@@ -321,7 +331,7 @@ class WorkspaceDocumentAuthorityBridge(
                     admission()
                     requireOwner()
                 } catch (failure: Throwable) {
-
+                    // Release this exact tentative gate before selected-ID rollback can suspend.
                     admission.abort()
                     throw failure
                 }
@@ -439,8 +449,8 @@ class WorkspaceDocumentAuthorityBridge(
         try { return action() }
         catch (failure: Throwable) { originalFailure = failure; throw failure }
         finally {
-            // Disk publication precedes this boundary, even if editor reconciliation fails. Preserve that
-            // exact failure/cancellation if invalidation also fails.
+            // Disk publication precedes this boundary, even if editor reconciliation
+            // fails. Preserve that exact failure/cancellation if invalidation also fails.
             try {
                 _persistedRevision.update { it + 1 }
                 if (invalidate()) onPersistedChange()

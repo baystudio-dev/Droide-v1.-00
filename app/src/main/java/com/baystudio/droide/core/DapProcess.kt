@@ -10,6 +10,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
+
+
+
+
+
+
 class DapProcess(
     private val scope: CoroutineScope,
     private val workDir: File,
@@ -44,8 +50,8 @@ class DapProcess(
     val events: Flow<Event> = _events.events
 
     @Volatile private var process: HostedStdioProcess? = null
-    // close() detaches the transport immediately, but local lease cleanup may finish asynchronously.
-    // Retain ownership until a suspending Stop can reap it.
+    // close() detaches the transport immediately, but local lease cleanup may
+    // finish asynchronously. Retain ownership until a suspending Stop can reap it.
     @Volatile private var ownedProcess: HostedStdioProcess? = null
     @Volatile private var readerJob: Job? = null
     @Volatile private var stderrJob: Job? = null
@@ -189,8 +195,8 @@ class DapProcess(
             try {
                 withTimeout(15_000) { writer.await() }
             } catch (cancel: CancellationException) {
-                // A cancelled transport writer is a session failure, not a user Stop. Keep cancellation of the
-                // actual request caller intact.
+                // A cancelled transport writer is a session failure, not a user Stop.
+                // Keep cancellation of the actual request caller intact.
                 currentCoroutineContext().ensureActive()
                 if (closed || !transportScope.isActive) {
                     throw IllegalStateException("Debug protocol session closed during write", cancel)
@@ -247,8 +253,8 @@ class DapProcess(
         val won = synchronized(this@DapProcess) {
             if (process !== p || closed) false else shutDown(reason)
         }
-        // The shutdown winner alone finishes outside the transport monitor. A cleanup close cannot erase
-        // this separately bounded terminal notice.
+        // The shutdown winner alone finishes outside the transport monitor.
+        // A cleanup close cannot erase this separately bounded terminal notice.
         if (won) _events.finish(ProtocolEventMailbox.Terminal(notice, noticeBytes))
     }
 
@@ -264,8 +270,8 @@ class DapProcess(
             val text = (body["output"] as? JsonPrimitive)?.contentOrNull.orEmpty()
             val prefix = "[Droide: $omittedOutputEvents output event(s) omitted while the debugger UI was busy]\n"
             val decorated = JsonObject(body + ("output" to JsonPrimitive(prefix + text)))
-            // Include escaping and structural changes even for malformed bodies with no string output.
-            // Nothing serialized here is retained.
+            // Include escaping and structural changes even for malformed bodies
+            // with no string output. Nothing serialized here is retained.
             addedBytes = decorated.toString().toByteArray(Charsets.UTF_8).size.toLong() -
                 body.toString().toByteArray(Charsets.UTF_8).size.toLong()
             decorated
@@ -322,7 +328,8 @@ class DapProcess(
         withContext(NonCancellable) {
             close()
             val settled = withTimeoutOrNull(timeoutMs) {
-
+                // Startup may have returned a process after close() observed no
+                // published transport. Its finally closes that unpublished peer.
                 val owned = startMutex.withLock { ownedProcess }
                 owned?.awaitExit()
                 true

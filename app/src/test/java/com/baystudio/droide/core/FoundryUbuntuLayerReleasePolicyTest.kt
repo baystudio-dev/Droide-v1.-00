@@ -10,8 +10,7 @@ class FoundryUbuntuLayerReleasePolicyTest {
     private val layer = "0123456789abcdef01234567"
 
     private fun release(root: File) {
-        // The host fixture maps only the two owned guest directories; the production script is
-        // unchanged.
+        // The host fixture maps only the two owned guest directories; the production script is unchanged.
         val script = FoundryUbuntuLayerReleasePolicy.command(layer)[2]
             .replace("/var/lib/droide-foundry/layers", File(root, "var/lib/droide-foundry/layers").path)
             .replace("/var/cache/droide-foundry", File(root, "var/cache/droide-foundry").path)

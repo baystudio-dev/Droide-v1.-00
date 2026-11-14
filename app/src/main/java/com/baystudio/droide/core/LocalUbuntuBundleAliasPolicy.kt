@@ -49,9 +49,12 @@ object LocalUbuntuBundleAliasPolicy {
         recipe("package.gradle", "build.gradle", "gradle", mapOf("gradle" to command("gradle", health = "--version"))),
         recipe("test.gradle", "build.gradle", "gradle", mapOf("gradle-test" to command("gradle", "test", health = "--version"))),
         recipe("package.pub", "runtime.dart", "dart", mapOf("pub" to command("dart", "pub"))),
-
+        // Keep the SDK's dart command intact. package:test remains an ordinary project dependency.
         recipe("test.dart", "runtime.dart", "dart", mapOf("dart-test" to Command("dart", listOf("test"), listOf("help", "test"), emptyList()))),
-
+        // These language servers are part of already-admitted official SDKs.
+        // The Dart alias preserves the complete dart CLI; the registry supplies
+        // language-server argv, so installing this integration cannot replace
+        // normal `dart run`/`dart pub` with a permanently fixed LSP command.
         recipe("lsp.dart", "runtime.dart", "dart", mapOf("dart" to command("dart", health = "--version"))),
         recipe("lsp.sourcekit-lsp", "toolchain.swift", "swift", mapOf("sourcekit-lsp" to command("sourcekit-lsp"))),
     )

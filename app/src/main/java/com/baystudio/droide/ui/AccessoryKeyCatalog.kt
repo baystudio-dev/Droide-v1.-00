@@ -2,6 +2,7 @@ package com.baystudio.droide.ui
 
 import android.view.KeyEvent
 
+/** Actual key definitions and compact deck selection; no Compose state or gesture handling. */
 internal data class AccessoryControlKey(
     val label: String,
     val keyCode: Int? = null,
@@ -14,6 +15,7 @@ internal data class AccessoryControlKey(
     val contentDescription: String = label,
     val longPressDescription: String? = null,
 )
+
 
 internal val codingKeys = listOf(
     "{", "}", "(", ")", "[", "]", "<", ">", "=", ";", ":", ",", ".", "\"", "'", "`", "/", "\\", "|", "&", "!", "_", "-", "+", "*", "%", "#", "~", "?", "\$", "@", "^",
@@ -65,6 +67,7 @@ internal val editorTrailingKeys = listOf(
     AccessoryControlKey("Esc", KeyEvent.KEYCODE_ESCAPE, contentDescription = "Escape"),
 )
 
+
 internal val terminalPortraitKeys = listOf(
 
     AccessoryControlKey("Esc", KeyEvent.KEYCODE_ESCAPE, contentDescription = "Escape"),
@@ -114,11 +117,13 @@ internal const val PortraitAccessoryColumns = 7
 internal const val PortraitAccessorySlots = PortraitAccessoryColumns * 2
 internal const val EditorPortraitNavigationSlots = 4
 
+
 internal sealed interface EditorFastEntry {
     data class Control(val key: AccessoryControlKey) : EditorFastEntry
     data class Action(val action: EditorAccessoryAction) : EditorFastEntry
     data class Text(val text: String) : EditorFastEntry
 }
+
 
 internal fun editorPortraitEntries(languageId: String?): List<EditorFastEntry> {
     val priorityActions = LanguageAccessoryKeys.priorityForLanguage(languageId).take(3)

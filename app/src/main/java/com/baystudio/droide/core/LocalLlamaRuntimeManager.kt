@@ -13,6 +13,11 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+
+
+
+
+
 class LocalLlamaRuntimeManager(
     context: Context,
     private val bridge: DeviceBridgeManager,
@@ -36,7 +41,7 @@ class LocalLlamaRuntimeManager(
         val cliPath: String,
         val serverPath: String,
         val target: TargetIdentity,
-
+         
         val runtimeSmokeCertified: Boolean,
         val inferenceCertified: Boolean = false,
     )

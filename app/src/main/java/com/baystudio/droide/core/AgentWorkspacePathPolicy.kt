@@ -3,8 +3,8 @@ package com.baystudio.droide.core
 internal object AgentWorkspacePathPolicy {
     private val stagingPrefixes = listOf(".droide-tmp-", ".droide-copy-", ".droide-sync-")
     private val excluded = setOf(".git", ".gradle", ".droide", "node_modules")
-    // Published build products are project files. Only transient Gradle working trees are excluded;
-    // there is no extension/type whitelist for ordinary output files.
+    // Published build products are project files. Only transient Gradle working trees
+    // are excluded; there is no extension/type whitelist for ordinary output files.
     private val transientBuildDirectories = setOf("intermediates", "tmp", "kotlin", ".transforms")
     /** Private repository state and retained publication stages are never skill resources. */
     fun internalArtifact(path: String): Boolean = path.split('/').any { part ->

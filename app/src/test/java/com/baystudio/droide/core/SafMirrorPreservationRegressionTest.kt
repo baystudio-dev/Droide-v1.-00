@@ -250,7 +250,7 @@ class SafMirrorPreservationRegressionTest {
     private fun fixture(faultingRoot: Boolean = false): Fixture {
         val parent = Files.createTempDirectory("droide-saf-preservation-").toFile().also { temporaryRoots += it }
         SafPreservationDirectoryOs.allow(parent)
-
+        // This application filesDir belongs to Robolectric's isolated test sandbox.
         val journalMetadata = RuntimeEnvironment.getApplication().filesDir.resolve(".droide").apply { mkdirs() }
         SafPreservationDirectoryOs.allow(journalMetadata)
         val ownedJournal = RuntimeEnvironment.getApplication().filesDir.resolve("saf-owned-operations").apply { mkdirs() }
@@ -281,8 +281,8 @@ class SafMirrorPreservationRegressionTest {
             addIntentFilterForProvider(ComponentName(providerInfo.packageName, providerInfo.name),
                 IntentFilter(DocumentsContract.PROVIDER_INTERFACE))
         }
-        // Robolectric 4.14.1 dispatches legacy queries directly; SDK35 DocumentsProvider only implements
-        // the Bundle transport. Match Android's transport adaptation.
+        // Robolectric 4.14.1 dispatches legacy queries directly; SDK35 DocumentsProvider
+        // only implements the Bundle transport. Match Android's transport adaptation.
         val bridge = LegacyResolverBridge(provider).apply {
             attachInfo(RuntimeEnvironment.getApplication(), ProviderInfo().apply { this.authority = authority })
         }
@@ -309,6 +309,7 @@ class SafMirrorPreservationRegressionTest {
         fun artifacts(kind: String): List<File> = parent.listFiles().orEmpty().filter { it.name.startsWith(".local.saf-$kind-") }
     }
 
+    /** Fail the second old-file move deterministically, after the first original has been backed up. */
     private class FaultingLocalRoot(path: String) : File(path) {
         var failOnName: String? = null
         override fun listFiles(): Array<File>? = super.listFiles()?.sortedBy { it.name }?.map { entry ->
@@ -396,8 +397,11 @@ class SafMirrorPreservationRegressionTest {
     }
 }
 
-/** Robolectric 4.14.1 ShadowLinux.open uses RandomAccessFile, which cannot open directories. */
-
+/**
+ * Robolectric 4.14.1 ShadowLinux.open uses RandomAccessFile, which cannot open directories.
+ * Only registered test-owned directories use real host directory channels here. A successful
+ * fsync means FileChannel.force(true) returned; this adapter does not model crash survival.
+ */
 @Implements(Os::class)
 class SafPreservationDirectoryOs {
     companion object {

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Exact candidate rootless lifecycle recognition. No project, platform, no-network or zero-residue claim. */
 internal object LocalUbuntuClojureLspHealth {
     const val FILE_NAME = "clojure-lsp-health.cjs"
     const val TIMEOUT_MS = 60_000L

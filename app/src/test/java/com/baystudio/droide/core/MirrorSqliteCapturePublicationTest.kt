@@ -5,6 +5,7 @@ import java.nio.file.Files
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Raw capture publication contracts. No SQLite replay, activation, eviction or Android build. */
 class MirrorSqliteCapturePublicationTest {
     private val pair = listOf("state.sqlite", "state.sqlite-journal")
     private fun fixture(action: (File) -> Unit) {

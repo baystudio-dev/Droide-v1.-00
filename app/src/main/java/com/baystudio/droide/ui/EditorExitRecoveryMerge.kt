@@ -11,8 +11,12 @@ internal data class EditorExitRecoveryMerge(
     val retained: EditorRecoverySnapshot?,
 )
 
-/** Exit does not need to finish mounting/restoring editors. */
-
+/**
+ * Exit does not need to finish mounting/restoring editors. Merge their old recovery directly
+ * into the frozen checkpoint. Live edits win; a different older body keeps its conflict slot.
+ * The returned retained snapshot tracks only copies still independent of the live model, so
+ * a later native delta can replace its own checkpoint without displacing an older draft.
+ */
 internal suspend fun mergeUnrestoredExitRecovery(
     live: EditorRecoverySnapshot,
     previous: EditorRecoverySnapshot?,
@@ -61,8 +65,8 @@ private data class ExitRecoveryPayload(
         if (diskVersion != other.diskVersion) return false
         if (text != null && other.text != null) return text == other.text
         if (reference != null && other.reference != null && sameRecoveryBuffer(reference, other.reference)) return true
-        // Only colliding paths need bodies. Deferred files elsewhere remain lazy and keep their exact
-        // store/blob ownership; never hydrate every recovery file on Exit.
+        // Only colliding paths need bodies. Deferred files elsewhere remain lazy and keep
+        // their exact store/blob ownership; never hydrate every recovery file on Exit.
         return (text ?: checkNotNull(reference).readText()) ==
             (other.text ?: checkNotNull(other.reference).readText())
     }

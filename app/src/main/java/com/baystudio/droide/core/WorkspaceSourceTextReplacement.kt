@@ -5,8 +5,9 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-/** A runtime-only proposal admitted to the actual String-backed editor capability. This is not
- * permission, a disk write, or a promise of arbitrarily large editable documents. */
+/** A runtime-only proposal admitted to the actual String-backed editor capability.
+ * This is not permission, a disk write, or a promise of arbitrarily large editable documents.
+ */
 class WorkspaceSourceTextReplacement private constructor(
     internal val text: String,
     val utf8Bytes: Long,
@@ -16,13 +17,14 @@ class WorkspaceSourceTextReplacement private constructor(
     @Volatile private var committed: Publication? = null
     @Volatile private var started = false
     @Volatile private var mutationEntered = false
-
+    /** Entered immediately before native/model mutation. No receipt after this is an unknown effect. */
     val publicationAttempted: Boolean get() = mutationEntered
     internal fun enteringMutation() { check(started); mutationEntered = true }
     val publication: Publication? get() = committed
 
-    /** Runtime proof captured inside the native editor publication callback. It proves that the exact
-     * replacement was applied at this version; it does not assert no later user edit exists. */
+    /** Runtime proof captured inside the native editor publication callback. It proves that the
+     * exact replacement was applied at this version; it does not assert no later user edit exists.
+     */
     class Publication private constructor(
         val replacement: WorkspaceSourceTextReplacement,
         val path: String,
@@ -61,8 +63,9 @@ class WorkspaceSourceTextReplacement private constructor(
     }
 
     companion object {
-        /** Admission precedes allocation. Limits are the existing editor's full-authority profile, not a
-         * new tool argument cap. Optimized/preview documents need a different native API. */
+        /** Admission precedes allocation. Limits are the existing editor's full-authority profile,
+         * not a new tool argument cap. Optimized/preview documents need a different native API.
+         */
         internal suspend fun prepare(session: OwnedResponseContentStore.Session,
             source: StreamedFileArgumentExtractor.Source, checkCurrent: () -> Unit): WorkspaceSourceTextReplacement =
             withContext(Dispatchers.IO) {

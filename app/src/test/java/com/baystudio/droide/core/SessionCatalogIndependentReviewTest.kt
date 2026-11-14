@@ -40,8 +40,8 @@ class SessionCatalogIndependentReviewTest {
                 writer.save(session.copy(title = "New title"))
                 saveDone.countDown()
             }
-            // An unlocked legacy repair allows this save to complete before repair publishes. A correct
-            // locked repair delays it until release. Both paths finish deterministically.
+            // An unlocked legacy repair allows this save to complete before repair publishes.
+            // A correct locked repair delays it until release. Both paths finish deterministically.
             val completedBeforeRepair = saveDone.await(1, TimeUnit.SECONDS)
             release.countDown()
             scanned.await()
@@ -81,7 +81,7 @@ class SessionCatalogIndependentReviewTest {
             check(externalMeta.delete())
             Files.move(root.resolve(".droide").toPath(), root.resolve("original-dot-droide").toPath())
             Files.createSymbolicLink(root.resolve(".droide").toPath(), outside.resolve(".droide").toPath())
-
+            // Either an explicit containment error or an empty/absent result is safe.
             assertNull(runCatching { manager.getSummary(external.id) }.getOrNull())
             assertTrue(runCatching { manager.listSummaries() }.getOrNull().orEmpty().isEmpty())
             assertTrue(runCatching { manager.list() }.getOrNull().orEmpty().isEmpty())

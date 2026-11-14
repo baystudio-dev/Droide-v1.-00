@@ -17,6 +17,7 @@ import com.baystudio.droide.core.runSuspendCatching
 
 // Local session browser: reopen, fork, and delete durable agent sessions.
 
+
 @Composable
 fun SessionDrawer(
     manager: SessionManager,
@@ -56,8 +57,8 @@ fun SessionDrawer(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         actionError?.let { DismissibleNotice(it, color = MaterialTheme.colorScheme.error) }
         if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
-        // Keep a viewport while the asynchronous disk read replaces the empty state. A zero-sized lazy
-        // list cannot compose its incoming rows.
+        // Keep a viewport while the asynchronous disk read replaces the empty
+        // state. A zero-sized lazy list cannot compose its incoming rows.
         LazyColumn(Modifier.fillMaxWidth().heightIn(min = 80.dp, max = 420.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(sessions, key = { it.id }) { s ->
                 ElevatedCard(Modifier.fillMaxWidth()) {

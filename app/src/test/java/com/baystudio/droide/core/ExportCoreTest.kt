@@ -74,7 +74,8 @@ class ExportCoreTest {
             TarArchiveInputStream(ByteArrayInputStream(d.files.getValue(""))).use { tar ->
                 while(true) {
                     val e=tar.nextTarEntry ?: break
-
+                    // Commons isFile() is also true for LF_LINK; inspect the actual
+                    // header type instead of reading a hardlink as a second payload.
                     when {
                         e.isLink -> {
                             links++

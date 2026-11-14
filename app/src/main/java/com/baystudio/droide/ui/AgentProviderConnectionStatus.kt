@@ -31,8 +31,8 @@ internal fun rememberAgentProviderConnected(
     readConnected: (String) -> Boolean,
 ): Boolean = key(backendIdentity, revisions) {
     val revision by revisions.collectAsState()
-    // Reset during composition, rather than in the next effect: the old provider must never appear
-    // connected for even one frame after a selection/backend/revision change.
+    // Reset during composition, rather than in the next effect: the old provider must never
+    // appear connected for even one frame after a selection/backend/revision change.
     val connected = remember(providerId, revision) { mutableStateOf(false) }
     LaunchedEffect(providerId, revision) {
         connected.value = runSuspendCatching {

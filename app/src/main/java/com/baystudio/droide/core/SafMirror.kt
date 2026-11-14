@@ -29,7 +29,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 private data class SafManifestFile(
     val version: Int = 2,
-
+     
     val entries: Map<String, String> = emptyMap(),
 )
 
@@ -42,6 +42,7 @@ private data class PendingSafActivation(
 )
 
 // Use same-filesystem replacement for atomic activation.
+
 
 class SafMirror(private val context: Context, treeUri: String, private val localRoot: File) {
     // Test-only byte observation; never a trust cache or a callback after the final proof.
@@ -101,8 +102,8 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                         paths.any { SafOperationJournal.overlaps(it, local.destination.path) }
                 } == true }
             }) { "SAF operation is blocked by retained legacy sibling Delete custody; no automatic migration or cleanup was attempted" }
-            // An explicit new invocation may release only completely admitted no-attempt authority. Retain
-            // all evidence; interrupted/attempted effects never replay or enter this branch.
+            // An explicit new invocation may release only completely admitted no-attempt authority.
+            // Retain all evidence; interrupted/attempted effects never replay or enter this branch.
             admittedOperations.filter { pending ->
                 !journal.isTerminal(pending) && "manifest-attempt.json" !in pending.files &&
                     pending.effects.values.all { it.phase == SafEffectPhase.PREPARED } &&
@@ -175,8 +176,8 @@ class SafMirror(private val context: Context, treeUri: String, private val local
         return if ("" in scopes) listOf("") else collapsePaths(scopes).sorted()
     }
 
-    // A future repository stream has no known length yet. Its retained evidence is admitted against
-    // this filesystem's capacity, not a hard-coded artifact size.
+    // A future repository stream has no known length yet. Its retained evidence is
+    // admitted against this filesystem's capacity, not a hard-coded artifact size.
     private fun reservation(payload: Long = localRoot.totalSpace.also {
         check(it > 0L) { "Workspace storage capacity is unavailable; existing files were retained" }
     }) =
@@ -215,15 +216,15 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                 val relative = ".droide/saf-delete-custody/${operation.id}"
                 val directory = File(localRoot, relative)
                 poll(); ownedStorage.requireRealAncestors(directory)
-                ownedStorage.createDirectory(directory)
+                ownedStorage.createDirectory(directory) // Exclusive: neither a collision nor an old container is adopted.
                 val binding = SafDeleteCustody(relative, ownedStorage.key(directory, true))
                 check(Files.getFileStore(directory.toPath()) == Files.getFileStore(File(localRoot, mutation.path).toPath())) {
                     "SAF Delete custody must be on the source filesystem"
                 }
                 poll(); check(ownedStorage.attributes(File(directory, "original")) == null)
                 if (metadataWasAbsent) {
-                    // Our exclusive metadata creation changes one observed absent slot. Consume a fresh independent
-                    // strict admission, never a stale or permissive baseline.
+                    // Our exclusive metadata creation changes one observed absent slot. Consume a
+                    // fresh independent strict admission, never a stale or permissive baseline.
                     val publisher = SafDurableManifestCommit(journal)
                     val visible = publisher.admitBeforeEffects(journal.recoverAll(poll), poll)
                     val trusted = publisher.trusted(poll)
@@ -329,6 +330,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                     )
                 }
 
+                // Complete and verify the entire desired payload before any new provider effect.
                 val desired = resolvedEntries(external.entries, local.entries, resolution.localWinners).toMutableMap()
                 applyLocalWinnersToStage(stage, resolution.localWinners, local.entries, checkCancelled, SafReadBudget(maxBytes))
                 preserveLocalExecutableIntent(stage, local.entries, checkCancelled)
@@ -349,8 +351,8 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                 check(scanLocal(stage, maxFiles, maxBytes, maxDepth, checkCancelled).entries == desired) {
                     "SAF staging changed before provider publication"
                 }
-                // Validate every affected provider subtree before the first mutation, not just immediately
-                // before each member of a multi-path update.
+                // Validate every affected provider subtree before the first mutation, not just
+                // immediately before each member of a multi-path update.
                 val verificationBudget = SafReadBudget(maxBytes)
                 check(treeNode(checkCancelled).identity == external.identities[""]) { "SAF root identity changed before publication" }
                 for (path in collapsePaths(resolution.localWinners)) {
@@ -363,8 +365,8 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                 checkCancelled()
                 admittedLegacy.revalidateAndRequireDisjoint(localRoot, listOf(""), checkCancelled)
                 val journal = initializeJournal(admission, listOf(""), checkCancelled)
-                // Refresh has complete size observations before begin. Do not pin an unknown-stream maximum for
-                // a tiny fixed activation and thereby prevent a disjoint small save.
+                // Refresh has complete size observations before begin. Do not pin an unknown-stream
+                // maximum for a tiny fixed activation and thereby prevent a disjoint small save.
                 val retainedBudget = retainedPayloadBytes(local.bytes, stagedSnapshot.bytes, external.bytes, stagedSnapshot.bytes)
                 val operation = journal.begin(SafOperationRequest(SafOperationKind.REFRESH, emptyList()), listOf(""), reservation(retainedBudget), checkCancelled)
                 retainActivationEvidence = true
@@ -382,7 +384,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                 val staged = SafActivationFiles.capture(journal, operation, artifacts[1], checkCancelled)
                 val originalRef = journal.preserveActivationInventory(operation, original, checkCancelled)
                 val stageRef = journal.preserveActivationInventory(operation, staged, checkCancelled)
-
+                // Both retained forests are already charged and bound before any provider effect.
                 retainActivationEvidence = true
                 admittedLegacy.revalidateAndRequireDisjoint(localRoot, listOf(""), checkCancelled)
                 provider.execute()
@@ -457,6 +459,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
     private data class UnchangedExternal(val identity: SafProviderIdentity, val parentId: String?,
         val fingerprint: String, val children: Int)
 
+    /** Two content passes, no staging. Existing deep admission/barriers are deliberately retained. */
     private fun unchangedRefresh(admission: OwnedAdmission, maxFiles: Int, maxBytes: Long, maxDepth: Int,
         poll: () -> Unit, report: (SafMirrorProgress) -> Unit): Boolean {
         if (admission.initiallyPending || admission.mutatedDuringAdmission ||
@@ -474,8 +477,8 @@ class SafMirror(private val context: Context, treeUri: String, private val local
         report(SafMirrorProgress(SafMirrorPhase.RESOLVING, admission.baseline.values.count { it.startsWith("f:") }))
         try {
             unchangedExternal(admission.baseline, maxFiles, maxBytes, maxDepth, metadata, poll, external)
-            // Finish all provider callbacks before the final local content proof. A provider can mutate
-            // local bytes from a query callback even without changing their filesystem key.
+            // Finish all provider callbacks before the final local content proof. A provider can
+            // mutate local bytes from a query callback even without changing their filesystem key.
             revalidateUnchangedExternal(external, maxFiles, poll)
             unchangedLocal(admission.baseline, maxFiles, maxBytes, maxDepth, metadata, poll, local)
         } catch (_: NotUnchanged) {
@@ -497,7 +500,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
             check(trusted.revision == admission.revision && trusted.digest == admission.digest && trusted.entries == admission.baseline)
             publisher.requireAdmittedVisible(admission.visible, poll)
         }
-
+        // Every provider and progress callback is finished before this exact final admission.
         admission.legacy.revalidateAndRequireDisjoint(localRoot, listOf(""), poll)
         poll()
         return true
@@ -699,7 +702,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
                         journal.requireDisjointFromPending(request, scopes, emptyList(), it, poll)
                     }
                 }
-                return@withContext
+                return@withContext // Exact existing directory: no mutation or acknowledgement is necessary.
             }
             val journal = initializeJournal(admission, request.paths, poll)
             val operation = journal.begin(request, authorityScopes(request.paths, poll), directReservation(request.paths, poll), poll)
@@ -743,8 +746,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
         poll()
         beforeEffects()
         provider.execute()
-        // Local receipts and immutable outbound copies prevent a later canonical edit being
-        // acknowledged.
+        // Local receipts and immutable outbound copies prevent a later canonical edit being acknowledged.
         replacements.filterNot { mutation is FileRepository.Mutation.CreateDirectory }.forEach { path ->
             check(localPathEntries(path, poll) == desired.filterKeys { it == path || it.startsWith("$path/") }) {
                 "Local SAF source changed during synchronization; owned evidence retained"
@@ -823,6 +825,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
             result.retainedAcknowledgementFailure)
     }
 
+    /** All private bytes and exact parent links are declared before the first provider invocation. */
     private inner class ProviderPlan(guard: WorkspaceMutationGuard, private val journal: SafOperationJournal,
         private val operation: SafOperationJournal.Operation, private val sourceRoot: File,
         private val before: Map<String, String>, private val desired: MutableMap<String, String>, private val poll: () -> Unit,
@@ -935,8 +938,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
             }
         }
         fun execute() {
-            // Cancellation and complete reads remain enabled; each helper records the raw return without
-            // polling.
+            // Cancellation and complete reads remain enabled; each helper records the raw return without polling.
             steps.forEach { (kind, action) ->
                 poll()
                 when (kind) {
@@ -952,12 +954,14 @@ class SafMirror(private val context: Context, treeUri: String, private val local
 
     // Recheck authoritative state at commit boundaries to avoid stale writes.
 
+
     private fun assertExternalUnchanged(path: String, known: Map<String, String>, includeTree: Boolean, checkCancelled: () -> Unit = {},
         budget: SafReadBudget = SafReadBudget(Long.MAX_VALUE), maxFiles: Int = MAX_MIRROR_FILES, maxDepth: Int = MAX_MIRROR_DEPTH,
         identities: Map<String, SafProviderIdentity>? = null) {
         val clean = path.trim('/').replace('\\', '/')
         require(clean.isNotBlank()) { "Empty SAF path" }
 
+        
         val parts = segments(clean)
         for (i in 1 until parts.size) {
             checkCancelled()
@@ -1049,6 +1053,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
     private data class Snapshot(val entries: Map<String, String>, val files: Int, val bytes: Long,
         val identities: Map<String, SafProviderIdentity> = emptyMap())
     private data class Resolution(val localWinners: Set<String>, val conflicts: Set<String>)
+
 
     private fun copyExternalSnapshot(
         stage: File,
@@ -1244,9 +1249,9 @@ class SafMirror(private val context: Context, treeUri: String, private val local
             if (prev == null) {
                 when {
                     localNow == externalNow -> Unit
-                    localNow == null -> Unit
-                    externalNow == null -> localWinners += path
-                    else -> conflicts += path
+                    localNow == null -> Unit 
+                    externalNow == null -> localWinners += path 
+                    else -> conflicts += path 
                 }
                 continue
             }
@@ -1256,7 +1261,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
             when {
                 localChanged && externalChanged && localNow != externalNow -> conflicts += path
                 localChanged -> localWinners += path
-                else -> Unit
+                else -> Unit 
             }
         }
         // A winning ancestor replaces its whole subtree, including external-only additions.
@@ -1274,6 +1279,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
         return Resolution(localWinners, conflicts)
     }
 
+     
     private fun resolvedEntries(
         external: Map<String, String>,
         local: Map<String, String>,
@@ -1306,6 +1312,7 @@ class SafMirror(private val context: Context, treeUri: String, private val local
         }
         return roots
     }
+
 
     private fun preserveLocalExecutableIntent(
         stage: File,

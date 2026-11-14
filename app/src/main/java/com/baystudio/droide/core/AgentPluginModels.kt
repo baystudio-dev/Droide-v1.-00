@@ -4,6 +4,7 @@ import java.io.File
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
+ 
 enum class AgentPluginFormat { DROIDE, CLAUDE_CODE, ANTIGRAVITY }
 
 @Serializable
@@ -18,7 +19,7 @@ data class InstalledAgentPluginRecord(
     val contentSha256: String,
     val installedAtMs: Long,
     val installDirectory: String,
-
+    // This is authoritative; workspace projections are disposable.
     val files: Map<String, String>,
 )
 
@@ -33,6 +34,7 @@ data class AgentPluginContributionRoot(
     val contentSha256: String,
 )
 
+ 
 fun interface AgentPluginSource {
     fun contributions(workDir: File): List<AgentPluginContributionRoot>
 

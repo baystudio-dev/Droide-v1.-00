@@ -186,8 +186,8 @@ class MirrorSqliteRollbackRecoveryTest {
 
     @Test fun renameWithoutConfirmedDirectoryForceCannotReturnReviewEvenWhenReceiptExists() = fixture { root ->
         failedReceipt(root, receiptIo(onPublish = { owner, name ->
-            // The real rename succeeds. Return the same observable failure contract as namespace publication
-            // followed by a directory-fsync failure.
+            // The real rename succeeds. Return the same observable failure contract
+            // as namespace publication followed by a directory-fsync failure.
             check(owner.moveNoReplaceDurable(name, owner, "receipt").durable)
             AnchoredWorkspaceFiles.MoveReceipt(published = true, error = 5)
         }), finalReceiptMayExist = true)

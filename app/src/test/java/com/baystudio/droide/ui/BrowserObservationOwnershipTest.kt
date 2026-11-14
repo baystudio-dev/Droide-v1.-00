@@ -311,7 +311,8 @@ class BrowserObservationOwnershipTest {
                 }, queuedContext)
             }
             val executing = AgentBrowserController::class.java.getDeclaredField("activeOperations").apply { isAccessible = true }
-
+            // Retention counts a queued tool ticket before controller admission;
+            // the private count proves this call has reached executeMutex instead.
             pumpUntil { executing.getInt(controller) == 2 }
             permissions.replacePolicy(PermissionPolicyDocument(rules = listOf(PermRule(action, "*", PermEffect.DENY))))
             view.autoReply = true
@@ -358,8 +359,8 @@ class BrowserObservationOwnershipTest {
                 put("operation", "click"); put("target", "#submit")
             }, context)
         }
-        // Capture/review is posted to main; drain it until the request queues on the unrelated prompt's
-        // mutex without being made visible itself.
+        // Capture/review is posted to main; drain it until the request queues on
+        // the unrelated prompt's mutex without being made visible itself.
         shadowOf(Looper.getMainLooper()).idle()
         assertEquals(first.id, context.approvals.pending.value!!.id)
         assertFalse(operation.isCompleted)
@@ -385,8 +386,8 @@ class BrowserObservationOwnershipTest {
                     validateAuthority = { check(allowed) { "request authority revoked" } })
             }
         }
-        // Unconfined execution has admitted the call and posted requestSurface, but the paused main
-        // looper has not dispatched its closure.
+        // Unconfined execution has admitted the call and posted requestSurface,
+        // but the paused main looper has not dispatched its closure.
         assertFalse(operation.isCompleted)
         allowed = false
         val result = completed(operation)

@@ -25,7 +25,7 @@ internal class OwnedStreamStage private constructor(
     val identity: String,
     private val parentIdentity: String,
 ) : AutoCloseable {
-
+    // Keep admitted staging until receipts and synchronization callbacks are verified.
     private var recoveryRequired = false
     private var closeAttempted = false
     @Volatile var closeObservation: StageCloseObservation? = null

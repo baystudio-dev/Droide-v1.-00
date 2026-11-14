@@ -10,6 +10,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
+
 internal class LocalAndroidToolchainDiscovery private constructor(
     private val context: Context?,
     private val projectRoot: File,
@@ -132,8 +133,8 @@ internal class LocalAndroidToolchainDiscovery private constructor(
             append("[ -x \"\$JAVA_BIN\" ] || { echo 'ERROR=Selected JAVA_HOME has no executable Java runtime'; exit 66; }; ")
             append("else JAVA_BIN=\$(command -v java 2>/dev/null || true); [ -n \"\$JAVA_BIN\" ] || { echo 'ERROR=JDK not found in local Ubuntu'; exit 41; }; ")
             append("fi; ")
-            // Managed PATH entries are shell launchers, not symlinks to <jdk>/bin/java. Ask the selected JVM
-            // for its home and preserve its exit status before parsing.
+            // Managed PATH entries are shell launchers, not symlinks to <jdk>/bin/java.
+            // Ask the selected JVM for its home and preserve its exit status before parsing.
             append("JAVA_SETTINGS=\$(\"\$JAVA_BIN\" -XshowSettings:properties -version 2>&1) || { echo 'ERROR=JDK executable failed'; exit 49; }; ")
             append("JAVA_HOME_LINES=\$(printf '%s\\n' \"\$JAVA_SETTINGS\" | sed -n 's/^[[:space:]]*java.home = //p'); ")
             append("JAVA_HOME_COUNT=\$(printf '%s\\n' \"\$JAVA_SETTINGS\" | sed -n 's/^[[:space:]]*java.home = //p' | wc -l); ")
@@ -145,7 +146,7 @@ internal class LocalAndroidToolchainDiscovery private constructor(
             append("[ \"\$JAVA_SPEC_COUNT\" -eq 1 ] && [ -n \"\$JAVA_SPEC\" ] || { echo 'ERROR=Could not determine a unique JDK version'; exit 42; }; ")
             append("case \"\$JAVA_SPEC\" in 1.*) JAVA_MAJOR=\${JAVA_SPEC#1.}; JAVA_MAJOR=\${JAVA_MAJOR%%.*};; *) JAVA_MAJOR=\${JAVA_SPEC%%.*};; esac; ")
             append("case \"\$JAVA_MAJOR\" in ''|*[!0-9]*) echo 'ERROR=Invalid JDK version'; exit 42;; esac; ")
-
+            // Java 8 reports <jdk>/jre as java.home. Gradle needs the enclosing complete JDK.
             append("if [ \"\$JAVA_MAJOR\" -eq 8 ] && [ ! -x \"\$JAVA_HOME_DETECTED/bin/javac\" ] && [ \"\${JAVA_HOME_DETECTED##*/}\" = jre ]; then JAVA_HOME_DETECTED=\$(dirname \"\$JAVA_HOME_DETECTED\"); fi; ")
             append("JAVA_BIN=\"\$JAVA_HOME_DETECTED/bin/java\"; [ -x \"\$JAVA_BIN\" ] || { echo 'ERROR=Discovered JDK home has no executable Java runtime'; exit 67; }; ")
             append("JAVAC_BIN=\"\$JAVA_HOME_DETECTED/bin/javac\"; [ -x \"\$JAVAC_BIN\" ] || { echo 'ERROR=Java runtime found but the matching JDK compiler is missing'; exit 63; }; ")
@@ -177,7 +178,8 @@ internal class LocalAndroidToolchainDiscovery private constructor(
             append("[ -x \"\$APKSIGNER\" ] || { echo 'ERROR=apksigner is missing or not executable'; exit 48; }; ")
             append("\"\$JAVA_BIN\" -version >/dev/null 2>&1 || { echo 'ERROR=JDK executable failed'; exit 49; }; ")
             append("\"\$AAPT2\" version >/dev/null 2>&1 || { echo 'ERROR=AAPT2 cannot execute in the ARM64 Ubuntu guest'; exit 50; }; ")
-
+            // zipalign 36 rejects -h with status 2. Exercise alignment and verification instead
+            // of treating an unsupported option (or arbitrary exit status) as a health check.
             append("ZIPALIGN_TMP=\$(mktemp -d \"\${TMPDIR:-/tmp}/droide-zipalign.XXXXXXXX\") || { echo 'ERROR=Cannot create zipalign health-check workspace'; exit 51; }; ")
             append("trap 'rm -rf -- \"\$ZIPALIGN_TMP\"' 0; ZIPALIGN_OK=0; ")
             append("if printf '$ZIPALIGN_PROBE_ARCHIVE' > \"\$ZIPALIGN_TMP/input.zip\" && ")
@@ -286,8 +288,8 @@ internal class LocalAndroidToolchainDiscovery private constructor(
     }
 
     private companion object {
-        // Valid, deliberately unaligned ZIP: one stored file named x containing x, with CRC32 8cdc1683
-        // and a central directory. POSIX printf emits the 101 bytes without zip/python.
+        // Valid, deliberately unaligned ZIP: one stored file named x containing x, with CRC32
+        // 8cdc1683 and a central directory. POSIX printf emits the 101 bytes without zip/python.
         const val ZIPALIGN_PROBE_ARCHIVE = """\120\113\003\004\024\000\000\000\000\000\000\000\041\000\203\026\334\214\001\000\000\000\001\000\000\000\001\000\000\000\170\170\120\113\001\002\024\003\024\000\000\000\000\000\000\000\041\000\203\026\334\214\001\000\000\000\001\000\000\000\001\000\000\000\000\000\000\000\000\000\000\000\200\001\000\000\000\000\170\120\113\005\006\000\000\000\000\001\000\001\000\057\000\000\000\040\000\000\000\000\000"""
         const val PROBE_TIMEOUT_MS = 20_000L
         val PROBE_KEYS = setOf("JAVA_HOME", "JAVA_VERSION", "SDK_ROOT", "AAPT2", "ZIPALIGN", "APKSIGNER", "SDKS", "BUILD_TOOLS", "NDKS", "CMAKES")

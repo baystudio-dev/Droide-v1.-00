@@ -62,8 +62,10 @@ internal fun AgentPublicTextInteractionHost(conversationKey: Any?, content: @Com
     }
 }
 
-/** Presentation consumes public provenance only. It never infers a role from text or tool output.
- * The full original source owns the one copy/select row, including when updates are collapsed. */
+/**
+ * Presentation consumes public provenance only. It never infers a role from text or tool output.
+ * The full original source owns the one copy/select row, including when updates are collapsed.
+ */
 @Composable
 internal fun AgentPublicTextContent(
     markdown: String,
@@ -79,8 +81,8 @@ internal fun AgentPublicTextContent(
     val interrupted = state == AgentStreamPartState.ERROR || state == AgentStreamPartState.CANCELLED
     val terminal = state != AgentStreamPartState.RUNNING && state != AgentStreamPartState.PENDING
     val preview = remember(markdown) { agentMarkdownPreview(markdown) }
-    // Validate against the original source, then intersect its safe character/line preview. Passing
-    // truncated source to the metadata validator would invalidate otherwise valid spans.
+    // Validate against the original source, then intersect its safe character/line preview.
+    // Passing truncated source to the metadata validator would invalidate otherwise valid spans.
     val slices = remember(markdown, presentation, publicTextSpans, state, preview.text.length) {
         AgentPublicTextPresentation.slices(
             markdown,
@@ -89,8 +91,8 @@ internal fun AgentPublicTextContent(
             completed = state == AgentStreamPartState.COMPLETED,
         ).filter { it.start < preview.text.length }
     }
-    // Reserve one literal remainder plus one unparsed streaming tail per section. Even 128 sections
-    // cannot multiply the existing message-wide 512-node Markdown allowance.
+    // Reserve one literal remainder plus one unparsed streaming tail per section. Even 128
+    // sections cannot multiply the existing message-wide 512-node Markdown allowance.
     val sectionNodeBudget = (AgentMarkdownParser.MAX_RENDER_NODES / slices.size.coerceAtLeast(1) - 2).coerceAtLeast(0)
     val identity = presentationId.ifBlank { streamId ?: "public-message" }
     var bodyLimited by remember(identity) { mutableStateOf(false) }
@@ -140,7 +142,8 @@ private fun AgentPublicTextSection(
     val update = presentation == AgentTextPresentation.UPDATE
     val answer = presentation == AgentTextPresentation.ANSWER
     val expanded = !update || !completed || userExpanded
-    val bodyStyle = (if (answer) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall)
+    val bodyStyle = (if (answer || presentation == AgentTextPresentation.RESPONSE)
+        MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall)
         .copy(color = DroideColors.Text)
     val body: @Composable () -> Unit = {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {

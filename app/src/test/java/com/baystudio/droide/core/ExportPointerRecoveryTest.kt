@@ -76,7 +76,7 @@ class ExportPointerRecoveryTest {
     }
     @Test fun cancellationAndFaultsAtEveryBoundaryReopenWithoutLoss() = fixture { root ->
         for (point in ExportPointerRecovery.Checkpoint.entries) {
-
+            // New independent root for each transition, old evidence remains immutable.
             val trial = File(root, point.name).apply { mkdir() }
             File(trial, "current.properties").writeText(malformed)
             ExportPointerRecovery.open(trial).use { owner ->

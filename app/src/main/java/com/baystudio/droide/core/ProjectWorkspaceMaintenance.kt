@@ -32,8 +32,10 @@ internal object ProjectWorkspaceMaintenance {
         emptyList()
     }
 
-    // A caller-supplied path, reserved prefix, or absent catalog entry is not deletion authority.
-
+    // A caller-supplied path, reserved prefix, or absent catalog entry is not deletion
+    // authority. No permanent reclamation route exists until it can hold complete writer
+    // and editor custody, revalidate tree identity/version and other-workspace isolation,
+    // and durably record an interruption-safe deletion outcome before unlinking bytes.
     @Suppress("UNUSED_PARAMETER") // Preserve the startup API without inspecting an untrusted path.
     suspend fun collect(projectsRoot: File, detached: List<File>): List<String> = withContext(Dispatchers.IO) {
         currentCoroutineContext().ensureActive()

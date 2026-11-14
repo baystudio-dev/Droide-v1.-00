@@ -25,7 +25,7 @@ internal object ExternalToolchainDiscovery {
             val result = run(ToolDiscoveryBatch.command(commands))
             check(!result.timedOut) { "Executable probe timed out" }
             check(result.exitCode == 0) { "Executable probe exited ${result.exitCode}: ${result.output.takeLast(300)}" }
-
+            // A complete batch prints one record even for each missing command.
             val observed = result.output.lineSequence().mapNotNull { it.substringBefore('\t').takeIf { command -> '\t' in it && command in commands } }.toSet()
             check(observed == commands.toSet()) { "Executable probe returned an incomplete response" }
             ToolDiscoveryBatch.parse(result.output, commands)

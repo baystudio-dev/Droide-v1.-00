@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 import kotlin.math.floor
 
+/** Window coordinates, read during placement so the first frame and inset animation use real geometry. */
 internal fun interface HeaderCutoutSource { fun rectangles(): List<Rect> }
 internal val LocalHeaderCutouts = staticCompositionLocalOf { HeaderCutoutSource { emptyList() } }
 internal enum class HeaderPart(val priority: Int) { MORE(0), PROJECTS(1), AGENT(2), RUN(3), SETTINGS(4), MCP(5), TITLE(6) }
@@ -40,6 +41,7 @@ internal object HeaderCutoutGeometry {
         return result
     }
 
+    /** Logical start-to-end packing; empty/overflowed controls receive no placement or hit target. */
     fun pack(widths: List<Int>, spans: List<Span>, gap: Int): List<Int?>? {
         var slot = 0
         var x = spans.firstOrNull()?.left ?: 0
@@ -79,7 +81,8 @@ internal fun CutoutHeaderRow(endAlignActions: Boolean = false, content: @Composa
         val width = constraints.maxWidth
         val children = subcompose(Unit, content)
         val titleIndex = children.indexOfFirst { it.layoutId == HeaderPart.TITLE }
-
+        // Title lines already use maxLines=1. Their intrinsic height remains valid after
+        // horizontal ellipsis, including custom typography and nonlinear font scaling.
         val titleHeight = children.getOrNull(titleIndex)?.maxIntrinsicHeight(width) ?: 0
         val desiredContentHeight = maxOf(DroideDimensions.PrimaryTouch.roundToPx(), titleHeight)
         val height = constraints.constrainHeight(maxOf(DroideDimensions.TopBar.roundToPx(), desiredContentHeight + 8.dp.roundToPx()))
@@ -114,7 +117,7 @@ internal fun CutoutHeaderRow(endAlignActions: Boolean = false, content: @Composa
                 }
                 widths[titleIndex] = titleSlotWidth
             }
-
+            // The slot anchors trailing actions; its contents keep their natural width and align to start.
             val title = if (titleIndex >= 0 && titleSlotWidth > 0)
                 children[titleIndex].measure(loose.copy(maxWidth = titleSlotWidth)) else null
             val packed = checkNotNull(HeaderCutoutGeometry.pack(widths, spans, gap))

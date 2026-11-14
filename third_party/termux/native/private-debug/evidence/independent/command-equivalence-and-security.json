@@ -1,0 +1,114 @@
+[
+  {
+    "abi": "arm64-v8a",
+    "cacheSha256": "f9530dfe825523f2f8aaa815c96392c896d05b0d3a94b1aa635d4fa3ff45abf7",
+    "compileCommandsSha256": "783bb74fc9c556c62f4f89633c04b1686ebd6a812dd1c34750a5b2cf1b29cc5a",
+    "debugInfoEnabled": true,
+    "defaultLegacyNdkToolchainPreserved": true,
+    "noInjectedTestOrFaultDefinitions": true,
+    "normalizedCompileCommandsEqual": true,
+    "normalizedNinjaCommandsEqual": true,
+    "onlyTwoProductionCSources": true,
+    "originalOptimizationRetained": "-Os",
+    "securityFlagsRetained": [
+      "-D_FORTIFY_SOURCE=2",
+      "-Werror=format-security",
+      "-Wformat",
+      "-fdata-sections",
+      "-ffunction-sections",
+      "-fstack-protector-strong"
+    ],
+    "sixExactOrderedPrefixMaps": [
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ]
+  },
+  {
+    "abi": "armeabi-v7a",
+    "cacheSha256": "e147c17a8376e968ea35f24400ba9b3d0df2780e496b02a97da49b4a50aabdf6",
+    "compileCommandsSha256": "9e3ef64f882a936843738b12c3c0452970a639096163ad75567e2f3f13813b8b",
+    "debugInfoEnabled": true,
+    "defaultLegacyNdkToolchainPreserved": true,
+    "noInjectedTestOrFaultDefinitions": true,
+    "normalizedCompileCommandsEqual": true,
+    "normalizedNinjaCommandsEqual": true,
+    "onlyTwoProductionCSources": true,
+    "originalOptimizationRetained": "-Os",
+    "securityFlagsRetained": [
+      "-D_FORTIFY_SOURCE=2",
+      "-Werror=format-security",
+      "-Wformat",
+      "-fdata-sections",
+      "-ffunction-sections",
+      "-fstack-protector-strong"
+    ],
+    "sixExactOrderedPrefixMaps": [
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ]
+  },
+  {
+    "abi": "x86",
+    "cacheSha256": "5172573bffdd35b4bbae7fe6e00c0139e8f0610d0912296013c77284e779d0b1",
+    "compileCommandsSha256": "8734387cd50d5fe8d10b19cad6c34365825a79889722ed400d31e96dfd2bd20e",
+    "debugInfoEnabled": true,
+    "defaultLegacyNdkToolchainPreserved": true,
+    "noInjectedTestOrFaultDefinitions": true,
+    "normalizedCompileCommandsEqual": true,
+    "normalizedNinjaCommandsEqual": true,
+    "onlyTwoProductionCSources": true,
+    "originalOptimizationRetained": "-Os",
+    "securityFlagsRetained": [
+      "-D_FORTIFY_SOURCE=2",
+      "-Werror=format-security",
+      "-Wformat",
+      "-fdata-sections",
+      "-ffunction-sections",
+      "-fstack-protector-strong"
+    ],
+    "sixExactOrderedPrefixMaps": [
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ]
+  },
+  {
+    "abi": "x86_64",
+    "cacheSha256": "0a69f304917750c4fbf2012adc981afa3cc728e3aa251ec28608b688753e8c4c",
+    "compileCommandsSha256": "dc7d8734f8621d7a83c08f08ce8d016c2ed2530992b201916f20a8afd4369457",
+    "debugInfoEnabled": true,
+    "defaultLegacyNdkToolchainPreserved": true,
+    "noInjectedTestOrFaultDefinitions": true,
+    "normalizedCompileCommandsEqual": true,
+    "normalizedNinjaCommandsEqual": true,
+    "onlyTwoProductionCSources": true,
+    "originalOptimizationRetained": "-Os",
+    "securityFlagsRetained": [
+      "-D_FORTIFY_SOURCE=2",
+      "-Werror=format-security",
+      "-Wformat",
+      "-fdata-sections",
+      "-ffunction-sections",
+      "-fstack-protector-strong"
+    ],
+    "sixExactOrderedPrefixMaps": [
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-independent=/droide/native",
+      "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358",
+      "-fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358"
+    ]
+  }
+]

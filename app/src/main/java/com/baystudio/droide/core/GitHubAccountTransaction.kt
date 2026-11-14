@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal class GitHubAccountTransaction(
     private val readCredential: () -> String,
     private val writeCredential: (String) -> Boolean,
@@ -22,6 +23,13 @@ internal class GitHubAccountTransaction(
 
     data class RotationResult(val metadataCommitted: Boolean)
 
+    
+
+
+
+
+
+
     fun rotate(record: GitHubAccountRecord, credential: String): RotationResult {
         require(credential.isNotBlank())
         check(writeCredential(credential)) { "Could not durably persist rotated GitHub credential" }
@@ -34,6 +42,11 @@ internal class GitHubAccountTransaction(
     ) {
         val complete: Boolean get() = credentialRemoved && metadataRemoved
     }
+
+    
+
+
+
 
     fun disconnectRevoked(): RevokedCleanupResult {
         val metadataRemoved = removeState()

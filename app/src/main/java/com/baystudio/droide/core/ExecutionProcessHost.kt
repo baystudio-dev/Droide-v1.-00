@@ -18,10 +18,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.withContext
 
+ 
 enum class ProcessExecutionScope { LOCAL_LINUX_ARM64, DEVICE_ADB }
 
-// It deliberately exposes byte streams, not shell strings, so protocol traffic cannot be
-// reinterpreted by a command shell.
+// It deliberately exposes byte streams, not shell strings, so protocol traffic cannot be reinterpreted by a command shell.
+
 
 interface HostedStdioProcess : Closeable {
     val stdin: OutputStream
@@ -32,6 +33,7 @@ interface HostedStdioProcess : Closeable {
     /** Wait for the owned process and its host cleanup. close() alone only requests stop. */
     suspend fun awaitExit(): Int
 }
+
 
 data class ProcessResourceLimits(
     val cpuSeconds: Int = 120,
@@ -49,6 +51,7 @@ data class ProcessResourceLimits(
     }
 }
 
+ 
 interface StdioProcessHost {
     val executionScope: ProcessExecutionScope
     suspend fun resolveExecutable(command: String): String?
@@ -147,6 +150,7 @@ interface StdioProcessHost {
     suspend fun pathMapper(): WorkspacePathMapper? = null
 }
 
+
 class DeviceWorkstationProcessHost(
     private val bridge: DeviceBridgeManager,
     private val development: AndroidDevelopmentManager,
@@ -188,6 +192,7 @@ class DeviceWorkstationProcessHost(
         return startRemote(argv, environment, config, config.remoteWorkspace, resourceLimits)
     }
 
+     
     override suspend fun startInWorkspace(
         argv: List<String>,
         environment: Map<String, String>,
@@ -236,6 +241,7 @@ class DeviceWorkstationProcessHost(
         val lease = RemoteProcessLease.create("stdio-protocol")
         val stream = bridge.openRawShell(lease.wrap(command))
         val process = RemoteHostedStdioProcess(stream, scope) { _ ->
+            
 
             scope.async(NonCancellable + Dispatchers.IO) {
                 check(bridge.state.value.connected != null) { "Remote process cleanup transport is unavailable" }
@@ -282,8 +288,8 @@ internal class RemoteHostedStdioProcess(
     private val stdoutWriter = PipedOutputStream(stdoutPipe)
     private val stderrPipe = PipedInputStream(64 * 1024)
     private val stderrWriter = PipedOutputStream(stderrPipe)
-    // A childless cancellation sentinel is notified without waiting for a blocked reader child. It
-    // is completed/detached when the reader actually finishes.
+    // A childless cancellation sentinel is notified without waiting for a blocked
+    // reader child. It is completed/detached when the reader actually finishes.
     private val parentCancellation = Job(scope.coroutineContext[Job])
     private val readJob: Job
 
@@ -343,8 +349,8 @@ internal class RemoteHostedStdioProcess(
                 finishTransport()
             }
         }
-        // Register after readJob assignment: an already-cancelled parent can invoke this immediately.
-        // close() publishes its own nonblocking worker.
+        // Register after readJob assignment: an already-cancelled parent can
+        // invoke this immediately. close() publishes its own nonblocking worker.
         parentCancellation.invokeOnCompletion { cause ->
             if (cause != null) close()
         }
@@ -359,13 +365,16 @@ internal class RemoteHostedStdioProcess(
 
     override fun close() {
         if (!stopRequested.compareAndSet(false, true)) return
-        // A natural-exit observer may already have retired this handle. Publish the new stop receipt
-        // before scheduling its independent exact-owner worker.
+        // A natural-exit observer may already have retired this handle. Publish
+        // the new stop receipt before scheduling its independent exact-owner worker.
         ExitHostedProcessRegistry.retain(this)
         try {
             Thread({
                 try {
-
+                    // Release local output backpressure before any transport wait.
+                    // Otherwise a full pipe can hold the reader needed by stdin
+                    // closure or remote cleanup, creating a shutdown dependency cycle.
+                    // The reader still needs an actual Exit packet for its receipt.
                     OwnedResourceCleanup.run(
                         { stdoutPipe.close() }, { stderrPipe.close() },
                         { stdoutWriter.close() }, { stderrWriter.close() },
@@ -391,13 +400,14 @@ internal class RemoteHostedStdioProcess(
     private fun finishTransport() {
         if (!transportClosing.compareAndSet(false, true)) return
         fun failed(failure: Throwable) {
-            // Completion observers retain Exceptions; do not rethrow a raw Error from a deferred worker into
-            // their coroutine exception handlers.
+            // Completion observers retain Exceptions; do not rethrow a raw Error
+            // from a deferred worker into their coroutine exception handlers.
             transportCompletion.completeExceptionally(if (failure is Exception) failure
                 else IllegalStateException("Remote transport close failed", failure))
         }
-        // Completion handlers may run inline while a cancelled owner is being constructed.
-
+        // Completion handlers may run inline while a cancelled owner is being
+        // constructed. A blocking transport close must not hold that caller or
+        // the reader's parent lifecycle; its separate receipt remains required.
         try {
             Thread({
                 try {

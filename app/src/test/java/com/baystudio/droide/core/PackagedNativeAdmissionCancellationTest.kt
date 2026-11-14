@@ -20,7 +20,7 @@ class PackagedNativeAdmissionCancellationTest {
                 returned = true
             } catch (actual: CancellationException) { assertSame(cancelled, actual) }
             assertFalse(returned)
-            assertEquals(3, checkpoints)
+            assertEquals(3, checkpoints) // Before open, before first read, after first block.
         } finally { file.delete() }
     }
 

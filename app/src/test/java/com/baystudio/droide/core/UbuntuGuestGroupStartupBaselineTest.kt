@@ -6,8 +6,10 @@ import java.util.concurrent.TimeUnit
 import org.junit.Assert.*
 import org.junit.Test
 
-/** The groups function simulates lookup failures; this is NOT a native coreutils/PRoot/Android or
- * installed-APK reproduction. */
+/** Static packaged-source evidence plus a host Bash fixture. The groups function simulates
+ * lookup failures; this is NOT a native coreutils/PRoot/Android or installed-APK reproduction.
+ * It uses only APIs already present in R41, so the baseline does not depend on the new helper.
+ */
 class UbuntuGuestGroupStartupBaselineTest {
     @Test(timeout = 60_000) fun packagedInteractiveRcAutomaticallyLooksUpTheUnmappedAndroidGroups() {
         val base = Files.createTempDirectory("ubuntu-group-startup-baseline-").toFile()
@@ -39,8 +41,8 @@ internal object UbuntuStartupGroupFixture {
         val rc = File(rootfs.parentFile, "packaged-bash.bashrc").apply { writeText(resource("packaged-bash.bashrc")) }
         val home = File(rootfs, "root").apply { mkdirs() }
         val output = File(rootfs.parentFile, "bash-output")
-        // Deliberately shadow only groups, and source the EXACT packaged rc. No host group tool runs and
-        // no host or Android account database is changed by this baseline fixture.
+        // Deliberately shadow only groups, and source the EXACT packaged rc. No host group tool
+        // runs and no host or Android account database is changed by this baseline fixture.
         val script = """
             groups() {
                 result=0

@@ -16,6 +16,7 @@ data class AgentConfig(
     val reasoningEffort: ReasoningEffort? = null,
 )
 
+
 class AgentService(
     private val files: FileRepository,
     private val terminal: ITerminalSession,
@@ -41,7 +42,7 @@ class AgentService(
         appContext?.let { WorkbenchPreferences.flow(it).first().codeStyleDefaults } ?: CodeStyleDefaults()
     },
 ) {
-
+    /** Availability and dispatch share the same external staging boundary. No storage is created here. */
     private fun localFolderRecoveryCache(): File? {
         val context = appContext ?: return null
         return runCatching {
@@ -170,7 +171,7 @@ class AgentService(
     private data class PrivateServiceAssistant(val received: OwnedServiceTurn, val registryId: String)
     @Volatile var currentSessionId: String? = null
         private set
-
+     
     private var pendingSessionStartTrigger: String? = null
     private var job: Job? = null
     private val runGeneration = AtomicLong(0L)
@@ -184,7 +185,7 @@ class AgentService(
     fun snapshotUncheckpointedInputsForExit(): List<AgentPendingInput> = synchronized(admissionLock) {
         exitUncheckpointedInputs.values.filter { it.origin == AgentInputOrigin.USER }
     }
-
+    // No-op unless a focused fixture widens a publication boundary before admission.
     internal enum class PublicationBoundary {
         CREATED_SESSION, INITIAL_STREAM, PROVIDER_EVENT, PROVIDER_RESULT, ASSISTANT_HISTORY_APPEND, SOURCE_PREFLIGHT_RETURN,
     }
@@ -273,8 +274,8 @@ class AgentService(
                     check(this@MediaRecoveryAccess.inspectionToken == inspectionToken) { "Inspection belongs to another recovery view; inspect again" }
                     this@MediaRecoveryAccess.inspectionToken = null
                 }
-                // Read/hash evidence without the lifecycle monitor. Only the final in-memory grant is admitted
-                // under the same short lock as session switch and shutdown.
+                // Read/hash evidence without the lifecycle monitor. Only the final in-memory
+                // grant is admitted under the same short lock as session switch and shutdown.
                 journal.acknowledge(recoveryScope, inspectionToken) { grant ->
                     synchronized(admissionLock) { requireCurrent(); grant() }
                 }
@@ -283,7 +284,8 @@ class AgentService(
             synchronized(admissionLock) { requireCurrent() }
         }
         // Never block main-thread disposal behind the bounded acknowledgement evidence read.
-
+        // A confirmation already accepted in flight may finish granting its one-shot permission;
+        // closing the view never copies or promises that an accepted grant was rolled back.
         override fun close() { closed.set(true) }
     }
     private fun requireMediaRecoveryOwner(sessionId: String, generation: Long) {
@@ -328,12 +330,13 @@ class AgentService(
         childFailure?.let { throw it }
     }
 
+    /** Finite retirement at committed workspace handoff; resource cleanup remains separate. */
     internal fun retireAuthority() {
         synchronized(admissionLock) {
             if (!mediaRecoveryClosed) {
                 mediaRecoveryClosed = true
-                // Revoke an append already spilling outside this monitor without clearing the transcript.
-                // Ordinary Stop deliberately retains its history ticket.
+                // Revoke an append already spilling outside this monitor without clearing
+                // the transcript. Ordinary Stop deliberately retains its history ticket.
                 conversationHistory.beginRestore()
             }
         }
@@ -373,6 +376,18 @@ class AgentService(
         _persistenceError.value = null
         _streamState.value = AgentStreamState()
     }
+    internal fun continuationAvailability(expectedSessionId: String?): AgentContinuation = synchronized(admissionLock) {
+        when {
+            expectedSessionId != currentSessionId -> AgentContinuation.CHANGED
+            currentSessionId == null || _messages.value.isEmpty() -> AgentContinuation.EMPTY
+            _busy.value || job?.isActive == true || loadingSessionGeneration != null || manualCompactionProviderPhase -> AgentContinuation.WORKING
+            _persistenceError.value != null || typedCheckpoint?.let {
+                runCatching { TypedChatForkBoundary.completedEnd(it.exact) == null }.getOrDefault(true)
+            } == true -> AgentContinuation.NEEDS_REVIEW
+            else -> AgentContinuation.READY
+        }
+    }
+
     suspend fun loadSession(s: DroideSession, requiredGeneration: Long? = null, requiredSessionId: String? = null, requireIdle: Boolean = false) {
         val exitRegistration = exitFence.track(currentCoroutineContext().job)
         try {
@@ -382,8 +397,8 @@ class AgentService(
             }
             if (requiredGeneration != null && (runGeneration.get() != requiredGeneration || currentSessionId != requiredSessionId || loadingSessionGeneration != null))
                 throw CancellationException("Agent session changed before restoring compaction")
-            // Snapshot failures keep their original diagnostic identity. Once provider work may be in
-            // flight, a user-directed load cancels that owned operation.
+            // Snapshot failures keep their original diagnostic identity. Once provider
+            // work may be in flight, a user-directed load cancels that owned operation.
             if (requiredGeneration == null && manualCompactionProviderPhase) cancelContextCompaction()
             val previous = currentSessionId
             val inputs = loadingPreviousInputs ?: pendingInputs.value
@@ -501,7 +516,7 @@ class AgentService(
         return try {
         val snapshot = synchronized(admissionLock) {
             val sid = currentSessionId ?: return@synchronized null
-
+            // Also bind precondition failures before any checkpoint/provider suspension.
             failureOwner = runGeneration.get() to sid
             if (loadingSessionGeneration != null) throw CancellationException("Agent session is loading")
             check(!_busy.value && job?.isActive != true) {
@@ -551,6 +566,7 @@ class AgentService(
         try { return editHistory.undo() } finally { registration.close() }
     }
 
+
     fun submitAsync(
         scope: CoroutineScope,
         userText: String,
@@ -569,8 +585,8 @@ class AgentService(
         sourceDelivery: SubagentDeliveryReceipt? = null,
     ): Job? = synchronized(admissionLock) {
         if (!exitFence.isOpen || mediaRecoveryClosed) return null
-        // UI passes its Send-gesture time before asynchronous model/config preflight. Explicit null
-        // remains unknown; child/system provenance never gains authority.
+        // UI passes its Send-gesture time before asynchronous model/config preflight.
+        // Explicit null remains unknown; child/system provenance never gains authority.
         val originalAdmission = requestAdmittedAtNanos.takeIf { isPrimaryMediaUser(inputOrigin) && !mediaRecoveryClosed }
         if (loadingSessionGeneration != null) {
             _persistenceError.value = "Session is still loading. Wait for restore to finish before sending a prompt."
@@ -583,8 +599,8 @@ class AgentService(
         val admissionOwner = "admission-${java.util.UUID.randomUUID()}"
         val mediaReady = CompletableDeferred<Unit>()
         var startedRun = false
-        // Acquired before inbox/media preparation, then transferred to the owned run. Refusal leaves
-        // onAccepted uncalled, so the user's draft stays intact.
+        // Acquired before inbox/media preparation, then transferred to the owned run.
+        // Refusal leaves onAccepted uncalled, so the user's draft stays intact.
         var exportWriter: AutoCloseable? = null
         var preparedImages: List<AgentImageRef> = emptyList()
         val hasMedia = media.isNotEmpty() || imagePaths.isNotEmpty()
@@ -602,8 +618,8 @@ class AgentService(
                 sourceId = sourceId, images = preparedImages, ideContext = ideContext, media = media,
                 sourceDelivery = sourceDelivery,
             )
-            // Install ownership before dispatch: even immediate startup failure or Stop must refer to this
-            // run, never the preceding conversation.
+            // Install ownership before dispatch: even immediate startup failure or
+            // Stop must refer to this run, never the preceding conversation.
             lateinit var ownedRun: Job
             val finalized = java.util.concurrent.atomic.AtomicBoolean(false)
             val finalizationReceipt = CompletableDeferred<Unit>()
@@ -652,8 +668,8 @@ class AgentService(
             }
             job = ownedRun
             ownedRun.invokeOnCompletion {
-                // Stop can win before a dispatched coroutine enters its try/finally. Release that STARTING lease
-                // too; only one cleanup owns the draft.
+                // Stop can win before a dispatched coroutine enters its try/finally.
+                // Release that STARTING lease too; only one cleanup owns the draft.
                 if (!finalized.get()) synchronized(admissionLock) {
                     val cleanup = ownerScope.launch(NonCancellable) { finishOwnedRun() }
                     exitCleanupJobs += cleanup
@@ -751,6 +767,7 @@ class AgentService(
         require(maxTurns in 1..MAX_AGENT_TURNS) { "maxTurns must be between 1 and $MAX_AGENT_TURNS" }
         require(inputOrigin == AgentInputOrigin.USER || imagePaths.isEmpty() && media.isEmpty()) { "Synthetic inputs cannot attach user media" }
         SubagentDeliveryHistory.boundReceipt(inputOrigin, sourceId, requiredSessionId ?: currentSessionId, sourceDelivery)
+        
 
         val runLease = admissionLease ?: promptCoordinator.reserveDirectRun()
         // Recheck state around cancellation-sensitive boundaries.
@@ -840,6 +857,7 @@ class AgentService(
             _busy.value = true
         }
 
+
         val unresolvedApiToolCalls = linkedMapOf<String, String>()
         val mixedSourceCalls = linkedMapOf<String, SourceCallLifecycle>()
         val interruptedSourceResults = linkedMapOf<String, JsonObject>()
@@ -859,8 +877,8 @@ class AgentService(
         try {
             if (!typedHistoryHasCompleteTail(owner)) {
                 if (inputOrigin == AgentInputOrigin.USER) withRunPublication(owner) {
-                    // Preserve the user's query/attachments for review without corrupting the unfinished private
-                    // protocol group or treating this as a provider admission.
+                    // Preserve the user's query/attachments for review without corrupting the
+                    // unfinished private protocol group or treating this as a provider admission.
                     _messages.value = _messages.value + AgentMessage("user", userText, media = media)
                 }
                 throw IllegalStateException("An earlier tool execution is unresolved. Check the affected command or files before resending. Your new message is kept here and was not sent to the model.")
@@ -882,11 +900,12 @@ class AgentService(
                 }
                 return
             }
-
+            
             val toolSelection = AgentToolSelection()
             val promptHookContext = promptHook.additionalContext.takeIf { it.isNotBlank() }
                 ?.let { "\n\n[Lifecycle hook context]\n$it" }.orEmpty()
             ensureRunCurrent(generation, runSessionId)
+            
 
             val uiHistory = withRunPublication(owner) { _messages.value.toMutableList() }
             val initialProjection = subagentBridge.projectInitial(inputOrigin, sourceId, userText, generation, stagedImages, ideContext, media,
@@ -925,13 +944,15 @@ class AgentService(
             if (initialDeliveries.isNotEmpty()) {
                 // Parent persistence must win before the child is marked delivered.
 
+
                 val persisted = withContext(NonCancellable) {
                     persistCurrent(userText.take(40), runSessionId, generation)
                 }
                 if (persisted) subagentBridge.markDelivered(initialDeliveries)
             }
-            // Keep the model/tool loop in its own suspend method.
-
+            // Keep the model/tool loop in its own suspend method. Inlining the whole
+            // admission, loop and cleanup into chat exceeds the JVM's 64 KiB method limit.
+            // A local suspend function retains this run's owners without creating a new Job.
             suspend fun runModelSteps() {
             var lastSig = ""
             var repeat = 0
@@ -955,17 +976,18 @@ class AgentService(
                 )?.let { promotedConfig ->
                     activeConfig = promotedConfig
                     modelStepsInSegment = 0
-
+                    // Steering/queued work supplies fresh task intent, even when the run began with "hi".
                     greetingOnly = false
                 }
                 turn += 1
                 modelStepsInSegment += 1
+                
 
                 ProviderRuntimeGuard.requireCertifiedSelection(activeConfig.providerId, activeConfig.baseUrl, activeConfig.model, providerConfiguration)
                 val stepBudgetReached = modelStepsInSegment == maxTurns
                 val finalStep = stepBudgetReached || !ModelCapabilityRegistry.allowsToolUse(activeConfig.providerId, activeConfig.model)
-                // Context compaction happens at this safe model-step boundary and never consumes an additional
-                // agent step.
+                // Context compaction happens at this safe model-step boundary and never consumes an additional agent step.
+
 
                 var preflightCompacted = false
                 var overflowRecovered = false
@@ -996,8 +1018,8 @@ class AgentService(
                 while (true) {
                     currentCoroutineContext().ensureActive()
                     ensureRunCurrent(generation, runSessionId)
-                    // Fresh rules for every request attempt, including post-compaction retries. Reuse hook output
-                    // without re-running hooks or accumulating their context.
+                    // Fresh rules for every request attempt, including post-compaction retries.
+                    // Reuse hook output without re-running hooks or accumulating their context.
                     val projectBrief = AgentRequestInstructions.refresh(promptHookContext,
                         ensureCurrent = { ensureRunCurrent(generation, runSessionId) },
                         load = { loadProjectBrief() })
@@ -1022,7 +1044,7 @@ class AgentService(
                             AgentToolSelection.extraBudget(ContextBudget.effectiveInputTokens(activeConfig.providerId,
                                 activeConfig.model, AgentRequestSupport.outputTokens(activeConfig))))
                     }
-
+                    // Discovery can suspend; discard an obsolete mode surface before any request.
                     ensureRunCurrent(generation, runSessionId)
                     if (_mode.value != requestMode) continue
                     val systemText = AgentRuntimePrompt.compose(requestMode, modeInstruction, projectBrief, systemOverlay,
@@ -1065,13 +1087,14 @@ class AgentService(
                             }
                         }
                         preflightCompacted = true
-
+                        // Even a no-op compaction may suspend while instructions change.
+                        // Re-read once; the flag prevents another preflight compaction here.
                         continue
                     }
                     ProviderRuntimeGuard.requireCertifiedSelection(activeConfig.providerId, activeConfig.baseUrl, activeConfig.model, providerConfiguration)
                     reqJson = AgentRequestSupport.build(activeConfig, systemText,
                         VisionSupport.materializeHistory(activeHistory, workDir), toolDefinitions)
-
+                    // Materializing attachments can suspend too. Rebuild on a mode change.
                     ensureRunCurrent(generation, runSessionId)
                     if (_mode.value != requestMode) continue
                     val requestContext = AgentContextUsage(runSessionId, activeConfig.providerId, activeConfig.model, estimate)
@@ -1173,8 +1196,7 @@ class AgentService(
                                 activeConfig.model, JsonObject(reqJson.filterKeys { it != "messages" }), history,
                                 responseSession, { id -> resources.owned.authorize(responseOwner.copy(callId = id)) },
                                 onRecovery = { recovery -> receivedRecoveryCheckpoint(resources, responseOwner, target, recovery) }, onEvent = onProviderEvent)
-                            // Provider usage belongs to this completed request even if later projection or owner admission
-                            // fails.
+                            // Provider usage belongs to this completed request even if later projection or owner admission fails.
                             stepAccounting = requestAccounting.response(buildJsonObject {
                                 accepted.usage?.let { put("usage", it) }
                                 accepted.reportedModel?.let { put("model", it) }
@@ -1186,8 +1208,8 @@ class AgentService(
                             if (needsOwned && accepted.calls.isNotEmpty()) {
                                 require(!finalStep && !greetingOnly && accepted.calls.size <= MAX_TOOL_CALLS_PER_TURN)
                                 val received = OwnedServiceTurn(accepted, resources, responseOwner, responseSession)
-                                // Ownership lives outside the dispatcher: prompt cancellation may discard a successful IO return
-                                // before the caller receives its value.
+                                // Ownership lives outside the dispatcher: prompt cancellation may
+                                // discard a successful IO return before the caller receives its value.
                                 val derived = mutableListOf<OwnedChatStreamAccumulator.ReceivedStage>()
                                 try {
                                     mixedPrepared = withContext(Dispatchers.IO) {
@@ -1199,8 +1221,8 @@ class AgentService(
                                         preparedBatch
                                     }
                                 } catch (failure: Exception) {
-                                    // Informational private references only, including a successful preparation whose return was
-                                    // cancelled. No execution grant.
+                                    // Informational private references only, including a successful
+                                    // preparation whose return was cancelled. No execution grant.
                                     val original = accepted.calls.map { OwnedChatStreamAccumulator.ReceivedStage(it.id,it.arguments.handle) } +
                                         (accepted.auxiliarySources + accepted.publicText + accepted.nativeAssistantMessage).map {
                                             OwnedChatStreamAccumulator.ReceivedStage(null,it.handle)
@@ -1243,8 +1265,8 @@ class AgentService(
                                     val public = sessions.publicContentArchive(runSessionId) { !task.isActive || !isRunCurrent(generation, runSessionId) }.reopen(reference)
                                     mixedPublicAnswer = AgentPublicAnswerPublication.Result(public.preview, reference)
                                 }
-                                // Control-flow metadata only. It contains NO argument placeholder; execution and durable
-                                // provider history exclusively use the typed batch/native source above.
+                                // Control-flow metadata only. It contains NO argument placeholder; execution and
+                                // durable provider history exclusively use the typed batch/native source above.
                                 LlmStreamResult(buildJsonObject {
                                     accepted.usage?.let { put("usage", it) }
                                     put("choices", buildJsonArray { add(buildJsonObject {
@@ -1279,7 +1301,9 @@ class AgentService(
                         resp = streamResult.responseBody
                         streamMode = streamResult.mode
                         // The provider work happened even if its owner is now obsolete.
-
+                        // Record the returned usage once, independently of preview admission.
+                        // Accounting consumes provider metadata, not a second serialization
+                        // of the potentially multimodal request body.
                         if (!responseAccounted) stepAccounting = requestAccounting.response(resp)
                         publicationBoundaryProbe?.invoke(PublicationBoundary.PROVIDER_RESULT)
                         withRunPublication(owner) {
@@ -1303,19 +1327,20 @@ class AgentService(
                         }
                         break
                     } catch (t: Throwable) {
-
+                        // Accounting is independent of whether this run may still publish UI/history.
                         requestAccounting.failure(t)?.let { stepAccounting = it }
                         if (requestAccounting.isCallbackFailure(t)) throw t
                         val failureSnapshot = (t as? LlmProviderStreamException)?.publicSnapshot
                         val overflow = t is LlmRequestTooLargeException || (t is LlmHttpException && t.isContextOverflow())
                         if (!overflow || overflowRecovered) {
-                            // Public partial text must survive persistence and the next user-directed continuation in this
-                            // same session. Streamed tool/secret continuation fragments are never admitted here.
+                            // Public partial text must survive persistence and the next
+                            // user-directed continuation in this same session. Streamed
+                            // tool/secret continuation fragments are never admitted here.
                             val partial = synchronized(admissionLock) {
                                 if (!isRunCurrent(generation, runSessionId)) null else {
                                     val part = if (failureSnapshot != null) {
-                                        // Full emitted-order snapshot is already credential-redacted. Replace, never append to the
-                                        // possibly truncated live preview.
+                                        // Full emitted-order snapshot is already credential-redacted.
+                                        // Replace, never append to the possibly truncated live preview.
                                         AgentStreamPart(id = textPartId, step = turn,
                                             kind = AgentStreamPartKind.TEXT, state = AgentStreamPartState.RUNNING,
                                             text = failureSnapshot.publicText.take(MAX_ASSISTANT_CHARS),
@@ -1327,7 +1352,7 @@ class AgentService(
                             }
                             if (partial != null || failureSnapshot != null) try {
                                 withRunPublication(owner) {
-
+                                    // An empty safe snapshot also replaces an unsafe live preview.
                                     if (failureSnapshot != null) removeStreamPart(textPartId)
                                     if (partial != null) _messages.value = _messages.value + partial.message
                                 }
@@ -1403,9 +1428,10 @@ class AgentService(
                                 modelActivity = AgentModelActivity.WORKING,
                             )
                         }
-
+                        
                     }
                 }
+
 
                 ownedTurn?.let { received ->
                     val accepted = received.result
@@ -1449,8 +1475,8 @@ class AgentService(
                     break
                 }
 
-                // Restore the donor contract: authority is the exact successful request, not a later
-                // mode/catalog or a canonically equivalent alias.
+                // Restore the donor contract: authority is the exact successful request,
+                // not a later mode/catalog or a canonically equivalent alias.
                 val requestToolNames = AgentToolRequestPolicy.snapshot(reqJson)
                 val stepPromptTokens = stepAccounting.prompt
                 val stepCompletionTokens = stepAccounting.completion
@@ -1486,7 +1512,7 @@ class AgentService(
                 }
                 val fullPublicContent = (msg["content"] as? JsonPrimitive)?.contentOrNull.orEmpty()
                 var content = fullPublicContent.take(MAX_ASSISTANT_CHARS)
-
+                // Bound UI text separately from the complete provider continuation.
                 val apiContent = if (msg[OpenAiResponsesAdapter.PRIVATE_CONTENT_FIELD] != null ||
                     msg[ChatReasoningContinuation.PRIVATE_CONTENT_FIELD] != null) {
                     (msg["content"] as? JsonPrimitive)?.contentOrNull.orEmpty()
@@ -1494,8 +1520,8 @@ class AgentService(
                 val toolCalls = (msg["tool_calls"] as? JsonArray) ?: JsonArray(emptyList())
                 val outcome = AgentResponseOutcome.evaluate(choice)
                 if (!outcome.accepted) {
-                    // Usage was already recorded. Preserve only public partial text, never incomplete tool calls or
-                    // provider-private reasoning/signatures.
+                    // Usage was already recorded. Preserve only public partial text, never
+                    // incomplete tool calls or provider-private reasoning/signatures.
                     val publicPartial = outcome.publicText.ifBlank {
                         streamPart("text:$turn")?.takeIf { it.kind == AgentStreamPartKind.TEXT }?.text.orEmpty()
                     }.take(MAX_ASSISTANT_CHARS)
@@ -1519,24 +1545,24 @@ class AgentService(
                 require(toolCalls.size <= MAX_TOOL_CALLS_PER_TURN) {
                     "Provider requested ${toolCalls.size} tools in one turn; maximum is $MAX_TOOL_CALLS_PER_TURN"
                 }
-                // Validate the batch before allocating a durable public blob. Final-only turns reject tool
-                // requests without handing them to the executor.
+                // Validate the batch before allocating a durable public blob. Final-only
+                // turns reject tool requests without handing them to the executor.
                 val preparedTools = mixedPrepared ?: if (toolCalls.isNotEmpty() && !finalStep && !greetingOnly)
                     AgentToolTurnPlanner.prepare(toolCalls, json, turn, MAX_TOOL_ARGUMENT_CHARS, lastSig, repeat)
                     else null
                 if (privateSmallTurn != null && (toolCalls.isEmpty() || (!finalStep && !greetingOnly))) {
                     appendPrivateNativeAssistant(owner, checkNotNull(privateSmallTurn), uiHistory)
                     privateAssistantRecorded = true
-                    // The native source already owns these IDs. Any later failure must close them with ordinary
-                    // results.
+                    // The native source already owns these IDs. Any later failure must close them with ordinary results.
                     unresolvedApiToolCalls.clear()
                     checkNotNull(privateSmallTurn).received.result.calls.forEach { unresolvedApiToolCalls[it.id] = it.name }
                     check(persistCurrent(userText.take(40), runSessionId, generation)) {
                         "Private native turn could not be saved; no tool was executed"
                     }
                 }
-                // Outcome and structural batch admission must succeed before a public blob is published.
-
+                // Outcome and structural batch admission must succeed before a
+                // public blob is published. Failed provider snapshots retain their existing
+                // credential-redacted path; raw failed streams never replace safe snapshots.
                 val publicationJob = currentCoroutineContext()[Job]
                 val publicAnswer = mixedPublicAnswer ?: withContext(Dispatchers.IO) {
                     AgentPublicAnswerPublication.complete(
@@ -1670,9 +1696,10 @@ class AgentService(
                     }
                     break
                 }
+                
 
-                // Reject malformed batches before either history owns their tool IDs. Invalid arguments remain
-                // failed per-call outcomes in the prepared batch.
+                // Reject malformed batches before either history owns their tool IDs.
+                // Invalid arguments remain failed per-call outcomes in the prepared batch.
                 val prepared = requireNotNull(preparedTools)
                 withRunPublication(owner) {
                     updateStreamPart("text:$turn") { it.copy(textPresentation = AgentTextPresentation.UPDATE) }
@@ -1697,8 +1724,8 @@ class AgentService(
                 }
                 conversationHistory.ensureStorageAvailable(owner.historyVersion)
                 val browserCalls = prepared.filter { it.name == "browser" && it.name in requestToolNames }
-                // One Stop epoch owns the entire response, including calls that are still queued behind
-                // permission prompts or unrelated tools.
+                // One Stop epoch owns the entire response, including calls that are
+                // still queued behind permission prompts or unrelated tools.
                 val skippedForUserSteer = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
                 val browserToolWork = if (browserCalls.isEmpty()) emptyList()
                     else browserController?.registerToolWorkBatch(browserCalls.size).orEmpty()
@@ -1736,8 +1763,9 @@ class AgentService(
                 suspend fun executePrepared(call: PreparedToolCall): ToolOutcome {
                     exitFence.requireOpen()
                     currentCoroutineContext().ensureActive()
-                    // Close its old calls without executing them, then consume the user's correction at the normal
-                    // next model boundary.
+                    // A newer Steer can arrive while the provider is generating this batch.
+                    // Close its old calls without executing them, then consume the user's
+                    // correction at the normal next model boundary. QUEUE does not preempt.
                     if (pendingInputs.value.any { it.origin == AgentInputOrigin.USER && it.delivery == AgentPromptDelivery.STEER }) {
                         skippedForUserSteer.add(call.id)
                         val reason = "ERROR: USER_STEER_PENDING: This tool was not executed because a newer user instruction is waiting. Re-evaluate the task after that instruction; do not replay this call automatically."
@@ -1750,7 +1778,7 @@ class AgentService(
                         }
                         return ToolOutcome(call, result, failed = true)
                     }
-
+                    
                     val fname = call.name
                     publishToolPart(call.partId) {
                         it.copy(state = AgentStreamPartState.RUNNING, detail = "Running · ${call.index + 1}/${prepared.size}")
@@ -1788,6 +1816,7 @@ class AgentService(
                                 detail = progress.detail.ifBlank { part.detail },
                                 output = mergedOutput,
                                 fileChanges = progress.fileChanges ?: part.fileChanges,
+                                producedFiles = progress.producedFiles ?: part.producedFiles,
                             )
                         }
                     }
@@ -1861,7 +1890,8 @@ class AgentService(
                         }
                         publishToolPart(call.partId) { it.copy(
                             state = if (result.rejected) AgentStreamPartState.ERROR else AgentStreamPartState.COMPLETED,
-                            output = result.output, endedAtMs = System.currentTimeMillis()) }
+                            output = result.output, producedFiles = if (result.rejected) emptyList() else listOfNotNull(source.producedPath),
+                            endedAtMs = System.currentTimeMillis()) }
                         return ToolOutcome(call,result.output,result.rejected)
                     }
                     if (call.input is PreparedToolInput.SourceFile) {
@@ -1953,7 +1983,7 @@ class AgentService(
                         refreshBrowserPreflight()?.let { throw BrowserPublicationRevokedException(it) }
                     })
                     return try {
-
+                        // policy remains authoritative before hooks or execution.
                         val policyDenied = AgentToolRequestPolicy.denial(fname, requestToolNames)
                             ?: AgentModePolicy.check(ctx.mode, fname)
                             ?: if (!ctx.perms.toolAllowed(fname)) "DENIED (agent profile): tool '$fname' is outside this Agent profile capability set." else null
@@ -1993,8 +2023,8 @@ class AgentService(
                                 }
                             }
                         }
-                        // POST_TOOL_USE may have suspended after the observation passed. Do not publish raw text or
-                        // attachment refs with revoked authority.
+                        // POST_TOOL_USE may have suspended after the observation passed.
+                        // Do not publish raw text or attachment refs with revoked authority.
                         val result = ctx.browserPublication.denial()?.also {
                             callMedia.clear(); callImages.clear()
                         } ?: rawResult
@@ -2052,8 +2082,8 @@ class AgentService(
                     var outcome = publicationSafe(produced)
                     val call = outcome.call
                     val id = call.id
-                    // Archive the complete returned text before constructing a bounded model preview. Retention
-                    // refusal is not execution failure and must not replay it.
+                    // Archive the complete returned text before constructing a bounded model
+                    // preview. Retention refusal is not execution failure and must not replay it.
                     val retainedPreview = withContext(Dispatchers.IO) {
                         AgentRetainedToolOutputProjection.project(call.name, outcome.result) {
                             AgentToolOutputStore.forWorkspace(workDir).retain(runSessionId, it)
@@ -2062,8 +2092,8 @@ class AgentService(
                     ensureRunCurrent(generation, runSessionId)
                     val retainedOriginal = outcome.result
                     fun toolEntry(): JsonObject {
-                        // Source-call replay is bound to the exact private settled receipt, never a workspace-authored
-                        // or retained-preview approximation of that receipt.
+                        // Source-call replay is bound to the exact private settled receipt, never
+                        // a workspace-authored or retained-preview approximation of that receipt.
                         mixedSourceCalls[id]?.let { return checkNotNull(it.settledResult) }
                         return buildJsonObject {
                             put("role", "tool"); put("tool_call_id", id)
@@ -2079,14 +2109,14 @@ class AgentService(
                             browserPublications[call.index]?.denial()?.let { throw BrowserPublicationRevokedException(it) }
                         })
                     } catch (revoked: BrowserPublicationRevokedException) {
-                        // Only a pre-admission rejection reaches here. Close the one unresolved tool call with safe
-                        // text; no raw append was committed.
+                        // Only a pre-admission rejection reaches here. Close the one
+                        // unresolved tool call with safe text; no raw append was committed.
                         ensureRunCurrent(generation, runSessionId)
                         outcome = publicationSafe(produced)
                         appendOwnedHistory(owner, toolEntry(), beforeAppend = { ensureRunCurrent(generation, runSessionId) })
                     }
-                    // Persistence admitted while allowed is not rolled back if policy changed during IO. Subsequent
-                    // UI/media still require permission.
+                    // Persistence admitted while allowed is not rolled back if policy
+                    // changed during IO. Subsequent UI/media still require permission.
                     outcome = publicationSafe(outcome)
                     val toolDisplay = "TOOL|${call.name}|${call.displayInput()}|${outcome.result.take(2000)}"
                     val durablePart = withRunPublication(owner) { streamPart(call.partId) }
@@ -2134,7 +2164,7 @@ class AgentService(
                         publishUiHistory(uiHistory, owner)
                     }
                 }
-
+                
             }
             }
             runModelSteps()
@@ -2168,7 +2198,7 @@ class AgentService(
                 withRunPublication(owner) { terminateOpenStreamParts(AgentStreamPartState.ERROR, msg.take(240)) }
                 closeUnresolvedApiToolCalls(unresolvedApiToolCalls, "Tool execution was interrupted by agent error: ${msg.take(240)}", AgentStreamPartState.ERROR, owner,
                     interruptedSourceResults, unknownSourceExecutions)
-
+                
                 ProviderFailure.limitWarning(e)?.let { hint ->
                     withRunPublication(owner) { tokens.warnQuota(hint) }
                 }
@@ -2187,8 +2217,9 @@ class AgentService(
                     _streamState.value = _streamState.value.copy(status = AgentStreamState.Status.ERROR, endedAtMs = System.currentTimeMillis())
                     _messages.value = _messages.value + AgentMessage("assistant", "Error: $msg")
                 }
-                // Safe partial provider text was already admitted above; an error event is not an additional
-                // model answer for the next user-directed continuation.
+                // Unusable responses and transport diagnostics belong in the UI transcript.
+                // Safe partial provider text was already admitted above; an error event is
+                // not an additional model answer for the next user-directed continuation.
                 if (e !is AgentResponseOutcome.Failure && e !is LlmProviderStreamException && typedHistoryHasCompleteTail(owner)) {
                     appendOwnedHistory(owner, buildJsonObject { put("role", "assistant"); put("content", "Error: $msg") })
                     stampTypedPublishedTail(owner)
@@ -2226,8 +2257,7 @@ class AgentService(
     }
     private fun receivedRecoveryCheckpoint(resources: TypedChatResources, responseOwner: OwnedResponseContentStore.Owner,
         target: ProviderReplayTarget, recovery: OwnedChatStreamAccumulator.Recovery) {
-        // Informational private evidence only, including after Stop. Never reopens a cancelled store or
-        // grants execution.
+        // Informational private evidence only, including after Stop. Never reopens a cancelled store or grants execution.
         resources.recovery.persist(responseOwner, target, recovery)
     }
 
@@ -2291,7 +2321,8 @@ class AgentService(
         appendOwnedHistory(owner, listOf(entry), beforeAppend)
 
     // Empty-queue promotion can release a run before final persistence completes.
-
+    // Every new run, clear/load and shutdown revokes this captured history ticket,
+    // including a checkpoint already waiting or spilling outside the monitor.
     private suspend fun appendOwnedHistory(owner: RunPublicationOwner, entries: List<JsonObject>, beforeAppend: (() -> Unit)? = null) {
         currentCoroutineContext().ensureActive()
         val typed = withRunPublication(owner) { typedCheckpoint }
@@ -2397,8 +2428,8 @@ class AgentService(
                 }
                 currentCoroutineContext().ensureActive()
                 ensureRunCurrent(generation, runSessionId)
-                // A spill may suspend, but append publishes memory only after its IO return succeeds and fences
-                // its exact owner. Keep the original inbox until then.
+                // A spill may suspend, but append publishes memory only after its IO return
+                // succeeds and fences its exact owner. Keep the original inbox until then.
                 appendOwnedHistory(owner, prepared.apiEntries)
             },
             commit = { prepared, acknowledge -> synchronized(admissionLock) {
@@ -2470,8 +2501,8 @@ class AgentService(
         val current = _streamState.value
         if (!mediaRecoveryClosed && loadingSessionGeneration == null &&
             isRunCurrent(generation, sessionId) && current.runId == generation && current.sessionId == sessionId) {
-            // Check and projector mutation share the lifecycle monitor. A stale callback must not even read
-            // a replacement part with the same tool:step:index ID.
+            // Check and projector mutation share the lifecycle monitor. A stale callback
+            // must not even read a replacement part with the same tool:step:index ID.
             streamProjector.publish()
         }
     }
@@ -2600,7 +2631,7 @@ class AgentService(
                     ensureRunCurrent(owner.generation, owner.sessionId)
                     if (loadingSessionGeneration != null) throw CancellationException("Agent session is loading")
                     publish()
-
+                    // Invalidate the old window before post-compaction hooks can fail.
                     _contextUsage.value = null
                 } },
                 continuationBudget = budget,
@@ -2708,12 +2739,13 @@ class AgentService(
         }
     }
 
+
     internal fun boundedApiHistory(
         source: List<JsonObject> = _apiHistory,
         maxEntries: Int = 96,
         maxChars: Int = 240_000,
     ): List<JsonObject> = AgentHistory.bounded(source, maxEntries, maxChars)
-
+     
     private suspend fun loadProjectBrief(): String = AgentProjectInstructions.load(files, workDir, agentPluginSource)
     companion object {
         const val MAX_USER_MESSAGE_CHARS = 64_000
@@ -2722,8 +2754,8 @@ class AgentService(
         const val MAX_TOOL_ARGUMENT_CHARS = 128_000
         const val MAX_STREAM_TOOL_OUTPUT_CHARS = 20_000
         const val MAX_TOOL_CALLS_PER_TURN = 16
-        // The limit bounds costs/looping, not wall-clock time. Long tasks need enough turns to read,
-        // edit, test and recover without premature handoff.
+        // The limit bounds costs/looping, not wall-clock time. Long tasks need
+        // enough turns to read, edit, test and recover without premature handoff.
         const val MAX_AGENT_TURNS = 96
         const val MAX_UI_MESSAGES = 500
         const val MAX_UI_MESSAGE_CHARS = 1_000_000

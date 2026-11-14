@@ -25,7 +25,8 @@ internal object AgentCommandSessions {
             (args[name] as? JsonPrimitive)?.takeIf { !it.isString }?.longOrNull
         if (text("session_id") != job.id || ("chars" in args && text("chars") != "")) return false
         if (flag("close_stdin") != false || flag("interrupt") != false || flag("wait_for_completion") == null) return false
-
+        // A zero wait stays subject to repetition review, including an explicitly
+        // contradictory zero-yield/completion request. Behind-end cursors replay output.
         val wait = number("yield_time_ms", 1_000) ?: return false
         val from = number("output_cursor", 0) ?: return false
         return wait in 1..30_000 && from >= 0 && from == job.outputEndCursor
@@ -40,6 +41,7 @@ internal object AgentCommandSessions {
     fun render(job: BackgroundCommandManager.Snapshot, cursor: Long, interrupted: Boolean = false): String =
         renderPage(job, cursor, interrupted, "", "", PRIMARY_COMMAND_CHARS)
 
+    /** Assemble the trusted envelope before choosing output or advancing its cursor. */
     fun renderForAgent(job: BackgroundCommandManager.Snapshot, cursor: Long, operation: String,
         interrupted: Boolean = false, reconciliation: WorkspacePersistedReconciliation? = null,
         includeContinuation: Boolean = false): String {
@@ -51,6 +53,7 @@ internal object AgentCommandSessions {
             continuation + reconciliation.agentCommandReconciliationNotice(operation), PRIMARY_COMMAND_CHARS)
     }
 
+    /** Embedded callers have no cursor. Retain their exit wrapper and mark clipping explicitly. */
     fun renderEmbeddedForAgent(state: AgentDiskExecutionState, operation: String, result: String,
         reconciliation: WorkspacePersistedReconciliation?): String {
         val prefix = state.annotate(operation, "")
@@ -83,10 +86,11 @@ internal object AgentCommandSessions {
         val remaining = job.output.substring((from - start).toInt())
         val header = buildString {
             appendLine("COMMAND_SESSION id=${job.id} state=${job.state.name.lowercase()} backend=${if (job.interactivePty) "pty" else "pipe"} " +
-                "stdin_available=${job.stdinAvailable} interrupted=$interrupted")
-            if (job.interactivePty) appendLine("Interactive process is displayed in its original terminal tab; output below contains bounded screen snapshots. Closing stdin sends terminal EOF (Ctrl+D), whose behavior depends on the program's terminal mode.")
+                "stdin_available=${job.stdinAvailable} interrupted=$interrupted timeout_ms=${job.timeoutMs ?: "none"}")
+            if (job.interactivePty) appendLine("Interactive process stays in its original terminal tab; output contains bounded screen snapshots. close_stdin sends Ctrl+D; input remains available if the process continues. Resume with this session ID, not a new exec_command.")
             job.exitCode?.let { appendLine("exit=$it") }
             if (job.state == BackgroundCommandManager.State.KILLED) appendLine(STOP_REQUEST_NOTICE)
+            if (job.state == BackgroundCommandManager.State.TIMED_OUT) appendLine("The requested process lifetime deadline expired; polling did not extend it. This session cannot accept further input.")
         }
         fun metadata(next: Long): String = buildJsonObject {
             put("session_id", job.id)
@@ -100,12 +104,12 @@ internal object AgentCommandSessions {
         val guidance = if (job.state != BackgroundCommandManager.State.RUNNING) job.exitCode?.let { exit ->
             TerminalFailureDiagnostics.hint(exit, job.output, job.command)?.let { "\n[DROIDE_COMMAND_GUIDANCE]\n$it" }
         }.orEmpty() else ""
-
+        // end cursor has the greatest decimal width; more_output=false is longer than true.
         val available = limit - prefix.length - header.length - metadata(job.outputEndCursor).length - guidance.length - suffix.length
         require(available >= 256) { "Command metadata exceeds the Agent output budget" }
         val page = remaining.take(minOf(8_000, available))
-        // The returned cursor must never split a supplementary Unicode code point, or resuming would
-        // send two invalid strings instead of an emoji.
+        // The returned cursor must never split a supplementary Unicode code
+        // point, or resuming would send two invalid strings instead of an emoji.
         val delta = if (page.lastOrNull()?.isHighSurrogate() == true && remaining.length > page.length &&
             remaining[page.length].isLowSurrogate()) page.dropLast(1) else page
         val next = from + delta.length

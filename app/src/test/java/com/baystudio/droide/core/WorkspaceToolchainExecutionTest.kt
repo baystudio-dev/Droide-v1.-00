@@ -17,7 +17,7 @@ class WorkspaceToolchainExecutionTest {
         try { withTimeout(20_000) { block(root, host) } }
         finally { field.set(null, previous); root.deleteRecursively() }
     }
-    @Test fun workspaceRunnerUsesFreshToolsWithoutChangingOrdinaryCommandSession() = fixture { root, host ->
+    @Test fun workspaceRunnerAndAgentCommandsUseTheSameFreshToolchain() = fixture { root, host ->
         val bin = File(root, "user-bin").apply { mkdir() }
         File(bin, "droide-fixture-compiler").apply { writeText("#!/bin/sh\nprintf 'compiled:%s' \"\$PWD\""); setExecutable(true) }
         var preparations = 0
@@ -32,7 +32,8 @@ class WorkspaceToolchainExecutionTest {
             assertTrue(result.output, result.success); assertTrue(result.output.contains("compiled:${root.path}"))
             assertEquals(1, preparations)
             val ordinary = session.execArgv(listOf("/bin/sh", "-c", "command -v droide-fixture-compiler"), 5_000)
-            assertNotEquals(0, ordinary.exitCode); assertEquals(1, preparations)
+            assertEquals(ordinary.output, 0, ordinary.exitCode); assertEquals(2, preparations)
+            assertEquals(File(bin, "droide-fixture-compiler").path, ordinary.output.trim())
         } finally { session.destroy(); scope.cancel() }
     }
     @Test fun unsupportedBackendKeepsItsOriginalEnvironment() = fixture { root, host ->

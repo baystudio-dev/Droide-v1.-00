@@ -13,10 +13,12 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.json.*
 
+/** Actual ACP host/transport with a deterministic in-memory peer; no CLI or Linux process runs. */
 internal class AgentPaneCliPeer(
     root: File,
     private val spec: WorkspaceAgentPluginSpec,
     scope: CoroutineScope,
+    private val availableCommands: List<String> = emptyList(),
 ) : AutoCloseable {
     val sessionId = "pane_${spec.id}"
     val starts = AtomicInteger()
@@ -44,16 +46,30 @@ internal class AgentPaneCliPeer(
                         put("protocolVersion", 1)
                         put("agentCapabilities", buildJsonObject { put("loadSession", true) })
                     })
-                    "session/new" -> respond(request, buildJsonObject {
-                        put("sessionId", sessionId)
-
-                        put("modes", buildJsonObject {
-                            put("currentModeId", "fixture-edit")
-                            put("availableModes", buildJsonArray {
-                                add(buildJsonObject { put("id", "fixture-edit"); put("name", "Fixture edit") })
+                    "session/new" -> {
+                        emit(buildJsonObject {
+                            put("jsonrpc", "2.0"); put("method", "session/update")
+                            put("params", buildJsonObject {
+                                put("sessionId", sessionId)
+                                put("update", buildJsonObject {
+                                    put("sessionUpdate", "available_commands_update")
+                                    put("availableCommands", buildJsonArray {
+                                        availableCommands.forEach { name -> add(buildJsonObject { put("name", name) }) }
+                                    })
+                                })
                             })
                         })
-                    })
+                        respond(request, buildJsonObject {
+                            put("sessionId", sessionId)
+                            // Keep the active edit profile without assuming a vendor-specific mode ID.
+                            put("modes", buildJsonObject {
+                                put("currentModeId", "fixture-edit")
+                                put("availableModes", buildJsonArray {
+                                    add(buildJsonObject { put("id", "fixture-edit"); put("name", "Fixture edit") })
+                                })
+                            })
+                        })
+                    }
                     "session/prompt" -> prompts += request
                     "session/cancel" -> cancellations += request
                     else -> error("Unexpected ACP fixture request: $method")

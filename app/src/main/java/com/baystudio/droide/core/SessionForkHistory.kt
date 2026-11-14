@@ -7,15 +7,22 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+
+
+
+
+
+
+
 internal object SessionForkHistory {
     const val SCHEMA_VERSION = 1
 
     fun isExact(history: List<JsonObject>): Boolean {
-        // Only the ledger/storage owner marks a fully validated immutable snapshot. Ordinary and
-        // unverified Lists still follow the grammar.
+        // Only the ledger/storage owner marks a fully validated immutable
+        // snapshot. Ordinary and unverified Lists still follow the grammar.
         if ((history as? VerifiedSessionHistory)?.exactVerified == true) return true
-        // Exact histories may be immutable, page-backed snapshots. Validate the stream without retaining
-        // every entry or flattening all tool groups.
+        // Exact histories may be immutable, page-backed snapshots. Validate the
+        // stream without retaining every entry or flattening all tool groups.
         var remainingToolIds: MutableSet<String>? = null
         for (index in history.indices) {
             val entry = history[index]
@@ -43,6 +50,14 @@ internal object SessionForkHistory {
         }
         return remainingToolIds?.isEmpty() != false
     }
+
+    
+
+
+
+
+
+
 
     fun migrateLegacy(messages: List<AgentMessage>, activeHistory: List<JsonObject>): List<JsonObject>? {
         val hasUiToolEvidence = messages.any {
@@ -80,7 +95,7 @@ internal object SessionForkHistory {
         var groupEnd = history.size
         while (groupEnd > 0) {
             val semantic = previousSemantic(messages, cursor)
-            if (semantic < 0) break
+            if (semantic < 0) break 
             val groupStart = previousGroupStart(history, groupEnd)
             val head = history[groupStart]
             if (isInvisibleStructuredEntry(head)) {
@@ -104,8 +119,8 @@ internal object SessionForkHistory {
         val end = annotated[atIndex].forkHistoryEnd ?: return null
         if (end !in 0..history.size) return null
         val verified = (history as? VerifiedSessionHistory)?.exactVerified == true
-        // In an exact stream only a contiguous tool run can cross a boundary. Keep a verified immutable
-        // snapshot lazy, including a cross-page group.
+        // In an exact stream only a contiguous tool run can cross a boundary.
+        // Keep a verified immutable snapshot lazy, including a cross-page group.
         if (verified && end > 0 && end < history.size && roleOf(history[end]) == "tool") return null
         val prefix = HistoryPrefix(history, end, verified)
         return prefix.takeIf(::isExact)

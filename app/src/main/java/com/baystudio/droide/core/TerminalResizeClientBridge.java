@@ -3,6 +3,7 @@ package com.baystudio.droide.core;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSessionClient;
 
+/** Statically declared additive callback; also compiles against the unchanged historical AAR. */
 public final class TerminalResizeClientBridge implements TerminalSessionClient {
     public interface Listener {
         void onResult(TerminalSession session, long generation, long requestId,
@@ -16,7 +17,7 @@ public final class TerminalResizeClientBridge implements TerminalSessionClient {
         this.delegate = delegate;
         this.listener = listener;
     }
-
+    // Intentionally no @Override: old AAR clients retain their exact behavior, with no fabricated receipt.
     public void onPtyResizeResult(TerminalSession session, long generation, long requestId,
             int requestedColumns, int requestedRows, int emulatorColumns, int emulatorRows,
             int acceptedColumns, int acceptedRows, int status) {

@@ -33,7 +33,7 @@ internal class TerminalResizeRetry(
         if (prior != null && (key.generation < prior.generation ||
             key.generation == prior.generation && key.request <= prior.request)) return
         cancel?.invoke(); cancel = null
-        used = key
+        used = key // Claim before scheduling or invoking callbacks.
         val capturedEpoch = epoch
         var ran = false
         val cancellation = schedule {

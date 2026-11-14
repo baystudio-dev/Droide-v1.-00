@@ -10,7 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.baystudio.droide.core.TerminalManager
+import com.baystudio.droide.core.TerminalControlAction
+import com.baystudio.droide.core.NativePtySessionHandle
 
+/** Session actions share the landscape panel's title row, leaving space for terminal input. */
 @Composable
 internal fun LandscapeTerminalSessions(
     snapshot: TerminalManager.Snapshot,
@@ -33,7 +36,8 @@ internal fun LandscapeTerminalSessions(
             DropdownMenuItem(text = { Text("New Ubuntu terminal") }, enabled = createEnabled,
                 onClick = { expanded = false; onCreate() })
             snapshot.activeTab?.let { tab ->
-                DropdownMenuItem(text = { Text("Send Ctrl+C") }, onClick = { expanded = false; onInterrupt() })
+                (tab.session as? NativePtySessionHandle)?.displayedPtySession?.collectAsState()?.value
+                DropdownMenuItem(text = { Text(TerminalControlAction.forSession(tab.session).label) }, onClick = { expanded = false; onInterrupt() })
                 DropdownMenuItem(text = { Text("Close terminal ${tab.title}") }, onClick = { expanded = false; onClose(tab.id) })
             }
         }

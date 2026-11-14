@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** One decoder per stream preserves UTF-8 across ADB packet boundaries. */
 internal class TerminalOutputCollector(capacity: Int, onOutput: (String) -> Unit) {
     private val tail = TailByteBuffer(capacity)
     private val decoder = Utf8StreamDecoder { text -> runCatching { onOutput(text) } }

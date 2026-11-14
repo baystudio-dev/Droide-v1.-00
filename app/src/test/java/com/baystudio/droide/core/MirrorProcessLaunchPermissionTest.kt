@@ -41,7 +41,7 @@ class MirrorProcessLaunchPermissionTest {
                 db.execSQL("DELETE FROM process_custody")
                 db.execSQL("INSERT INTO process_custody VALUES(1,0,'')")
                 db.version = 5
-
+                // Use the frozen v5 append implementation to reconstruct its exact checksum.
                 var previous = emptyList<LegacyV5ProcessCustodyLedger.Owner>()
                 for (owner in owners) {
                     val old = LegacyV5ProcessCustodyLedger.Owner(owner.id, owner.runtimeId, owner.boot)

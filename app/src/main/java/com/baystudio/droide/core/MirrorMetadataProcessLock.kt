@@ -9,8 +9,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 import java.util.UUID
 
-/** Cooperative metadata exclusion only. Old binaries and arbitrary same-UID writers do not
- * participate; this lease never authorizes rollback replay or payload release. */
+/** Cooperative metadata exclusion only. Old binaries and arbitrary same-UID writers
+ * do not participate; this lease never authorizes rollback replay or payload release.
+ */
 internal object MirrorMetadataProcessLock {
     internal const val LOCK = ".metadata-access.lock"
     internal const val IDENTITY = ".metadata-access.identity"
@@ -28,8 +29,8 @@ internal object MirrorMetadataProcessLock {
         current()
         AnchoredWorkspaceFiles(directory).use { owner ->
             val key = synchronized(activeInodes) {
-                // Creation descriptor must also close before ANY local acquisition; otherwise its late close
-                // could drop another thread's acquired lock.
+                // Creation descriptor must also close before ANY local acquisition;
+                // otherwise its late close could drop another thread's acquired lock.
                 if (owner.kind(LOCK) == AnchoredWorkspaceFiles.Kind.ABSENT) {
                     try {
                         owner.createNew(LOCK).use {
@@ -75,7 +76,7 @@ internal object MirrorMetadataProcessLock {
                     }
                 }
             } finally {
-
+                // Descriptor/channel/lease cleanup finishes before another local opener.
                 synchronized(activeInodes) { check(activeInodes.remove(key)) }
             }
         }

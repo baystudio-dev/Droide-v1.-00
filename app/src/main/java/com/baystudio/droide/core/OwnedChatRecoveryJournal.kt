@@ -8,8 +8,9 @@ import java.security.MessageDigest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** Informational interrupted-transport evidence. */
-
+/** Informational interrupted-transport evidence. Never an execution, replay or stage-promotion API.
+ * Deliberately does not open the cancelled store: unresolved stages remain explicitly unresolved.
+ */
 internal class OwnedChatRecoveryJournal(private val root:File) {
     @Serializable data class Stage internal constructor(val callId:String?,val handle:String,
         val disposition:String,val kind:String?=null,val bytes:Long?=null,val utf16:Long?=null,val sha256:String?=null,

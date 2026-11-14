@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Clojure readiness fixtures: actual manager/transport with authored byte-stream peers. */
 class LspClojureIntegrationTest {
     @Test(timeout=10000) fun passiveBuffersNeverStartUntilExplicitEnableThenWarmupIsIndependentOfFeatureCaller()=runBlocking<Unit>{
         Fixture().use{f->

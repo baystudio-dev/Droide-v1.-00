@@ -8,14 +8,14 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 
+/** Health-free discovery and finite protected-creation proof for three independently journaled originals. */
 internal object LocalUbuntuNimLaunchAuthority {
     const val FILE_NAME = "NIM_AUTHORITY.json"
     const val CLOSURE_FILE = "NIM_CLOSURE.json"
     const val NOTICE_FILE = "NIM_ORIGINAL_NOTICE.txt"
     const val POLICY = "nimlangserver-1.16.0-nim-2.2.12-helper-22.23.3-fixed-v1"
     val helperPaths = listOf("payload/nim-supervisor.cjs", "payload/nimble-dump-adapter.cjs", "payload/nim-zero-document-health.cjs", "payload/nim-helper-identity-health.cjs")
-    // Filled from the authored shipped assets, never from downloaded originals or installed
-    // receipts.
+    // Filled from the authored shipped assets, never from downloaded originals or installed receipts.
     val expectedHelperHashes: Map<String,String> = mapOf(
         "payload/nim-supervisor.cjs" to "c8c48274321eeedb2a75dfe02d2e96ff487e4ef2055b859af263a81e13ef2a53",
         "payload/nimble-dump-adapter.cjs" to "7b832e7fe15af52849a30aaabcaaabb92e76245793b2683d1981fa1478eb51d1",
@@ -58,6 +58,7 @@ internal object LocalUbuntuNimLaunchAuthority {
         records.forEach { requireDependency(it,it.familyId,appRoot) };return records.sortedBy { it.familyId }
     }
 
+    /** All measurements precede any original execution. Staging/final relocation is explicit and sealed. */
     fun prepare(recipe:LocalUbuntuVendorRecipe,stage:File,activation:String,finalGuest:String,owned:List<ManagedPackageRecord>,
         appRoot:String,helpers:Map<String,String>,active:()->Unit={}):Map<String,String> {
         recipe.validate();require(LocalUbuntuNimPolicy.isFamily(recipe.familyId))
@@ -194,6 +195,7 @@ internal object LocalUbuntuNimLaunchAuthority {
         return result
     }
 
+    /** Exact regular/link/mode inventory and hashes, once per protected process creation. */
     suspend fun provePackage(appRoot:String,record:ManagedPackageRecord,active:()->Unit={}) {
         val (a,_)=generation(record,appRoot,active);val root=File(record.installRoot);val recipe=requireNotNull(LocalUbuntuVendorPolicy.fromReceipt(record))
         val verified=requireNotNull(LocalPackageIntegrity.verifiedChecksums(root,File(root,"SHA256SUMS"),exactInventory=true))
@@ -237,7 +239,9 @@ internal object LocalUbuntuNimLaunchAuthority {
             val file=requireNotNull(NimRuntimeClosure.resolveGuestFile(guestRoot,"/$path",active))
             require(NimRuntimeClosure.measure(file,512L*1024*1024,active).second==expected)
         }
-
+        // Fresh resolution also checks newly added preload/cache/hwcaps entries before any original
+        // helper health can run during explicit prerequisite reuse. The server's combined closure
+        // is checked separately after all three original inventories have been admitted.
         val nim=record.familyId!=LocalUbuntuNimHelperPolicy.FAMILY
         val fresh=NimRuntimeClosure.requireExecutionClosure(listOf(inv),guestRoot,
             if(nim)setOf("libssl.so.3","libcrypto.so.3","libpcre.so.3") else emptySet(),active)
@@ -249,7 +253,7 @@ internal object LocalUbuntuNimLaunchAuthority {
             require(LocalUbuntuNimHelperPolicy.requireConfiguration(File(root,"payload/tree/${LocalUbuntuNimHelperPolicy.CONFIG}"),active)==text(a,"configSha256"))
 
     }
-
+    /** Full static verification for explicit server reuse/repair as well as editor creation. */
     suspend fun proveOwnedPackages(appRoot:String,server:ManagedPackageRecord,owned:List<ManagedPackageRecord>,active:()->Unit={}) {
         val started=System.nanoTime();val check={active();check(System.nanoTime()-started<=60_000_000_000L){"Nim full proof deadline exceeded"}}
         val recipe=requireNotNull(LocalUbuntuVendorPolicy.fromReceipt(server));require(recipe.familyId==LocalUbuntuNimPolicy.FAMILY)

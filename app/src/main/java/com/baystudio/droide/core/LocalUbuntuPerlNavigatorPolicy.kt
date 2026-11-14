@@ -2,11 +2,13 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Published registry manifests/files reviewed 2026-10-18; no package code is rewritten. */
 internal object LocalUbuntuPerlNavigatorPolicy {
     const val FAMILY_ID = "lsp.perlnavigator"
     private const val ROOT_PACKAGE = "perlnavigator-server"
     private data class Artifact(val version: String, val url: String, val integrity: String)
-
+    // Each URL is the exact dist.tarball in registry.npmjs.org/<name>/<version>.
+    // This is a closed JS/WASM production set; scripts remain disabled at install.
     private val artifacts = linkedMapOf(
         "perlnavigator-server" to Artifact("0.8.20", "https://registry.npmjs.org/perlnavigator-server/-/perlnavigator-server-0.8.20.tgz", "sha512-whXoAEQwavV2GF/KuzzJ/yg5x9q3XUccMNrA06N0kvmi53BcySburu3Y/YEhPpNjJe0NNxpK7kOj80PE9vRu/g=="),
         "lru-cache" to Artifact("6.0.0", "https://registry.npmjs.org/lru-cache/-/lru-cache-6.0.0.tgz", "sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA=="),

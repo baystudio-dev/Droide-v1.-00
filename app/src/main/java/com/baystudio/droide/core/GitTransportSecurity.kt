@@ -12,6 +12,7 @@ import org.eclipse.jgit.transport.URIish
 import org.eclipse.jgit.transport.UrlConfig
 import org.eclipse.jgit.util.SystemReader
 
+/** Operation admission is separate from remote syntax/configuration validity. */
 internal object GitTransportSecurity {
     fun cloneUri(raw: String, config: Config = SystemReader.getInstance().userConfig): URIish =
         URIish(UrlConfig(config).replace(raw))
@@ -19,8 +20,8 @@ internal object GitTransportSecurity {
     fun remoteUris(repository: Repository, remoteName: String, push: Boolean): List<URIish> {
         require(remoteName.matches(Regex("[A-Za-z0-9._/-]{1,200}"))) { "Invalid Git remote name" }
         val remote = RemoteConfig(repository.config, remoteName)
-        // RemoteConfig applies insteadOf and pushInsteadOf exactly as pinned JGit does. In particular,
-        // explicit pushurl entries are not subjected to another hand-written rewrite.
+        // RemoteConfig applies insteadOf and pushInsteadOf exactly as pinned JGit does. In
+        // particular, explicit pushurl entries are not subjected to another hand-written rewrite.
         val uris = if (push && remote.pushURIs.isNotEmpty()) remote.pushURIs else remote.urIs
         require(uris.isNotEmpty()) { "Git remote has no URL" }
         return uris.toList()
@@ -61,8 +62,9 @@ internal object GitTransportSecurity {
     }
 
     private fun additionalHeaders(transport: TransportHttp): Map<String, String> = try {
-        // Pinned JGit 6.10.1 wraps its initially null headers field in unmodifiableMap, which throws
-        // instead of returning an empty map.
+        // Pinned JGit 6.10.1 wraps its initially null headers field in unmodifiableMap,
+        // which throws instead of returning an empty map. Catch ONLY that getter call:
+        // never swallow validation/configuration errors or replace a caller's existing map.
         transport.additionalHeaders
     } catch (_: NullPointerException) {
         emptyMap()

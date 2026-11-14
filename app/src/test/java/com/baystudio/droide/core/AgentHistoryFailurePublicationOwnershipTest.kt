@@ -32,8 +32,8 @@ class AgentHistoryFailurePublicationOwnershipTest {
             val failure = IOException("deliberate stale spill failure")
             var checks = 0
             val outcome = runCatching {
-                // Just over the existing hot-tail threshold, below the single-entry cap. The second beforeAppend
-                // callback fails before any ledger persist call.
+                // Just over the existing hot-tail threshold, below the single-entry cap.
+                // The second beforeAppend callback fails before any ledger persist call.
                 history.append(listOf(message("h".repeat(SessionHistoryLedger.HOT_HISTORY_BYTES.toInt()))),
                     expectedOwnerVersion = oldVersion, beforeAppend = {
                         checks++
@@ -63,8 +63,8 @@ class AgentHistoryFailurePublicationOwnershipTest {
             val failure = FixtureIOException("deliberate checkpoint admission read failure")
             val failures = AtomicInteger()
             values.beforeEntries = {
-                // The proposal snapshot has already been captured. Its bounded ledger admission walk reads this
-                // entry before creating any immutable page.
+                // The proposal snapshot has already been captured. Its bounded ledger
+                // admission walk reads this entry before creating any immutable page.
                 failures.incrementAndGet()
                 if (revoke) history.beginRestore()
                 throw failure

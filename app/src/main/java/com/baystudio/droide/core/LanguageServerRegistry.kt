@@ -9,8 +9,11 @@ data class LanguageServerSpec(
     val filenames: Set<String> = emptySet(),
 )
 
+ 
 object LanguageServerRegistry {
     val builtIns = listOf(
+        GooseLanguage.server,
+        LanguageServerSpec("mdx-language-server", setOf("mdx"), setOf("mdx"), listOf(listOf("mdx-language-server", "--stdio"))),
         LspSolidityProfile.spec,
         LspScalaProfile.spec,
         LspAsmProfile.spec,
@@ -99,6 +102,7 @@ object LanguageServerRegistry {
         val extension = leaf.substringAfterLast('.', "")
         if (extension == "C" || extension == "H") return "cpp"
         return when (extension.lowercase()) {
+            "mdx" -> "mdx"
             "asm", "s" -> "asm"
             "lhs" -> "literate haskell"
             "jsx" -> "javascriptreact"
@@ -116,10 +120,10 @@ object LanguageServerRegistry {
         }
     }
 
-    fun unavailableReason(path: String): String? = when (LanguageRegistry.forFile(path)?.id) {
-        "batch" -> "Batch uses built-in syntax, snippets and local completion. Running .bat/.cmd requires Windows cmd.exe; no Ubuntu language server is started."
-        "ini" -> "INI uses built-in syntax, snippets and local completion. Dialect/schema validation needs an appropriate custom server; no generic INI server is started."
-        "properties" -> "Java Properties uses local key/value, comment and continuation syntax, snippets and completion. Framework/schema validation needs an appropriate custom server."
-        else -> null
-    }
+    /** These formats retain syntax support; no unrelated server is substituted. */
+    fun unavailableReason(path: String): String? = LocalDocumentIntelligence.status(path)
+        ?: if (path.substringAfterLast('.', "").equals("makefile", ignoreCase = true) && !LspMakeProfile.supportsPath(path))
+            "Make syntax support only for .makefile suffixes. The built-in Make server accepts Makefile, GNUmakefile, .mk and .mak; other names need a custom server."
+        else null
 }
+

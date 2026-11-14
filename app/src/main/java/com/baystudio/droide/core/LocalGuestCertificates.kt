@@ -3,6 +3,7 @@ import java.io.File
 import java.security.KeyStore
 import java.util.Base64
 
+ 
 object LocalGuestCertificates {
     fun seed(rootfs: File) {
         val target = File(rootfs, "etc/ssl/certs/ca-certificates.crt")

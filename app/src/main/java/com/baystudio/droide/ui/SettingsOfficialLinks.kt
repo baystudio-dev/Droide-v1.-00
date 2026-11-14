@@ -52,7 +52,7 @@ internal object SettingsOfficialLinks {
         "This build links to that web document and does not bundle a complete app-specific terms document. " +
         "This screen does not record acceptance. Component licenses and packaged notices remain available in About & Legal."
 
+    // Exact-target matching is intentional: paths, queries, invite codes and mail recipients are fixed.
     // This is not a general web-link sanitizer or a promise about redirects handled by another app.
-
     fun isAllowedTarget(url: String): Boolean = SettingsOfficialLink.entries.any { it.url == url }
 }

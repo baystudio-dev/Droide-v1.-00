@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="environment_setup_title">Your workspace starts here</string>
+    <string name="environment_setup_once">Install your environment once. Droide keeps it ready for future launches.</string>
+    <string name="environment_setup_capabilities">A Linux environment for your terminal, development tools, and agents.</string>
+    <string name="environment_setup_size">About 30 MB download · Internet required</string>
+    <string name="environment_setup_consent">Ubuntu is downloaded from Canonical. These executable files are outside F-Droid’s review. Choose Install environment to allow this download.</string>
+    <string name="environment_setup_install">Install environment</string>
+    <string name="environment_setup_retry">Continue setup</string>
+    <string name="environment_setup_later">Not now</string>
+    <string name="environment_setup_pause">Pause installation</string>
+    <string name="environment_setup_checking">Checking your saved environment…</string>
+    <string name="environment_setup_preparing">Preparing storage…</string>
+    <string name="environment_setup_downloading">Downloading Ubuntu…</string>
+    <string name="environment_setup_verifying">Verifying the download…</string>
+    <string name="environment_setup_extracting">Installing your environment…</string>
+    <string name="environment_setup_configuring">Finishing setup…</string>
+    <string name="environment_setup_pausing">Pausing installation…</string>
+    <string name="environment_setup_download_progress">%1$d MB of %2$d MB</string>
+</resources>

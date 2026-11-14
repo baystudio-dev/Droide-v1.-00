@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual manager/transport with authored byte-stream peers; no original asm-lsp or Android execution. */
 class LspAsmIntegrationTest {
     @Test(timeout=10000) fun openingAssemblyDoesNotInstallProbeOrAskForTrust() = runBlocking<Unit> {
         Fixture().use { f ->

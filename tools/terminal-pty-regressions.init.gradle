@@ -1,0 +1,7 @@
+// Host-only: Robolectric 4.14's FD interceptor invokes JDK21 SharedSecrets reflectively.
+// This export is for the emulator JVM; it changes neither Android's hidden-API policy nor APKs.
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        jvmArgs '--add-exports=java.base/jdk.internal.access=ALL-UNNAMED'
+    }
+}

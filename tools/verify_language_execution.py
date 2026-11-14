@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Execute current production Run File / task plans using provisioned Linux tools."""
+"""Execute current production Run File / task plans using provisioned Linux tools.
+
+No compiler payload is downloaded or bundled. Evidence and disposable fixtures must
+live outside this checkout. This is a host control, never Android/PRoot certification.
+"""
 import argparse
 import hashlib
 import json

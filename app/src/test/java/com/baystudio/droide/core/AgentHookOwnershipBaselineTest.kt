@@ -43,8 +43,8 @@ class AgentHookOwnershipBaselineTest {
         try {
             root.resolve(".droide").mkdirs()
             root.resolve(".droide/hooks.json").writeText("""{"enabled":true,"events":{"SessionStart":[{"command":"ownership-fixture {event_file}"}],"UserPromptSubmit":[{"command":"ownership-fixture {event_file}"}]}}""")
-            // Registration/certification use the existing bounded loopback helper. No request is expected:
-            // the fake prompt hook blocks before provider work.
+            // Registration/certification use the existing bounded loopback helper. No
+            // request is expected: the fake prompt hook blocks before provider work.
             withProviderStreamFixture(ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS, authRequired = false) { provider ->
                 provider.response = { _, _, _ -> throw AssertionError("No provider request is allowed") }
                 val permissions = PermissionEngine(listOf(PermRule("*", "*", PermEffect.ALLOW)) +

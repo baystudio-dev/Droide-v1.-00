@@ -297,8 +297,8 @@ class ConcurrentFileExportTest {
         val normalized = java.nio.file.attribute.FileTime.from(time).toInstant()
         assertEquals(-1L, normalized.epochSecond)
         assertEquals(123_456_789, normalized.nano)
-        // Some host filesystems clamp pre-epoch times. Capture must agree with the actual saved
-        // metadata, while signed fractional normalization itself stays exact above.
+        // Some host filesystems clamp pre-epoch times. Capture must agree with the actual
+        // saved metadata, while signed fractional normalization itself stays exact above.
         val actual = Files.getLastModifiedTime(file.toPath()).toInstant()
         val stamp = ExportFileStamp.read(file.toPath())
         assertEquals(actual.epochSecond, stamp.modifiedSeconds)

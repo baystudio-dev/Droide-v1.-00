@@ -225,8 +225,9 @@ class PersistentLocalTerminalHostTest {
         val projects = mutableSetOf<String>()
         var failNextStart = false
         var failOnFactoryCall = -1
-        // Preserve this test's actual main thread through runBlocking's event loop without changing
-        // global state.
+        // Robolectric suites can change SDK/main Looper in one JVM while the global
+        // Dispatchers.Main still belongs to a prior SDK. Preserve this test's actual
+        // main thread through runBlocking's event loop without changing global state.
         val host = PersistentLocalTerminalHost.forTesting(context, mainDispatcher, recoveryPolicy) { _, _ ->
             FakeHandle(failNextStart || created.size + 1 == failOnFactoryCall).also {
                 failNextStart = false

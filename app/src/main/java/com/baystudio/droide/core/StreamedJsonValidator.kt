@@ -5,8 +5,11 @@ import java.io.InputStreamReader
 import java.io.Reader
 import java.nio.charset.CodingErrorAction
 
-/** Structural admission only. */
-
+/** Structural admission only. Does not grant tool permission or materialize values.
+ * Bounded buffer + depth stack; a huge valid string/array does not become a huge String/JsonObject.
+ * Duplicate member semantics are deliberately not resolved here. Tool-specific schema,
+ * ownership, duplicate-sensitive fields and permission checks remain mandatory downstream.
+ */
 internal object StreamedJsonValidator {
     fun requireObject(input: InputStream, maxDepth: Int = 128) {
         val reader = InputStreamReader(input, Charsets.UTF_8.newDecoder()

@@ -5,9 +5,12 @@ import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 
 internal data class AgentChatConversationKey(val backendId: String, val sessionId: String?)
 
@@ -51,6 +54,7 @@ internal class AgentChatViewport(
     var unread by mutableIntStateOf(saved?.unread ?: 0)
     var dragging by mutableStateOf(false)
     var appScrolls by mutableIntStateOf(0)
+    private var returnToLatestJob: Job? = null
     var disclosureSpacePx by mutableIntStateOf(saved?.disclosureSpacePx ?: 0)
         private set
     private var disclosurePadding: Pair<Int, Int>? = null
@@ -84,6 +88,7 @@ internal class AgentChatViewport(
 
     fun beginDisclosure() {
         if (!ready) return
+        cancelReturnToLatest()
         following = false
         val info = listState.layoutInfo
         disclosureSettled = false
@@ -93,8 +98,12 @@ internal class AgentChatViewport(
 
     fun releaseDisclosure() { disclosureSpacePx = 0 }
 
-    /** User input releases the reading hold, not the space supporting the current anchor. */
-
+    /**
+     * User input releases the reading hold, not the space supporting the current anchor.
+     * Removing that space in one step makes LazyColumn clamp the reader by an entire
+     * viewport after a collapsed tool card. Retire only the unused reservation instead.
+     * As the reader moves toward earlier content the required space naturally reaches zero.
+     */
     fun settleDisclosure() {
         if (!ready || disclosureMotions > 0) return
         disclosureSettled = true
@@ -105,8 +114,8 @@ internal class AgentChatViewport(
         if (!ready || !disclosureSettled || disclosureSpacePx == 0 || disclosureMotions > 0) return
         val info = listState.layoutInfo
         val (normalPadding, appliedSpace) = disclosurePadding ?: return
-        // Composition can publish new padding before the LazyColumn has measured it. Never derive a base
-        // gutter by subtracting a stale/unclamped reservation.
+        // Composition can publish new padding before the LazyColumn has measured it.
+        // Never derive a base gutter by subtracting a stale/unclamped reservation.
         if (appliedSpace == 0 || info.afterContentPadding != normalPadding + appliedSpace) return
         val tail = info.visibleItemsInfo.lastOrNull() ?: return
         val required = if (tail.index < info.totalItemsCount - 1) 0 else {
@@ -120,18 +129,38 @@ internal class AgentChatViewport(
         releaseDisclosure()
         appScrolls++
         try {
-            val last = listState.layoutInfo.totalItemsCount - 1
-            if (last < 0) return
-            listState.scrollToItem(last)
-
-            val info = listState.layoutInfo
-            info.visibleItemsInfo.lastOrNull()?.let { tail ->
-                val overflow = tail.offset.toLong() + tail.size + info.afterContentPadding - info.viewportEndOffset
-                if (overflow > 0) listState.scrollBy(overflow.toFloat())
-            }
+            listState.scrollToChatTail()
             following = true
             unread = 0
         } finally { appScrolls-- }
+    }
+
+    suspend fun returnToLatest() {
+        if (!ready || dragging || returnToLatestJob != null) return
+        coroutineScope {
+            val owner = currentCoroutineContext().job
+            returnToLatestJob = owner
+            following = false
+            appScrolls++
+            try {
+                val hadDisclosureSpace = disclosureSpacePx > 0
+                releaseDisclosure()
+                if (hadDisclosureSpace) withFrameNanos { }
+                listState.scrollToChatTail(animate = true)
+                currentCoroutineContext().ensureActive()
+                if (!dragging) {
+                    following = true
+                    unread = 0
+                }
+            } finally {
+                if (returnToLatestJob === owner) returnToLatestJob = null
+                appScrolls--
+            }
+        }
+    }
+
+    fun cancelReturnToLatest() {
+        returnToLatestJob?.cancel()
     }
 
     /** Automatic resize/output following does not jump a visible final row back to its start. */
@@ -139,7 +168,7 @@ internal class AgentChatViewport(
         if (!ready || !following || dragging) return
         appScrolls++
         try {
-
+            // Layout observations can arrive before the current measurement finishes.
             withFrameNanos { }
             if (!following || dragging) return
             val info = listState.layoutInfo
@@ -148,7 +177,7 @@ internal class AgentChatViewport(
                 tail?.index, tail?.offset ?: 0, tail?.size ?: 0, info.afterContentPadding, info.viewportEndOffset)
             if (adjustment.jumpToLast) {
                 listState.scrollToItem(info.totalItemsCount - 1)
-
+                // A user drag can supersede this mutation while it suspends.
                 if (!following || dragging) return
                 val updated = listState.layoutInfo
                 updated.visibleItemsInfo.lastOrNull()?.takeIf { it.index == updated.totalItemsCount - 1 }?.let {
@@ -158,8 +187,8 @@ internal class AgentChatViewport(
             } else if (adjustment.scrollByPixels > 0) listState.scrollBy(adjustment.scrollByPixels.toFloat())
             if (following && !dragging) unread = 0
         } catch (cancelled: CancellationException) {
-            // User input may cancel a scroll mutation without cancelling this observer's owner. Do not lose
-            // future resize/output observations, or swallow disposal cancellation.
+            // User input may cancel a scroll mutation without cancelling this observer's owner.
+            // Do not lose future resize/output observations, or swallow disposal cancellation.
             currentCoroutineContext().ensureActive()
         } finally { appScrolls-- }
     }
@@ -190,14 +219,15 @@ internal fun rememberAgentChatViewport(
     val currentActivity by rememberUpdatedState(activity)
     DisposableEffect(owner, conversation, viewport) {
         onDispose {
+            viewport.cancelReturnToLatest()
             viewport.showDetails = currentDetails
             viewport.position()?.let { owner.saveChatPosition(conversation, it) }
         }
     }
     LaunchedEffect(viewport, keys) {
         if (viewport.ready) return@LaunchedEffect
-        // An existing session may publish its messages after its ID. Do not overwrite its anchor with a
-        // temporary welcome row while restore is still preparing the real transcript.
+        // An existing session may publish its messages after its ID. Do not overwrite its anchor
+        // with a temporary welcome row while restore is still preparing the real transcript.
         if (saved?.anchorKey != null && saved.anchorKey != "welcome" && keys == listOf("welcome")) return@LaunchedEffect
         snapshotFlow { viewport.listState.layoutInfo.totalItemsCount }.first { it == keys.size }
         viewport.appScrolls++
@@ -207,7 +237,7 @@ internal fun rememberAgentChatViewport(
                 val index = saved.anchorKey?.let(keys::indexOf)?.takeIf { it >= 0 }
                     ?: saved.index.coerceIn(0, keys.lastIndex.coerceAtLeast(0))
                 viewport.listState.scrollToItem(index, saved.offset)
-
+                // Restore the exact reading anchor, even if new output arrived while hidden.
                 viewport.following = saved.following && !viewport.listState.canScrollForward
                 viewport.unread = (saved.unread + activity.addedSince(saved.activity)).coerceAtMost(10_000)
             } else viewport.latest()
@@ -222,6 +252,7 @@ internal fun rememberAgentChatViewport(
         viewport.listState.interactionSource.interactions.collect { interaction ->
             when (interaction) {
                 is DragInteraction.Start -> {
+                    viewport.cancelReturnToLatest()
                     viewport.dragging = true
                     viewport.following = false
                     viewport.trimDisclosureSpace()
@@ -234,8 +265,8 @@ internal fun rememberAgentChatViewport(
             }
         }
     }
-    // Retire only surplus clearance after the disclosure transition settles. Keep the remaining
-    // space supporting the reader, including across touch-down and cancellation.
+    // Retire only surplus clearance after the disclosure transition settles. Keep the
+    // remaining space supporting the reader, including across touch-down and cancellation.
     LaunchedEffect(viewport, viewport.ready, viewport.disclosureGeneration, viewport.disclosureMotions) {
         if (viewport.disclosureMotions == 0) {
             withFrameNanos { }
@@ -259,7 +290,8 @@ internal fun rememberAgentChatViewport(
             if (now.ready && now.appScrolls == 0 && !viewport.dragging && viewport.disclosureSpacePx == 0 &&
                 (userScrollEnded || (moved && (now.scrolling ||
                     (old!!.height == now.height && old.bottomPadding == now.bottomPadding && old.count == now.count))))) {
-
+                // canScrollForward can still describe the old layout during scrollToItem.
+                // Hold following during movement, then use the settled geometry when it ends.
                 viewport.following = if (now.scrolling) false else !now.forward
             }
             if (now.ready && !now.forward && !viewport.dragging) viewport.unread = 0
@@ -268,8 +300,8 @@ internal fun rememberAgentChatViewport(
             previous = now
         }
     }
-    // Observe measurements outside composition. IME pixels do not restart this effect or make the
-    // entire AgentPane recompose just to request another scroll to the same final row.
+    // Observe measurements outside composition. IME pixels do not restart this effect or make
+    // the entire AgentPane recompose just to request another scroll to the same final row.
     LaunchedEffect(viewport) {
         snapshotFlow {
             val info = viewport.listState.layoutInfo
@@ -278,8 +310,8 @@ internal fun rememberAgentChatViewport(
         }.collect { update ->
             if (!update.ready) return@collect
             val changed = update.activity != viewport.lastActivity
-            // Activity can be published before the newly appended row is measured. Observe the measured
-            // count as well, so that first observation cannot consume its only trigger.
+            // Activity can be published before the newly appended row is measured. Observe the
+            // measured count as well, so that first observation cannot consume its only trigger.
             val resized = update.height != viewport.lastHeight || update.bottomPadding != viewport.lastBottomPadding ||
                 update.count != viewport.lastItemCount
             val added = update.activity.addedSince(viewport.lastActivity)

@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Emits the exact production JavaScript for an external Node semantic probe. */
 object AgentWebSnapshotProbe {
     @JvmStatic fun main(args: Array<String>) {
         println(buildJsonArray {

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Supplementary Linux JNI contract checks for the 15 descriptor/anchored APIs."""
+"""Supplementary Linux JNI contract checks for the 15 descriptor/anchored APIs.
+
+No Android artifact, historical admission, power-loss or exhaustive-race claim.
+Compile unchanged production C with JDK17 JNI headers; injected variants use its
+existing test macros. Output must be a new directory. All assertions are explicit.
+"""
 from __future__ import annotations
 import argparse
 import hashlib

@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** DAP startDebugging carries request at the top level; configuration.request is optional. */
 internal data class JavascriptDebugTargetRequest(val id: String, val request: String, val configuration: JsonObject) {
     companion object {
         fun parse(arguments: JsonElement?): JavascriptDebugTargetRequest {

@@ -105,3 +105,4 @@ class PdfPreviewService : Service() {
         result.putBoolean("truncated", truncated)
     }
 }
+

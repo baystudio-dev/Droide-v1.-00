@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real cache/admission classes with filesystem fixtures; Android manager wiring is reviewed separately. */
 class UbuntuGuestLoopbackAdmissionTest {
     private fun fixture(block: (File) -> Unit) {
         val parent = Files.createTempDirectory("loopback-admission-").toFile()

@@ -93,7 +93,7 @@ class ProjectFilePublicationTest {
             calls++
             assertArrayEquals(bytes, staged.readBytes())
             assertFalse(destination.exists())
-            Files.move(staged.toPath(), destination.toPath())
+            Files.move(staged.toPath(), destination.toPath()) // Controlled fixture; real JNI races are tested separately.
         })
         val input = object : ByteArrayInputStream(bytes) { override fun close() { closed = true; super.close() } }
         assertEquals(bytes.size.toLong(), runBlocking { repo.writeStream("project.zip", input, requireAbsent = true) })

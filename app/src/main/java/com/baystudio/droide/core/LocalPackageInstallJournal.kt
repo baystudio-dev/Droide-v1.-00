@@ -72,8 +72,9 @@ internal object LocalPackageInstallJournal {
         )
     }
 
-    /** An unknown Vue process owner is not a failed disposable stage. */
-
+    /** An unknown Vue process owner is not a failed disposable stage. This sidecar
+     * survives activation and blocks automatic recovery/removal/start until verified
+     * cleanup. Its absence is never inferred from a timeout or failed parent process. */
     class VueHealthHold internal constructor(internal val file: File, internal val nonce: String, internal val key: Any?)
     fun requireNoVueHealthHold(paths: Paths) {
         paths.vueHealthHold?.let { file ->
@@ -261,8 +262,8 @@ internal object LocalPackageInstallJournal {
         java.nio.channels.FileChannel.open(file.parentFile!!.toPath(),java.nio.file.StandardOpenOption.READ).use{it.force(true)}
         return ElpHealthHold(file,nonce,attributes.fileKey(),activationId,paths.stage.absolutePath)
     }
-    /** Only a locally issued, positively never-entered hold can retire its nonce. */
-
+    /** Only a locally issued, positively never-entered hold can retire its nonce. No package tree is deleted.
+     * A bound owner, changed marker, cancellation after entry, or reconstructed/restart state cannot use this. */
     internal fun finishElpHealthNeverEntered(hold:ElpHealthHold) = synchronized(hold) {
         hold.requireNeverEntered()
         require(hold.ownerText==null&&hold.ownerKey==null&&hold.privateRoot==null)
@@ -401,8 +402,8 @@ internal object LocalPackageInstallJournal {
         java.nio.channels.FileChannel.open(hold.file.parentFile!!.toPath(),java.nio.file.StandardOpenOption.READ).use{it.force(true)}
     }
 
-    /** GraphQL-only transaction custody binds candidate and previous activations before any stage
-     * data. No absent journal, mismatched marker or unknown health owner authorizes deleting a tree. */
+    /** GraphQL-only transaction custody binds candidate and previous activations before any stage data.
+     * No absent journal, mismatched marker or unknown health owner authorizes deleting a tree. */
     internal data class ElpActivation(val candidate:String,val previous:String?)
     private fun readElpActivation(paths:Paths):ElpActivation? {
         val file=requireNotNull(paths.elpActivationJournal);requireSafeParents(file)
@@ -590,8 +591,8 @@ internal object LocalPackageInstallJournal {
         val legacyPrevious = paths.legacyPrevious
         if (legacyPrevious != null && existsNoFollow(legacyPrevious)) {
             requireRestorablePrevious(legacyPrevious)
-            // Old journal names could collide across legal family/version pairs. The persisted generation is
-            // the only safe evidence that this backup belongs to this receipt.
+            // Old journal names could collide across legal family/version pairs. The persisted
+            // generation is the only safe evidence that this backup belongs to this receipt.
             val expectedId = receipt?.activationId
             val finalCommitted = expectedId != null && existsNoFollow(paths.final) && matchesActivation(paths.final, expectedId)
             if (!finalCommitted) {
@@ -606,8 +607,8 @@ internal object LocalPackageInstallJournal {
                 check(legacyPrevious.renameTo(paths.previous)) { "Cannot migrate verified legacy package activation journal" }
             }
         }
-        // An old uncommitted stage has no ownership receipt. Preserve it rather than deleting a possibly
-        // colliding package's partial payload; new transactions use their distinct stage.
+        // An old uncommitted stage has no ownership receipt. Preserve it rather than deleting a
+        // possibly colliding package's partial payload; new transactions use their distinct stage.
         recover(paths.stage, paths.final, paths.previous, receipt)
     }
 
@@ -625,8 +626,8 @@ internal object LocalPackageInstallJournal {
                 check(PathSecurity.deleteTreeNoFollow(previous)) { "Cannot clean committed package activation journal" }
             }
             finalExists && previousExists && receipt != null && receipt.activationId == null && finalId == null -> {
-                // Legacy transactions have no generation marker. Preserve both trees when their commit order
-                // cannot be proved; a runtime health failure is never a commit marker.
+                // Legacy transactions have no generation marker. Preserve both trees when their
+                // commit order cannot be proved; a runtime health failure is never a commit marker.
             }
             finalExists && previousExists -> {
                 requireMatchingPrevious(previous, receipt)
@@ -638,8 +639,8 @@ internal object LocalPackageInstallJournal {
                 check(previous.renameTo(final)) { "Cannot restore interrupted package activation" }
             }
             finalExists && receipt == null -> {
-                // A final tree without a matching durable receipt is an orphan from an interrupted first
-                // install. It must not silently become trusted on the next transaction.
+                // A final tree without a matching durable receipt is an orphan from an interrupted
+                // first install.  It must not silently become trusted on the next transaction.
                 check(PathSecurity.deleteTreeNoFollow(final)) { "Cannot remove uncommitted package tree" }
             }
         }
@@ -681,6 +682,7 @@ internal object LocalPackageInstallJournal {
         }
     }
 
+    
     fun commit(previous: File): Boolean {
         requireSafeParents(previous)
         return PathSecurity.deleteTreeNoFollow(previous)

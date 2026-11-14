@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real NDJSON pipes exercise capability negotiation and two media prompts on one loaded connection. */
 class AcpMediaSessionReuseTest {
     @Test(timeout = 10_000) fun initializedMediaCapabilityAndNativeSessionAreReusedWithoutAnotherBootstrap() = runBlocking {
         val root = Files.createTempDirectory("acp-media-session-").toFile()

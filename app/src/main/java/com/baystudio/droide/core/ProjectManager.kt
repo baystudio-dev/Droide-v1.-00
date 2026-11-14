@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.contentOrNull
 
+ 
 interface ProjectRecentsStore {
     // Null means this installation has never persisted recent-project presentation state.
     suspend fun load(): List<String>?
@@ -74,8 +75,7 @@ class ProjectCatalogUncertainException private constructor(cause: Throwable, mes
             "Last recovery location: ${recovery.path}. Inspect both locations before retrying.")
 }
 
-// The recovery path is a location hint, not proof of the current directory's ownership or
-// contents.
+// The recovery path is a location hint, not proof of the current directory's ownership or contents.
 data class WorkspaceRemoval(val projectId: String, val recoveryPath: String?)
 
 class ProjectManager private constructor(
@@ -126,8 +126,8 @@ class ProjectManager private constructor(
     val projects: StateFlow<List<DroideProject>> = _projects
     private val _activeId = MutableStateFlow<String?>(null)
     val activeId: StateFlow<String?> = _activeId
-    // Registration and active-project changes share one commit authority. Clone and template work
-    // happens outside it; only read-modify-save-publish is serialized.
+    // Registration and active-project changes share one commit authority. Clone and
+    // template work happens outside it; only read-modify-save-publish is serialized.
     private val relocation = ProjectWorkspaceRelocation(appFilesDir)
     private val registryMutex = relocation
     private val versionedStore: VersionedProjectStore? get() = store as? VersionedProjectStore
@@ -148,6 +148,7 @@ class ProjectManager private constructor(
     @Volatile
     private var githubCredentialResolver: (suspend () -> GitHubTransportCredential?)? = null
 
+     
     internal fun bindGitHubCredentialResolver(resolver: suspend () -> GitHubTransportCredential?) {
         githubCredentialResolver = resolver
     }
@@ -238,8 +239,9 @@ class ProjectManager private constructor(
         requireCatalogStartupReady(startup)
         requireStartupCatalogRevision(nextRevision)
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        // Validate its current receipts and catalog under the held lease; never repair a newly
-        // discovered operation and publish the older loaded list.
+        // Enrollment may acquire an authority another runtime created while this startup
+        // was reading. Validate its current receipts and catalog under the held lease;
+        // never repair a newly discovered operation and publish the older loaded list.
         relocation.activate()
         relocation.recover(store, readOnly = true)
         relocation.requireRegistry(store, loaded)
@@ -290,8 +292,8 @@ class ProjectManager private constructor(
         }
     }
 
-    // Temporary built-in startup opens only an existing selected project. It must not repair/move
-    // trees or persist catalog, active-project or recent state.
+    // Temporary built-in startup opens only an existing selected project. It must
+    // not repair/move trees or persist catalog, active-project or recent state.
     private suspend fun initializeExistingLocked(startup: CanonicalJournalBootstrap.Inspection?) {
         val projectsRoot = ProjectWorkspacePolicy.projectsRoot(appFilesDir)
         fun requireExisting(project: DroideProject) {
@@ -431,7 +433,7 @@ class ProjectManager private constructor(
             // Publish the catalog only after no-replace creation and parent-directory sync.
             generatedWorkspace.create(projectsRoot, root)
         } else {
-
+            // Explicit existing-root registration remains supported.
             check(root.isDirectory || root.mkdirs()) { "Cannot create project workspace" }
         }
         val p = DroideProject(
@@ -451,12 +453,13 @@ class ProjectManager private constructor(
     suspend fun createFromTemplate(name: String, templateId: String): Pair<DroideProject, String?> {
         val template = ProjectTemplateRegistry.byId(templateId) ?: error("Unknown project template: $templateId")
         val project = add(name.ifBlank { template.name })
-
+        // Committed projects and partial work remain available if preparation fails.
         withContext(Dispatchers.IO) { ProjectTemplateWriter.write(File(project.rootPath), template) }
         return project to template.primaryFile
     }
 
     // Authentication is transport-only and never persisted here.
+
 
     suspend fun cloneFromGit(
         name: String,
@@ -484,7 +487,7 @@ class ProjectManager private constructor(
         )
         registryMutex.withLock {
             requireSelectionCertain()
-
+            // A clone can take minutes. Include every registration made while it ran.
             require(_projects.value.none { it.id == project.id || File(it.rootPath).canonicalFile == root.canonicalFile }) {
                 "Clone workspace is already registered"
             }
@@ -498,14 +501,17 @@ class ProjectManager private constructor(
         project
     }
 
+
     // Recents are presentation, not part of the selected-project ownership commit.
     suspend fun switch(id: String) {
         selectAndPublish(id)
         recordSelectedProject(id)
     }
 
-    /** Caller owns its runtime transition and dispatcher. Validation and publication never suspend.
-     * publish must only assign the accepted owner; service activation/cleanup happens afterwards. */
+    /**
+     * Caller owns its runtime transition and dispatcher. Validation and publication never suspend.
+     * publish must only assign the accepted owner; service activation/cleanup happens afterwards.
+     */
     internal suspend fun selectAndPublish(
         id: String,
         validate: () -> Unit = {},
@@ -534,8 +540,8 @@ class ProjectManager private constructor(
             } catch (failure: Throwable) {
                 rejectUnconfirmedSelection(failure)
                 interrupted = failure
-                // A dispatcher can discard a successful write's return. Resolve one tiny ID, retaining both
-                // locks; never shield the ordinary write or runtime preparation.
+                // A dispatcher can discard a successful write's return. Resolve one tiny ID,
+                // retaining both locks; never shield the ordinary write or runtime preparation.
                 val selected = withContext(NonCancellable) {
                     try { store.loadActiveId() } catch (readFailure: Throwable) {
                         if (readFailure !== failure) failure.addSuppressed(readFailure)
@@ -560,7 +566,7 @@ class ProjectManager private constructor(
             try { relocation.requireHeld() } catch (failure: Throwable) {
                 throw unresolvedSelection(failure)
             }
-
+            // No throwable work or suspension between final admission and these assignments.
             _activeId.value = id
             publish()
             if (interrupted is CancellationException) throw interrupted
@@ -630,8 +636,13 @@ class ProjectManager private constructor(
         throw blocked
     }
 
-    /** registryMutex must be held. */
-
+    /**
+     * registryMutex must be held. An IO dispatch can commit an atomic rename and
+     * then lose its return to cancellation. Reconcile one size-bounded catalog read
+     * with a cooperative deadline (not a hard OS IO timeout),
+     * never retry the write and never infer non-commit from a thrown exception.
+     * The caller publishes a verified commit before rethrowing fatal interruption.
+     */
     private suspend fun persistCatalog(updated: List<DroideProject>): Throwable? {
         requireCatalogSessionReady()
         versionedStore?.let { return persistVersionedCatalog(it, updated) }
@@ -648,8 +659,8 @@ class ProjectManager private constructor(
             }
             try {
                 val root = ProjectWorkspacePolicy.projectsRoot(appFilesDir)
-                // Do not let canonicalization bless a newly replaced root symlink or a conflicting external
-                // catalog as evidence of our commit.
+                // Do not let canonicalization bless a newly replaced root symlink
+                // or a conflicting external catalog as evidence of our commit.
                 ProjectWorkspacePolicy.requireDistinctRoots(root, saved)
                 ProjectWorkspacePolicy.requireDistinctRoots(root, updated)
                 ProjectWorkspacePolicy.requireDistinctRoots(root, _projects.value)
@@ -668,8 +679,7 @@ class ProjectManager private constructor(
     }
 
     private fun rejectCatalogConflict(conflict: ProjectCatalogConflictException): Nothing {
-        // A rejected prepublication check is not an ambiguous commit and must never be reconciled as
-        // one.
+        // A rejected prepublication check is not an ambiguous commit and must never be reconciled as one.
         if (catalogUncertainty == null) catalogUncertainty = ProjectCatalogUncertainException(conflict)
         throw conflict
     }
@@ -736,6 +746,7 @@ class ProjectManager private constructor(
         }
     }
 
+
     suspend fun removeFromRecent(id: String) {
         require(id != "default") { "Default project is pinned" }
         require(_activeId.value != id) { "Switch away from a project before removing it from Recent" }
@@ -753,6 +764,7 @@ class ProjectManager private constructor(
         if (id != "default") markRecent(id)
     }
 
+     
     suspend fun clearRecent() {
         recentMutex.withLock {
             val next = ProjectHistoryPolicy.clear(_activeId.value)
@@ -873,13 +885,13 @@ class ProjectManager private constructor(
 
     internal suspend fun acknowledgeMembershipResult(token: String, exactOutcomeIdentity: String): CatalogMembershipCommands.Receipt =
         registryMutex.withLock {
-            // Deliberate service acceptance only. Does not clear session uncertainty or adopt historical
-            // state.
+            // Deliberate service acceptance only. Does not clear session uncertainty or adopt historical state.
             (store as? JournaledProjectStore ?: error("An explicitly selected journaled store is required"))
                 .acknowledgeMembership(token, exactOutcomeIdentity)
         }
 
     // Removal retains the app-private tree; the external SAF folder is not modified.
+
 
     suspend fun deleteWorkspace(id: String): WorkspaceRemoval? = withContext(Dispatchers.IO) {
         registryMutex.withLock { recentMutex.withLock recent@ {
@@ -891,8 +903,8 @@ class ProjectManager private constructor(
         }
         val target = _projects.value.firstOrNull { it.id == id } ?: return@recent null
         val projectsRoot = ProjectWorkspacePolicy.projectsRoot(appFilesDir).apply { mkdirs() }
-        // Check live ownership again: an on-disk path may have been replaced since startup. In
-        // particular an inactive ID must never delete the active/default project's root.
+        // Check live ownership again: an on-disk path may have been replaced since startup.
+        // In particular an inactive ID must never delete the active/default project's root.
         ProjectWorkspacePolicy.requireDistinctRoots(projectsRoot, _projects.value)
         val root = ProjectWorkspacePolicy.requireDirectChild(projectsRoot, File(target.rootPath))
         val quarantine = File(projectsRoot, ".delete-${PathSecurity.safeLeafName(id)}")
@@ -906,7 +918,7 @@ class ProjectManager private constructor(
         try {
             if (intent != null) relocation.move(intent)
             interrupted = persistCatalog(updatedProjects)
-
+            // Publish the verified catalog before any fallible receipt finalization.
             _projects.value = updatedProjects
             _recentIds.value = updatedRecent
             refreshProjectPresentation()
@@ -939,6 +951,7 @@ class ProjectManager private constructor(
     }
 
     // Presentation-only removal must use the referenced API.
+
 
     suspend fun remove(id: String, deleteWorkspace: Boolean) {
         require(deleteWorkspace) { "Use removeFromRecent() for presentation-only removal" }

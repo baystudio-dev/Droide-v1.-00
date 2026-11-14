@@ -1,0 +1,44 @@
+{
+  "candidateAdmissionRequired": true,
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "tools/tests/test_pty_dex_binding.py"
+  ],
+  "compilerVersion": "D8 8.10.9-dev (build a7ad18a70460b799d0482e497c109a75bf7f91de from go/r8bot (luci-r8-custom-ci-archive-0-mt8s))",
+  "deviceValidated": false,
+  "elapsedSeconds": 8.099379777908325,
+  "exitCode": 0,
+  "filesAfterSha256": {
+    "app/libs/terminal-emulator-v0.118.0-droide-input.aar": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+    "third_party/termux/derivatives/r46/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
+    "third_party/termux/derivatives/r46/build/terminal-emulator-r46-private.aar": "e78fd1508f55a43d7e0a8de6a8b5fa4ce165b34c053d2c442b19d72d4c07463d",
+    "tools/build_pty_dex_reference.py": "f191a28f891542c7efadbdaf3c4fa6906f2a5ff583684dc9c5c097e880b437a9",
+    "tools/tests/test_pty_dex_binding.py": "46be8c6143e41a18720e4bc16ad11879f654c2a9a9efc74f78211c7c57b0864b",
+    "tools/verify_pty_dex_binding.py": "48ac74a01e37b374f454117c7befd3c648ff971eafd15bcb1af1e735d1945818",
+    "tools/verify_termux_pty_derivative.py": "223d0f62da43fae3490819864dbfdc213934baae2fb6dc941805c77f9506b0e7"
+  },
+  "filesBeforeSha256": {
+    "app/libs/terminal-emulator-v0.118.0-droide-input.aar": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+    "third_party/termux/derivatives/r46/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
+    "third_party/termux/derivatives/r46/build/terminal-emulator-r46-private.aar": "e78fd1508f55a43d7e0a8de6a8b5fa4ce165b34c053d2c442b19d72d4c07463d",
+    "tools/build_pty_dex_reference.py": "f191a28f891542c7efadbdaf3c4fa6906f2a5ff583684dc9c5c097e880b437a9",
+    "tools/tests/test_pty_dex_binding.py": "46be8c6143e41a18720e4bc16ad11879f654c2a9a9efc74f78211c7c57b0864b",
+    "tools/verify_pty_dex_binding.py": "48ac74a01e37b374f454117c7befd3c648ff971eafd15bcb1af1e735d1945818",
+    "tools/verify_termux_pty_derivative.py": "223d0f62da43fae3490819864dbfdc213934baae2fb6dc941805c77f9506b0e7"
+  },
+  "fixtureEnvironment": {
+    "R46_TEST_ANDROID_JAR": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/toolchain/android-sdk/platforms/android-36/android.jar",
+    "R46_TEST_JAVA_HOME": "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/toolchain/jdk-17.0.20.1+1",
+    "R46_TEST_SDK_D8_JAR": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/toolchain/android-sdk/build-tools/36.0.0/lib/d8.jar"
+  },
+  "kind": "SDK_D8_EXPLORATORY_PARSER_FIXTURES_ONLY",
+  "logSha256": "26cc772a0443bb7f0532de34dc862282df583093532d7e31860bb90dc0c2a040",
+  "productionCompilerRequiredSha256": "9a7d1e9e4c2d3ee05482b9695df5f4d8f92c22ebb74603d6be4eab0505467f1a",
+  "productionR8TestsRun": false,
+  "releaseCompatible": false,
+  "runtimeEvidence": null,
+  "toolInputSha256": {
+    "R46_TEST_ANDROID_JAR": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a",
+    "R46_TEST_SDK_D8_JAR": "4097ff9c46c185c6e7214da7fe9b1befb5adeea5cc9ca349270e0249904f9240"
+  }
+}

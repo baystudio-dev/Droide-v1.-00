@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+// Preserves interpreter-default rollback while keeping provider lifecycle plumbing out of the UI coordinator.
 internal class ReviewedArtifactInstallCoordinator(
     private val registry: ManagedPackageRegistry,
     private val packageInstaller: ManagedPackageInstaller,

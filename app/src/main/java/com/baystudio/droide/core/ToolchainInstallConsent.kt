@@ -22,6 +22,8 @@ internal object ToolchainInstallConsent {
         requireCurrent: () -> Unit = {},
         acceptLicense: suspend () -> Unit,
         install: suspend () -> String,
+        externalDownloadNotice: String? = null,
+        acceptExternalDownload: suspend () -> Unit = {},
     ): String {
         suspend fun current() { currentCoroutineContext().ensureActive(); requireCurrent() }
         fun permitted() = permissions.toolAllowed("toolchain") &&
@@ -32,11 +34,16 @@ internal object ToolchainInstallConsent {
         val approved = if (needsConsent) {
             requireNotNull(license)
             require(license.text.length in 1..100_000 && sha256(license.text) == license.sha256) { "Invalid SDK license revision" }
-            val detail = "$preview\n\nAccept the following Android SDK license revision and install the package above. " +
+            val detail = "$preview\n\n" + externalDownloadNotice?.let { "$it\n\n" }.orEmpty() +
+                "Accept the following Android SDK license revision and install the package above. " +
                 "Acceptance is saved for this exact revision and reused by later Android SDK installs. " +
                 "Choose Reject to stop this installation.\n\nSHA-256: ${license.sha256}\n\n${license.text}"
             require(detail.length <= MAX_DETAIL) { "License review exceeds display capacity" }
             approvals.requestApproval(KIND, "Accept Android SDK license and $summary", detail,
+                action = "toolchain_install", resource = resource, permissionScope = scope, provenance = provenance,
+                approvalSessionId = "", sessionGrantAction = "", sessionGrantResource = "") == ApprovalDecision.Approved
+        } else if (externalDownloadNotice != null) {
+            approvals.requestApproval("external_code_download", "Allow external download and $summary", "$preview\n\n$externalDownloadNotice",
                 action = "toolchain_install", resource = resource, permissionScope = scope, provenance = provenance,
                 approvalSessionId = "", sessionGrantAction = "", sessionGrantResource = "") == ApprovalDecision.Approved
         } else PermissionApprovalGate.approved(permissions, approvals, "toolchain_install", resource, scope,
@@ -45,6 +52,7 @@ internal object ToolchainInstallConsent {
         if (!approved) return "DENIED by user: toolchain installation; do not retry without new user direction."
         if (!permitted()) return "DENIED (policy changed): toolchain installation"
         if (needsConsent) acceptLicense()
+        if (externalDownloadNotice != null) { current(); acceptExternalDownload() }
         current()
         if (!permitted()) return "DENIED (policy changed): toolchain installation"
         return install()

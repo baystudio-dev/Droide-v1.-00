@@ -323,7 +323,7 @@ class AgentWebConcurrencyTest {
                         services.last().open(owner, "https://example.com/second.pdf", null, 0, 20, false, allow, null)
                     }
                     try {
-
+                        // Admission to the binary workflow precedes its first suspension in file I/O.
                         assertEquals(1, transport.requests.size)
                         val text = services.last().openTextUrl("https://example.com/text-during-pdf")
                         assertEquals(JsonPrimitive(true), text["success"])

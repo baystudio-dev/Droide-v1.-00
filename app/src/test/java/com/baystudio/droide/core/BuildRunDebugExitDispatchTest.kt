@@ -252,8 +252,7 @@ class BuildRunDebugExitDispatchTest {
             .getDeclaredField("lifetime").apply { isAccessible = true }.get(tasks) as Job
         private fun construct(gate: BuildRunDebugOperationGate<BuildRunDebugCoordinator.Operation>, tasks: WorkspaceTaskController,
             scope: CoroutineScope): BuildRunDebugCoordinator {
-            // Host JDK APIs are not part of Android's compile API; retain the same allocation via
-            // reflection.
+            // Host JDK APIs are not part of Android's compile API; retain the same allocation via reflection.
             val unsafeType = Class.forName("sun.misc.Unsafe")
             val unsafe = unsafeType.getDeclaredField("theUnsafe").apply { isAccessible = true }.get(null)
             val coordinator = unsafeType.getMethod("allocateInstance", Class::class.java).invoke(unsafe, BuildRunDebugCoordinator::class.java) as BuildRunDebugCoordinator

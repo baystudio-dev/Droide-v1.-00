@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 
+// Dormant authority; runtime enrollment, publication and retention cleanup remain disabled.
 internal class CanonicalFileOperationJournal(
     private val root: File,
     private val authority: File,
@@ -170,6 +171,7 @@ internal class CanonicalFileOperationJournal(
         }
     }
 
+    // Historical receipts and current observations are separate; neither authorizes a later mutation.
     fun inspectOperationRecovery(id: String, context: CoroutineContext): OperationRecoveryReview {
         uuid(id); context.ensureActive()
         val history = inspectRecoveryMetadata()
@@ -205,8 +207,7 @@ internal class CanonicalFileOperationJournal(
         return result
     }
 
-    // Custody is pinned independently so an unavailable canonical source does not destroy read
-    // access.
+    // Custody is pinned independently so an unavailable canonical source does not destroy read access.
     fun readRetainedContent(id: String, role: CustodyRole, expected: CanonicalFileSnapshot.Version,
                             context: CoroutineContext): RetainedContent {
         uuid(id); context.ensureActive()
@@ -279,8 +280,7 @@ internal class CanonicalFileOperationJournal(
         if (upgraded) checkpoint("retention-enable-after-commit")
     }
 
-    // Releases the pending metadata slot only; this historical receipt never authorizes a file
-    // replacement.
+    // Releases the pending metadata slot only; this historical receipt never authorizes a file replacement.
     fun archiveCompleted(id: String, context: CoroutineContext): Intent {
         uuid(id); context.ensureActive()
         var archived = false
@@ -311,6 +311,7 @@ internal class CanonicalFileOperationJournal(
         return result
     }
 
+    // Historical metadata remains available when the original workspace root has disappeared.
     fun readCompletedMetadataForRecovery(): List<Intent> = authorityPins { store, verify ->
         accessDatabase(verify) { db ->
             val retention = readRetention(db)
@@ -319,8 +320,8 @@ internal class CanonicalFileOperationJournal(
         }
     }
 
-    // Validate one exact history snapshot in one read-only transaction, rather than reopening and
-    // decoding the complete history once per completed ID. No receipt grants file release.
+    // Validate one exact history snapshot in one read-only transaction, rather than reopening
+    // and decoding the complete history once per completed ID. No receipt grants file release.
     fun requireCompletedCustody(expected: RecoveryMetadata, context: CoroutineContext) {
         context.ensureActive()
         authorityPins { store, verify ->
@@ -346,7 +347,8 @@ internal class CanonicalFileOperationJournal(
                     context.ensureActive()
                 }
                 // The last reviewed entry is not a barrier for files checked earlier.
-
+                // Revalidate the whole bounded set after callbacks, without publishing a
+                // release capability or treating these observations as writer exclusion.
                 verify()
                 observed.completed.forEach(::requireFiles)
                 val finalRetention = readRetention(db)
@@ -364,8 +366,8 @@ internal class CanonicalFileOperationJournal(
     data class RetentionReview(val history: RecoveryMetadata, val policy: CanonicalJournalRetention.Policy,
                                val receipts: List<CompletedReceiptReview>)
 
-    // Raw receipts and decoded identities from the same validated read-only transaction. This
-    // observation neither grants admission nor authorizes release or accounting changes.
+    // Raw receipts and decoded identities from the same validated read-only transaction.
+    // This observation neither grants admission nor authorizes release or accounting changes.
     fun collectRetentionReview(context: CoroutineContext): RetentionReview {
         context.ensureActive()
         return authorityPins { store, verify ->
@@ -476,8 +478,7 @@ internal class CanonicalFileOperationJournal(
         return intent
     }
 
-    // Source version is historical; custody verification is a current observation, never publication
-    // authority.
+    // Source version is historical; custody verification is a current observation, never publication authority.
     fun capture(id: String, context: CoroutineContext): CanonicalFileSnapshot.Capture {
         uuid(id); context.ensureActive()
         val intent = requireNotNull(read()) { "Pending intent is missing" }
@@ -512,6 +513,7 @@ internal class CanonicalFileOperationJournal(
         return verifySnapshot(id, context)
     }
 
+    // Rechecks current custody against its receipt; the source version remains a historical observation.
     fun verifySnapshot(id: String, context: CoroutineContext): CanonicalFileSnapshot.Capture {
         uuid(id); context.ensureActive()
         val intent = requireNotNull(read()) { "Pending intent is missing" }
@@ -531,6 +533,7 @@ internal class CanonicalFileOperationJournal(
         return result
     }
 
+    // Copies a checked staging file; neither the stage nor canonical file is consumed.
     fun captureProposal(id: String, source: AnchoredWorkspaceFiles, name: String,
                         expected: CanonicalFileSnapshot.Version, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); version(expected); context.ensureActive()
@@ -594,8 +597,7 @@ internal class CanonicalFileOperationJournal(
         return verifyProposal(intent.id, context)
     }
 
-    // Verifies both retained copies; never infers current canonical-file content or publication
-    // permission.
+    // Verifies both retained copies; never infers current canonical-file content or publication permission.
     fun verifyProposal(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val intent = requireNotNull(read()) { "Pending intent is missing" }
@@ -616,8 +618,7 @@ internal class CanonicalFileOperationJournal(
         return result
     }
 
-    // Records independent staging custody; never renames, replaces, restores or deletes canonical
-    // files.
+    // Records independent staging custody; never renames, replaces, restores or deletes canonical files.
     fun stagePublication(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val intent = requireNotNull(read()) { "Pending intent is missing" }
@@ -657,8 +658,7 @@ internal class CanonicalFileOperationJournal(
         return verifyPublicationStage(id, context)
     }
 
-    // A current observation of recorded custody, not proof of publication or authority to replace a
-    // file.
+    // A current observation of recorded custody, not proof of publication or authority to replace a file.
     fun verifyPublicationStage(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         return access { db, anchor, store ->
@@ -728,8 +728,7 @@ internal class CanonicalFileOperationJournal(
         return verifyRetirement(id, context)
     }
 
-    // Observes retained bytes after a recorded move; this is not an immutable copy or publication
-    // authority.
+    // Observes retained bytes after a recorded move; this is not an immutable copy or publication authority.
     fun verifyRetirement(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         return access { db, anchor, store ->
@@ -744,8 +743,7 @@ internal class CanonicalFileOperationJournal(
         }
     }
 
-    // Reestablishes durability of an observed retirement without retrying a move or inventing its
-    // outcome.
+    // Reestablishes durability of an observed retirement without retrying a move or inventing its outcome.
     fun recoverRetiredState(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val recorded = access { db, anchor, store ->
@@ -797,8 +795,7 @@ internal class CanonicalFileOperationJournal(
         }
     }
 
-    // Reuses independently recorded original custody after retirement; never creates another data
-    // copy.
+    // Reuses independently recorded original custody after retirement; never creates another data copy.
     fun recordRetainedSnapshot(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val intent = requireNotNull(read()) { "Pending intent is missing" }
@@ -828,8 +825,7 @@ internal class CanonicalFileOperationJournal(
         return verifyRetainedSnapshot(id, context)
     }
 
-    // Historical independent custody only; current retirement must be verified separately before
-    // publication.
+    // Historical independent custody only; current retirement must be verified separately before publication.
     fun verifyRetainedSnapshot(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         return access { db, anchor, store ->
@@ -843,8 +839,7 @@ internal class CanonicalFileOperationJournal(
         }
     }
 
-    // Commits intent before one no-replace publication; every interrupted attempt requires explicit
-    // recovery.
+    // Commits intent before one no-replace publication; every interrupted attempt requires explicit recovery.
     fun publishStaged(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val prepared = access { db, anchor, store ->
@@ -885,8 +880,7 @@ internal class CanonicalFileOperationJournal(
         return verifyPublication(id, context)
     }
 
-    // Verifies a recorded outcome and current versions; never declares completion or performs
-    // recovery.
+    // Verifies a recorded outcome and current versions; never declares completion or performs recovery.
     fun verifyPublication(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         return access { db, anchor, store ->
@@ -898,6 +892,7 @@ internal class CanonicalFileOperationJournal(
         }
     }
 
+    // Records historical completion; custody and membership remain until explicit integration.
     fun recordPublicationCompletion(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val recorded = access { db, anchor, store ->
@@ -918,8 +913,7 @@ internal class CanonicalFileOperationJournal(
         return verifyPublication(id, context)
     }
 
-    // Explicitly reestablishes durability of the observed published inode without replaying any
-    // move.
+    // Explicitly reestablishes durability of the observed published inode without replaying any move.
     fun recoverPublishedState(id: String, context: CoroutineContext): CanonicalFileSnapshot.Version {
         uuid(id); context.ensureActive()
         val recorded = access { db, anchor, store ->
@@ -1285,6 +1279,7 @@ internal class CanonicalFileOperationJournal(
             hash(request.proposal) == intent.proposal.sha256) { "Membership proposal differs from admitted operation" }
     }
 
+    // Exactly the constructor used at admission; later custody/publication fields intentionally default null.
     private fun preparedIdentity(actual: Intent): Intent = Intent(actual.id, actual.path, actual.parents,
         actual.before, actual.proposal, Phase.PREPARED, null, kind = actual.kind)
 
@@ -1304,15 +1299,14 @@ internal class CanonicalFileOperationJournal(
         validate(intent)
         val expected = linkedMapOf(intent.snapshotName to intent.snapshot, intent.proposalName to intent.proposalCopy,
             intent.publicationName to intent.publicationStage, intent.retiredName to null, intent.conflictCopyName to null)
-        val observer = CanonicalFileSnapshot(maxBytes)
+        val observer = CanonicalFileSnapshot(maxBytes) // no callback recursion
         pins { anchor, store, verify ->
             requireParents(anchor, intent.parents)
             check(observer.inspect(anchor, intent.path, context) == intent.before) { "Original catalog changed during preparation review" }
             expected.forEach { (name, version) ->
                 if (version != null) check(observer.inspect(store, name, context) == version) { "Recorded preparation custody changed" }
                 else if (name == inFlightName) {
-                    // Only this call's exclusive copy owner may be creating this name. Never survives a
-                    // return/restart.
+                    // Only this call's exclusive copy owner may be creating this name. Never survives a return/restart.
                     check(store.kind(name) in listOf(AnchoredWorkspaceFiles.Kind.ABSENT, AnchoredWorkspaceFiles.Kind.FILE))
                 } else check(store.kind(name) == AnchoredWorkspaceFiles.Kind.ABSENT) {
                     "Unrecorded preparation custody requires review; all files were preserved: $name"

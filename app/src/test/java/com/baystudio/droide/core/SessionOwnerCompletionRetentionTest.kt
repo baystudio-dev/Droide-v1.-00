@@ -55,7 +55,7 @@ class SessionOwnerCompletionRetentionTest {
         try {
             finished.forEach { owner.retain(it); it.finish() }
             awaitRetained(owner, 1)
-            finished.forEach(owner::retain)
+            finished.forEach(owner::retain) // Late handoffs of the same identities are harmless.
             assertEquals(1, retained(owner))
             assertTrue("Natural completion leaves output available to its readers", finished.all { it.closes.get() == 0 })
             owner.stopAndAwait()

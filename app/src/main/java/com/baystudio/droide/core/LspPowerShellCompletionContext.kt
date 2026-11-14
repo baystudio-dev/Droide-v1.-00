@@ -1,7 +1,8 @@
 package com.baystudio.droide.core
 
-/** Captured native PSES context, selected only by the exact built-in manager policy. This is a
- * UTF-16 adapter, not a PowerShell parser or permission to start a runspace. */
+/** Captured native PSES context, selected only by the exact built-in manager policy.
+ * This is a UTF-16 adapter, not a PowerShell parser or permission to start a runspace.
+ */
 internal object LspPowerShellCompletionContext {
     const val MAX_TEXT_CHARS = 2_000_000
     const val UI_WATCHDOG_MS = 10_000L
@@ -28,8 +29,8 @@ internal object LspPowerShellCompletionContext {
         val offset = start + col1 - 1
         if (!isBoundary(text, offset)) return null
         var prefixStart = offset
-        // Exactly the existing PowerShell local-prefix rule. Space and backslash are trigger hints only;
-        // neither widens an identifier or replacement.
+        // Exactly the existing PowerShell local-prefix rule. Space and backslash
+        // are trigger hints only; neither widens an identifier or replacement.
         while (prefixStart > start && text[prefixStart - 1].let {
                 it.isLetterOrDigit() || it == '_' || it == '$' || it == '-'
             }) prefixStart--

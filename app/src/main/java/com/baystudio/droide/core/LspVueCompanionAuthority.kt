@@ -33,7 +33,7 @@ internal class LspVueCompanionAuthority {
         const val MAX_DOCUMENT_BYTES = 1024 * 1024
         const val MAX_AGGREGATE_BYTES = 4 * 1024 * 1024
         const val MAX_REQUEST_BYTES = 6 * 1024 * 1024
-
+        /** The monotonic mutation token includes closes; complete membership detects new companions. */
         fun capture(era: Long, mutation: Long, documents: List<Document>): Capture {
             require(documents.size <= MAX_OPEN) { "Vue supports at most 128 open relevant documents; no dirty buffer was evicted" }
             require(documents.map { it.uri }.distinct().size == documents.size)

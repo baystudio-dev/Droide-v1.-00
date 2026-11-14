@@ -12,8 +12,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
-/** Append-only evidence for one exact deletion-token/destination pair. Never removes original
- * custody, releases an uncertain stage, or infers publication from current bytes. */
+/** Append-only evidence for one exact deletion-token/destination pair. Never removes
+ * original custody, releases an uncertain stage, or infers publication from current bytes. */
 internal class LocalDirectoryArchiveJournal(private val root: File,
     private val checkpoint: (String) -> Unit = {}) {
     @Serializable data class Parent(val path: String, val identity: String)
@@ -35,8 +35,8 @@ internal class LocalDirectoryArchiveJournal(private val root: File,
     fun id(token: LocalDirectoryDeleteCustody.Token, destination: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(
             (token.operation + "\u0000" + token.preparedSha256 + "\u0000" + destination).toByteArray(Charsets.UTF_8))
-        // A SHA-256-derived UUID fits the repository's exact planned-stage grammar. The intent also
-        // binds the complete token and destination, never just this key.
+        // A SHA-256-derived UUID fits the repository's exact planned-stage grammar.
+        // The intent also binds the complete token and destination, never just this key.
         val bytes = java.nio.ByteBuffer.wrap(digest)
         return UUID(bytes.long, bytes.long).toString()
     }

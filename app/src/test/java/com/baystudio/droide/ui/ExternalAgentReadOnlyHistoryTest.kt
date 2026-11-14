@@ -18,6 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
+/** Real controller/store integration; every mutation is confined to newly allocated test fixtures. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
@@ -37,6 +38,7 @@ class ExternalAgentReadOnlyHistoryTest {
         assertTrue(PathSecurity.deleteTreeNoFollow(fixtureRoot))
     }
 
+    /** Null resume deliberately reuses the prior live native session, like the production host. */
     private class Backend : WorkspaceAgentChatBackend {
         var nativeId = "legacy-native"
         var admissionChecks = 0
@@ -359,6 +361,8 @@ class ExternalAgentReadOnlyHistoryTest {
             assertEquals(listOf("independent-native-1"), nextBackend.resumeIds)
             assertEquals(original, evidence(originalId))
 
+            // Use the ordinary coordinated export route while the replacement store is open.
+            // A stranded prior participant would reject its quiescence callback as closed.
             val documents = object : WorkspaceDocumentAuthority {
                 override suspend fun snapshot(path: String): WorkspaceDocumentSnapshot? = null
                 override suspend fun snapshots(): List<WorkspaceDocumentSnapshot> = emptyList()

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Session operations shared by the live host and the chat lifecycle controller. */
 interface WorkspaceAgentChatBackend {
     val workspaceSyncState: kotlinx.coroutines.flow.StateFlow<WorkspaceAgentSyncState>? get() = null
     suspend fun reviewWorkspaceChanges(agentId: String): WorkspaceAgentSyncResult =

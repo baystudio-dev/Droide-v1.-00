@@ -15,7 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 internal class ApplicationExitSequence(
     private val scope: CoroutineScope,
     private val steps: List<Step>,
-    private val observationMs: Long = 30_000,
+    private val observationMs: Long = 10_000,
 ) {
     data class Step(val label: String, val run: suspend () -> Unit)
     data class State(
@@ -32,6 +32,7 @@ internal class ApplicationExitSequence(
     private var job: Job? = null
     private var next = 0
     private var pending: Deferred<Result<Unit>>? = null
+    private var observedCompletion: Deferred<Result<Unit>>? = null
 
     /** Called from Main. A failed stage must be idempotent; retry keeps its exact captured owner. */
     fun request(): Job = synchronized(lock) {
@@ -43,14 +44,23 @@ internal class ApplicationExitSequence(
                 while (next < steps.size) {
                     val step = steps[next]
                     mutable.value = mutable.value.copy(stage = step.label, failure = null)
-                    // A UI wait budget is not a cancellation deadline for a save or cleanup. Keep joining the exact
-                    // operation: a slow stage is progress, not failure.
                     val operation = pending ?: scope.async { runCatching { step.run() } }.also { pending = it }
                     val result = withTimeoutOrNull(observationMs) { operation.await() }
-                        ?: run {
-                            mutable.value = mutable.value.copy(stage = "${step.label} — still finishing")
-                            operation.await()
+                    if (result == null) {
+                        mutable.value = mutable.value.copy(running = false, stage = "${step.label} — still finishing",
+                            failure = "Waiting for ${step.label}. Existing saved recovery copies are retained.")
+                        if (observedCompletion !== operation) {
+                            observedCompletion = operation
+                            val observer = kotlinx.coroutines.currentCoroutineContext()[Job]!!
+                            operation.invokeOnCompletion {
+                                scope.launch {
+                                    observer.join()
+                                    if (pending === operation) request()
+                                }
+                            }
                         }
+                        return@launch
+                    }
                     if (result.isFailure) pending = null
                     result.getOrThrow()
                     pending = null

@@ -63,8 +63,7 @@ class CSharpOwnedProcessTest {
             assertTrue(retained.localRoot.isDirectory);assertFalse(retained.isCurrent)
             assertEquals(receipt,retained.retire())
             assertTrue(runCatching {LocalCSharpPreparedOwner.allocate(app,identity,request.copy(ownerGeneration=2))}.isFailure)
-            // Simulate only loss of the in-memory map; the persistent owner record must still deny
-            // replacement.
+            // Simulate only loss of the in-memory map; the persistent owner record must still deny replacement.
             CSharpRootOwners.release(retained)
             assertTrue(runCatching {LocalCSharpPreparedOwner.allocate(app,identity,request.copy(ownerGeneration=3))}.isFailure)
         } finally {owner?.let(CSharpRootOwners::release);app.deleteRecursively()}

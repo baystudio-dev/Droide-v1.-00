@@ -28,7 +28,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 /** Presentation budgets only. Text, selection, clipboard and tool arguments remain unchanged. */
-
+// Covers the existing 82,000-character review surface, including a single long hunk.
 internal const val MAX_CODE_PREVIEW_HIGHLIGHT_CHARS = 96_000
 private const val MAX_BATCH_HIGHLIGHT_CHARS = 2 * MAX_CODE_PREVIEW_HIGHLIGHT_CHARS
 
@@ -112,8 +112,8 @@ internal fun rememberCodePreviewSpans(documents: List<CodePreviewDocument>): Lis
     return remember(documents, completed) {
         documents.mapIndexed { index, document ->
             val old = completed.getOrNull(index)
-            // While append-only streaming catches up, retain colors for the verified prefix. A replacement
-            // or language change must never borrow offsets from different text.
+            // While append-only streaming catches up, retain colors for the verified prefix.
+            // A replacement or language change must never borrow offsets from different text.
             if (old != null && old.document.language == document.language && document.text.startsWith(old.document.text))
                 old.spans else emptyList()
         }

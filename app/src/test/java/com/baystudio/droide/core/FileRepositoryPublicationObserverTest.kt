@@ -12,8 +12,9 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
-/** Publication integration regression source; host execution is coordinated separately. Does not
- * execute Android native publication, real provider work, or power-loss testing. */
+/** Publication integration regression source; host execution is coordinated separately.
+ * Does not execute Android native publication, real provider work, or power-loss testing.
+ */
 class FileRepositoryPublicationObserverTest {
     private lateinit var root: File
     @Before fun setup() { root = Files.createTempDirectory("stream-observer-test-").toFile() }

@@ -13,8 +13,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 
-/** Feature lifetimes for one exact, already-authorized built-in PSES owner. */
-
+/**
+ * Feature lifetimes for one exact, already-authorized built-in PSES owner. This is
+ * deliberately not a transport or a scheduler for other language-server families.
+ * The manager repeats its route, grant, source and lifetime checks in [request]'s
+ * isCurrent callback, and the transport still checks admission at the actual write.
+ */
 internal class LspPowerShellRequests(
     managerScope: CoroutineScope,
     private val onDeadline: (methodKey: String) -> Unit,
@@ -60,8 +64,12 @@ internal class LspPowerShellRequests(
         data object OwnDeadline : Outcome
     }
 
-    /** Null is bounded unavailable: busy, superseded, stale, expired before dispatch, or a completed
-     * feature error. */
+    /**
+     * Null is bounded unavailable: busy, superseded, stale, expired before dispatch,
+     * or a completed feature error. A caller's cancellation is rethrown unchanged.
+     * [block] must be only the actual RPC, using the same full [timeoutMs] budget;
+     * it must not swallow errors or perform document preparation inside the timer.
+     */
     suspend fun request(
         methodKey: String,
         timeoutMs: Long,
@@ -113,8 +121,9 @@ internal class LspPowerShellRequests(
         }
     }
 
-    // Queued demands retain only one bounded record, not a launched coroutine per keystroke.
-
+    // Queued demands retain only one bounded record, not a launched coroutine per
+    // keystroke. Promotion creates its worker; supersession cannot build a backlog
+    // of canceled dispatch jobs retaining captured source texts.
     private fun newJob(record: Record): Job =
         ownerScope.launch(start = CoroutineStart.LAZY) { runRecord(record) }
 
@@ -148,11 +157,12 @@ internal class LspPowerShellRequests(
                 Outcome.Unavailable -> Unit
             }
         } catch (cancel: CancellationException) {
-            // Owner close/revoke cancels workers. An arbitrary external cancellation is never evidence that
-            // this owner's request deadline elapsed.
+            // Owner close/revoke cancels workers. An arbitrary external cancellation
+            // is never evidence that this owner's request deadline elapsed.
             throw cancel
         } catch (_: Exception) {
-
+            // Completed remote errors are generic exceptions in JsonRpcProcess.
+            // Transport death is retired independently by the manager/transport.
         } finally {
             finish(record, value)
         }
@@ -174,8 +184,9 @@ internal class LspPowerShellRequests(
                 Outcome.Result(record.block())
             } ?: Outcome.OwnDeadline
         } catch (timeout: TimeoutCancellationException) {
-            // A nested RPC timeout can win the timer race.
-
+            // A nested RPC timeout can win the timer race. It counts only when this
+            // independently-owned native deadline has actually elapsed. Unrelated
+            // shorter timeouts/cancellations do not become owner-failure signals.
             if (nanoTime() - nativeDeadline >= 0L) Outcome.OwnDeadline else Outcome.Unavailable
         }
     }
@@ -190,8 +201,8 @@ internal class LspPowerShellRequests(
             }
         }
         record.waiter.cancel()
-        // A started native task is deliberately allowed to drain to its original deadline. Only a demand
-        // which is still queued is removed/canceled here.
+        // A started native task is deliberately allowed to drain to its original
+        // deadline. Only a demand which is still queued is removed/canceled here.
         if (queued) record.job?.cancel(CancellationException("PowerShell queued waiter detached"))
     }
 
@@ -228,8 +239,8 @@ internal class LspPowerShellRequests(
         }
         pending.forEach { it.waiter.complete(null) }
         try {
-            // Exact-state FAILED/tombstone retirement belongs to the manager. No callback, process close or
-            // other I/O occurs under the registry lock.
+            // Exact-state FAILED/tombstone retirement belongs to the manager. No
+            // callback, process close or other I/O occurs under the registry lock.
             onDeadline(methodKey)
         } finally {
             ownerJob.cancel(CancellationException("PowerShell owned request deadline"))

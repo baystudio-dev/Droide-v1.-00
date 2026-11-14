@@ -48,6 +48,7 @@ class McpConfigurationSnapshot internal constructor(
     val servers: List<McpServer>,
 )
 
+/** Uses the same guarded writer as the editor, including dirty-document and disk-version checks. */
 internal class McpWorkspaceConfiguration(
     private val files: FileRepository,
     private val onChanged: () -> Unit = {},

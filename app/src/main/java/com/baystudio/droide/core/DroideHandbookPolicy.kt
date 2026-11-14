@@ -6,8 +6,8 @@ import java.io.Reader
 internal object DroideHandbookPolicy {
     const val ASSET = "agent-handbook/about droide.md"
     const val SOURCE_REFERENCE = "Bundled Droide release guide (source reviewed 2026-11-09)"
-    // The scan budget must accommodate all allowed bounded sections, plus one section-sized preamble
-    // allowance. Response and group budgets remain separate.
+    // The scan budget must accommodate all allowed bounded sections, plus one
+    // section-sized preamble allowance. Response and group budgets remain separate.
     val MAX_DOCUMENT_CHARS: Int get() = (sections.size + 1) * MAX_SECTION_CHARS
     const val MAX_SECTION_CHARS = 5_000
     const val MAX_RESULT_CHARS = 6_500
@@ -78,6 +78,7 @@ internal object DroideHandbookPolicy {
     }
 }
 
+/** Shared by one completed provider tool-call group, including concurrent calls. */
 internal class DroideHandbookBudget {
     private var chars = 0
     @Synchronized fun reserve(count: Int) {

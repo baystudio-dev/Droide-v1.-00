@@ -6,6 +6,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Reproduces the reported HTTP 200 keepalive failure through the production HTTP/SSE client. */
 class ProviderHeartbeatTransportTest {
     @Test(timeout = 10000) fun responsesGatewayKeepaliveDoesNotAbortAnHttp200Turn() {
         withProviderStreamFixture(ProviderWireProtocol.OPENAI_RESPONSES) { fixture ->

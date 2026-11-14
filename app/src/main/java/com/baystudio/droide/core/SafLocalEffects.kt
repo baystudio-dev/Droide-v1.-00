@@ -111,14 +111,14 @@ internal class SafLocalEffects(
         require(effect.owner === this && latest === effect && receipt.preparation === effect.preparation)
         val failure = receipt.failure
         val className = failure?.javaClass?.name?.replace('\u0000', '?')?.take(64)
-        // Diagnostics never authorize work. Keep UTF-8 below the record bound without serializing
-        // Throwable.
+        // Diagnostics never authorize work. Keep UTF-8 below the record bound without serializing Throwable.
         val message = failure?.message?.replace('\u0000', '?')?.take(1000)
         journal.returnedLocal(effect.action, SafLocalReturn(receipt.returned, receipt.successful && failure == null,
             receipt.destinationIdentity, receipt.durable, className, message,
             failure != null && ((failure.javaClass.name.length > 64) || (failure.message?.length ?: 0) > 1000)))
     }
 
+    /** Preserve the original throwable if a mandatory return append also fails. */
     fun threw(effect: Effect, failure: Throwable, invocationReturned: Boolean = false): Nothing {
         try { returned(effect, WorkspaceLocalReceipt(effect.preparation, invocationReturned, null, failure = failure)) }
         catch (recordFailure: Throwable) { if (recordFailure !== failure) failure.addSuppressed(recordFailure) }
@@ -181,7 +181,7 @@ internal class SafLocalEffects(
             }
             else -> error("Activation requires its later binding")
         }
-
+        // Existing ancestors include both source and target links and the workspace itself.
         plan.parents.sortedByDescending { it.path.count { c -> c == '/' } * 2 + if (it.path.isEmpty()) 0 else 1 }.forEach {
             checkActive(); SafLocalFiles.requireParents(journal, listOf(it)); journal.storage.syncDirectory(File(journal.workspace, it.path))
         }

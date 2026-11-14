@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.PlatformTextInputInterceptor
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import com.baystudio.droide.core.CodingKeyboardMode
 
+
 internal fun applyCodingKeyboardMetadata(
     info: EditorInfo,
     mode: CodingKeyboardMode,
@@ -27,7 +28,7 @@ internal fun applyCodingKeyboardMetadata(
             else InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) or
             (if (multiline) InputType.TYPE_TEXT_FLAG_MULTI_LINE else 0)
     }
-
+    // Preserve the original action (Enter/Send) and prohibit fullscreen extraction.
     info.imeOptions = info.imeOptions or EditorInfo.IME_FLAG_NO_EXTRACT_UI or
         EditorInfo.IME_FLAG_NO_FULLSCREEN or EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
 }
@@ -45,7 +46,7 @@ internal class CodingKeyboardController {
         val manager = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
             ?: return
         if (!manager.isActive(view)) return
-
+        // Terminal connections flush pending composed text here before being replaced.
         connection?.finishComposingText()
         manager.restartInput(view)
     }
@@ -55,6 +56,7 @@ internal class CodingKeyboardController {
         applyCodingKeyboardMetadata(info, mode, multiline)
     }
 }
+
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable

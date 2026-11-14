@@ -1,8 +1,7 @@
-name: Android CI
+name: F-Droid source build
 
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -10,89 +9,64 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-ci-${{ github.ref }}
+  group: fdroid-source-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  repository:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - name: Verify public source and dependency policies
-        run: bash tools/verify_release_source.sh
-
   release:
-    needs: repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    env:
-      PYTHONDONTWRITEBYTECODE: '1'
+    timeout-minutes: 90
     steps:
-      - name: Set terminal engine output
-        run: echo "DROIDE_TERMINAL_ENGINE=$RUNNER_TEMP/droide-terminal-engine" >> "$GITHUB_ENV"
-      - name: Checkout source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - name: Install and verify pinned JDK
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/provision_build_jdk.py --output "$RUNNER_TEMP/droide-jdk"
-          echo "JAVA_HOME=$RUNNER_TEMP/droide-jdk/jdk-17.0.20.1+1" >> "$GITHUB_ENV"
-          echo "$RUNNER_TEMP/droide-jdk/jdk-17.0.20.1+1/bin" >> "$GITHUB_PATH"
-      - name: Set up Android command-line tools
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
         with:
-          packages: platform-tools
+          distribution: temurin
+          java-version: '17.0.20.1'
+          check-latest: false
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
+        with:
+          packages: 'platform-tools'
           log-accepted-android-sdk-licenses: 'false'
-      - name: Install pinned SDK components
-        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+
+      - name: Install pinned build inputs
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
+
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
         with:
-          cache-provider: basic
-          validate-wrappers: true
-      - name: Run critical application regressions
-        run: python3 tools/run_release_tests.py
-      - name: Build and verify unsigned release
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Verify source inputs
+        run: python3 -B tools/verify_fdroid_inputs.py --root "$PWD"
+
+      - name: Compile release and run release checks
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew :app:assembleSourceRelease \
-            -PDROIDE_SOURCE_RELEASE=true \
-            -PDROIDE_SOURCE_RELEASE_ENGINE_DIR="$DROIDE_TERMINAL_ENGINE" \
-            -PDROIDE_SOURCE_RELEASE_JDK_ARCHIVE="$RUNNER_TEMP/droide-jdk/vendor.tar.gz" \
-            -Pandroid.builder.sdkDownload=false \
-            -Pkotlin.compiler.execution.strategy=in-process -Pkotlin.incremental=false \
-            '-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC -XX:ActiveProcessorCount=2 -Dfile.encoding=UTF-8' \
-            --dependency-verification=strict --no-daemon --max-workers=1 \
-            --no-configuration-cache --no-build-cache
-      - name: Test current compiled engine and optimized APK
-        env:
-          DROIDE_SOURCE_RELEASE_APK: app/build-source-release/outputs/apk/release/app-release-unsigned.apk
-        run: python3 -B -m unittest discover -s tools/tests -p 'test_*.py' -v
-      - name: Preserve reports
+          python3 -B tools/build_fdroid_candidate.py \
+            --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME" \
+            --gradle "$(command -v gradle)" \
+            --dependencies "$RUNNER_TEMP/droide-source-products" 2>&1 | tee fdroid-build.log
+          sha256sum app/build-source-release-fdroid-candidate/outputs/apk/release/*.apk > fdroid-apk-sha256.txt
+
+      - name: Upload verification and unsigned APK
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: android-verification
+          name: droide-fdroid-source-release
           path: |
-            app/build-source-release/reports/
-            app/build-source-release/outputs/source-release-verification.json
-            app/build-host-jvm-tests/reports/tests/
-            app/build-host-jvm-tests/test-results/
+            app/build-source-release-fdroid-candidate/outputs/apk/release/*.apk
+            app/build-source-release-fdroid-candidate/outputs/source-release-verification.json
+            app/build-source-release-fdroid-candidate/reports/lint-results-release.*
+            fdroid-build.log
+            fdroid-apk-sha256.txt
           if-no-files-found: warn
-          retention-days: 14
-      - name: Preserve verified unsigned APK
-        if: success()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: droide-release-unsigned
-          path: app/build-source-release/outputs/apk/release/*.apk
-          if-no-files-found: error
           retention-days: 14

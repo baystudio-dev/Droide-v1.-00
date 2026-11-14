@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.security.MessageDigest
 
+/** Versioned managed PSES byte-relay contract. No generic PATH command inherits it. */
 internal object LspPowerShellLaunchPolicy {
     const val REVISION = "powershell-7.6.7-pses-4.7.0-consolehost-pipe-v1"
     const val HEALTH_SELECTOR = "--droide-powershell-health-v1"
@@ -20,7 +21,7 @@ internal object LspPowerShellLaunchPolicy {
             listOf(receiptSha256, runtimeReceiptSha256, sealSha256, runtimeSealSha256, selectedPackageIdentity).all { it.matches(Regex("[0-9a-f]{64}")) } &&
             listOf(activationIdentity, runtimeActivationIdentity).all { it.matches(Regex("[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")) }
     }
-
+    /** Shell sanitation happens BEFORE Node/.NET instructions, including direct wrapper use. */
     internal fun handoff(health: Boolean): String = buildString {
         append("set -eu; umask 077; lease=\"${'$'}{DROIDE_PROCESS_LEASE-}\"; if [ -n \"${'$'}lease\" ]; then case \"${'$'}lease\" in *[!0-9a-f]*) exit 64;; esac; [ \"${'$'}{#lease}\" -eq 20 ] || exit 64; set -- \"DROIDE_PROCESS_LEASE=${'$'}lease\" \"${'$'}@\"; fi; ")
         if (!health) for (key in listOf("PSModulePath", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR"))

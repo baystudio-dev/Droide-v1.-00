@@ -19,6 +19,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 
+
 object DroideCliServer {
     private var active: Session? = null
     private val ownedSessions = ConcurrentHashMap.newKeySet<Session>()
@@ -43,8 +44,8 @@ object DroideCliServer {
                 next = Session(context.applicationContext, authority, workspaceId).also { ownedSessions.add(it) }
                 previous = active
                 previous?.revoke()
-                // Also retries a single retained owner after an earlier failed stop. Failure retains that owner
-                // and prevents publication in a second workspace.
+                // Also retries a single retained owner after an earlier failed stop. Failure
+                // retains that owner and prevents publication in a second workspace.
                 endpointPublication.withdrawPrevious()
                 active = next
                 accepted = true
@@ -75,6 +76,7 @@ object DroideCliServer {
             retiring?.closeResources()
         }
     }
+
 
     internal suspend fun stopAndAwaitForExit(authority: UnifiedPackageAuthority? = null) {
         check(!ApplicationWorkAdmission.isOpen)
@@ -123,8 +125,8 @@ object DroideCliServer {
                             continue
                         }
                         clients.add(client)
-                        // stop() can win after the earlier admission check but before publication. A canceled scope
-                        // never enters serve's finally.
+                        // stop() can win after the earlier admission check but before
+                        // publication. A canceled scope never enters serve's finally.
                         if (closed.get()) {
                             clients.remove(client)
                             closeClient(client)
@@ -137,14 +139,14 @@ object DroideCliServer {
                 } catch (failure: Exception) {
                     if (!closed.get()) Log.w("DroideCli", "Internal CLI endpoint could not start", failure)
                 } finally {
-                    // A's delayed finally must never remove B's endpoint, even on the same workspace. Withdrawal and
-                    // final replacement share one monitor.
+                    // A's delayed finally must never remove B's endpoint, even on the
+                    // same workspace. Withdrawal and final replacement share one monitor.
                     runCatching { endpointPublication.withdraw(this@Session) }.onFailure {
                         Log.w("DroideCli", "Internal CLI endpoint could not be withdrawn", it)
                     }
                     runCatching { endpoint.discardStaging() }
-                    // The listener may have been created after closeResources saw null. Preserve a failed final
-                    // close until the Exit retry confirms it.
+                    // The listener may have been created after closeResources saw null.
+                    // Preserve a failed final close until the Exit retry confirms it.
                     runCatching { server?.close() }.onFailure { closeFailure = it }
                 }
             }
@@ -154,7 +156,7 @@ object DroideCliServer {
             try {
                 client.soTimeout = REQUEST_TIMEOUT_MS
                 val request = DroideCliWireProtocol.readRequestEnvelope(client.inputStream)
-                client.soTimeout = 0
+                client.soTimeout = 0 // Package transactions may legitimately take longer than request framing.
                 CliConnectionLifetime.serve(
                     operation = {
                         val action: suspend () -> DroideCliExecutionResult = {
@@ -180,6 +182,7 @@ object DroideCliServer {
             }
         }
 
+        /** Called under the same monitor as selection/publication, before resource cleanup. */
         fun revoke() {
             closed.set(true)
         }
@@ -223,8 +226,8 @@ object DroideCliServer {
         }
 
         private fun closeClient(client: LocalSocket) {
-            // Closing only a Java socket wrapper may leave another thread in read(). Shutdown both
-            // directions before close for active framing/transaction I/O.
+            // Closing only a Java socket wrapper may leave another thread in read().
+            // Shutdown both directions before close for active framing/transaction I/O.
             runCatching { client.shutdownInput() }
             runCatching { client.shutdownOutput() }
             runCatching { client.close() }.onSuccess { clients.remove(client) }.onFailure { closeFailure = it; clients.add(client) }

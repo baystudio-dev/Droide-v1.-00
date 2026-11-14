@@ -24,6 +24,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+
+
+
 @Composable
 fun SearchPanel(
     files: FileRepository,
@@ -58,7 +61,7 @@ fun SearchPanel(
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
+        
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Text Search", style = MaterialTheme.typography.labelLarge)
             OutlinedTextField(query, {
@@ -118,7 +121,7 @@ fun SearchPanel(
             }
         }
         HorizontalDivider()
-
+        
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("File Pattern", style = MaterialTheme.typography.labelLarge)
             OutlinedTextField(globQuery, {

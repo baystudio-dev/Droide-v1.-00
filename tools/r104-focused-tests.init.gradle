@@ -1,0 +1,17 @@
+// Focused host tests only; compile every production Kotlin/Java source without APK/native tasks.
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        executable = '/usr/bin/java'
+        systemProperty 'robolectric.offline', 'true'
+        systemProperty 'robolectric.dependency.dir', System.getProperty('droide.robolectric.dir')
+    }
+}
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    app.tasks.named('compileDebugUnitTestKotlin').configure {
+        setSource(app.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('LspHaskellProfileTest.kt', 'LspHaskellIntegrationTest.kt',
+                'LspRProfileTest.kt', 'LspRIntegrationTest.kt', 'LspClojureIntegrationTest.kt')
+        })
+    }
+}

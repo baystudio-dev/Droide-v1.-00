@@ -52,6 +52,7 @@ internal class SafProviderEffects(
         requirePlanningPhase()
     }
 
+    /** Captures all bytes and empty directories, then rechecks complete membership/content before returning. */
     fun captureBeforeTree(path: String, original: SafOwnedDocument): CapturedTree = owned {
         check(!started)
         requirePlanningPhase()
@@ -99,7 +100,7 @@ internal class SafProviderEffects(
         }
         val image = SafTreeEvidence(operationId = operation.id, treeUri = tree.toString(), rootPath = path,
             rootDocument = original, entries = Collections.unmodifiableList(entries.sortedBy { checkActive(); it.relativePath }))
-
+        // Encoding and all payload reservations are admitted before any destructive effect can be prepared.
         val ref = journal.preserveTreeIndex(operation, image, checkActive)
         verifyTree(image)
         CapturedTree(ref, image)
@@ -115,7 +116,7 @@ internal class SafProviderEffects(
         if (plan.parentCreationActionId == null) require(resolve(parentPath) == plan.parent) { "SAF parent binding changed" }
         else journal.admitParentChain(operation, plan, requireVerified = false, checkActive)
         if (plan.kind == SafEffectKind.CREATE_FILE || plan.kind == SafEffectKind.CREATE_DIRECTORY) {
-
+            // A wrong creation result may affect its parent's namespace. Reserve it before the call.
             require(operation.scopes.any { SafOperationJournal.contains(it, parentPath) }) { "SAF creation requires its parent namespace scope" }
         }
         Effect(this, journal.prepare(operation, plan, checkActive)).also { prepared += it }
@@ -139,7 +140,8 @@ internal class SafProviderEffects(
         }
         val plan = effect.action.admittedPlan
         journal.attempting(effect.action, checkActive)
-
+        // ATTEMPTING deeply rereads private evidence/manifest. Recheck the provider AFTER that window,
+        // immediately before the original call; refusal retains the honest attempted/uncertain record.
         verifyBefore(plan, allowPendingCreation = false)
         checkActive() // Cancellation after the durable attempt still leaves honest uncertainty.
         val raw = try {
@@ -287,7 +289,7 @@ internal class SafProviderEffects(
         }
         if (!checkParentChain(plan, allowPendingCreation)) {
             check(plan.original == null && plan.kind in setOf(SafEffectKind.CREATE_FILE, SafEffectKind.CREATE_DIRECTORY, SafEffectKind.WRITE_FILE))
-            return
+            return // All bytes/intents exist; the declared missing parent is verified before this child's call.
         }
         when (plan.kind) {
             SafEffectKind.CREATE_FILE, SafEffectKind.CREATE_DIRECTORY -> {
@@ -326,7 +328,7 @@ internal class SafProviderEffects(
         if (deletion.phase == SafEffectPhase.PREPARED) {
             check(allowPending) { "SAF replacement deletion is not verified" }
             check(resolve(plan.path) == deletion.plan.original) { "SAF replacement original changed" }
-            return true
+            return true // The complete set separately verifies this DELETE's whole beforeTree before any call.
         }
         journal.admitReplacementDeletion(operation, plan, checkActive)
         return false

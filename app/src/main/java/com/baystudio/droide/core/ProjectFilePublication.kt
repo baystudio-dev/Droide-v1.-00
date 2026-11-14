@@ -15,8 +15,8 @@ internal fun interface NewProjectFilePublisher {
     fun publish(staged: File, destination: File)
 
     companion object {
-        // Android SELinux forbids hard links, including inside app-private project storage. The host
-        // implementation is only for JVM tooling/tests, never a native-load fallback.
+        // Android SELinux forbids hard links, including inside app-private project storage.
+        // The host implementation is only for JVM tooling/tests, never a native-load fallback.
         val platform = NewProjectFilePublisher { staged, destination ->
             if (System.getProperty("java.vm.name") == "Dalvik" ||
                 System.getProperty("java.runtime.name") == "Android Runtime") {
@@ -69,6 +69,7 @@ internal object NativeFilePublication {
     @JvmStatic external fun moveNoReplaceAnchoredDurable(sourceRoot: Int, source: ByteArray, targetRoot: Int, target: ByteArray): Long
 }
 
+/** Same-project rename, including directories; no recursive copy or replacement fallback. */
 internal fun interface WorkspacePathMove {
     fun move(source: File, destination: File)
 

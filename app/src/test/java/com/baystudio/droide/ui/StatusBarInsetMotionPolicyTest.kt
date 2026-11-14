@@ -159,7 +159,7 @@ class StatusBarInsetMotionPolicyTest {
         motion.sample(100, 100)
         val hide = plan(motion.sample(0, 100))
         motion.sample(0, 100, fallbackFrame = frame(hide, 70f))
-
+        // The same observation carries a fresher animation value and a reversal.
         val reversed = motion.sample(100, 100, fallbackFrame = frame(hide, 62f))
         val show = plan(reversed)
         assertTop(62f, reversed)
@@ -266,7 +266,7 @@ class StatusBarInsetMotionPolicyTest {
     @Test
     fun overlayOnlyTransientRevealWithZeroInsetsDoesNotReflowContent() {
         val motion = StatusBarInsetMotionController()
-
+        // Raw bar visibility can change; no inset change means no layout change.
         repeat(20) { assertDirect(0, motion.sample(0, 100)) }
     }
 
@@ -306,7 +306,7 @@ class StatusBarInsetMotionPolicyTest {
         motion.sample(100, 100, requestedHidden = true)
         val hide = plan(motion.sample(0, 100, requestedHidden = true))
         assertTop(76f, motion.sample(0, 100, requestedHidden = true, fallbackFrame = frame(hide, 76f)))
-
+        // A first native frame still takes over before the hide has settled.
         assertDirect(51, motion.sample(51, 100, requestedHidden = true, fallbackFrame = frame(hide, 60f)))
         assertDirect(0, motion.sample(0, 100, requestedHidden = true))
         assertDirect(0, motion.sample(70, 100, requestedHidden = true))

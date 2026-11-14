@@ -9,11 +9,14 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
+
+ 
 data class AgentToolProgress(
     val outputDelta: String = "",
     val detail: String = "",
     val title: String = "",
     val fileChanges: List<AgentFileChange>? = null,
+    val producedFiles: List<String>? = null,
 )
 /** Only thrown before an append/hook is admitted; never signals rollback of persisted history. */
 internal class BrowserPublicationRevokedException(message: String) : IllegalStateException(message)
@@ -23,6 +26,7 @@ object AgentTools {
     private const val RULE_CATALOG_LIMIT = 64
     val definitions: JsonArray = AgentToolCatalog.definitions
 
+     
     fun definitionsWithCustom(
         skills: SkillManager,
         customs: CustomToolManager,
@@ -116,6 +120,7 @@ object AgentTools {
                 (allowSubagents || name !in setOf("task", "task_control", "explore_codebase"))
         })
         val extra = buildJsonArray {
+            
 
             customs.discover().forEach { ct ->
                 val name = "custom_${ct.name}"
@@ -173,7 +178,7 @@ object AgentTools {
             buildJsonObject {
                 put("name", buildJsonObject {
                     put("type", "string")
-
+                    // A partial enum would reject valid names that remain loadable.
                     if (listed.isNotEmpty() && omitted == 0 && !hasMore && discoveryNotice.isEmpty()) put("enum", JsonArray(listed))
                 })
             }, listOf("name"))
@@ -230,6 +235,7 @@ object AgentTools {
             })
         }
 
+     
     internal fun parallelReadAccess(tool: String, args: JsonObject): AgentToolReadAccess? {
         val realName = when (tool) {
             "read" -> "read_file"
@@ -245,6 +251,7 @@ object AgentTools {
         }
     }
 
+     
     fun actionOf(tool: String): String = AgentToolPermissionPolicy.actionOf(tool)
 
     class Ctx(
@@ -287,14 +294,14 @@ object AgentTools {
         internal val providerConfiguration: ProviderRegistry.ConfiguredSnapshot? = null,
         val mediaRunId: String? = null,
         val mediaRequestCurrent: () -> Boolean = { false },
-
+        // Unknown for restored/queued inputs until their original admission carries trusted evidence.
         val mediaRequestAdmittedAtNanos: Long? = null,
         val mediaCopyAttempts: MediaCopyAttemptLedger = MediaCopyAttemptLedger(),
         val onProgress: (AgentToolProgress) -> Unit = {},
     ) {
         val permissionScope: String get() = AgentPermissionScope.id(mode, provenance)
-        // Service-owned production recorder. Direct local/test callers retain their existing behavior
-        // and do not claim durable session evidence without this original owner.
+        // Service-owned production recorder. Direct local/test callers retain their existing
+        // behavior and do not claim durable session evidence without this original owner.
         internal var textEditCall: AgentTextEditCall? = null
         internal var sourceCommand: ToolCallHistoryJournal.CommandBinding? = null
         internal var sourceStdin: BackgroundCommandManager.SourceStdinBinding? = null
@@ -361,9 +368,10 @@ object AgentTools {
     }
 
     private fun startManagedCommand(c:Ctx,manager:BackgroundCommandManager,command:String,timeout:Long?,
-        disk:AgentDiskExecutionState,keep:Boolean=false,stop:Boolean=false,tty:Boolean=false):BackgroundCommandManager.Snapshot {
-        c.sourceCommand?.let {return it.start(manager,command,timeout,disk,keep,stop,tty)}
-        return manager.start(command,timeout,disk,keep,stop,tty)
+        disk:AgentDiskExecutionState,keep:Boolean?=null,stop:Boolean=false,tty:Boolean=false):BackgroundCommandManager.Snapshot {
+        val inputOpen = AgentTtyPolicy.keepStdinOpen(tty, keep)
+        c.sourceCommand?.let {return it.start(manager,command,timeout,disk,inputOpen,stop,tty)}
+        return manager.start(command,timeout,disk,inputOpen,stop,tty)
     }
 
     suspend fun execute(name: String, args: JsonObject, c: Ctx): String {
@@ -373,7 +381,7 @@ object AgentTools {
 
     private suspend fun executeUnscoped(name: String, args: JsonObject, c: Ctx): String {
         return try {
-
+        
         val realName = when (name) {
             "bash" -> "run_command"
             "edit" -> "edit_file"
@@ -382,7 +390,7 @@ object AgentTools {
             "grep" -> "search_files"
             else -> name
         }
-
+        
         if (!c.perms.toolAllowed(realName)) return "DENIED (agent profile): tool '$realName' is outside this Agent profile capability set."
         if (McpToolIdentity.isFirstClassName(realName)) {
             AgentModePolicy.check(c.mode, realName)?.let { return it }
@@ -409,8 +417,8 @@ object AgentTools {
         if (realName.startsWith("plugin_")) {
             val manager = AgentPluginToolManager(c.workDir, c.pluginSource)
             val def = manager.discover().firstOrNull { it.functionName == realName } ?: return "ERROR: Agent plugin tool not found: $realName"
-            // Snapshot once so review, permission identity and execution cannot diverge if a caller retains
-            // mutable backing collections for its JsonObject.
+            // Snapshot once so review, permission identity and execution cannot diverge
+            // if a caller retains mutable backing collections for its JsonObject.
             val payload = args.toString()
             val input = Json.parseToJsonElement(payload).jsonObject
             val resource = manager.permissionResource(def, input)
@@ -424,6 +432,7 @@ object AgentTools {
             val real = realName.removePrefix("custom_")
             val custom = CustomToolManager(c.workDir)
             val fingerprint = custom.permissionFingerprint(real) ?: return "ERROR: custom tool not found: $real"
+            
 
             val input = args["input"]?.jsonPrimitive?.contentOrNull ?: args.toString()
             val review = inputReviewFactory(ApprovalInputReview.Label.CUSTOM_TOOL, input,
@@ -504,8 +513,8 @@ object AgentTools {
                 }
                 val paths = if (c.appContext != null && c.sessionId != null && p.startsWith(".droide/chat-media/blobs/")) {
                     val ref = requireNotNull(ChatMediaStore(c.workDir).findByPath(p)) { "Attachment is expired or unavailable" }
-                    // Uploaded/generated originals may exceed the provider's image budget. Reuse the same bounded
-                    // cached image projection as prompt attachments instead of rejecting them.
+                    // Uploaded/generated originals may exceed the provider's image budget. Reuse the
+                    // same bounded cached image projection as prompt attachments instead of rejecting them.
                     if (p == ref.path) {
                         require(ref.mediaType.startsWith("image/")) { "Use view_video for a video attachment" }
                         ChatMediaProcessing.prepareModelImages(c.workDir, listOf(ref), c.sessionId).imagePaths
@@ -520,7 +529,8 @@ object AgentTools {
             "document", "audio" -> {
                 val context = requireNotNull(c.appContext) { "Media authoring is unavailable in this context" }
                 MediaAuthoringTools(c.files, c.terminal, { context.assets.open(MediaAuthoringTools.ASSET).bufferedReader().use { it.readText() } },
-                    c.documentAuthority, { check(c.mediaRequestCurrent()) { "Media request is no longer current" } })
+                    c.documentAuthority, { check(c.mediaRequestCurrent()) { "Media request is no longer current" } },
+                    onProducedFile = { c.onProgress(AgentToolProgress(producedFiles = listOf(it))) })
                     .execute(name, args, c.mode, c.sessionId) { action, resource -> gate(action, resource, c) }
             }
             "generate_image" -> (c.imageGeneration ?: AgentImageGeneration()).generate(args, c) { action, resource -> gate(action, resource, c) }
@@ -612,7 +622,7 @@ object AgentTools {
             }
             "apply_patch" -> {
                 val patch = req(args, "patchText")
-
+                // Preserve exact editor identities and existing patch preflight semantics.
                 val ops = PatchTool.parse(patch)
                 val reviewed = PatchTool.reviewWorkspaceSnapshot(ops, c.files, c.documentAuthority)
                 val endpoints = patchEndpointBindings(reviewed.before.keys, c.files)
@@ -638,7 +648,7 @@ object AgentTools {
                 val reviewedYieldMs = if (!background && commandManager != null)
                     AgentCommandSessions.yieldMs(args, AgentTimeoutPolicy.COMMAND_YIELD_MS) else null
                 val inputReview = inputReviewFactory(ApprovalInputReview.Label.COMMAND, cmd,
-                    "Project: ${c.workDir.absolutePath}\nInteractive: $requiresTty\nBackground: $background\nKeep stdin open: false\nTimeout ms: ${requestedTimeout ?: "none"}\nYield ms: ${reviewedYieldMs ?: "not used"}", c)
+                    "Project: ${c.workDir.absolutePath}\nInteractive: $requiresTty\nBackground: $background\nKeep stdin open: $requiresTty\nTimeout ms: ${requestedTimeout ?: "none"}\nYield ms: ${reviewedYieldMs ?: "not used"}", c)
                 shellContainmentGate(cmd, c, inputReview)?.let { return it }
                 if (requiresTty) gateWithPreview("shell", cmd, "run_command", "Run interactive command in the selected terminal tab", "The human shell is preserved; the owned interactive process will use this tab until it exits.\n\n$cmd", c, inputReviewFactory = inputReview)?.let { return it }
                 else gate("shell", cmd, c, inputReviewFactory = inputReview)?.let { return it }
@@ -693,15 +703,16 @@ object AgentTools {
                 val requiresTty = args["requires_tty"]?.jsonPrimitive?.booleanOrNull == true
                 val yieldMs = AgentCommandSessions.yieldMs(args)
                 val timeout = args["timeout_ms"]?.jsonPrimitive?.longOrNull
-                val keepInput = args["keep_stdin_open"]?.jsonPrimitive?.booleanOrNull ?: false
+                val keepInput = AgentTtyPolicy.keepStdinOpen(requiresTty, args["keep_stdin_open"]?.jsonPrimitive?.booleanOrNull)
                 val inputReview = inputReviewFactory(ApprovalInputReview.Label.COMMAND, cmd,
                     "Project: ${c.workDir.absolutePath}\nInteractive: $requiresTty\nKeep stdin open: $keepInput\nTimeout ms: ${timeout ?: "none"}\nYield ms: $yieldMs", c)
                 shellContainmentGate(cmd, c, inputReview)?.let { return it }
                 if (requiresTty) gateWithPreview("shell", cmd, "exec_command", "Run interactive command in the selected terminal tab", "The human shell is preserved; the owned interactive process will use this tab until it exits.\n\n$cmd", c, inputReviewFactory = inputReview)?.let { return it }
                 else gate("shell", cmd, c, inputReviewFactory = inputReview)?.let { return it }
                 AgentEditPersistence.commandBlocker(c.documentAuthority)?.let { return it }
-                // BackgroundCommandManager.start binds the user-selected tab before checking stdin capability. A
-                // separate router preflight can race a tab switch and incorrectly authorize a different backend.
+                // BackgroundCommandManager.start binds the user-selected tab before
+                // checking stdin capability. A separate router preflight can race
+                // a tab switch and incorrectly authorize a different backend.
                 val diskState = AgentDiskExecutionState.capture(c.documentAuthority)
                 currentCoroutineContext().ensureActive()
                 val job = startManagedCommand(c,manager,cmd,timeout,diskState,keepInput,stop=true,tty=requiresTty)
@@ -736,7 +747,7 @@ object AgentTools {
                     val digest = java.security.MessageDigest.getInstance("SHA-256")
                         .digest(chars.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
                     val resource = "command-session:$id:input-sha256=$digest:close=$closeInput:interrupt=$interrupt"
-
+                    // Input can complete shell syntax created by a previous turn; it has no independent containment proof.
                     if (chars.isNotEmpty()) gate("shell_escape", resource, c, inputReviewFactory = inputReview)?.let { return it }
                     gate("shell", resource, c, inputReviewFactory = inputReview)?.let { return it }
                     if (binding == null) {
@@ -984,7 +995,7 @@ object AgentTools {
                 }
             }
             "todowrite" -> {
-
+                
                 val arr = args["todos"]?.jsonArray
                 if (arr == null) return c.todos.snapshot(c.sessionId)
                 val list = arr.mapNotNull { el ->
@@ -1043,7 +1054,7 @@ object AgentTools {
                 if (op == "dialog_respond") require(input in setOf("accept", "dismiss")) { "dialog_respond text must be accept or dismiss" }
                 require(input == null || input.length <= 20_000) { "Browser input is too large" }
                 require(dialogText == null || dialogText.length <= AgentBrowserDialogs.MAX_RESPONSE_CHARACTERS) { "Browser dialog response is too large" }
-
+                // Capture before the first approval suspension, including read/local approvals.
                 browserUnverifiedOutputDenial(op, c)?.let { return it }
                 val reviewIdentity = controller.captureReviewIdentity()
                 val fullPage = args["full_page"]?.jsonPrimitive?.booleanOrNull ?: false
@@ -1091,8 +1102,8 @@ object AgentTools {
                         (reviewedDialog == null || controller.pendingDialog.value == reviewedDialog)
                 }
                 suspend fun reviewPermission(action: String, resource: String, sessionResource: String = resource): String? {
-                    // Check every known requirement before each prompt, including after another approval suspended.
-                    // One ASK must never mask a later DENY.
+                    // Check every known requirement before each prompt, including after
+                    // another approval suspended. One ASK must never mask a later DENY.
                     browserPermissionDenial(requiredPermissions, c)?.let { return it }
                     val result = gate(action, resource, c, sessionResource,
                         browserReview(action, effectiveUrl), reviewStillCurrent)
@@ -1105,8 +1116,8 @@ object AgentTools {
                 }
                 reviewPermission("webfetch", readResource, BrowserSessionApprovalScope.browserReadGrantResource(readResource))?.let { return it }
                 if (loopback) reviewPermission("browser_local", effectiveUrl)?.let { return it }
-                // The native dialog's requesting URL is a known source, not a claim that the top-level document
-                // owns every frame. Review both scopes.
+                // The native dialog's requesting URL is a known source, not a claim
+                // that the top-level document owns every frame. Review both scopes.
                 reviewedDialog?.sourceUrl?.takeIf { it != effectiveUrl }?.let { source ->
                     val sourceInteraction = BrowserInteractionAuthority.policyResource(source, op, target)
                     browserPermissionDenial(requiredPermissions, c)?.let { return it }
@@ -1123,8 +1134,8 @@ object AgentTools {
                     }
                 }
                 for (source in consoleSources.filter { it != effectiveUrl }) {
-                    // Site-session consent covers captured embedded output, not future navigation/control of that
-                    // origin. Concrete DENY rules remain in requiredPermissions before dispatch and publication.
+                    // Site-session consent covers captured embedded output, not future navigation/control of that origin.
+                    // Concrete DENY rules remain in requiredPermissions before dispatch and publication.
                     if (BrowserSiteSession.resource(effectiveUrl)?.let { resource ->
                         c.approvals.hasSessionApproval(c.provenance.sessionId.ifBlank { c.sessionId.orEmpty() },
                             c.permissionScope, BrowserSiteSession.ACTION, resource)
@@ -1211,7 +1222,8 @@ object AgentTools {
                     } catch (revoked: BrowserPublicationRevokedException) {
                         return revoked.message.orEmpty()
                     } catch (failure: Exception) {
-
+                        // Renderer/JavaScript exception strings may contain unreviewed page
+                        // data. Diagnostics stay generic until a separately authorized read.
                         return "ERROR: browser operation could not complete (${failure.javaClass.simpleName}); inspect the active page before retrying. It was not replayed."
                     }
                     var published = false
@@ -1219,7 +1231,8 @@ object AgentTools {
                     try {
                         browserObservationGate(observation, readResource, loopback, c, op, target, requiredPermissions,
                             (listOfNotNull(reviewedDialog?.sourceUrl) + consoleSources).distinct())?.let { return it }
-
+                        // Capture immutable operation and observed-source scopes before any
+                        // retained-media callback or outer post-tool hook can suspend.
                         c.browserPublication.capture {
                             if (!c.browserRequestCurrent() || browserPermissionDenial(requiredPermissions, c) != null)
                                 "DENIED (policy or request changed): Browser output was withheld; do not replay the action automatically."
@@ -1230,8 +1243,8 @@ object AgentTools {
                         if (op == "screenshot" && c.sessionId != null && observation.media != null) {
                             retainedMediaOwner = c.sessionId
                             controller.retainObservationMedia(observation, c.sessionId)
-                            // Disk ownership transfer can suspend; policy must still permit this immutable source before
-                            // text or media becomes visible.
+                            // Disk ownership transfer can suspend; policy must still permit
+                            // this immutable source before text or media becomes visible.
                             c.browserPublication.denial()?.let { return it }
                             currentCoroutineContext().ensureActive()
                             c.onMediaReady?.invoke(observation.media)
@@ -1253,6 +1266,9 @@ object AgentTools {
                 val type = req(args, "type")
                 val content = req(args, "content")
                 val art = ArtifactManager(c.workDir).create(type, content)
+                try { c.onProgress(AgentToolProgress(producedFiles = listOf(".droide/artifacts/${art.id}.md"))) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { /* The artifact remains published even if its display detached. */ }
                 "Created artifact ${art.id} ($type) at ${art.file.absolutePath}"
             }
             else -> "Unknown tool: $name"
@@ -1269,7 +1285,7 @@ object AgentTools {
         val expectedBefore = DiskFileVersion.fromText(before)
         val expectedAfter = DiskFileVersion.fromText(after)
         val observation = c.files.prepareTextWriteObservation(path, after, expectedBefore)
-
+        // Approval and hooks can suspend after this invocation captured its original root.
         c.textEditCall?.requirePreparationOwner()
         val pending = c.history.prepareBatch("edit $path", mapOf(path to before))
         var failure: Throwable? = null
@@ -1286,8 +1302,9 @@ object AgentTools {
             else failure = metadataFailure
         }
         val committed = observation.disposition == FileRepository.TextWriteDisposition.OWNED_CURRENT
-        // Matching bytes alone never establish a historical commit, and Stop never waits in
-        // NonCancellable to acquire a second mutation owner's root lock.
+        // The repository captured this disposition before releasing its original guard.
+        // Matching bytes alone never establish a historical commit, and Stop never waits
+        // in NonCancellable to acquire a second mutation owner's root lock.
         when (observation.disposition) {
             FileRepository.TextWriteDisposition.OWNED_CURRENT -> c.history.commitBatch(pending, diskAfter = mapOf(path to after))
             FileRepository.TextWriteDisposition.UNCHANGED_WITHOUT_WRITE ->
@@ -1305,8 +1322,8 @@ object AgentTools {
         if (failure is ProjectFileSyncException && failure.relativePath == path &&
             failure.bytes == expectedAfter.bytes && committed && metadataFailure == null) return true
         if (failure != null) {
-            // A callback can throw this type before publication. Its message must not manufacture
-            // saved-local status when there is no attributable receipt.
+            // A callback can throw this type before publication. Its message must not
+            // manufacture saved-local status when there is no attributable receipt.
             if (failure is ProjectFileSyncException && !committed)
                 throw IllegalStateException("Write publication was not verified for $path", failure)
             throw failure
@@ -1328,12 +1345,13 @@ object AgentTools {
         }
     }
 
+
     private fun patchEndpointBindings(paths: Set<String>, files: FileRepository): Map<String, String> {
         require(paths.isNotEmpty() && paths.size <= 200) { "Invalid patch endpoint set" }
         val root = files.root.canonicalFile.toPath()
         return paths.associateWith { value ->
             val normalized = value.replace('\\', '/')
-
+            // Match FileRepository.normalizeRel's existing input rejection before resolving aliases.
             require(normalized.split('/').none { it == "." || it == ".." }) { "Dot path segments are not allowed: $value" }
             root.relativize(files.resolveChecked(normalized).toPath())
                 .toString().replace(java.io.File.separatorChar, '/')
@@ -1352,8 +1370,8 @@ object AgentTools {
         decisions.firstOrNull { it.second == PermEffect.DENY }?.let { return "DENIED (policy): edit ${it.first}" }
         if (decisions.none { it.second == PermEffect.ASK }) return null
 
-        // Preserve legitimate single-file edit grants only when normalization is lossless. Multi-target
-        // identity is namespaced so no real filename can collide with its digest.
+        // Preserve legitimate single-file edit grants only when normalization is lossless.
+        // Multi-target identity is namespaced so no real filename can collide with its digest.
         val ordinaryTarget = targets.singleOrNull()?.takeIf { target ->
             target == target.trim() && target.length <= 4_096 &&
                 '\u0000' !in target && '\n' !in target && '\r' !in target
@@ -1414,6 +1432,7 @@ object AgentTools {
     }
 
     // pre-execution containment permission order.
+
 
     /** Capture original immutable input and owner once; hashing/reader creation occurs only ASK. */
     private suspend fun inputReviewFactory(label: ApprovalInputReview.Label, text: String,
@@ -1498,6 +1517,7 @@ object AgentTools {
         }
     }
 
+    /** Full concrete resources stay authoritative even when an ASK has a reusable grant. */
     private fun browserPermissionDenial(required: List<Pair<String, String>>, c: Ctx): String? =
         required.firstOrNull { (action, resource) ->
             c.perms.decide(action, resource, c.permissionScope) == PermEffect.DENY
@@ -1535,7 +1555,8 @@ object AgentTools {
                 gate("browser_local", source, c, browserContext = review(source), approvalValid = approvalValid)?.let { return "${browserPermissionDenial(requiredPermissions, c) ?: it}\n$withheld" }
             }
         }
-
+        // A later source approval can suspend. Recheck all sources against DENY
+        // immediately before the caller publishes text or screenshot media.
         return browserObservationPolicyCheck(observation, reviewedResource, c, operation)
     }
 

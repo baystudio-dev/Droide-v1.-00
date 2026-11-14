@@ -10,9 +10,34 @@ import java.nio.file.attribute.BasicFileAttributes
 internal object UbuntuGuestRecoveryInspection {
     data class BootstrapState(val previousExists: Boolean, val stageExists: Boolean, val finalExists: Boolean)
 
-    fun bootstrap(previous: File, stage: File, current: File): BootstrapState = BootstrapState(
-        attributes(previous) != null, attributes(stage) != null, attributes(current) != null,
-    )
+    fun bootstrap(previous: File, stage: File, current: File): BootstrapState {
+        // NOFOLLOW_LINKS on a leaf still traverses its parents. Reject redirected cleanup/restore paths.
+        requireDirectParent(current)
+        requireDirectParent(stage)
+        val currentExists = guestDirectoryExists(current)
+        val stageExists = guestDirectoryExists(stage)
+        // An unused backup cannot block a current guest; the reconciler never restores it over that guest.
+        val previousExists = if (currentExists) attributes(previous) != null else {
+            requireDirectParent(previous)
+            guestDirectoryExists(previous)
+        }
+        return BootstrapState(previousExists, stageExists, currentExists)
+    }
+
+    private fun requireDirectParent(path: File) {
+        val parent = path.parentFile
+        check(parent != null && attributes(parent)?.isSymbolicLink != true) {
+            "Unsafe Ubuntu bootstrap directory; retained data was not changed: $parent"
+        }
+    }
+
+    private fun guestDirectoryExists(path: File): Boolean {
+        val entry = attributes(path) ?: return false
+        check(entry.isDirectory && !entry.isSymbolicLink) {
+            "Unexpected Ubuntu bootstrap entry; retained data was not changed: $path"
+        }
+        return true
+    }
 
     suspend fun recoverLegacyCompactionIfPresent(launcher: File, transaction: File, recover: suspend () -> Unit) {
         val launch = attributes(launcher) ?: return

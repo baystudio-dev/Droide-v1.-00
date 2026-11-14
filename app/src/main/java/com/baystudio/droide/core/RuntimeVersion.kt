@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 data class RuntimeVersion(val major: Int, val minor: Int = 0, val patch: Int = 0) : Comparable<RuntimeVersion> {
     override fun compareTo(other: RuntimeVersion): Int =
         compareValuesBy(this, other, RuntimeVersion::major, RuntimeVersion::minor, RuntimeVersion::patch)

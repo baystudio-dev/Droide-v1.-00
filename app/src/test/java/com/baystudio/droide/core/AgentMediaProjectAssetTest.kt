@@ -546,7 +546,7 @@ class AgentMediaProjectAssetTest {
         assertSaved(execute(ref, "asset.png", context(runId = runId)))
         val actual = ProjectCopyJournal(root).recovery(ProjectCopyJournal.Scope(ProjectCopyJournal.Kind.AGENT_MEDIA, owner)).records.single()
         Files.delete(root.resolve("asset.png").toPath())
-
+        // A new context supplies a new in-memory ledger, so this exercises direct journal admission.
         val replay = execute(ref, "asset.png", context(runId = runId))
         assertTrue(replay, replay.startsWith("MEDIA_SAVE_RECEIPT_REPLAY "))
         val receipt = Json.parseToJsonElement(replay.substringAfter(' ')).jsonObject
@@ -585,7 +585,7 @@ class AgentMediaProjectAssetTest {
         val first = execute(ref, "new.png")
         assertTrue(first, first.startsWith("ERROR: MEDIA_COPY_OUTCOME_UNKNOWN "))
         journal.acknowledge(scope, journal.inspect(scope, lease.intent.id).token)
-
+        // This context deliberately lacks original queue admission evidence, as production does.
         val second = execute(ref, "new.png")
         assertTrue(second, second.startsWith("ERROR: MEDIA_COPY_OUTCOME_UNKNOWN "))
         assertFalse(root.resolve("new.png").exists())

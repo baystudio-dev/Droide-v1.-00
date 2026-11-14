@@ -43,8 +43,8 @@ class AgentPartialOutcomeBaselineTest {
             assertEquals(stored.apiHistory, restored.boundedApiHistory())
             assertEquals(1, env.provider.requests.size)
             assertEquals(0, env.terminal.executionCalls.get())
-            // Central RED: current persists only generic cancellation, losing the invocation-owned
-            // local-publication observation already earned by this edit.
+            // Central RED: current R23 persists only generic cancellation, losing the
+            // invocation-owned local-publication observation already earned by this edit.
             assertTrue("Fresh original-session load must retain the cancelled invocation's local write observation: ${part.detail}",
                 part.detail.contains("local write observed", ignoreCase = true))
             assertFalse("Cancellation evidence must not claim rollback", part.detail.contains("rolled back", ignoreCase = true))
@@ -94,8 +94,8 @@ class AgentPartialOutcomeBaselineTest {
                 assertEquals(0, env.terminal.executionCalls.get())
                 val observations = restored.messages.value.mapNotNull { it.streamPart }
                     .filter { it.detail.contains("local write observed", ignoreCase = true) }
-                // Central RED variant: stale UI publication is correctly rejected today, but there is no durable
-                // old-operation evidence for a deliberate reload.
+                // Central RED variant: stale UI publication is correctly rejected today,
+                // but there is no durable old-operation evidence for a deliberate reload.
                 assertEquals("Original-session reload must project exactly one historical local write observation", 1, observations.size)
                 assertEquals(AgentStreamPartState.CANCELLED, observations.single().state)
                 assertTrue(observations.single().title.contains("note.txt"))

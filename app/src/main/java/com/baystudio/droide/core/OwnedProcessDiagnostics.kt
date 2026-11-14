@@ -28,6 +28,7 @@ class OwnedProcessDiagnostics(private val commands: BackgroundCommandManager) {
         }
     }
 
+    // Commands and output can contain credentials. These diagnostics deliberately expose neither.
     private fun render(value: BackgroundCommandManager.Snapshot): String = buildString {
         append("id=${value.id} state=${value.state.name.lowercase()}")
         value.exitCode?.let { append(" exit=$it") }

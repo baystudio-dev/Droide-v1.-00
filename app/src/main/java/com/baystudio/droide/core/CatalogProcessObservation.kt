@@ -21,7 +21,7 @@ internal class CatalogProcessObservation private constructor(
         currentCoroutineContext().ensureActive()
     }
     fun evidence(terminals: CatalogReleasePreflight.ProcessEvidence? = null, children: CatalogReleasePreflight.ProcessEvidence? = null): CatalogReleasePreflight.ProcessEvidence = CatalogReleasePreflight.ProcessEvidence(
-        liveOwners = emptyList(),
+        liveOwners = emptyList(), // No OS liveness property is probed by this collector.
         participatingWriters = buildList {
             writers.writers.forEach { add("Participating writer: ${it.label} (${it.count})") }
             writers.managed.forEach { add("Managed writer: ${it.label} (${it.count})") }

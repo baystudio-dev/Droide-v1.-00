@@ -8,7 +8,7 @@
   "licenseFile": "LICENSE",
   "upstreamScope": "Material Icon Theme file-type artwork, not vendor-issued Adobe or Microsoft assets. The upstream repository LICENSE is MIT; its README credits Material Design Icons and Material Symbols as icon sources.",
   "trademarkNotice": "Adobe/Acrobat/PDF and Microsoft/Word marks remain with their respective owners. The artwork identifies file formats only. The copyright license does not grant trademark rights or imply sponsorship, endorsement, affiliation, or release clearance.",
-  "conversion": "tools/generate_document_file_icons.py preserves exact upstream SVG path data, viewport and nonzero fill rule. PDF fill is unchanged. Word fill changes from #01579b to #1e88e5 for visibility on both dark and light workbench backgrounds; no shape edits or bitmap conversion.",
+  "conversion": "tools/generate_document_file_icons.py preserves upstream path data, circle geometry, translations, viewport and fill colors. Circles use exact arc paths. Word fill changes from #01579b to #1e88e5 for visibility on both dark and light workbench backgrounds. No raster conversion.",
   "assets": [
     {
       "name": "pdf",
@@ -31,6 +31,440 @@
       "drawable": "app/src/main/res/drawable/filetype_word.xml",
       "sourceFill": "#01579b",
       "androidFill": "#1e88e5"
+    },
+    {
+      "name": "env",
+      "upstreamPath": "icons/tune.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/tune.svg",
+      "sourceFile": "tune.svg",
+      "sourceBytes": 268,
+      "sourceSha256": "786079eb0fe6434373f36f016470176df8983372756a3facd900ea39e5d36771",
+      "drawable": "app/src/main/res/drawable/filetype_env.xml",
+      "sourceFill": "#fbc02d",
+      "androidFill": "#fbc02d",
+      "viewport": 32,
+      "pathCount": 3,
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "astro",
+      "upstreamPath": "icons/astro.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/astro.svg",
+      "sourceFile": "astro.svg",
+      "sourceBytes": 686,
+      "sourceSha256": "ce236ce30e793dec0a842367d99b9999b30463c24b984306f75fd00983bd18f8",
+      "drawable": "app/src/main/res/drawable/filetype_astro.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "audio",
+      "upstreamPath": "icons/audio.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/audio.svg",
+      "sourceFile": "audio.svg",
+      "sourceBytes": 185,
+      "sourceSha256": "d4dc1adb8cb99055cb8ad0c2428d6d73ebd94435b575084af1b2e0d1f82f6cf2",
+      "drawable": "app/src/main/res/drawable/filetype_audio.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "certificate",
+      "upstreamPath": "icons/certificate.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/certificate.svg",
+      "sourceFile": "certificate.svg",
+      "sourceBytes": 282,
+      "sourceSha256": "39d88aa44bc96bb54119e03ae6f1762a667265fc079ce044e232355f68dae898",
+      "drawable": "app/src/main/res/drawable/filetype_certificate.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "cmake",
+      "upstreamPath": "icons/cmake.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/cmake.svg",
+      "sourceFile": "cmake.svg",
+      "sourceBytes": 328,
+      "sourceSha256": "a7b782fe42372a21b32c22e8dc6e6728b146d7fbfd961e10273bdd2978f5213c",
+      "drawable": "app/src/main/res/drawable/filetype_cmake.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "cobol",
+      "upstreamPath": "icons/cobol.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/cobol.svg",
+      "sourceFile": "cobol.svg",
+      "sourceBytes": 537,
+      "sourceSha256": "20e49f182001bc3d8164240ad923c85df69209f6c65e526a6da3d8d493da8e61",
+      "drawable": "app/src/main/res/drawable/filetype_cobol.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "coffee",
+      "upstreamPath": "icons/coffee.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/coffee.svg",
+      "sourceFile": "coffee.svg",
+      "sourceBytes": 208,
+      "sourceSha256": "076605f5cb903879171bd3884a77304a78197ae4a5ec25e6a0fa0c8dd7a483be",
+      "drawable": "app/src/main/res/drawable/filetype_coffee.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "text",
+      "upstreamPath": "icons/document.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/document.svg",
+      "sourceFile": "document.svg",
+      "sourceBytes": 234,
+      "sourceSha256": "64f5da56de591d5f429d2c7f5f5733388b3ce704762631ba0b487a08475f9452",
+      "drawable": "app/src/main/res/drawable/filetype_text.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "eslint",
+      "upstreamPath": "icons/eslint.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/eslint.svg",
+      "sourceFile": "eslint.svg",
+      "sourceBytes": 665,
+      "sourceSha256": "aeb3a553e20f087a60e4a4f09ebbe59f9928a8c58293ce4c80b9e00f2ece1db7",
+      "drawable": "app/src/main/res/drawable/filetype_eslint.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "exe",
+      "upstreamPath": "icons/exe.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/exe.svg",
+      "sourceFile": "exe.svg",
+      "sourceBytes": 178,
+      "sourceSha256": "423e33947323264bcfccb2574a222c816589bf2a02cda0f731fa7167162cb9c8",
+      "drawable": "app/src/main/res/drawable/filetype_exe.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "font",
+      "upstreamPath": "icons/font.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/font.svg",
+      "sourceFile": "font.svg",
+      "sourceBytes": 165,
+      "sourceSha256": "092850724e8e29ff1ad8afc53a87185d6fb8c7b8287174dd7783f8531d2acccd",
+      "drawable": "app/src/main/res/drawable/filetype_font.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "fortran",
+      "upstreamPath": "icons/fortran.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/fortran.svg",
+      "sourceFile": "fortran.svg",
+      "sourceBytes": 230,
+      "sourceSha256": "a2cb4b69dc0a7603302ba90c8efbd225e724f9edff4be20914214da7344539b1",
+      "drawable": "app/src/main/res/drawable/filetype_fortran.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "fsharp",
+      "upstreamPath": "icons/fsharp.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/fsharp.svg",
+      "sourceFile": "fsharp.svg",
+      "sourceBytes": 344,
+      "sourceSha256": "483255ce168ae97bbcdd1320cae4d2ca874332340bc9505802f17a570963b4ba",
+      "drawable": "app/src/main/res/drawable/filetype_fsharp.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "git",
+      "upstreamPath": "icons/git.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/git.svg",
+      "sourceFile": "git.svg",
+      "sourceBytes": 729,
+      "sourceSha256": "b0caee7c9cb4e602536e2f5a384740e7c8bc5ab94d98bfdde529f1eb97938213",
+      "drawable": "app/src/main/res/drawable/filetype_git.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "image",
+      "upstreamPath": "icons/image.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/image.svg",
+      "sourceFile": "image.svg",
+      "sourceBytes": 346,
+      "sourceSha256": "838e1953a3a2ebf5c6a06b662892ba17e1c605c4379a77c61737639e51fb4f0a",
+      "drawable": "app/src/main/res/drawable/filetype_image.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "archive",
+      "upstreamPath": "icons/jar.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/jar.svg",
+      "sourceFile": "jar.svg",
+      "sourceBytes": 281,
+      "sourceSha256": "8f80a612b0a4af600b2e4ac520fc9ba41dcc0cb4070ca5c88f717f76c9186d39",
+      "drawable": "app/src/main/res/drawable/filetype_archive.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "julia",
+      "upstreamPath": "icons/julia.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/julia.svg",
+      "sourceFile": "julia.svg",
+      "sourceBytes": 282,
+      "sourceSha256": "91bb0d7b2338158aedd7e10578bebe3ae3e7b6177ea51b011cbcc02c9ebf4c9d",
+      "drawable": "app/src/main/res/drawable/filetype_julia.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "jupyter",
+      "upstreamPath": "icons/jupyter.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/jupyter.svg",
+      "sourceFile": "jupyter.svg",
+      "sourceBytes": 383,
+      "sourceSha256": "2656609475ff60fd21adb14103506687c2649cccbe29417f6f5649a9fc605f82",
+      "drawable": "app/src/main/res/drawable/filetype_jupyter.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "key",
+      "upstreamPath": "icons/key.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/key.svg",
+      "sourceFile": "key.svg",
+      "sourceBytes": 175,
+      "sourceSha256": "b55707c459b99aa88424208f409f2996c1b29efcaec638c362f8500cae6d2fb5",
+      "drawable": "app/src/main/res/drawable/filetype_key.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "less",
+      "upstreamPath": "icons/less.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/less.svg",
+      "sourceFile": "less.svg",
+      "sourceBytes": 325,
+      "sourceSha256": "bbaf08ad608b3e8137dc1a5e25cd4d9cec6b6c2fced6926186b08c51ce160003",
+      "drawable": "app/src/main/res/drawable/filetype_less.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "license",
+      "upstreamPath": "icons/license.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/license.svg",
+      "sourceFile": "license.svg",
+      "sourceBytes": 225,
+      "sourceSha256": "4b0a147a39eade32f9164fcd6b8465fd543cda315b71bbc9e28c236a6abf5d09",
+      "drawable": "app/src/main/res/drawable/filetype_license.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "lock",
+      "upstreamPath": "icons/lock.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/lock.svg",
+      "sourceFile": "lock.svg",
+      "sourceBytes": 246,
+      "sourceSha256": "f28fe89b018236f9de2abd1c10abf278bf3f2ec9b757bb6746a44704ebedc084",
+      "drawable": "app/src/main/res/drawable/filetype_lock.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "log",
+      "upstreamPath": "icons/log.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/log.svg",
+      "sourceFile": "log.svg",
+      "sourceBytes": 236,
+      "sourceSha256": "71501c5f23a5b85b8080f2c619b2b84807ee5203fa48e9ed740cf5acef060116",
+      "drawable": "app/src/main/res/drawable/filetype_log.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "nix",
+      "upstreamPath": "icons/nix.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/nix.svg",
+      "sourceFile": "nix.svg",
+      "sourceBytes": 4114,
+      "sourceSha256": "795acf01e2c47121dde2268d6ecf9424f24ef198e126b57a09b612a722409b65",
+      "drawable": "app/src/main/res/drawable/filetype_nix.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "npm",
+      "upstreamPath": "icons/npm.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/npm.svg",
+      "sourceFile": "npm.svg",
+      "sourceBytes": 132,
+      "sourceSha256": "6bd740d3e31675d17e615d4c9ea4eab6714d1cd20a0d8220b87897236d82170b",
+      "drawable": "app/src/main/res/drawable/filetype_npm.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "ocaml",
+      "upstreamPath": "icons/ocaml.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/ocaml.svg",
+      "sourceFile": "ocaml.svg",
+      "sourceBytes": 2383,
+      "sourceSha256": "836e92e7e93b9291bb46a6b28280555f733fe447e5142a4695bbe888a2ef30c5",
+      "drawable": "app/src/main/res/drawable/filetype_ocaml.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "pascal",
+      "upstreamPath": "icons/pascal.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/pascal.svg",
+      "sourceFile": "pascal.svg",
+      "sourceBytes": 360,
+      "sourceSha256": "fc55328694fe017feaa274ddf49a6f9e0832a767cd14640fe724e4383c3a7940",
+      "drawable": "app/src/main/res/drawable/filetype_pascal.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "powerpoint",
+      "upstreamPath": "icons/powerpoint.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/powerpoint.svg",
+      "sourceFile": "powerpoint.svg",
+      "sourceBytes": 261,
+      "sourceSha256": "40468deea73e07067459c0c3b0bbef0697e93afbc4533e961d1b441f5294871e",
+      "drawable": "app/src/main/res/drawable/filetype_powerpoint.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "prettier",
+      "upstreamPath": "icons/prettier.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/prettier.svg",
+      "sourceFile": "prettier.svg",
+      "sourceBytes": 346,
+      "sourceSha256": "b81b3661b6ec0aacaf8806311be235ea0bd4eb641fb73b8c0173680efdc6c83f",
+      "drawable": "app/src/main/res/drawable/filetype_prettier.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "racket",
+      "upstreamPath": "icons/racket.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/racket.svg",
+      "sourceFile": "racket.svg",
+      "sourceBytes": 667,
+      "sourceSha256": "a055652eb252a916d0ef3b86e709581fd0f4daa82edaa6b53c23711ad5c1c1c2",
+      "drawable": "app/src/main/res/drawable/filetype_racket.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "sass",
+      "upstreamPath": "icons/sass.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/sass.svg",
+      "sourceFile": "sass.svg",
+      "sourceBytes": 1281,
+      "sourceSha256": "e613bd47d598c54c9bda64db765039b54b3db4a6b45de0b1976b45956ebc1023",
+      "drawable": "app/src/main/res/drawable/filetype_sass.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "scheme",
+      "upstreamPath": "icons/scheme.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/scheme.svg",
+      "sourceFile": "scheme.svg",
+      "sourceBytes": 257,
+      "sourceSha256": "88b8d51d5b05d0e4cde4d5ba346fb52d2bc38dcd75ef3eb95d6d5ec0d1150fdc",
+      "drawable": "app/src/main/res/drawable/filetype_scheme.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "stylus",
+      "upstreamPath": "icons/stylus.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/stylus.svg",
+      "sourceFile": "stylus.svg",
+      "sourceBytes": 547,
+      "sourceSha256": "a81f5daf333cbaaeae38040da91a8b6f0fbe13073630021ed0bc3f87b2594b78",
+      "drawable": "app/src/main/res/drawable/filetype_stylus.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "table",
+      "upstreamPath": "icons/table.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/table.svg",
+      "sourceFile": "table.svg",
+      "sourceBytes": 268,
+      "sourceSha256": "1714898c0d538648edb0f8dd041d97435aa8cbac078c5897f9fa8103b36f029a",
+      "drawable": "app/src/main/res/drawable/filetype_table.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "tsconfig",
+      "upstreamPath": "icons/tsconfig.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/tsconfig.svg",
+      "sourceFile": "tsconfig.svg",
+      "sourceBytes": 411,
+      "sourceSha256": "a7bd2a966578a9ecd8916b950d02201e19048ec267e2f287a1b3f4629f5764d6",
+      "drawable": "app/src/main/res/drawable/filetype_tsconfig.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "video",
+      "upstreamPath": "icons/video.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/video.svg",
+      "sourceFile": "video.svg",
+      "sourceBytes": 191,
+      "sourceSha256": "4d5d50b0f1fe5cb7aaa4892356fabffb54f8629c9f600069dd0aadd251b3c83e",
+      "drawable": "app/src/main/res/drawable/filetype_video.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "vite",
+      "upstreamPath": "icons/vite.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/vite.svg",
+      "sourceFile": "vite.svg",
+      "sourceBytes": 406,
+      "sourceSha256": "d3a742b2932f9a4ae66ed67fd1f4225475f438458d9a36d6a317a6d2576d7f50",
+      "drawable": "app/src/main/res/drawable/filetype_vite.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "webassembly",
+      "upstreamPath": "icons/webassembly.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/webassembly.svg",
+      "sourceFile": "webassembly.svg",
+      "sourceBytes": 253,
+      "sourceSha256": "a1b7c5aa0bd3c32256705be6c12d1db66f4839636be3053759efcdd82c4b6a03",
+      "drawable": "app/src/main/res/drawable/filetype_webassembly.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "zip",
+      "upstreamPath": "icons/zip.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/zip.svg",
+      "sourceFile": "zip.svg",
+      "sourceBytes": 230,
+      "sourceSha256": "dad79a45f756542d37abd422502ecfbea15720b92ea1c9d80ef0439ab6b9448a",
+      "drawable": "app/src/main/res/drawable/filetype_zip.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "nodejs",
+      "upstreamPath": "icons/nodejs.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/nodejs.svg",
+      "sourceFile": "nodejs.svg",
+      "sourceBytes": 375,
+      "sourceSha256": "365af5c7b70d11c2da6d70a21240a47ba941602530c46d808d37ae913be7402e",
+      "drawable": "app/src/main/res/drawable/filetype_nodejs.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "gomod",
+      "upstreamPath": "icons/go-mod.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/go-mod.svg",
+      "sourceFile": "go-mod.svg",
+      "sourceBytes": 745,
+      "sourceSha256": "16e8eccbe173616d4b253dedfc51c2bb08f63626e00790b75648605e7782d392",
+      "drawable": "app/src/main/res/drawable/filetype_gomod.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "yarn",
+      "upstreamPath": "icons/yarn.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/yarn.svg",
+      "sourceFile": "yarn.svg",
+      "sourceBytes": 918,
+      "sourceSha256": "a9ded67f57faa1763a4712aa8edede162f83bb063f4a8274ea415b7ed7cfd34e",
+      "drawable": "app/src/main/res/drawable/filetype_yarn.xml",
+      "retrievedDate": "2026-11-13"
+    },
+    {
+      "name": "diff",
+      "upstreamPath": "icons/diff.svg",
+      "sourceUrl": "https://raw.githubusercontent.com/material-extensions/vscode-material-icon-theme/13025adc5ad10a5cc649528a2c1edec93069f1b9/icons/diff.svg",
+      "sourceFile": "diff.svg",
+      "sourceBytes": 304,
+      "sourceSha256": "30e9f95d4afdedcfbde963c237481ac8cceb0b0c05b2e84a2eed07ebd2f2f4cf",
+      "drawable": "app/src/main/res/drawable/filetype_diff.xml",
+      "retrievedDate": "2026-11-13"
     }
   ],
   "LICENSE": {

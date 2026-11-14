@@ -18,13 +18,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
 
+ 
 @Composable
 internal fun droidePhysicalLandscape(): Boolean =
     LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+
+
+
+
+
 @Composable
 internal fun droidePhysicalWindowHeightDp(): Dp =
     LocalConfiguration.current.screenHeightDp.dp
+
+
+
+
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

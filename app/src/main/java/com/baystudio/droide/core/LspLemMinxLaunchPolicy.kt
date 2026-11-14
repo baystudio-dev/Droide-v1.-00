@@ -9,8 +9,8 @@ internal object LspLemMinxLaunchPolicy {
     private const val STAGE = "lsp.lemminx-0.31.2-local-ubuntu-vendor-40a5b00e1cdee4e06985fea0"
     internal val preNodeHandoff: String = """set -eu; lease=${'$'}{DROIDE_PROCESS_LEASE-}; if [ -n "${'$'}lease" ]; then case "${'$'}lease" in *[!0-9a-f]*) exit 64;; esac; [ "${'$'}{#lease}" -eq 20 ] || exit 64; exec /usr/bin/env -i HOME=/nonexistent TMPDIR=/tmp PATH= LANG=C.UTF-8 LC_ALL=C.UTF-8 TERM=dumb "DROIDE_PROCESS_LEASE=${'$'}lease" "${'$'}@"; fi; exec /usr/bin/env -i HOME=/nonexistent TMPDIR=/tmp PATH= LANG=C.UTF-8 LC_ALL=C.UTF-8 TERM=dumb "${'$'}@""""
 
-    // Shared only by this family's fixed editor expression and dedicated direct health file. No
-    // dynamic module or project-derived code is loaded.
+    // Shared only by this family's fixed editor expression and dedicated direct health file.
+    // No dynamic module or project-derived code is loaded.
     internal val commonSource: String = """
         'use strict';
         const fs = require('node:fs');

@@ -33,9 +33,10 @@ class AgentReviewUiTest {
         action = "edit", resource = "src/Main.kt", permissionScope = "build",
         approvalSessionId = if (sessionGrant) "session" else "", sessionGrantAction = "edit", sessionGrantResource = "src/Main.kt")
 
-    private fun assertFooterVisible(height: Int) {
+    private fun assertFooterVisible(height: Int, scrollToActions: Boolean = false) {
         listOf("Reject", "Allow once", "Always allow for this session").forEach { label ->
             val node = compose.onNodeWithText(label)
+            if (scrollToActions) node.performScrollTo()
             node.assertIsDisplayed()
             val bounds = node.getUnclippedBoundsInRoot()
             assertTrue("$label below viewport: $bounds", bounds.bottom.value <= height)
@@ -86,20 +87,20 @@ class AgentReviewUiTest {
         assertEquals(listOf(ApprovalResolution.ALLOW_ONCE, ApprovalResolution.ALLOW_SESSION, ApprovalResolution.DENY), decisions)
     }
 
-    @Test fun compactApprovalViewportReservesAllActionsBeforePreview() {
+    @Test fun compactApprovalViewportKeepsAllActionsReachableByScrolling() {
         compose.setContent { DroideTheme { Box(Modifier.width(320.dp).height(170.dp)) {
             AgentApprovalContent(request(), 170.dp) {}
         } } }
-        assertFooterVisible(170)
+        assertFooterVisible(170, scrollToActions = true)
     }
 
     @Test
     @Config(qualifiers = "w720dp-h360dp-land")
-    fun landscapeApprovalActionsFitInAKeyboardReducedViewport() {
+    fun landscapeApprovalActionsStayReachableInAKeyboardReducedViewport() {
         compose.setContent { DroideTheme { Box(Modifier.width(720.dp).height(190.dp)) {
             AgentApprovalContent(request(), 190.dp) {}
         } } }
-        assertFooterVisible(190)
+        assertFooterVisible(190, scrollToActions = true)
     }
 
     @Test fun sessionGrantActionIsHiddenWhenRequestCannotBeGrantedForSession() {

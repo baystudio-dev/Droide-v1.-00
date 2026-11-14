@@ -23,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
+/** Framework SQLite and actual Droide JNI; no fake filesystem or SQL storage. */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = android.app.Application::class, sdk = [35])
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
@@ -550,7 +551,7 @@ class CanonicalFileOperationJournalTest {
     }
 
     @Test fun nativeSqlitePageQuotaRollsBackLargeParentChainAdmissionWithoutTouchingFiles() = fixture { f ->
-
+        // Legal components keep the path below PATH_MAX while repeated parent prefixes exceed the existing free pages.
         val components = (0 until 18).map { "directory-$it-" + "x".repeat(110) }
         val path = components.joinToString("/") + "/file.kt"
         val source = File(f.root, path)

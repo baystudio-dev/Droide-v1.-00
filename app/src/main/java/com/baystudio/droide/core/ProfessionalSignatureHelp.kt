@@ -6,6 +6,7 @@ data class SignatureHelpDecision(
     val isRetrigger: Boolean = false,
 )
 
+ 
 object ProfessionalSignatureHelp {
     const val DEBOUNCE_MS = 80L
     private val bootstrapTriggers = setOf("(", ",")
@@ -36,6 +37,7 @@ object ProfessionalSignatureHelp {
                 isRetrigger = showing,
             )
             // Before a server is running we do not yet know its advertised triggers.
+
 
             triggers.triggerCharacters.isEmpty() && triggers.retriggerCharacters.isEmpty() && candidate in bootstrapTriggers ->
                 SignatureHelpDecision(LspSignatureTriggerKind.TRIGGER_CHARACTER, candidate, isRetrigger = showing)

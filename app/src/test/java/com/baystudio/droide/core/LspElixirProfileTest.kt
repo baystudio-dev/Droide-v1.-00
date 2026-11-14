@@ -57,7 +57,7 @@ class LspElixirProfileTest {
     @Test fun compilerDiagnosticsRemainEnabledWhileExpensiveOptionalWorkIsOff() {
         val settings = Json.parseToJsonElement("""{"autoBuild":true,"fetchDeps":false,"dialyzerEnabled":false,"suggestSpecs":false,"enableTestLenses":false,"mcpEnabled":false}""")
         assertEquals(settings, LspServerProfiles.configurationAfterInitialize(spec, null)!!["settings"]!!.jsonObject["elixirLS"])
-        assertTrue(LspServerProfiles.initializationOptions(spec, File("/inert")).isEmpty())
+        assertTrue(LspServerProfiles.initializationOptions(spec, File("/inert")).isEmpty()) // settings use upstream push/pull contract
         val reply = LspElixirProfile.configurationReply(Json.parseToJsonElement("""{"items":[{"section":"elixirLS"},{"section":"elixirLS.dialyzerEnabled"},{"section":"unknown"},{}]}"""))
         assertEquals(settings, reply[0]); assertEquals(JsonPrimitive(false), reply[1])
         assertEquals(JsonNull, reply[2]); assertEquals(settings, reply[3].jsonObject["elixirLS"])

@@ -12,10 +12,29 @@ data class ExternalAgentToolUpdate(
     val output: String? = null,
     val changes: List<AgentFileChange>? = null,
     val isUpdate: Boolean = false,
+    val tasks: List<Todo>? = null,
 ) {
     fun retainedChars(): Long = 128L + id.length + (title?.length ?: 0) + (kind?.length ?: 0) +
         (status?.length ?: 0) + (input?.length ?: 0) + (output?.length ?: 0) +
-        changes.orEmpty().sumOf { it.path.length.toLong() + it.diff.length }
+        changes.orEmpty().sumOf { it.path.length.toLong() + it.diff.length } +
+        tasks.orEmpty().sumOf { it.content.length.toLong() + it.status.length + it.priority.length }
+
+    /** Normalize only paths inside this session's workspace; never guess from a basename or scan files. */
+    fun withWorkspacePaths(mapper: WorkspacePathMapper): ExternalAgentToolUpdate {
+        if (changes == null) return this
+        val roots = listOf(mapper.remoteRoot, mapper.localRoot.path).distinct().sortedByDescending { it.length }
+        fun relative(value: String): String {
+            val path = if (value.startsWith("file:")) {
+                val uri = runCatching { java.net.URI(value) }.getOrNull() ?: return value
+                if (uri.isOpaque || !uri.rawAuthority.isNullOrEmpty() || uri.rawQuery != null || uri.rawFragment != null) return value
+                uri.path ?: return value
+            } else value
+            val root = roots.firstOrNull { path.startsWith("$it/") }
+            val candidate = if (root == null) path else path.removePrefix("$root/")
+            return candidate.takeIf(AgentSessionResults::safePath) ?: value
+        }
+        return copy(changes = changes.map { it.copy(path = relative(it.path), previousPath = it.previousPath?.let(::relative)) })
+    }
 
     companion object {
         const val OUTPUT_LIMIT = 32_000
@@ -84,12 +103,15 @@ data class ExternalAgentToolUpdate(
 
 data class ExternalAgentPlanEntry(val content: String, val status: String)
 
+/** Text deltas are lossless on disk; tool/plan snapshots replace their original ordered slot. */
 data class ExternalTranscriptUpdate(val part: AgentStreamPart, val textDelta: String? = null,
                                     val patch: ExternalAgentToolUpdate? = null, val plan: Boolean = false) {
     val retainedChars: Int get() = 256 + (textDelta?.length ?: 0) + part.input.length + part.output.length +
-        part.title.length + part.detail.length + part.fileChanges.sumOf { it.path.length + it.diff.length }
+        part.title.length + part.detail.length + part.fileChanges.sumOf { it.path.length + it.diff.length } +
+        part.tasks.orEmpty().sumOf { it.content.length + it.status.length + it.priority.length }
 }
 
+/** The same patch merge applies to the live window and an older activity loaded from SQLite. */
 fun ExternalAgentToolUpdate.applyTo(base: AgentStreamPart, plan: Boolean = false): AgentStreamPart {
     val nextState = if (base.state in setOf(AgentStreamPartState.COMPLETED, AgentStreamPartState.ERROR, AgentStreamPartState.CANCELLED) && !plan) base.state
         else when (status) {
@@ -105,6 +127,7 @@ fun ExternalAgentToolUpdate.applyTo(base: AgentStreamPart, plan: Boolean = false
     return base.copy(state = nextState, toolCallId = id, toolName = name,
         title = title ?: base.title.ifBlank { kind ?: "Agent tool" },
         input = input ?: base.input, output = output ?: base.output, fileChanges = changes ?: base.fileChanges,
+        tasks = tasks ?: base.tasks,
         endedAtMs = if (nextState in setOf(AgentStreamPartState.COMPLETED, AgentStreamPartState.ERROR)) base.endedAtMs ?: System.currentTimeMillis() else null)
 }
 

@@ -22,6 +22,7 @@ internal data class WorkspaceAgentBootstrapResult(
     val promptCapabilities: AcpPromptCapabilities = AcpPromptCapabilities(),
 )
 
+ 
 internal object WorkspaceAgentSessionBootstrap {
     suspend fun start(
         spec: WorkspaceAgentPluginSpec,

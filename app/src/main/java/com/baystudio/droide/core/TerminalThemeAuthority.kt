@@ -4,6 +4,7 @@ import com.termux.terminal.TerminalColors
 import java.util.Properties
 import java.util.WeakHashMap
 
+ 
 object TerminalThemeAuthority {
     private val lock = Any()
     private var defaultFingerprint: Int = 0

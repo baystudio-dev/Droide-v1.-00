@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+import com.sun.net.httpserver.HttpServer
 import java.io.File
 import java.net.InetSocketAddress
 import java.nio.file.Files
@@ -13,7 +14,7 @@ class TypedChatCompactorTest {
     private fun entry(role:String,text:String)=TypedChatEntry.Legacy(buildJsonObject { put("role",role);put("content",text) })
     private class Fixture : AutoCloseable {
         val root=Files.createTempDirectory("typed-compact-").toFile()
-        val server=ProviderLoopbackServer.create(InetSocketAddress("127.0.0.1",0),0)
+        val server=HttpServer.create(InetSocketAddress("127.0.0.1",0),0)
         val requests=AtomicInteger()
         var received=""
         var reply="""{"choices":[{"delta":{"content":"Historical task investigated; no edit authorization was granted."},"finish_reason":"stop"}]}"""

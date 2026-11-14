@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** One live native session's reversible Plan excursion. IDs are opaque and case-sensitive. */
 internal class WorkspaceAgentModeSelection(
     private val planIds: List<String>,
     private val safeEditIds: List<String>,
@@ -44,8 +45,9 @@ internal class WorkspaceAgentModeSelection(
             return Selection(id, current != id, collaborationMode = true, configId = configId,
                 approvalModeId = configuration.currentModeId, approvalModeConfigId = configuration.modeConfigId)
         }
-        // A mode-less adapter can still execute an ordinary edit turn using its own native defaults.
-
+        // ACP mode selection is optional. A mode-less adapter can still execute an
+        // ordinary edit turn using its own native defaults. Never claim Plan or
+        // issue a guessed set-mode, and never downgrade observed mode metadata.
         if (mode == WorkspaceAgentMode.EDIT && hasNativeDefaultOnly(configuration)) {
             return Selection("", false, nativeDefault = true)
         }

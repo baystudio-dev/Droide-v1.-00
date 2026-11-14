@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.UUID
 
+ 
 data class Artifact(val id: String, val type: String, val content: String, val file: File)
 
 class ArtifactManager(private val workDir: File) {

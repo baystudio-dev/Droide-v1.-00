@@ -3,8 +3,10 @@ package com.baystudio.droide.core
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonPrimitive
 
-/** Duplicate-key guard for a bounded event. */
-
+/** Duplicate-key guard for a bounded event. This is NOT the syntax parser: kotlinx JSON still
+ * validates the full event afterwards. Only quoted tokens followed by ':' are decoded as keys;
+ * strings/escapes are lexed so braces/colons inside values never affect object membership.
+ */
 internal object OwnedChatEventKeys {
     fun rejectDuplicates(payload: String, json: Json) {
         val containers = mutableListOf<MutableSet<String>?>()

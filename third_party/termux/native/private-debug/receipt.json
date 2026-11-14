@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "status": "BUILT_DEVICE_UNVALIDATED",
+  "artifactKind": "PRIVATE_DEBUG_PREBUILT_NATIVE_ADMISSION",
+  "releaseCompatible": false,
+  "deviceValidated": false,
+  "executionEvidence": null,
+  "sourceArchiveSha256": "e767a89ace01569e1e0412b2bbd03de171194caa85c3989b770d4bfe9438d317",
+  "sourceSha256ByPath": {
+    "app/src/main/cpp/CMakeLists.txt": "5822f744df7b90c4473ad690a8d068e82094a3e5a4be730c750e9aa80fd8982c",
+    "app/src/main/cpp/droide_files.c": "8161f13dcca6e7df65c2ffe8be3298465c2593ace41f56114340475885fb5ea3",
+    "third_party/termux/native/OWNED_PROCESS_ABI.json": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+    "third_party/termux/native/REBUILD.json": "f2c9660006eefb353655994c92c6253c35533e038638e005b0aab11ab5732105",
+    "third_party/termux/native/termux.c": "e6e4e563865857af85fd6e101021fb3e247ecfc93f9261e1242d0ef637edc000",
+    "third_party/termux/patches/REBUILD.json": "e5c6db221f5b7402576285b2daba828fb5cd85f21da61631c8170e57e1c09cdb",
+    "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3",
+    "third_party/termux/patches/src/com/termux/terminal/JNI.java": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalPtyIo.java": "c306cd096e1bf181f9f2c93616df5cc1f72811c33024d0e75943142fa309bbef",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae"
+  },
+  "javaAarSha256": "c14075f4c2fe9153a1c79383a539d089b1c830d3cbe3ac6e9bbb96f86eec30ea",
+  "nativeSha256ByBuild": {
+    "primary": {
+      "arm64-v8a/libdroide_files.so": "52f7215cab4c6f05eab17f62ac38611753419d172b362e9d8a2facf5814c5615",
+      "arm64-v8a/libtermux.so": "e31b4ce48b794cf07be9643c333a58e9805e3ad2b6f9c0d5cfeb2b84fa8d6594",
+      "armeabi-v7a/libdroide_files.so": "e483fa273b266f99f17471122f332f2ade53940a048e007252cfbc84cc900413",
+      "armeabi-v7a/libtermux.so": "139a46e994e326008d6f21d37d6f9e975e7854351bbd4b8e535eb175034b4941",
+      "x86/libdroide_files.so": "551ddabb8bbd7a5c3712714de1549017014212d9b8402c6b72b6f45409f54886",
+      "x86/libtermux.so": "5e65e9b0394afd61205b25bf117c20fb1c24e772e108e57581c1bd30d75cf952",
+      "x86_64/libdroide_files.so": "02e1f27c87c2901911d6150c97a5080356d440b52e7130505ae2afbafcca3e80",
+      "x86_64/libtermux.so": "aec7e11c45798469aafd05d860ca34ef792131f733089dce2c95317ad8892669"
+    },
+    "independent": {
+      "arm64-v8a/libdroide_files.so": "52f7215cab4c6f05eab17f62ac38611753419d172b362e9d8a2facf5814c5615",
+      "arm64-v8a/libtermux.so": "e31b4ce48b794cf07be9643c333a58e9805e3ad2b6f9c0d5cfeb2b84fa8d6594",
+      "armeabi-v7a/libdroide_files.so": "e483fa273b266f99f17471122f332f2ade53940a048e007252cfbc84cc900413",
+      "armeabi-v7a/libtermux.so": "139a46e994e326008d6f21d37d6f9e975e7854351bbd4b8e535eb175034b4941",
+      "x86/libdroide_files.so": "551ddabb8bbd7a5c3712714de1549017014212d9b8402c6b72b6f45409f54886",
+      "x86/libtermux.so": "5e65e9b0394afd61205b25bf117c20fb1c24e772e108e57581c1bd30d75cf952",
+      "x86_64/libdroide_files.so": "02e1f27c87c2901911d6150c97a5080356d440b52e7130505ae2afbafcca3e80",
+      "x86_64/libtermux.so": "aec7e11c45798469aafd05d860ca34ef792131f733089dce2c95317ad8892669"
+    }
+  },
+  "evidenceSha256ByPath": {
+    "independent/arm64-v8a-actual-commands.stdout.log": "22565ff4663cdb0be207e8688f394f8f595e7bee1a3f7f426694ddce50807cdb",
+    "independent/arm64-v8a-compile_commands.json": "783bb74fc9c556c62f4f89633c04b1686ebd6a812dd1c34750a5b2cf1b29cc5a",
+    "independent/armeabi-v7a-actual-commands.stdout.log": "3d14c12a3d31636bfe80f0a63efb5c6c3f281edef6f72fc350d77d5b36c9ecd1",
+    "independent/armeabi-v7a-compile_commands.json": "9e3ef64f882a936843738b12c3c0452970a639096163ad75567e2f3f13813b8b",
+    "independent/build-plan.json": "4edd0e8e97ea8dd0ee45bf251f72f3041bcd8e673ffa0807ac7ece9615142463",
+    "independent/command-equivalence-and-security.json": "abcf1533ac1031031e04cac65d88cd6fa3a815f2b94a04ab76f422aacef29927",
+    "independent/commands.json": "594d6ad6c68b74a9e69f3ccc04e9c63c35d581dcd8fbb50e44f1a8a3c13c9ac6",
+    "independent/final-input-verification.json": "a6b2048858c939be4ad7e8b2414bbc7120f8caf2e7e4fff72cfb64d675bf696e",
+    "independent/independent-native-static-receipt.json": "18d74eeea35113b18f7de929db624d05718e9efcb27a983a31aa2934f24bccce",
+    "independent/java-c-contract-table-comparison.json": "429d64b5428500c13f2f5a7620c0a5b1b3b7ef96529f9ec5d43200ae106abdfc",
+    "independent/reproduce_native.py": "b48ad85884137d7e402c7b0e7bcc915eb212ee086b50e89af2847c80167624d7",
+    "independent/reproduction-comparison.json": "693103d41aa0ff8d49fc9b95a81237705fccc6f8c1c114cbbfb0cad1291171a3",
+    "independent/tool-identities.json": "2403c5c6d420875660be4e1ce6dc82508e73116c3eac39156b582d893a55049e",
+    "independent/x86-actual-commands.stdout.log": "b6613d3634f200f33b16ce9600771e5e3fef549a0420ea4b79df1e63769e468a",
+    "independent/x86-compile_commands.json": "8734387cd50d5fe8d10b19cad6c34365825a79889722ed400d31e96dfd2bd20e",
+    "independent/x86_64-actual-commands.stdout.log": "0d26b38340aba776d91b8d1f9fb6e71f865882017f007a2f1f43dd88fbe530cb",
+    "independent/x86_64-compile_commands.json": "dc7d8734f8621d7a83c08f08ce8d016c2ed2530992b201916f20a8afd4369457",
+    "primary/arm64-v8a-actual-commands.log": "79556283a39765eecdd645c544b589821dafad9a88b0dc9b5f786fbdc5cdea34",
+    "primary/arm64-v8a-compile_commands.json": "daa7d2c673074fd070c2b13810e782f1de19e9bc4a97bc21ed6a14c3fda08cb5",
+    "primary/armeabi-v7a-actual-commands.log": "bd2e3692e32fdf8cab7bc8ff0c38b4bfcd882091fa44f36720a8bfb839a717b0",
+    "primary/armeabi-v7a-compile_commands.json": "2f34466f15a0aa435728d188b86dd2e75d296e70a4a1cc780d84d0cb8061070e",
+    "primary/build-plan.json": "fcfd78b9d29f9e198a11842a165da5e873da7766ad5897ae91359bf3b67cbbbc",
+    "primary/build_native.py": "009f61a09b6473d2f9b2d0a84bbb7909517156b8714c81f8cf6d37f1ee127185",
+    "primary/commands.json": "1a2bebc59432211b64649c80458b12fb9c0876a9bae06dc90990035b0acf9630",
+    "primary/compiled-java-table-agreement.json": "db7d066be078f947549697e64206a4869d005ebff291dfae9c098357aa82ccf5",
+    "primary/native-build-static-receipt.json": "9f2cc87e3ae9751907412a4f93777a068586a89c78273ad7375601de642ce99a",
+    "primary/ndk-cmake-inputs.json": "15e83c1bfdeccd22832199118d30b6d358411386fade1231bdd47cec4f381414",
+    "primary/static-source-inspection.json": "8a69322c32c088beba89a4349dc15304784a65da96622002afd0bb2d57921985",
+    "primary/tool-identities.json": "7b9217974330d43806529811e25e590c70b0604e4a9d7437239847b6d148f1ff",
+    "primary/x86-actual-commands.log": "fa9712350e595be5ac9726db7db1fa3af08595e29ac89f7eecb85edfe4ce590b",
+    "primary/x86-compile_commands.json": "2c58ddf3da87427a19da544a73fc0f9676ef816cc581b7b4e65219136f21769f",
+    "primary/x86_64-actual-commands.log": "dadfa3421589c1054eb3c02a04f4ca66abeb71ca978d862eded34bc7c182c432",
+    "primary/x86_64-compile_commands.json": "8c6f2a3294177b1acea24406d01ab17b730134051e6be8c444b04d0fa06c8e47"
+  },
+  "existingRuntimeSha256ByPath": {
+    "app/src/main/jniLibs/arm64-v8a/libdroide_cli.so": "913b313398b30115416acd20959b1c449eab0563c15c83230862b03e44e7cfee",
+    "app/src/main/jniLibs/arm64-v8a/libdroide_proot.so": "6a7babd8480adea03afba45a3cabd89a1387040a0cdc205a90f37185cb4f882b",
+    "app/src/main/jniLibs/arm64-v8a/libproot-loader.so": "44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04",
+    "app/src/main/jniLibs/arm64-v8a/libproot-loader32.so": "25f6bd90bc5a3d3088026289a0d3eaf3e502bd2b00e5cb74fadd9791132efa34"
+  },
+  "limitations": [
+    "Two separate clean output roots on one host with the same NDK/CMake, not universal reproduction.",
+    "Native libraries were not executed or loaded on Android; JNI, PTY, processes, signals, races and kernel behavior remain unvalidated.",
+    "This receipt is admitted only for the explicitly opted-in private debug task, never a release.",
+    "Final APK bytes/signature/manifest/DEX must be separately verified by the mandatory private root task.",
+    "Four-ABI owned libraries do not certify workstation runtime availability outside ARM64."
+  ]
+}

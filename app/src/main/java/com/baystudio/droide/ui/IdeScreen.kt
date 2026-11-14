@@ -146,7 +146,7 @@ fun IdeScreen(
         if (selectForApproval) approvalAttention = if (tool == DroideRailTool.Web) WorkspaceApprovalSurface.BROWSER else WorkspaceApprovalSurface.OTHER
         if (!sidePanelsCanShare) {
             isChatVisible = false
-
+            // Medium/compact workspaces show the selected tool in the main surface.
             if (!expandedWorkbench) {
                 showSearch = tool == DroideRailTool.Search
                 workspaceTab = when (tool) {
@@ -291,8 +291,8 @@ fun IdeScreen(
         workspaceTab = 1
         true
     } ?: false
-    // Release clean inactive buffers before opening another large file. Tab identity, cursor and
-    // review state remain; reopening reads the current authoritative disk bytes.
+    // Release clean inactive buffers before opening another large file. Tab identity,
+    // cursor and review state remain; reopening reads the current authoritative disk bytes.
     SideEffect { editorState.protectActiveEditor(activeFile) }
     LaunchedEffect(editorState, activeFile) {
         editorState.protectActiveEditor(activeFile)
@@ -437,8 +437,8 @@ fun IdeScreen(
         recoveryStore.save(snapshot)
     }
     suspend fun saveAllDirty(): Pair<String, Throwable>? {
-        // The coordinator rechecks native/editor changes after recovery persistence suspends,
-        // immediately before Build/Run/Debug/close or project handoff.
+        // The coordinator rechecks native/editor changes after recovery persistence
+        // suspends, immediately before Build/Run/Debug/close or project handoff.
         return saves.saveAllBefore { persistEditorState() }.continuationFailure()
     }
     suspend fun workstationSupported(): Boolean { if (deviceBridgeState.supported) return true; snackbarHostState.showSnackbar("Wireless Debugging requires Android 11 or newer. Local Linux Run and Tasks remain available on supported ARM64 devices."); return false }
@@ -571,8 +571,8 @@ fun IdeScreen(
         val updates = LspWorkspaceEditPreflight.prepare(edit, editorState, files)
         editorState.requireMutableOwner()
         val plannedTabs = EditorTabRetention.planWorkspaceEdit(openFiles, updates.keys, activeFile) { editorState.peek(it)?.dirty == true }
-        // Final pure guard after all-edit preflight, before the first mutation. This safe preparation is
-        // not rollback; applying this batch may retire its captured owner.
+        // Final pure guard after all-edit preflight, before the first mutation.
+        // This safe preparation is not rollback; applying this batch may retire its captured owner.
         LspWorkspaceEditPreflight.requireCurrent(edit)
         updates.forEach { (path, updated) ->
             editorState.document(path).applyWorkspaceText(updated, "Language-server rename — review before saving")
@@ -645,8 +645,7 @@ fun IdeScreen(
             val idleEnoughForLargeSnapshot = !hasDirtyLargeFile || quietTicks >= 2
             if (signature != persistedSignature && idleEnoughForLargeSnapshot) {
                 runSuspendCatching { persistEditorState() }.onSuccess { persistedSignature = signature }.onFailure {
-                    // A superseded/pending recovery checkpoint retries on the next tick; real IO errors remain
-                    // visible.
+                    // A superseded/pending recovery checkpoint retries on the next tick; real IO errors remain visible.
                     if (it !is com.baystudio.droide.core.EditorRecoveryCheckpointDeferredException)
                         snackbarHostState.showSnackbar("Editor recovery save failed: ${it.message ?: "unknown error"}")
                 }
@@ -801,8 +800,8 @@ fun IdeScreen(
             }
         ) {
             val imeVisible = rememberDroideImeVisible(); val typingImeActive = droideTypingImeActive(imeVisible, accessoryInputFocus.activeTarget); val editorTypingImeActive = imeVisible && accessoryInputFocus.activeTarget == AccessoryInputTarget.EDITOR
-            // Keep orientation/pane grace above, but release compact navigation as soon as the actual IME is
-            // hidden. Native travel still owns every intermediate pixel.
+            // Keep orientation/pane grace above, but release compact navigation as soon as
+            // the actual IME is hidden. Native travel still owns every intermediate pixel.
             val navigationTypingImeActive = compactNavigationHiddenForIme(
                 typingTarget = accessoryInputFocus.activeTarget.keyProfile() != null,
                 rawImeVisible = WindowInsets.isImeVisible,
@@ -810,11 +809,15 @@ fun IdeScreen(
             )
             val terminalInputFocused = accessoryInputFocus.activeTarget.keyProfile() == AccessoryKeyProfile.TERMINAL
             val agentFocusOwner = remember(workspaceKey) { accessoryInputFocus.owner(AccessoryInputTarget.NONE) }
-            val terminalImeFocus = rememberLandscapeTerminalImeFocus(workspaceKey, physicalLandscape, imeVisible,
-                terminalInputFocused, otherInputFocused = !terminalInputFocused && (editorTypingImeActive ||
-                    agentComposerFocused || approvalAttention == WorkspaceApprovalSurface.BROWSER))
-            // The optional manual focus preference applies to editor typing, never chat input.
-            val effectiveLandscapeFocusMode = workbenchPrefs.landscapeFocusMode && editorTypingImeActive
+            val inputExpansion = rememberLandscapeInputExpansion(workspaceKey, physicalLandscape, imeVisible,
+                when {
+                    agentComposerFocused || approvalAttention == WorkspaceApprovalSurface.BROWSER -> LandscapeInputTarget.NONE
+                    terminalInputFocused -> LandscapeInputTarget.TERMINAL
+                    accessoryInputFocus.activeTarget == AccessoryInputTarget.EDITOR -> LandscapeInputTarget.EDITOR
+                    else -> LandscapeInputTarget.NONE
+                })
+            // A keyboard can hide without relinquishing the user's expanded workspace.
+            val effectiveLandscapeFocusMode = workbenchPrefs.landscapeFocusMode && inputExpansion.editorExpanded
             val imePresentation = droideImePresentation(physicalLandscape, imeVisible, effectiveLandscapeFocusMode, sidebarVisible, isChatVisible)
             val adaptiveFromConstraints = droideWorkbenchLayout(maxWidth, maxHeight, bottomPanelHeightDp.dp, physicalLandscape = physicalLandscape); val adaptive = droideImeStableWorkbenchLayout(adaptiveFromConstraints, maxWidth, bottomPanelHeightDp.dp, imePresentation)
             val compact = adaptive.compact; val medium = adaptive.medium; val expanded = adaptive.expanded || physicalLandscape
@@ -827,8 +830,12 @@ fun IdeScreen(
             val sidebarTool = runCatching { DroideRailTool.valueOf(sidebarToolName) }.getOrDefault(DroideRailTool.Files)
             val bottomTool = runCatching { DroideBottomTool.valueOf(bottomToolName) }.getOrDefault(DroideBottomTool.Terminal)
             val focusLayout = rememberDroideLandscapeImeFocusLayout(adaptive, maxWidth, sidebarTool, imePresentation, effectiveLandscapeFocusMode, sidebarVisible, isChatVisible, agentPanelWidthDp.dp); val userPaneFit = focusLayout.userPaneFit
-            // Use the same visibility decision for mounting the sidebar and choosing the browser owner. A
-            // hidden/zero-width/typing-suppressed sidebar must not steal the main browser.
+            val paneSizes = focusLayout.contentPaneFit
+            val landscapeMotion = rememberLandscapeWorkbenchMotion(inputExpansion.editorExpanded,
+                inputExpansion.terminalExpanded && bottomTool == DroideBottomTool.Terminal,
+                !physicalLandscape || bottomPanelVisible)
+            // Use the same visibility decision for mounting the sidebar and choosing the browser
+            // owner. A hidden/zero-width/typing-suppressed sidebar must not steal the main browser.
             val sidebarRendered = !agentFullscreen &&
                 (expanded || isChatVisible) && sidebarVisible && userPaneFit.sidebarWidth > 0.dp
             val sidebarOwnsBrowser = sidebarRendered && sidebarTool == DroideRailTool.Web
@@ -842,7 +849,7 @@ fun IdeScreen(
             val browserVisible = browserPlacement.bounds(selectedBrowserSlot) != null
             val revealBrowser by rememberUpdatedState<() -> Unit>({
                 if (!browserVisible || !browserRetention.captureReady) {
-                    terminalImeFocus.exit()
+                    inputExpansion.restore()
                     focusManager.clearFocus()
                     keyboardController?.hide()
                     if (!browserVisible && !browserExpanded) {
@@ -863,10 +870,10 @@ fun IdeScreen(
                 chatFullscreen = !browserExpanded && agentFullscreen,
                 browserVisible = browserVisible,
                 browserExclusive = browserExpanded || (!expanded && !isChatVisible && workspaceTab == 4),
-                otherUiActive = hasTransientUi || (!browserExpanded && terminalImeFocus.active),
+                otherUiActive = hasTransientUi || (!browserExpanded && inputExpansion.terminalExpanded),
             )
             val workspaceContentVisible = !browserExpanded && !agentFullscreen
-            val visibleEditor = workspaceContentVisible && !terminalImeFocus.active && (expanded || workspaceTab == 1 ||
+            val visibleEditor = workspaceContentVisible && !inputExpansion.terminalExpanded && (expanded || workspaceTab == 1 ||
                 (workspaceTab == 4 && sidebarOwnsBrowser) || workspaceTab !in 0..6)
             val visibleExplorer = !browserExpanded && ((sidebarRendered && sidebarTool == DroideRailTool.Files) ||
                 (workspaceContentVisible && !expanded && workspaceTab == 0 && !showSearch))
@@ -909,6 +916,7 @@ fun IdeScreen(
                         onForward = ::navigateForward,
                         onSave = { launchUserAction { saveActive().onFailure { snackbarHostState.showSnackbar("Save needs attention: ${it.message}") } } },
                         onSymbols = { showWorkspaceSymbols = true },
+                        onRestoreSize = inputExpansion.restore.takeIf { inputExpansion.editorExpanded },
                         onResetZoom = if (
                             editorState.peek(activeFile)?.let { it.loaded && it.kind == EditorDocumentKind.TEXT } == true &&
                             markdownMode != MarkdownPreviewMode.PREVIEW
@@ -938,8 +946,8 @@ fun IdeScreen(
                         @Composable
                         fun ActiveEditorPane(modifier: Modifier = Modifier) {
                             Box(modifier) {
-                                // AndroidView's factory/listeners belong to exactly one document. A tab switch must create a new
-                                // Sora view, not reuse old closures.
+                                // AndroidView's factory/listeners belong to exactly one document.
+                                // A tab switch must create a new Sora view, not reuse old closures.
                                 key(workspaceKey, activeFile, document) {
                                 EditorPane(
                                     files = files,
@@ -1174,11 +1182,13 @@ fun IdeScreen(
             }
             @Composable
             fun AgentSurface() {
-                Box(Modifier.fillMaxSize().workspaceApprovalAttention(WorkspaceApprovalSurface.AGENT) { approvalAttention = it }.droideContentMotion("agent", enabled = !typingImeActive)) {
+                Box(Modifier.fillMaxSize().workspaceApprovalAttention(WorkspaceApprovalSurface.AGENT) { approvalAttention = it }.droideContentMotion("agent", enabled = physicalLandscape && !typingImeActive)) {
                     AgentPane(agent = agent, uiState = agentUiState, providerConnections = providerConnections, localLlamaModels = localLlamaModels, agentPlugins = workspaceAgentPluginsForStartup(extensions.installedComponentsEnabled, agentPlugins), approvals = approvals, captureIdeContext = { editorBridge.capture(); captureAgentIdeContext(files.root, activeFile, activeLanguageName, openFiles, editorState, editorBridge.currentCursorLocation(), diagnostics, androidBuildDiagnostics) }, onSessions = { showSessions = true }, onUiError = { message -> scope.launchUiCatching { snackbarHostState.showSnackbar(message) } }, onComposerFocusChanged = { agentComposerFocused = it; if (physicalLandscape) accessoryInputFocus.onFocusChanged(agentFocusOwner, it); if (it) { editorBridge.yieldToAgentComposer(); approvalAttention = WorkspaceApprovalSurface.AGENT } }, onClose = { isChatVisible = false },
                         onManageMcp = { settingsInitialCategoryName = "TOOLS"; showSettings = true },
                         onManagePlugins = { settingsInitialCategoryName = "PLUGINS"; showSettings = true },
                         onManageSkills = { settingsInitialCategoryName = "SKILLS"; showSettings = true },
+                        onOpenResult = { path -> if (open(path) && !expandedWorkbench) isChatVisible = false },
+                        onExportResult = if (ExportRolloutPolicy.newExportsEnabled) ({ path -> exportUi.open(path, false) }) else null,
                         onOpenAgentExtensions = { familyId ->
                         agentExtensionFamilyId = familyId
                         if (expanded) { openSidebarTool(DroideRailTool.Extensions) }
@@ -1279,19 +1289,21 @@ fun IdeScreen(
             }) { pad ->
                 Box(Modifier.padding(pad).consumeWindowInsets(pad).fillMaxSize()) {
                 RetainedWorkspaceContent(presented = !browserExpanded) {
+                PortraitAgentPanel(visible = agentFullscreen, agent = { AgentSurface() }, workspace = {
                 Column(Modifier.fillMaxSize()) {
                     PreferenceReadFailureRow("Workspace preferences", workbenchRead.state.failed, workbenchRead::retry)
                     PreferenceReadFailureRow("Provider preferences", providerRead.state.failed, providerRead::retry)
                     PreferenceReadFailureRow("Tool health configuration", toolHealthRead.state.failed, toolHealthRead::retry)
-
-                    if (!droideHideLandscapeHeader(physicalLandscape, editorTypingImeActive, terminalImeFocus.active) && !agentFullscreen) {
+                    if (physicalLandscape) {
+                        LandscapeChromeReveal({ landscapeMotion.normal.value },
+                            !droideHideLandscapeHeader(true, inputExpansion.editorExpanded, inputExpansion.terminalExpanded)) {
+                            TopChrome(compactTop = compact || adaptive.shortHeight)
+                        }
+                    } else {
                         TopChrome(compactTop = compact || adaptive.shortHeight)
                     }
                     if (browserRetention.keepActive && !browserVisible) BrowserRetentionNotice(browserRetention.attached, browserDialog != null, openBrowserFromUser)
                     when {
-                        agentFullscreen -> {
-                            Box(Modifier.weight(1f).fillMaxWidth()) { AgentSurface() }
-                        }
                         expanded -> {
                             Row(Modifier.weight(1f).fillMaxWidth()) {
                                 DroideActivityRail(
@@ -1304,24 +1316,35 @@ fun IdeScreen(
                                     onSettings = { settingsInitialCategoryName = null; showSettings = true },
                                 )
                                 Row(Modifier.weight(1f).fillMaxHeight()) {
-                                    if (sidebarRendered) { DroideClippedPaneRegion({ focusLayout.sidebarRegionWidth }, focusLayout.sidebarRegionVisible, userPaneFit.sidebarWidth + 1.dp) { Row { SidebarSurface(userPaneFit.sidebarWidth); VerticalDivider(color = DroideColors.Border) } } }
+                                    if (sidebarRendered || (physicalLandscape && focusLayout.sidebarRegionVisible)) {
+                                        DroideClippedPaneRegion({ focusLayout.sidebarRegionWidth }, focusLayout.sidebarRegionVisible, paneSizes.sidebarWidth + 1.dp) {
+                                            val sidebarContent: @Composable () -> Unit = {
+                                                Row { SidebarSurface(paneSizes.sidebarWidth); VerticalDivider(color = DroideColors.Border) }
+                                            }
+                                            if (physicalLandscape) RetainedWorkspaceContent(sidebarRendered && imePresentation.sidebarVisible,
+                                                drawWhileHidden = physicalLandscape && focusLayout.sidebarRegionVisible) {
+                                                sidebarContent()
+                                            } else sidebarContent()
+                                        }
+                                    }
                                     if (physicalLandscape) {
                                         LandscapeEditorArea(
                                             workspaceKey = workspaceKey, activeTool = bottomTool,
                                             panelVisible = bottomPanelVisible, panelHeight = adaptive.effectiveBottomPanelHeight,
                                             panelMaxHeight = adaptive.bottomPanelMaxHeight,
-                                            editorTyping = editorTypingImeActive,
-                                            terminalExpanded = terminalImeFocus.active && bottomTool == DroideBottomTool.Terminal,
+                                            editorTyping = inputExpansion.editorExpanded,
+                                            terminalExpanded = inputExpansion.terminalExpanded && bottomTool == DroideBottomTool.Terminal,
                                             onPanelHeightChange = { bottomPanelHeightDp = it.value },
                                             onSelectTool = { tool ->
                                                 approvalAttention = WorkspaceApprovalSurface.OTHER
-                                                if (tool != DroideBottomTool.Terminal && terminalImeFocus.active) terminalImeFocus.exit()
+                                                if (tool != DroideBottomTool.Terminal && inputExpansion.terminalExpanded) inputExpansion.restore()
                                                 bottomToolName = tool.name
                                             },
                                             onOpenPanel = { approvalAttention = WorkspaceApprovalSurface.OTHER; bottomPanelVisible = true },
-                                            onClosePanel = { if (terminalImeFocus.active) terminalImeFocus.exit(); approvalAttention = WorkspaceApprovalSurface.OTHER; bottomPanelVisible = false },
-                                            onRestoreTerminal = terminalImeFocus.exit,
+                                            onClosePanel = { if (inputExpansion.terminalExpanded) inputExpansion.restore(); approvalAttention = WorkspaceApprovalSurface.OTHER; bottomPanelVisible = false },
+                                            onRestoreTerminal = inputExpansion.restore,
                                             modifier = Modifier.weight(1f).fillMaxHeight(),
+                                            motion = landscapeMotion,
                                             panelActions = {
                                                 if (bottomTool == DroideBottomTool.Terminal) LandscapeTerminalSessions(
                                                     terminalSnapshot,
@@ -1329,7 +1352,7 @@ fun IdeScreen(
                                                     onSelect = terminalManager::switch,
                                                     onClose = { id ->
                                                         terminalManager.close(id)
-                                                            .onSuccess { if (terminalSnapshot.tabs.size == 1 && terminalImeFocus.active) terminalImeFocus.exit() }
+                                                            .onSuccess { if (terminalSnapshot.tabs.size == 1 && inputExpansion.terminalExpanded) inputExpansion.restore() }
                                                             .onFailure { showActionFailure("Terminal cleanup failed", it) }
                                                     },
                                                     onCreate = { openLinuxTerminal() },
@@ -1362,14 +1385,22 @@ fun IdeScreen(
                                             }
                                         }
                                     }
-                                    if (isChatVisible && userPaneFit.agentWidth > 0.dp) {
+                                    if (!agentFullscreen && ((isChatVisible && userPaneFit.agentWidth > 0.dp) || (physicalLandscape && focusLayout.agentRegionVisible))) {
                                         val maxAgent = adaptive.agentPanelMaxWidth
-                                        DroideClippedPaneRegion({ focusLayout.agentRegionWidth }, focusLayout.agentRegionVisible, userPaneFit.agentWidth + 10.dp, androidx.compose.ui.Alignment.CenterEnd) { DroideResizableAgentPanel(userPaneFit.agentWidth, userPaneFit.agentMinWidth, minOf(maxAgent, userPaneFit.agentMaxWidth), { agentPanelWidthDp = it.value }) { AgentSurface() } }
+                                        DroideClippedPaneRegion({ focusLayout.agentRegionWidth }, focusLayout.agentRegionVisible, paneSizes.agentWidth + 10.dp, androidx.compose.ui.Alignment.CenterEnd) {
+                                            val agentContent: @Composable () -> Unit = {
+                                                DroideResizableAgentPanel(paneSizes.agentWidth, paneSizes.agentMinWidth, minOf(maxAgent, paneSizes.agentMaxWidth), { agentPanelWidthDp = it.value }) { AgentSurface() }
+                                            }
+                                            if (physicalLandscape) RetainedWorkspaceContent(isChatVisible && imePresentation.agentVisible,
+                                                drawWhileHidden = physicalLandscape && focusLayout.agentRegionVisible) {
+                                                agentContent()
+                                            } else agentContent()
+                                        }
                                     }
                                 }
                             }
                         }
-                        isChatVisible -> {
+                        isChatVisible && !agentFullscreen -> {
                             Row(Modifier.weight(1f).fillMaxWidth()) {
                                 DroideActivityRail(sidebarTool, imePresentation.sidebarVisible, false, ::selectRail, { approvalAttention = WorkspaceApprovalSurface.OTHER; workspaceTab = 2 }, { drawer = true }, { settingsInitialCategoryName = null; showSettings = true })
                                 Row(Modifier.weight(1f).fillMaxHeight()) {
@@ -1394,6 +1425,7 @@ fun IdeScreen(
                         }
                     }
                 }
+                })
                 }
                 if (browserExpanded) {
                     // Scaffold owns system-bar/footer insets; IME padding consumes only the remainder.

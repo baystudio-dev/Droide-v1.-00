@@ -4064,5 +4064,21 @@
             <sha256 value="aa254b373b6f6d46bc9dca86331b072a8ab86eb25ea9921fd439618392e98a16" origin="Official Maven Central; registry checksum cross-checked, R120"/>
          </artifact>
       </component>
+      <component group="org.tukaani" name="xz" version="1.12">
+         <artifact name="xz-1.12.pom">
+            <sha256 value="937b44d869c059c39f07ae194d8cd6219f5aebf2200ef9707f0b50b7837da281" origin="Verified against Maven Central; JAR matches CP04 bundled XZ"/>
+         </artifact>
+         <artifact name="xz-1.12.jar">
+            <sha256 value="3e158a87bd73d8afb4b6e8239c013b7d049c48563f45860ce99cd2e448cf4a6b" origin="Verified against Maven Central; JAR matches CP04 bundled XZ"/>
+         </artifact>
+      </component>
+      <component group="com.android.tools" name="r8" version="9.1.31">
+         <artifact name="r8-9.1.31.pom">
+            <sha256 value="4bbdb08e2236481cf5973cc207470f4e21ad43bd16ce4b326f8718990650cbcd" origin="Google Maven; F-Droid build compiler"/>
+         </artifact>
+         <artifact name="r8-9.1.31.jar">
+            <sha256 value="3b4de3053885da105e39c15212261d22653d6d1b5eb92323dd04ae913cc8286f" origin="Google Maven; F-Droid build compiler"/>
+         </artifact>
+      </component>
    </components>
 </verification-metadata>

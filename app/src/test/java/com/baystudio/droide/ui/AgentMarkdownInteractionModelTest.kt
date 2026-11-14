@@ -33,7 +33,7 @@ class AgentMarkdownInteractionModelTest {
         for (url in bad) {
             assertFalse(url, AgentMarkdownParser.isSafeHttpUrl(url))
             val annotated = markdownAnnotatedString("[Label]($url)")
-
+            // A Markdown target with a title/space can intentionally resolve a shorter URL.
             if (!url.contains(' ') && !url.contains('\n')) assertTrue(url, annotated.getLinkAnnotations(0, annotated.length).isEmpty())
         }
     }

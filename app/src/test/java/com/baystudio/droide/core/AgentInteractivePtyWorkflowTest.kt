@@ -72,6 +72,73 @@ class AgentInteractivePtyWorkflowTest {
         requireNotNull(manager.snapshot(id))
     }
 
+    @Test fun ttyKeepsInputByDefaultAcrossQuietPolls() = runBlocking<Unit> {
+        val pty = PtySession(); val jobs = BackgroundCommandManager(pty)
+        try {
+            val job = jobs.start("interactive", requiresTty = true)
+            withTimeout(3_000) { pty.started.await() }
+            repeat(10) {
+                val previous = requireNotNull(jobs.snapshot(job.id))
+                val quiet = jobs.awaitOutput(job.id, previous.outputEndCursor, 5)
+                assertEquals(BackgroundCommandManager.State.RUNNING, quiet.state)
+                assertTrue("Interactive input must remain available", quiet.stdinAvailable)
+                assertNull(quiet.timeoutMs)
+            }
+            jobs.sendInput(job.id, "after quiet polls\n")
+            withTimeout(3_000) { while (!pty.received.toString("UTF-8").contains("after quiet polls")) delay(10) }
+            pty.finish.complete(0)
+            assertEquals(BackgroundCommandManager.State.EXITED, waitDone(jobs, job.id).state)
+        } finally { jobs.closeAndJoin() }
+    }
+
+    @Test fun eofDoesNotCloseInputOfAStillRunningPty() = runBlocking<Unit> {
+        val pty = PtySession(); val jobs = BackgroundCommandManager(pty)
+        try {
+            val job = jobs.start("interactive", keepStdinOpen = true, requiresTty = true)
+            withTimeout(3_000) { pty.started.await() }
+            jobs.sendInput(job.id, "first input\n", closeInput = true)
+            assertTrue(requireNotNull(jobs.snapshot(job.id)).stdinAvailable)
+            jobs.sendInput(job.id, "next command\n")
+            withTimeout(3_000) { while (!pty.received.toString("UTF-8").contains("next command")) delay(10) }
+            assertEquals("first input\n\u0004next command\n", pty.received.toString("UTF-8"))
+            pty.finish.complete(0)
+            assertEquals(BackgroundCommandManager.State.EXITED, waitDone(jobs, job.id).state)
+            assertFalse(requireNotNull(jobs.snapshot(job.id)).stdinAvailable)
+            assertThrows(IllegalStateException::class.java) { jobs.sendInput(job.id, "after exit") }
+        } finally { jobs.closeAndJoin() }
+    }
+
+    @Test fun explicitInputOptOutIsPreservedForPty() = runBlocking<Unit> {
+        val pty = PtySession(); val jobs = BackgroundCommandManager(pty)
+        try {
+            val job = jobs.start("interactive", keepStdinOpen = false, requiresTty = true)
+            withTimeout(3_000) { pty.started.await() }
+            assertFalse(requireNotNull(jobs.snapshot(job.id)).stdinAvailable)
+            assertThrows(IllegalStateException::class.java) { jobs.sendInput(job.id, "not admitted") }
+            pty.finish.complete(0)
+            assertEquals(BackgroundCommandManager.State.EXITED, waitDone(jobs, job.id).state)
+        } finally { jobs.closeAndJoin() }
+    }
+
+    @Test fun toolExecWithOnlyTtyFlagKeepsTheReturnedSessionWritable() = runBlocking<Unit> {
+        val root = Files.createTempDirectory("droide-default-pty-input-").toFile()
+        val pty = PtySession(); val jobs = BackgroundCommandManager(pty)
+        try {
+            val context = agentWorkflowContext(root, jobs)
+            val result = AgentTools.execute("exec_command", buildJsonObject {
+                put("cmd", "interactive"); put("requires_tty", true); put("yield_time_ms", 0)
+            }, context)
+            val job = jobs.list().single()
+            assertTrue(result, result.contains("stdin_available=true"))
+            assertTrue(result, result.contains("timeout_ms=none"))
+            withTimeout(3_000) { pty.started.await() }
+            jobs.sendInput(job.id, "later\n")
+            withTimeout(3_000) { while (!pty.received.toString("UTF-8").contains("later")) delay(10) }
+            pty.finish.complete(0)
+            waitDone(jobs, job.id)
+        } finally { jobs.closeAndJoin(); PathSecurity.deleteTreeNoFollow(root) }
+    }
+
     @Test fun ttyJobAndItsInputRemainOnOriginalTabAfterWorkstationSwitch() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val root = Files.createTempDirectory("droide-pty-pin-").toFile()

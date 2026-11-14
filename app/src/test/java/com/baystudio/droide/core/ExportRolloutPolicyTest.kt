@@ -4,6 +4,7 @@ import com.baystudio.droide.BuildConfig
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Run against both recorded build configurations; no assumption skips or flag overrides. */
 class ExportRolloutPolicyTest {
     @Test fun policyUsesTheActualCompiledFlag() {
         assertEquals(BuildConfig.EXPLORER_EXPORT_EXPERIMENTAL, ExportRolloutPolicy.newExportsEnabled)

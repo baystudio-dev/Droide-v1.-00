@@ -6,10 +6,12 @@ internal interface StreamStagePlan {
     val plannedStagePath: String?
 }
 
+/** Last synchronous authorization check, after all suspending admission hooks. */
 internal interface StreamPublicationRevalidator {
     fun revalidateBeforePublication()
 }
 
+/** Mandatory publication evidence, separate from a best-effort progress/UI observer. */
 interface StreamPublicationObserver {
     /** Must succeed immediately before canonical publication; failures forbid publication. */
     fun beforePublish(preparation: StreamPublicationPreparation)

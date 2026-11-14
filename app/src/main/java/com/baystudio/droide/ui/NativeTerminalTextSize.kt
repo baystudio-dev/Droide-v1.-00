@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.TypedValue
 import kotlin.math.roundToInt
 
+/** Termux TerminalRenderer passes its size directly to Paint.setTextSize (pixels). */
 internal object NativeTerminalTextSize {
     const val DEFAULT_SP = 10f
     const val MIN_SP = 9f
@@ -19,6 +20,6 @@ internal object NativeTerminalTextSize {
 
 internal fun nativeTerminalTextSizePixels(context: Context, sizeSp: Float): Int =
     NativeTerminalTextSize.pixels(sizeSp) {
-
+        // applyDimension also handles Android 14+'s nonlinear accessibility font curve.
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, it, context.resources.displayMetrics)
     }

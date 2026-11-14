@@ -1,7 +1,12 @@
 package com.baystudio.droide.ui
 
-/** This is a discovery index, not a list of independently configurable features. */
-
+/**
+ * Searchable destinations in Settings, keyed by the existing SettingsCategory enum names.
+ *
+ * This is a discovery index, not a list of independently configurable features. Informational
+ * destinations and unavailable capabilities keep that context in their descriptions. Labels come
+ * from SettingsSheet and its Android development, local model and MCP sections.
+ */
 internal object SettingsDiscovery {
     data class Entry(
         val title: String,
@@ -21,6 +26,7 @@ internal object SettingsDiscovery {
         "Comfortable accessory keys",
     )
 
+    /** In display order. Keys remain stable when user-facing copy changes. */
     val entries: Map<String, Entry> = linkedMapOf(
         "GENERAL" to Entry(
             "General", "Project, scope and session restoration information",
@@ -189,8 +195,12 @@ internal object SettingsDiscovery {
         (listOf(entry.title, entry.subtitle) + entry.searchTerms).map { normalize(entry.title + " " + it) }
     }
 
-    /** Every query term must occur in one title, description or control phrase, in any order. */
-
+    /**
+     * Every query term must occur in one title, description or control phrase, in any order.
+     * Category titles also participate. Separate controls cannot synthesize a nonexistent feature.
+     * A blank query matches all known categories; unknown keys never match. Punctuation is literal.
+     * Unicode whitespace is accepted, and case conversion does not depend on the device's locale.
+     */
     fun matches(categoryKey: String, query: String): Boolean {
         val phrases = searchablePhrases[categoryKey] ?: return false
         val terms = normalize(query).split(' ').filter { it.isNotEmpty() }

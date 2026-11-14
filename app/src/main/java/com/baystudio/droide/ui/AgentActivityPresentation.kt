@@ -76,8 +76,8 @@ internal fun AgentActivityStatus(activity: AgentActivityPresentation, modifier: 
         DroideKeyedMotion(scope, initiallyEnabled = false, animateInitially = false,
             animationSpec = tween(AgentActivityMotion.StatusMillis))
     }
-    // Tool/status events may arrive faster than a fade. Continue that trajectory while displaying
-    // the latest label immediately; never pulse on every event.
+    // Tool/status events may arrive faster than a fade. Continue that trajectory
+    // while displaying the latest label immediately; never pulse on every event.
     SideEffect { appearance.update(activity.kind, motionEnabled && activity.kind.spinning) }
     val tint = when (activity.kind) {
         AgentActivityKind.FAILED -> DroideColors.Error

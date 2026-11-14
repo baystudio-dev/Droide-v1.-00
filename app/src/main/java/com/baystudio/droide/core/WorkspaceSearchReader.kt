@@ -99,7 +99,7 @@ internal class WorkspaceSearchReader(
         private val shouldContinue: () -> Boolean,
         private val onLine: suspend (Int, String) -> Unit,
     ) {
-
+        // The request reuses one fixed line array; each emitted String is independently immutable.
         private var used = 0
         private var lineNumber = 0
         private var afterCr = false

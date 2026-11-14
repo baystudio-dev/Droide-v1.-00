@@ -17,6 +17,7 @@ import zlib
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 import verify_pty_dex_binding as binding
+import build_pty_dex_reference as builder
 
 
 def uleb(value):
@@ -66,7 +67,7 @@ def fixture(*, context=False, words=None, flags=9, constant=16, catch_type=None,
     debug_off = 0
     if debug:
         debug_off = len(data)
-        data += b'\x01\x00\x07\x00'
+        data += b'\x01\x00\x07\x00'  # line=1, no params, prologue-end, end
         maps.append((0x2003, 1, debug_off))
     while len(data) % 4:
         data.append(0)
@@ -159,7 +160,7 @@ class ParserTests(unittest.TestCase):
         for one, two in examples:
             with self.subTest(one=one), self.assertRaises(binding.BindingError):
                 self.compare(fixture(words=one), fixture(words=two))
-
+        # A reference with a relocated pool index remains equal after resolution.
         for one, _ in examples[:2]:
             self.compare(fixture(words=one), fixture(words=one, context=True))
 
@@ -179,7 +180,7 @@ class ParserTests(unittest.TestCase):
         data = bytearray(fixture(debug=True))
         dex = binding.Dex(bytes(data))
         offset = dex.maps[0x2003][1]
-        data[offset + 3] = 1
+        data[offset + 3] = 1  # Replace END_SEQUENCE with unterminated ADVANCE_PC.
         with self.assertRaises(binding.BindingError):
             binding.canonical_class(fix_checksums(data))
 
@@ -218,7 +219,7 @@ class ParserTests(unittest.TestCase):
         data = bytearray(fixture(catch_type='Ljava/lang/Throwable;'))
         dex = binding.Dex(bytes(data))
         code = dex.maps[0x2001][1]
-
+        # size=3, padding=2, try starts after 16+6+2; handler offset is its last u16.
         struct.pack_into('<H', data, code + 16 + 6 + 2 + 6, 2)
         with self.assertRaisesRegex(binding.BindingError, 'handler offset'):
             binding.canonical_class(fix_checksums(data))
@@ -231,7 +232,7 @@ class ParserTests(unittest.TestCase):
             self.compare(fixture(words=[0x0228, 0, 0x000e]), fixture(words=[0x0128, 0, 0x000e]))
 
     def test_switch_payloads_and_array_payloads_bound(self):
-
+        # switch at 0, return at 3, aligned packed payload at 4, case target=3.
         packed = [0x002b, 4, 0, 0x000e, 0x0100, 1, 7, 0, 3, 0]
         sparse = [0x002c, 4, 0, 0x000e, 0x0200, 1, 7, 0, 3, 0]
         array = [0x0026, 4, 0, 0x000e, 0x0300, 1, 3, 0, 0x0201, 0x0003]
@@ -288,5 +289,186 @@ class ParserTests(unittest.TestCase):
         with self.assertRaises(binding.BindingError):
             binding.target_from_dexes({'classes.dex': fixture(), 'hidden/classes.dex': fixture()})
 
+    def test_no_receipt_or_supplied_reference_api(self):
+        import inspect
+        args = inspect.signature(binding.verify_apk_binding).parameters
+        self.assertEqual(set(args), {'root', 'apk_path', 'd8_jar_path', 'android_jar_path', 'java_home'})
+        self.assertNotIn('reference', args)
+
+    def test_unadmitted_candidate_fails_before_compiler(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('verify_termux_pty_derivative.verify_derivative_inputs',
+                side_effect=binding.BindingError('candidate unadmitted')), mock.patch.object(builder, 'build_fresh_reference') as compile_:
+            with self.assertRaisesRegex(binding.BindingError, 'unadmitted'):
+                binding.verify_apk_binding(Path(tmp), Path(tmp) / 'fake.apk',
+                    d8_jar_path=Path(tmp) / 'r8.jar', android_jar_path=Path(tmp) / 'android.jar', java_home=Path(tmp))
+            compile_.assert_not_called()
+
+    def test_wrong_r8_rejects_even_when_caller_claims_success(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch('verify_termux_pty_derivative.verify_jdk', return_value={'pinned': True}):
+            path = Path(tmp)
+            for name in ('candidate.aar', 'r8.jar', 'android.jar'):
+                (path / name).write_bytes(b'caller-supplied fake receipt and compiler')
+            with self.assertRaisesRegex(binding.BindingError, 'exact project R8'):
+                with builder.build_fresh_reference(path / 'candidate.aar', path / 'r8.jar', path / 'android.jar', path):
+                    pass
+
+
+class RealD8Tests(unittest.TestCase):
+    SDK_EXPLORATORY_ONLY = False
+
+    @classmethod
+    def setUpClass(cls):
+        names = (('R46_TEST_SDK_D8_JAR' if cls.SDK_EXPLORATORY_ONLY else 'R46_TEST_R8_JAR'),
+                 'R46_TEST_ANDROID_JAR', 'R46_TEST_JAVA_HOME')
+        missing = [name for name in names if not os.environ.get(name) or not Path(os.environ[name]).exists()]
+        if missing:
+            message = 'Real pinned D8 integration not run; required local inputs: ' + ', '.join(missing)
+            if not cls.SDK_EXPLORATORY_ONLY and os.environ.get('R46_REQUIRE_D8_TESTS') == '1':
+                raise AssertionError(message)
+            raise unittest.SkipTest(message)
+        cls.r8, cls.android, cls.java = (Path(os.environ[name]) for name in names)
+        expected = ('4097ff9c46c185c6e7214da7fe9b1befb5adeea5cc9ca349270e0249904f9240'
+                    if cls.SDK_EXPLORATORY_ONLY else builder.R8_SHA256)
+        if binding.digest(cls.r8.read_bytes()) != expected:
+            raise AssertionError('Unexpected compiler for selected test route; no compiler substitution')
+        if binding.digest(cls.android.read_bytes()) != builder.ANDROID_SHA256:
+            raise AssertionError('R46_TEST_ANDROID_JAR is not pinned API36')
+        from verify_termux_pty_derivative import verify_jdk
+        verify_jdk(cls.java)
+        cls.tmp = tempfile.TemporaryDirectory(prefix='r46-real-d8-tests-')
+        cls.work = Path(cls.tmp.name)
+        baseline = (TOOLS.parent / 'third_party/termux/patches/src/com/termux/terminal/TerminalPtyIo.java').read_text()
+        needle = '                backend.queued();\n'
+        if baseline.count(needle) != 1:
+            raise AssertionError('baseline PTY source shape changed')
+        candidate = baseline.replace(needle, needle + '                immediate = 0;\n')
+        cls.baseline = cls.compile('baseline', baseline)
+        cls.candidate = cls.compile('candidate', candidate)
+        cls.context = cls.compile('context', candidate, context=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        if hasattr(cls, 'tmp'):
+            cls.tmp.cleanup()
+
+    @classmethod
+    def compile(cls, label, source, context=False):
+        work = cls.work / label
+        work.mkdir()
+        src = work / 'TerminalPtyIo.java'; src.write_text(source)
+        classes = work / 'classes'; classes.mkdir()
+        inputs = [src]
+        if context:
+            other = work / 'AAA.java'
+            other.write_text('package aaa; public class AAA { public String unrelated() { return "AAAA unrelated context"; } }')
+            inputs.append(other)
+        env = {'PATH': str(cls.java / 'bin'), 'HOME': str(work), 'LANG': 'C', 'LC_ALL': 'C', 'TZ': 'UTC'}
+        subprocess.run([str(cls.java / 'bin/javac'), '--release', '8', '-g:none', '-proc:none',
+                        '-implicit:none', '-d', str(classes), *map(str, inputs)], check=True, env=env, capture_output=True)
+        jar = work / 'classes.jar'
+        jar.write_bytes(zip_bytes([(p.relative_to(classes).as_posix(), p.read_bytes()) for p in sorted(classes.rglob('*.class'))]))
+        dex_out = work / 'dex'; dex_out.mkdir()
+        subprocess.run([str(cls.java / 'bin/java'), '-Xshare:off', '-cp', str(cls.r8), 'com.android.tools.r8.D8',
+                        '--debug', '--min-api', '29', '--lib', str(cls.android), '--output', str(dex_out), str(jar)],
+                       check=True, env=env, capture_output=True)
+        return {p.name: p.read_bytes() for p in dex_out.glob('*.dex')}
+
+    def test_actual_admitted_aar_classes_jar_binding(self):
+        from verify_termux_pty_derivative import verify_derivative_inputs, AAR, HISTORICAL_AAR
+        root = TOOLS.parent
+        if not (root / AAR).is_file():
+            if not self.SDK_EXPLORATORY_ONLY and os.environ.get('R46_REQUIRE_D8_TESTS') == '1':
+                self.fail('Actual admitted derivative AAR is required for full D8 acceptance')
+            self.skipTest('Actual derivative AAR not yet built; this is a separate acceptance gate')
+        admitted = verify_derivative_inputs(root)
+        outputs = []
+        for label, aar_path in (('actual-aar', root / AAR), ('historical-aar', root / HISTORICAL_AAR)):
+            work = self.work / label
+            work.mkdir(exist_ok=False)
+            classes = binding.checked_archive(aar_path.read_bytes())['classes.jar']
+            if label == 'actual-aar':
+                self.assertEqual(binding.digest(classes), admitted['aarInspection']['classesJarSha256'])
+            jar = work / 'actual-classes.jar'; jar.write_bytes(classes)
+            out = work / 'out'; out.mkdir()
+            env = {'PATH': str(self.java / 'bin'), 'HOME': str(work), 'LANG': 'C', 'LC_ALL': 'C', 'TZ': 'UTC'}
+            subprocess.run([str(self.java / 'bin/java'), '-Xshare:off', '-cp', str(self.r8), 'com.android.tools.r8.D8',
+                            '--debug', '--min-api', '29', '--lib', str(self.android), '--output', str(out), str(jar)],
+                           check=True, env=env, capture_output=True)
+            outputs.append({p.name: p.read_bytes() for p in out.glob('*.dex')})
+        # The actual admitted AAR body must be the same as the reviewed one-statement candidate.
+        binding.compare_dex_entries(outputs[0], self.candidate)
+        with self.assertRaises(binding.BindingError):
+            binding.compare_dex_entries(outputs[1], outputs[0])
+        if not self.SDK_EXPLORATORY_ONLY:
+            # Exercise the PRODUCTION verifier's mandatory admission and new D8 invocation.
+            apk = self.work / 'binding-only-container.apk'
+            apk.write_bytes(zip_bytes(list(outputs[0].items())))
+            report = binding.verify_apk_binding(root, apk, d8_jar_path=self.r8,
+                                                android_jar_path=self.android, java_home=self.java)
+            self.assertEqual(report['referenceProvenance']['candidateAarSha256'], admitted['output']['sha256'])
+
+    def test_actual_candidate_stale_baseline_rejected(self):
+        binding.compare_dex_entries(self.candidate, self.candidate)
+        with self.assertRaisesRegex(binding.BindingError, 'differs'):
+            binding.compare_dex_entries(self.baseline, self.candidate)
+
+    def test_actual_unrelated_pool_context_relocation(self):
+        self.assertNotEqual(self.candidate, self.context)
+        binding.compare_dex_entries(self.context, self.candidate)
+
+    def test_actual_duplicate_class_and_truncation(self):
+        duplicate = dict(self.candidate)
+        duplicate['classes2.dex'] = self.candidate['classes.dex']
+        with self.assertRaises(binding.BindingError):
+            binding.compare_dex_entries(duplicate, self.candidate)
+        with self.assertRaises(binding.BindingError):
+            binding.compare_dex_entries({'classes.dex': self.candidate['classes.dex'][:-1]}, self.candidate)
+
+    def test_actual_method_reference_and_catch_mutations(self):
+        # Find the real target's code_items via class_data, rather than searching byte patterns.
+        data = self.candidate['classes.dex']; dex = binding.Dex(data)
+        values = dex.classes[binding.TARGET]
+        pos = values[6]; counts = []
+        for _ in range(4):
+            n, pos = dex.leb(pos); counts.append(n)
+        for _ in range(sum(counts[:2])):
+            _, pos = dex.leb(pos); _, pos = dex.leb(pos)
+        codes = []
+        for count in counts[2:]:
+            for _ in range(count):
+                _, pos = dex.leb(pos); _, pos = dex.leb(pos); code, pos = dex.leb(pos)
+                if code: codes.append(code)
+        changed_reference = changed_catch = False
+        for code in codes:
+            size = dex.u32(code + 12)
+            words = dex.unpack('<' + str(size) + 'H', code + 16)
+            for pc, raw in dex.instructions(words)[0]:
+                if (words[pc] & 255) in range(0x6e, 0x73) and not changed_reference:
+                    mutated = bytearray(data)
+                    index = (words[pc + 1] + 1) % len(dex.methods)
+                    struct.pack_into('<H', mutated, code + 16 + 2 * (pc + 1), index)
+                    with self.assertRaises(binding.BindingError):
+                        binding.compare_dex_entries({'classes.dex': fix_checksums(mutated)}, self.candidate)
+                    changed_reference = True
+            tries = dex.unpack('<H', code + 6)[0]
+            if tries and not changed_catch:
+                hp = code + 16 + 2 * size + (2 if size & 1 else 0) + 8 * tries
+                _, hp = dex.leb(hp); count, hp = dex.leb(hp, signed=True)
+                if count:
+                    typ, after = dex.leb(hp)
+                    if after == hp + 1 and len(dex.types) < 128:
+                        mutated = bytearray(data); mutated[hp] = (typ + 1) % len(dex.types)
+                        with self.assertRaises(binding.BindingError):
+                            binding.compare_dex_entries({'classes.dex': fix_checksums(mutated)}, self.candidate)
+                        changed_catch = True
+        self.assertTrue(changed_reference, 'real D8 fixture has no tested method operand')
+        self.assertTrue(changed_catch, 'real D8 fixture has no tested catch type')
+
+
+class SDKFixtureD8Tests(RealD8Tests):
+    """Explicit exploratory parser fixtures; never evidence of project D8 admission."""
+    SDK_EXPLORATORY_ONLY = True
+
+
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)

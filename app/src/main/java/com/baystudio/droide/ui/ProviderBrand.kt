@@ -19,6 +19,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.baystudio.droide.R
 
+
+
+
+
+
 @DrawableRes
 fun providerLogoResource(providerId: String): Int {
     val id = providerId.trim().lowercase()
@@ -70,6 +75,7 @@ fun modelLogoResource(providerId: String, modelId: String): Int {
     }
 }
 
+ 
 private fun brandColorFilter(@DrawableRes logo: Int, foreground: Color): ColorFilter? = when {
     isMonochromeProviderCatalogLogo(logo) -> ColorFilter.tint(foreground)
     else -> when (logo) {
@@ -102,6 +108,8 @@ fun ModelBrandMark(providerId: String, modelId: String, contentDescription: Stri
     )
 }
 
+
+ 
 @Composable
 fun ProviderIdentityLabel(
     providerId: String,
@@ -117,6 +125,7 @@ fun ProviderIdentityLabel(
     }
 }
 
+ 
 @Composable
 fun ModelIdentityLabel(
     providerId: String,

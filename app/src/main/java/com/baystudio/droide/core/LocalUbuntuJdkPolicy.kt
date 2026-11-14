@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 object LocalUbuntuJdkPolicy {
     const val FAMILY = "toolchain.jdk"
 
@@ -16,6 +17,7 @@ object LocalUbuntuJdkPolicy {
         return mapOf("JAVA_HOME" to "$treeRoot/$home")
     }
 
+    
     fun healthScript(javaHome: String, compileSample: Boolean): String {
         require(javaHome.startsWith('/') && '\u0000' !in javaHome && '\n' !in javaHome && '\r' !in javaHome)
         val checks = listOf(

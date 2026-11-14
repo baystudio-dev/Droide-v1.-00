@@ -99,7 +99,7 @@ class MembershipPrepareContinuationTest {
         assertEquals(history.retentionUsage, f.store.inspectRecovery().retentionUsage)
         assertEquals(before, f.disk.loadCatalog()); assertEquals(active, f.disk.loadActiveId())
         assertEquals(listOf(r), f.store.inspectMembershipCommands()); assertEquals(admissions, f.admissions)
-        assertNotNull(runCatching { f.manager.requireSelectionCertain() }.exceptionOrNull())
+        assertNotNull(runCatching { f.manager.requireSelectionCertain() }.exceptionOrNull()) // no guard clearing
     }
     @Test fun durableSnapshotReturnLossContinuesWithoutReplacingRecordedCopy() = fixture { f ->
         val r = interrupted(f, "snapshot-after-commit"); val snapshot = f.store.inspectRecovery().pending!!.snapshot

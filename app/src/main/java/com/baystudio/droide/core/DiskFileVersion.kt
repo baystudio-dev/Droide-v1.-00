@@ -69,7 +69,7 @@ internal object WorkspaceFileMutationLocks {
         withLockedRoot(root, action)
 
     private suspend fun <T> withLockedRoot(root: File, action: suspend (WorkspaceMutationGuard) -> T): T {
-        val lock = forRoot(root)
+        val lock = forRoot(root) // Keep a strong reference for the entire acquisition.
         val owner = Any()
         lock.lock(owner)
         var guard: WorkspaceMutationGuard? = null

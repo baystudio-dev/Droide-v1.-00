@@ -12,8 +12,8 @@ import kotlinx.coroutines.withContext
 internal class MirrorConflictRecovery(private val source: File, private val working: File,
     private val checkpoint: (String) -> Unit = {},
 ) {
-    /** Call-local outcome only. DB reinspection is authoritative after restart; this is never a
-     * durable receipt or permission to release retained bytes. */
+    /** Call-local outcome only. DB reinspection is authoritative after restart;
+     * this is never a durable receipt or permission to release retained bytes. */
     class ResolutionAttempt internal constructor() {
         enum class Outcome { NOT_ATTEMPTED, UNKNOWN, CONFIRMED }
         @Volatile var outcome: Outcome = Outcome.NOT_ATTEMPTED
@@ -65,8 +65,9 @@ internal class MirrorConflictRecovery(private val source: File, private val work
 
     suspend fun inspect(path: String): Review = locked(false) { guard -> inspect(guard, path) }
 
-    /** Resolves agreement of SAVED files only. */
-
+    /** Resolves agreement of SAVED files only. Editor buffers may keep changing;
+     * neither their content nor dirty/saved state is read, written or acknowledged.
+     * Existing writer fences serialize participating saves and CLI publication. */
     suspend fun resolve(review: Review, requireCurrent: () -> Unit) {
         require(review.owner === this) { "Conflict review belongs to another workspace" }
         val attempt = ResolutionAttempt().also { review.lastResolutionAttempt = it }
@@ -93,7 +94,7 @@ internal class MirrorConflictRecovery(private val source: File, private val work
             }
             checkpoint("saved-resolution-before-commit")
             currentCoroutineContext().ensureActive(); requireCurrent()
-
+            // A throw after this boundary can include an already committed transaction.
             attempt.attempted()
             val committed = authority.commitWithHistory(state.revision, baseline, state.conflicts - review.path, directories)
             attempt.confirmed(committed.revision)

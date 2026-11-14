@@ -1,0 +1,11 @@
+# Cooperative namespace admission for retained workspace relocation
+
+ProjectWorkspaceRelocation now reserves both the exact canonical original and retained quarantine path through the existing ExportWriterAdmission authority before publishing PREPARED. Acquisition is non-waiting and does not invoke managed-writer callbacks. If the second reservation refuses, the first is released. The original method signature of beginCapture(File) is preserved; the overload supplies an accurate operation label.
+
+The existing relocation authority frame owns the pair until its finalizer, including catalog publication and cancellation recovery. Only the exact captured Intent may reuse this pair. Restarted writable PREPARED recovery acquires its own pair through resolution. Read-only inspection neither reserves nor publishes. Existing terminal receipts retain their previous checks. Original anchored inode, catalog revision, no-overwrite and positive cwd checks remain authoritative and unchanged.
+
+This is a behavior repair for cooperative mapped writers, not global process, descendant, editor, or file-descriptor exclusion. Empty admission does not certify closure. No retained payload is purged, no storage credit granted, no journaled default activated, no migration introduced, and no native implementation is rebuilt. The existing operation still retains the workspace rather than physically deleting it.
+
+Primary reference: VS Code workingCopyFileService.ts, commit e13716ce975fc4597cb8c2228471ac4783bf4529, https://github.com/microsoft/vscode/blob/e13716ce975fc4597cb8c2228471ac4783bf4529/src/vs/workbench/services/workingCopy/common/workingCopyFileService.ts . Its participants and will/fail/did ordering motivate ownership coordination across operations; they do not establish global writer exclusion. No upstream implementation is copied.
+
+Tests use fresh temporary synthetic projects only. Four initial real-ledger cases fail against the verified predecessor full-source458 JAR and pass with the repair. Additional cases cover pair rollback, callback admission, cancellation/error release, exact intent mismatch, restart restoration and catalog-after resolution, and read-only behavior. Broader source validation is recorded separately from direct compilation evidence.

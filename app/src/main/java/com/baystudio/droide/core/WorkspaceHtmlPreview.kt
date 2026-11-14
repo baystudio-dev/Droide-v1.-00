@@ -7,6 +7,7 @@ import java.io.InputStream
 import java.net.URI
 import java.security.MessageDigest
 
+/** HTTPS-origin resources intercepted by WebView; no listening server or file:// access. */
 internal class WorkspaceHtmlPreview(projectRoot: File) {
     private val root = projectRoot.canonicalFile
     private val originId = MessageDigest.getInstance("SHA-256").digest(root.path.toByteArray(Charsets.UTF_8))

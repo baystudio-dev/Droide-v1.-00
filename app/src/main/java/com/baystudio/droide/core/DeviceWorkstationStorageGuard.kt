@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object DeviceWorkstationStorageGuard {
     const val EMERGENCY_RESERVE_BYTES: Long = 512L * 1024L * 1024L
 
@@ -20,9 +21,10 @@ object DeviceWorkstationStorageGuard {
         return parseDf(probe.output)
     }
 
+     
     suspend fun snapshot(bridge: DeviceBridgeManager): Snapshot {
         check(bridge.state.value.connected != null) { "Connect Device Workstation before checking device storage" }
-
+        
         val probe = bridge.shellBounded(
             "df -k ${DeviceBridgeManager.shellQuote("/data/local/tmp")}",
             maxOutputBytes = 16_384,

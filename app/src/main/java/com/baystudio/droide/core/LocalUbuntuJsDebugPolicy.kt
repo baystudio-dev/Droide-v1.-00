@@ -15,6 +15,7 @@ internal object LocalUbuntuJsDebugPolicy {
     const val NODE_GUEST = "/opt/droide/packages/runtime.node/$NODE_VERSION/arm64-v8a/payload/bin/node"
     const val NODE_KEY = "runtime.node@$NODE_VERSION"
 
+    /** Keep old receipts/wrapper bytes valid, while newer releases use the user's Node PATH. */
     fun requiresLegacyNode(recipe: LocalUbuntuVendorRecipe) = recipe.familyId == FAMILY && recipe.version == VERSION &&
         recipe.assetSha256 == ARTIFACT_SHA256
 
@@ -39,8 +40,8 @@ internal object LocalUbuntuJsDebugPolicy {
         require(recipe.familyId == FAMILY &&
             recipe.entryPoint == "js-debug/src/dapDebugServer.js" && file.isFile && !PathSecurity.isSymbolicLink(file) &&
             file.length() in 1L..8L * 1024 * 1024) { "Invalid official js-debug entry point" }
-        // New releases have their own publisher archive digest and full-tree seal. Do not compare new
-        // JavaScript bytes with the old release's hash or pin its Node runtime.
+        // New releases have their own publisher archive digest and full-tree seal. Do not
+        // compare new JavaScript bytes with the old release's hash or pin its Node runtime.
         if (!requiresLegacyNode(recipe)) return
         val hash = MessageDigest.getInstance("SHA-256")
         file.inputStream().buffered().use { input ->

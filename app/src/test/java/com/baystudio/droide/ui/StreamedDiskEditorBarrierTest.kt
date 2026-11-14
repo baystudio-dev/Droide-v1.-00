@@ -100,7 +100,7 @@ class StreamedDiskEditorBarrierTest {
             val job = async(start = CoroutineStart.UNDISPATCHED) {
                 runCatching { authority.commitDiskOnly("file") { calls++ } }
             }
-
+            // Registration precedes the disk read; unloaded/opening documents still block.
             state.document("file")
             release.countDown()
             assertTrue(job.await().exceptionOrNull() is WorkspaceDocumentConflictException)

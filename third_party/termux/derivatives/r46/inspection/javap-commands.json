@@ -1,0 +1,32 @@
+[
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/toolchain/jdk-17.0.20.1+1/bin/javap",
+      "-p",
+      "-c",
+      "-s",
+      "-constants",
+      "-classpath",
+      "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/inspection/baseline-classes.jar",
+      "com.termux.terminal.TerminalPtyIo"
+    ],
+    "returnCode": 0,
+    "stderr": "",
+    "stdoutSha256": "9ec80609aa55fc2726f4625a48bcd65065c03d00704985f8a2b7437ae6962d96"
+  },
+  {
+    "argv": [
+      "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/toolchain/jdk-17.0.20.1+1/bin/javap",
+      "-p",
+      "-c",
+      "-s",
+      "-constants",
+      "-classpath",
+      "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/inspection/compiled",
+      "com.termux.terminal.TerminalPtyIo"
+    ],
+    "returnCode": 0,
+    "stderr": "",
+    "stdoutSha256": "8b0e2d6f554df44d12187c92b66a32cd81a649d7cb9438906f7ff8d8b7f138a9"
+  }
+]

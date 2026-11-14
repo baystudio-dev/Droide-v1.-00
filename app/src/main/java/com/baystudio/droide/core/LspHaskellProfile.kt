@@ -31,8 +31,8 @@ internal object LspHaskellProfile {
 
     fun projectAvailable(project: File): Boolean = Files.isDirectory(project.toPath(), NOFOLLOW_LINKS)
 
-    // Send these before didOpen as well as answering HLS's standard configuration query. These
-    // upstream settings reduce eager work; they do not sandbox project compilation.
+    // Send these before didOpen as well as answering HLS's standard configuration query.
+    // These upstream settings reduce eager work; they do not sandbox project compilation.
     fun settings(): JsonObject = buildJsonObject {
         put("checkProject", false)
         put("checkParents", "CheckOnSave")

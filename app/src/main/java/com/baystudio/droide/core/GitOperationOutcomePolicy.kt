@@ -1,7 +1,7 @@
 package com.baystudio.droide.core
 
-// A successful refresh must therefore never erase the commit/checkout/stage outcome the user
-// just asked for.
+// A successful refresh must therefore never erase the commit/checkout/stage outcome the user just asked for.
+
 
 object GitOperationOutcomePolicy {
     private const val ERROR_PREFIX = "git error:"

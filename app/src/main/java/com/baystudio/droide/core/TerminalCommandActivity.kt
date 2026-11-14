@@ -34,6 +34,7 @@ data class TerminalCommandActivity(
     }
 }
 
+/** No command lines, password input or transcript copies are needed to display activity. */
 internal class TerminalCommandActivityTracker(
     private val token: String = UUID.randomUUID().toString().replace("-", ""),
     private val clockMs: () -> Long = { System.nanoTime() / 1_000_000L },
@@ -60,6 +61,7 @@ internal class TerminalCommandActivityTracker(
             startedAtMs = if (phase == TerminalCommandPhase.AWAITING_RESPONSE) mutable.value.startedAtMs else null)
     }
 
+    /** Return true for private titles, even malformed ones, to keep them out of tab labels. */
     @Synchronized fun consumeTitle(title: String?): Boolean {
         if (title == null || !title.startsWith(TITLE_PREFIX)) return false
         val parts = title.removePrefix(TITLE_PREFIX).split(':', limit = 3)
@@ -83,7 +85,7 @@ internal class TerminalCommandActivityTracker(
                     lastOutputAtMs = if (phase == TerminalCommandPhase.AWAITING_RESPONSE) mutable.value.lastOutputAtMs else null)
                 seenPrompt = true
             }
-
+            // A pulse makes identical ready titles generate a fresh emulator notification.
             "pulse" -> Unit
         }
         return true

@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
+/** Composes existing admitted installers; the bundle receipt depends on each real component. */
 internal object LocalAndroidWorkstationPolicy {
     const val FAMILY = "meta.android-development"
     const val VERSION = "ubuntu-android-36"

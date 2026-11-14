@@ -1,0 +1,36 @@
+{
+  "sourceArchiveSha256": "e767a89ace01569e1e0412b2bbd03de171194caa85c3989b770d4bfe9438d317",
+  "sourceRoot": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source",
+  "buildRoot": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-primary",
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "androidPlatform": "android-29",
+  "buildType": "Debug",
+  "targets": [
+    "termux",
+    "droide_files"
+  ],
+  "prefixMappings": [
+    {
+      "physical": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source",
+      "normalized": "/droide/source"
+    },
+    {
+      "physical": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-primary",
+      "normalized": "/droide/native"
+    },
+    {
+      "physical": "/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358",
+      "normalized": "/droide/toolchain/ndk/28.2.13676358"
+    }
+  ],
+  "additionalCFlags": "-ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/source/Droide-reconstructed-source=/droide/source -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-primary=/droide/native -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/build/R40/native-primary=/droide/native -ffile-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358 -fdebug-prefix-map=/workspace/scratch/dc5f25abc237/droide-reconstruction-20261015/toolchain/android-sdk/ndk/28.2.13676358=/droide/toolchain/ndk/28.2.13676358",
+  "sourceUnchanged": true,
+  "sourceTreeBeforeSha256": "10cb60a27bb55a2e5d1ec044a3e089ceda96cc7deb61557569ae75e1046a0fc5",
+  "sourceFileCount": 8723,
+  "outputExecutionAuthorized": false
+}

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run preserved PTY and current resize fixtures against an explicit fresh engine AAR."""
+"""Run preserved PTY and current resize fixtures against an explicit fresh engine AAR.
+
+This is host JVM evidence only. It neither calls historical admission gates nor
+compiles production Java sources. The caller must bind this receipt to its new
+engine build receipt; arbitrary AAR selection alone is not admission.
+"""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -9,7 +14,7 @@ from pathlib import Path
 import re
 import subprocess
 
-import java_archive as archive_tools
+import verify_termux_pty_derivative as archive_tools
 
 ENV = {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC'}
 PRESERVED = {
@@ -47,13 +52,13 @@ def main() -> None:
         parser.add_argument('--' + name, type=Path, required=True)
     args = parser.parse_args()
     root, aar, java, output = map(clean_path, (args.root, args.engine_aar, args.java_home, args.output))
-    if Path(__file__).resolve() != root / 'tools/run_terminal_engine_regressions.py' or Path(archive_tools.__file__).resolve() != root / 'tools/java_archive.py':
+    if Path(__file__).resolve() != root / 'tools/run_terminal_engine_regressions.py' or Path(archive_tools.__file__).resolve() != root / 'tools/verify_termux_pty_derivative.py':
         raise ValueError('Selected root differs from the executing runner/helper')
     inputs = [root, aar, java, clean_path(args.junit), clean_path(args.hamcrest)]
     if output.exists() or any(output == p or output in p.parents or p in output.parents for p in inputs):
         raise ValueError('Output must be fresh and disjoint from all inputs')
     before = {str(p): sha(p.read_bytes()) for p in (aar, Path(__file__).resolve(), Path(archive_tools.__file__).resolve())}
-    source_dir = root / 'third_party/termux/derivatives/pty-io/fixtures'
+    source_dir = root / 'third_party/termux/derivatives/r46/fixtures'
     sources = {}
     for name, wanted in PRESERVED.items():
         p = clean_path(source_dir / name); data = p.read_bytes()

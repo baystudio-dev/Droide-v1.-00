@@ -1,0 +1,10 @@
+// F117 revocable no-start reservations, plus frozen ownership/cleanup controls.
+apply from: new File(gradle.startParameter.currentDir, 'tools/process-cleanup-receipts-tests.init.gradle')
+gradle.projectsEvaluated {
+    gradle.rootProject.project(':app').tasks.named('compileDebugUnitTestKotlin').configure {
+        source(project.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('LegacyV5ProcessCustodyLedger.kt', 'MirrorProcessLaunchPermissionTest.kt',
+                'MirrorProcessLaunchRestartFixture.kt', 'MirrorProcessLaunchRestartTest.kt')
+        })
+    }
+}

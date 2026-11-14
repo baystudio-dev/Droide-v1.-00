@@ -147,8 +147,7 @@ internal object LocalUbuntuGraphqlArchive {
             }
         }
         require(files.isNotEmpty())
-        // Links materialize only after all data writes. Resolve chains as data; no symlink ancestor
-        // writes.
+        // Links materialize only after all data writes. Resolve chains as data; no symlink ancestor writes.
         for((name,link)in links) {
             var current=name;val seen=hashSetOf<String>()
             while(current in links) { require(seen.add(current));val parent=java.nio.file.Paths.get(current).parent?:java.nio.file.Paths.get("");val normalized=parent.resolve(links.getValue(current)).normalize().toString().replace(File.separatorChar,'/');require(normalized.startsWith("$top/")&&!normalized.startsWith("../"));current=normalized }
@@ -172,7 +171,7 @@ internal object LocalUbuntuGraphqlArchive {
             require(key in setOf("path","size","mtime","atime","ctime","uid","gid","uname","gname")&&out.put(key,v)==null&&v.toByteArray().size<=4096&&v.none{it.code<32||it.code==127});at=start+n
         };return out
     }
-
+    /** Unlike GZIPInputStream, a concatenated member or any bytes after the trailer are rejected. */
     internal class SingleGzip(raw:InputStream,private val limit:Long,private val active:()->Unit={}):InputStream() {
         private val source=PushbackInputStream(raw,65536);private val inflater=Inflater(true);private val compressed=ByteArray(65536);private val crc=CRC32();private var total=0L;private var finished=false;private var lastInput=0
         init {

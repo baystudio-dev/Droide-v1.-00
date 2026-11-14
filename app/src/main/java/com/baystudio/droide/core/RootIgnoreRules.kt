@@ -5,6 +5,7 @@ import java.nio.charset.CharacterCodingException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
+/** Fail visibly rather than searching with missing/partially loaded exclusions. */
 internal class RootIgnoreException(message: String, cause: Throwable? = null) :
     IllegalStateException("Root .gitignore filtering unavailable: $message", cause)
 
@@ -41,7 +42,7 @@ internal class RootIgnoreRules private constructor(
     fun canDescend(path: String): Boolean = !isIgnored(path, isDirectory = true)
 
     private fun entryIgnored(path: String, isDirectory: Boolean): Boolean {
-
+        // Include ancestor-path processing in the query budget; compute basename once per node.
         charge(path.length + 1)
         val basename = path.substringAfterLast('/')
         for (index in rules.indices.reversed()) {

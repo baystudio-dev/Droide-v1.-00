@@ -9,6 +9,7 @@ import java.security.DigestOutputStream
 import java.security.DigestInputStream
 import java.util.UUID
 
+/** Optional per-entry policy admission, before entry metadata or payload is accessed. */
 internal interface ExportEntryAdmissionPermit : ExportCapturePermit {
     fun requireEntry(relativePath: String)
 }
@@ -18,6 +19,7 @@ internal data class ExportEntry(val id: Long, val dataId: Long, val path: String
     val size: Long, val digest: String, val link: String, val mode: Int, val uid: Long,
     val gid: Long, val modifiedMillis: Long, val inode: String)
 
+/** Length-prefixed records: no newline delimiters, no all-entry index in RAM. */
 internal object ExportManifest {
     fun write(out: DataOutputStream, e: ExportEntry) {
         out.writeLong(e.id); out.writeLong(e.dataId); string(out,e.path); out.writeInt(e.type.ordinal); out.writeLong(e.size)
@@ -43,6 +45,8 @@ class ExportCapturedSource internal constructor(internal val directory:File, int
     override fun close() { directory.deleteRecursively() }
 }
 
+/** One traversal, no filtered listings. Concurrent single-file capture reads source bytes again
+ * before sealing; ordinary quiescent directory capture still reads each unique inode once. IO only. */
 class ExportCaptureStore(private val baseDir:File) {
     fun capture(permit:ExportCapturePermit, control:ExportControl=ExportControl()):ExportCapturedSource {
         permit.validate(); control.checkCancelled()
@@ -74,7 +78,7 @@ class ExportCaptureStore(private val baseDir:File) {
                     control.checkCancelled(); permit.validate()
                     ExportStorageBudget.requireAvailable(dir, 4096)
                     (permit as? ExportEntryAdmissionPermit)?.requireEntry(relative)
-
+                    // UnixPath retains raw bytes; round-trip rejects replacement-decoded filenames.
                     if(path.fileName != Paths.get(path.fileName.toString())) throw ExportFailure("NameNotRepresentable",relative)
                     val before=attrs(path); val type=kind(before,relative)
                     val metadata=try { Files.readAttributes(path,"unix:mode,uid,gid,dev,ino",LinkOption.NOFOLLOW_LINKS) } catch(e:UnsupportedOperationException) { throw ExportFailure("SourceMetadataUnavailable",relative,e) }
@@ -85,7 +89,9 @@ class ExportCaptureStore(private val baseDir:File) {
                         (metadata["uid"] as Number).toLong() != initialStamp.uid ||
                         (metadata["gid"] as Number).toLong() != initialStamp.gid ||
                         before.size() != initialStamp.size ||
-
+                        // NIO timestamps may omit fractional seconds on Android even when
+                        // Os.lstat reports nanoseconds. Compare change stamps in one domain;
+                        // never round away ctime/mtime precision to match NIO's view.
                         ExportFileStamp.read(path) != initialStamp
                     )) throw ExportFailure("SourceChanged", relative)
                     val inode="${metadata["dev"]}:${metadata["ino"]}"
@@ -102,12 +108,14 @@ class ExportCaptureStore(private val baseDir:File) {
                                 bytes=Math.addExact(bytes,size)
                             } else {
                             if (before.size() == 0L) {
-                                // In particular, opening+closing a dedicated zero-byte metadata lock in this process could
-                                // release another owner's POSIX lock.
+                                // An observed empty regular file needs no source descriptor.
+                                // In particular, opening+closing a dedicated zero-byte metadata
+                                // lock in this process could release another owner's POSIX lock.
+                                // Keep the same entry policy and before/after identity checks.
                                 FileOutputStream(File(dir,"$id.data")).use { }
                                 digest=MessageDigest.getInstance("SHA-256").digest(byteArrayOf()).hex()
                             } else {
-
+                                // O_NOFOLLOW descriptor stays bound after rename; hardlink peers share this staging copy.
                                 sourceFilesRead=Math.addExact(sourceFilesRead,1)
                                 ExportSourceReader.read(path,initialStamp?.device ?: (metadata["dev"] as Number).toLong(),
                                     initialStamp?.inode ?: (metadata["ino"] as Number).toLong(),initialStamp?.size ?: before.size()) { input ->
@@ -149,8 +157,8 @@ class ExportCaptureStore(private val baseDir:File) {
             }
             control.checkCancelled(); permit.validate()
             if (initialStamp != null) {
-                // The entire copy must have one unchanged source identity/change stamp. Read bytes again to
-                // catch torn reads, even on coarse/nonstandard filesystems.
+                // The entire copy must have one unchanged source identity/change stamp.
+                // Read bytes again to catch torn reads, even on coarse/nonstandard filesystems.
                 if (initialStamp != ExportFileStamp.read(scope)) throw ExportFailure("SourceChanged")
                 if (initialStamp.size > 0L) {
                     sourceFilesRead = Math.addExact(sourceFilesRead, 1)

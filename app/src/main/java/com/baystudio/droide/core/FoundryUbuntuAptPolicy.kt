@@ -73,8 +73,8 @@ internal object FoundryUbuntuAptPolicy {
 
     private val ARCHITECTURE_SED = """s/^droide_native_arch='([a-z0-9][a-z0-9-]*)'${'$'}/\1/p"""
 
-    // Parse only APT's quoted URI records, never its human-readable package counts. The caller's
-    // transaction cache determines which archives still need downloading.
+    // Parse only APT's quoted URI records, never its human-readable package counts.
+    // The caller's transaction cache determines which archives still need downloading.
     private val DOWNLOAD_SIZE_AWK = """
         /^'/ {
             if (NF != 4 || ${'$'}1 !~ /^'[^']+'${'$'}/ || ${'$'}3 !~ /^[0-9]+${'$'}/) { bad = 1; exit 1 }
@@ -83,6 +83,8 @@ internal object FoundryUbuntuAptPolicy {
         END { if (bad) exit 1; printf "%.0f\n", total }
     """.trimIndent()
 
+    // Preserve the former per-package first-result behavior, including explicit multiarch names.
+    // Architecture can occur after Installed-Size, so consume complete records before summing.
     private val INSTALLED_SIZE_AWK = """
         function add(key) {
             if (key in wanted && !(key in seen)) {

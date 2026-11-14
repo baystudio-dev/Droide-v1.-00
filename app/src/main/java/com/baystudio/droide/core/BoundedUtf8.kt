@@ -13,6 +13,7 @@ import kotlinx.coroutines.ensureActive
 internal object BoundedUtf8 {
     private const val BUFFER_CHARS = 8_192
 
+    /** Counts exactly the UTF-8 bytes written by [write], including replacement of lone surrogates. */
     suspend fun encodedSize(text: String, maxBytes: Long, onLimitExceeded: () -> Nothing): Long {
         require(maxBytes >= 0L)
         val context = currentCoroutineContext()
@@ -43,6 +44,7 @@ internal object BoundedUtf8 {
         return bytes
     }
 
+    /** Closes [output]. One encoder retains surrogate pairs spanning successive character chunks. */
     suspend fun write(output: OutputStream, text: String) {
         val context = currentCoroutineContext()
         val encoder = Charsets.UTF_8.newEncoder()
@@ -60,9 +62,10 @@ internal object BoundedUtf8 {
             }
             context.ensureActive()
         }
-        context.ensureActive()
+        context.ensureActive() // Closing the encoder can flush bytes before publication is allowed.
     }
 
+    /** Closes [input]; enforces the byte limit during decoding even if the source grows. */
     suspend fun read(input: InputStream, maxBytes: Long, onLimitExceeded: (Long) -> Nothing): String {
         require(maxBytes in 0..Int.MAX_VALUE.toLong())
         val context = currentCoroutineContext()
@@ -78,7 +81,7 @@ internal object BoundedUtf8 {
 
             override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
                 context.ensureActive()
-
+                // At most one look-ahead byte is needed to distinguish exact-limit EOF from overflow.
                 val count = `in`.read(buffer, offset, minOf(length.toLong(), maxBytes - total + 1L).toInt())
                 if (count > 0) {
                     total += count

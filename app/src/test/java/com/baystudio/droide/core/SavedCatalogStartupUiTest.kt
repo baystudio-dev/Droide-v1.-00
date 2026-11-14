@@ -65,7 +65,7 @@ class SavedCatalogStartupUiTest {
             runBlocking { assertNotNull(runCatching { manager.init() }.exceptionOrNull()) }
             assertSame(manager, owner.projects); assertTrue(manager.supportsCatalogRecoveryReview)
             assertTrue(manager.projects.value.isEmpty()); assertNull(owner.runtime.value)
-
+            // This is the same existing entry used by both MainActivity failure and ProjectDrawer.
             compose.setContent { MaterialTheme { ProjectCatalogRecoveryEntry(owner.projects) } }
             compose.onNodeWithText("Review project changes").assertIsDisplayed().performClick()
             compose.onNodeWithText("Saved project changes").assertIsDisplayed()

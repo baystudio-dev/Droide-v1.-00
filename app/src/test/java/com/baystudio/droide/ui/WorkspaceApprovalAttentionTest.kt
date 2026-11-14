@@ -35,8 +35,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Authored by static review only; these tests have not been compiled or executed. */
-
+/**
+ * Pure routing and isolated Compose attention-observer contracts. No AgentPane, WebView,
+ * project tooling, or native application components are mounted by these fixtures.
+ * Authored by static review only; these tests have not been compiled or executed.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w640dp-h640dp")
 class WorkspaceApprovalAttentionTest {
@@ -342,8 +345,8 @@ class WorkspaceApprovalAttentionTest {
         var presented by mutableStateOf(true)
         val active = mutableListOf<WorkspaceApprovalSurface>()
         compose.setContent {
-            // The real workspace also disables native hidden browser focus. This fixture verifies that an
-            // obsolete callback cannot bypass its additional presented guard.
+            // The real workspace also disables native hidden browser focus. This fixture verifies
+            // that an obsolete callback cannot bypass its additional presented guard.
             val presentedAtComposition = presented
             Column {
                 Box(Modifier.size(120.dp).workspaceApprovalAttention(WorkspaceApprovalSurface.BROWSER) {
@@ -411,8 +414,8 @@ class WorkspaceApprovalAttentionTest {
         compose.onNodeWithTag("agent-keyboard-target").assertIsFocused()
         compose.runOnIdle { assertEquals(WorkspaceApprovalSurface.OTHER, active.last()) }
 
-        // There is no second focus transition. The key-down itself must restore attention, and the
-        // ordinary child handler must still receive exactly the original event.
+        // There is no second focus transition. The key-down itself must restore attention,
+        // and the ordinary child handler must still receive exactly the original event.
         compose.onNodeWithTag("agent-keyboard-target").performKeyInput { pressKey(Key.A) }
         compose.onNodeWithTag("agent-keyboard-target").assertIsFocused()
         compose.runOnIdle {

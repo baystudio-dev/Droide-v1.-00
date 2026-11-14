@@ -1,9 +1,14 @@
 package com.baystudio.droide.core
 
+ 
 data class EditorRecoveryRequest(
     val store: EditorStateStore,
     val snapshot: EditorRecoverySnapshot?,
 )
+
+
+
+
 
 class EditorRecoveryBridge {
     private var owner: Any? = null
@@ -26,6 +31,7 @@ class EditorRecoveryBridge {
     @Synchronized
     fun captureRequest(): EditorRecoveryRequest? {
         val current = provider ?: return null
+        
 
         return try {
             current()

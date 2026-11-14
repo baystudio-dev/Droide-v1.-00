@@ -19,6 +19,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Small injected section capacities; no large tree, throughput, device or power-loss claim. */
 class SafJournalRetirementSectionsTest {
     private val roots = arrayListOf<File>()
     @After fun cleanup() { roots.asReversed().forEach { PathSecurity.deleteTreeNoFollow(it) } }
@@ -289,7 +290,7 @@ class SafJournalRetirementSectionsTest {
             assertTrue(frame.pages.count { it.kind == "custody" } >= 2)
             assertEquals("original", frame.pages.first { it.kind == "custody" }.nodes.first().path)
             val pages = frame.pages.map { page -> page.copy(nodes = page.nodes.filter { it.path != "original" }) }
-            f.writeFrame(frame.copy(pages = pages))
+            f.writeFrame(frame.copy(pages = pages)) // canonical page lengths, counts and hashes all recomputed
             assertTrue(runCatching { f.begin("next") }.isFailure)
             assertTrue(f.unlinks.isEmpty()); f.assertSnapshot(operation, retained)
             content.forEach { (path, bytes) -> assertArrayEquals(bytes, custody.resolve(path).readBytes()) }
@@ -347,7 +348,7 @@ class SafJournalRetirementSectionsTest {
             assertEquals("Retained provider payload must be admitted once", 1, f.reads.count { it == body })
             val retainedBodies = body.parentFile!!.listFiles()!!.filter { it.name.endsWith(".bin") }
             val bodyReads = retainedBodies.associate { it.name to f.reads.count { read -> read == it } }
-
+            // Preserve the existing two begin ancestry checks / one plan ancestry check.
             assertEquals(if (planning) 3 else 4, bodyReads.getValue("planned.bin"))
             assertEquals(2, bodyReads.getValue("trusted.bin"))
             assertEquals(2, bodyReads.getValue("delta.bin"))

@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** Immutable indentation snapshot captured by the caller for one formatting request. */
 data class LspFormattingOptions(val tabSize: Int, val insertSpaces: Boolean) {
     init { require(tabSize > 0) { "Formatting tab size must be positive" } }
 

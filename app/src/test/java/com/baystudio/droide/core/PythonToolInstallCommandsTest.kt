@@ -6,6 +6,7 @@ import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
+/** Executes the production shell against real, offline venvs and a fixture pip module. */
 class PythonToolInstallCommandsTest {
     @Test fun isolatedInstallerIgnoresProjectVenvPipAndPythonpathModules() = host { f ->
         f.shadowModules()

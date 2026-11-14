@@ -66,8 +66,8 @@ class AgentStopHistorySpillTest {
                                 put("role", "user")
                                 put("content", text)
                             }
-                            // Use about half a MiB of ordinary history, not a huge response or a mocked counter. The next
-                            // interrupted-tool result is the first append that needs disk spill.
+                            // Use about half a MiB of ordinary history, not a huge response or a mocked counter.
+                            // The next interrupted-tool result is the first append that needs disk spill.
                             val previousBytes = SessionHistoryLedger.HOT_HISTORY_BYTES -
                                 SessionJsonSize.estimatedBytes(promptEntry) - SessionJsonSize.estimatedBytes(pendingTool) - 1
                             val previous = previousEntry("x".repeat((previousBytes - SessionJsonSize.estimatedBytes(previousEntry(""))).toInt()))

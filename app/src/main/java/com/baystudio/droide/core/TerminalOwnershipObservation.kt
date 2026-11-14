@@ -27,6 +27,7 @@ class TerminalOwnershipObservation internal constructor(
     }
 }
 
+/** Reads the existing first-accepted deferred receipts. No completion is synthesized. */
 internal object NativePtyOwnershipObservation {
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun stamp(role: String, receipt: Deferred<NativePtyCleanupReceipt>): TerminalReceiptObservation {

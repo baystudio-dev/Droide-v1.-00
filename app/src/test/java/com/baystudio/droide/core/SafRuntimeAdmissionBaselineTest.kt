@@ -41,8 +41,8 @@ class SafRuntimeAdmissionBaselineTest {
     private val intended = byteArrayOf(90, 0, -9, 11)
 
     @After fun cleanup() {
-        // Only bounded fixture-owned directories, including the unique legacy hash directory. No pending
-        // coroutine, provider writer, sleep, or asynchronous cleanup can outlive a test.
+        // Only bounded fixture-owned directories, including the unique legacy hash directory.
+        // No pending coroutine, provider writer, sleep, or asynchronous cleanup can outlive a test.
         try {
             assertEquals("Directory durability descriptors must close", 0, SafPreservationDirectoryOs.openCount())
         } finally {
@@ -181,6 +181,7 @@ class SafRuntimeAdmissionBaselineTest {
         }
     }
 
+    /** Same SDK35/Robolectric legacy-query adaptation as the already reviewed preservation fixture. */
     private class ResolverBridge(private val provider: DocumentsProvider) : ContentProvider() {
         override fun onCreate() = true
         override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? =

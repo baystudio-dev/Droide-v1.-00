@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
+/** Reuses actual dpkg state, irrespective of which UI/Agent/terminal originally installed it. */
 internal class UbuntuAptDependencyInstaller(
     private val commands: UbuntuAptCommandRunner,
     private val metadata: UbuntuAptMetadataState,
@@ -60,8 +61,9 @@ internal class UbuntuAptDependencyInstaller(
             }
         } catch (error: Throwable) { failure = error; throw error }
         finally {
-            // capture() has reaped its owned command before this point.
-
+            // capture() has reaped its owned command before this point. Cleanup
+            // uses the Android filesystem, even if the guest can no longer launch.
+            // Cancellation never starts a second dpkg/repair transaction.
             withContext(NonCancellable) {
                 try { cleanup(layerId) }
                 catch (error: Exception) { failure?.addSuppressed(error) ?: throw error }

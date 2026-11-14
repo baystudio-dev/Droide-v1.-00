@@ -11,8 +11,11 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Existing APIs only. */
-
+/**
+ * Existing R23 APIs only. Four one-byte modeled writes, a three-operation cap, and cold reopen.
+ * Uses fixture-owned host files/forces; no ContentResolver, provider, device, native or process work.
+ * This source is staged, not executed. The expected old-source failure is the fourth begin.
+ */
 class SafSuccessfulHistoryCapacityBaselineTest {
     private val roots = arrayListOf<File>()
 
@@ -90,7 +93,7 @@ class SafSuccessfulHistoryCapacityBaselineTest {
                         SafEffectKind.WRITE_FILE, "value.bin", document, parent, null, previous, desired,
                     ), poll)
                     journal.attempting(action, poll)
-                    value.writeBytes(next)
+                    value.writeBytes(next) // Deterministic host-file model of one returned provider write.
                     modeledWrites++
                     journal.returned(action, SafEffectReturn.COMPLETED, SafProviderReturn(SafProviderReturnShape.VOID), poll)
                     journal.verified(action, document, poll)

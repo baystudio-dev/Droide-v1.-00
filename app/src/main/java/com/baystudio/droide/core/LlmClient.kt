@@ -23,14 +23,17 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
         .readTimeout(AgentTimeoutPolicy.RESPONSE_IDLE_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
         .writeTimeout(AgentTimeoutPolicy.RESPONSE_IDLE_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
         .callTimeout(0, java.util.concurrent.TimeUnit.MILLISECONDS)
-        // Generation POSTs must not be silently replayed after an ambiguous disconnect. Explicit
-        // transient HTTP responses are handled only by ProviderRetryPolicy.
+        // Generation POSTs must not be silently replayed after an ambiguous disconnect.
+        // Explicit transient HTTP responses are handled only by ProviderRetryPolicy.
         .retryOnConnectionFailure(false)
         .addNetworkInterceptor { chain ->
             val response = chain.proceed(chain.request())
             if (response.code != 503) response else {
-                // OkHttp 4.12 follows 503 + Retry-After: 0 even with connection retries disabled, and parses
-                // large numeric headers as Int.
+                // OkHttp 4.12 follows 503 + Retry-After: 0 even with connection retries
+                // disabled, and parses large numeric headers as Int. Keep the original
+                // header in local metadata while preventing that hidden follow-up.
+                // BridgeInterceptor restores response.request to the original call
+                // request, so attach the per-call memo before entering the HTTP stack.
                 checkNotNull(chain.request().tag(PolicyRetryHeader::class.java)).retryAfter = response.header("Retry-After")
                 response.newBuilder().removeHeader("Retry-After").build()
             }
@@ -57,8 +60,8 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
             override fun contentType() = delegate.contentType()
             override fun contentLength() = delegate.contentLength()
             override fun writeTo(sink: BufferedSink) = delegate.writeTo(sink)
-            // The immutable body may be written by a new explicitly admitted policy attempt, but never by
-            // OkHttp's automatic HTTP follow-ups in the same call.
+            // The immutable body may be written by a new explicitly admitted policy
+            // attempt, but never by OkHttp's automatic HTTP follow-ups in the same call.
             override fun isOneShot() = true
         }
     }
@@ -76,11 +79,11 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
             if (progress.isCallbackFailure(failure)) throw failure
             throw ProviderStreamFailure.fromPayload(failure, secrets, httpStatus, progress.snapshot(secrets))
         } catch (failure: Exception) {
-            // Keep cancellation and HTTP rejection identity for the existing retry and context-overflow
-            // gates. Parser/unknown-event errors can include raw input.
+            // Keep cancellation and HTTP rejection identity for the existing retry and
+            // context-overflow gates. Parser/unknown-event errors can include raw input.
             if (failure is CancellationException || failure is LlmHttpException || progress.isCallbackFailure(failure)) throw failure
-            // kotlinx JSON diagnostics may already have clipped the input and a credential into an
-            // unmatchable prefix. Never relay their raw context.
+            // kotlinx JSON diagnostics may already have clipped the input and a
+            // credential into an unmatchable prefix. Never relay their raw context.
             if (failure is SerializationException) throw ProviderStreamFailure.fromUnsafeMessage(
                 "Provider returned malformed JSON.", emptyList(), httpStatus, progress.snapshot(secrets),
             )
@@ -89,6 +92,7 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
         }
     }
 
+     
     suspend fun chatCompletions(baseUrl: String, apiKey: String, body: String): String =
         withContext(Dispatchers.IO) {
             val request = ProviderModelRequestIdentity.canonicalize(body, json)
@@ -113,6 +117,7 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
             }
         }
 
+     
     suspend fun chatCompletions(
         providerId: String,
         baseUrl: String,
@@ -202,6 +207,7 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
         }
     }
 
+    /** Null means the selected certified provider needs the unchanged legacy transport. */
     internal fun ownedChatTarget(providerId: String, baseUrl: String, expectedModelId: String): ProviderReplayTarget? {
         val model = ProviderModelIdentity.requireCanonical(expectedModelId)
         val provider = requireRuntimeProvider(providerId, baseUrl, model)
@@ -211,8 +217,10 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
         return ProviderReplayTarget(provider.id, model, ProviderReplayTarget.Protocol.OPENAI_CHAT, OwnedChatEndpointIdentity.fromValidatedUrl(target.url))
     }
 
-    /** Source-backed Chat route only. */
-
+    /** Source-backed Chat route only. Legacy String APIs and their allocation guards are unchanged.
+     * Caller owns durable stage recovery on failure; this method never executes a tool or retries a
+     * partly received response. Progress contains no full tool arguments.
+     */
     internal suspend fun streamOwnedChat(
         providerId: String, baseUrl: String, apiKey: String, expectedModelId: String,
         options: JsonObject, history: List<SourceAwareChatHistoryWriter.Item>,
@@ -336,6 +344,8 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
                 throw httpFailure(response.code, errorBody, req, retryAfter(response), response.header("retry-after-ms"))
             }
             val source = response.body?.source() ?: throw IllegalStateException("Empty provider stream response")
+
+            
 
             val streamIdle = ProviderStreamIdleGuard(ProviderStreamPolicy.idleTimeoutMillis(provider))
             val firstLine = readStreamLine(source, streamIdle) ?: throw IllegalStateException("Empty provider stream response")
@@ -536,8 +546,8 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
                 }
                 val raw = ProviderPayloadLimits.checkedJson(remainder.toString())
                 progress.observe(ProviderWireProtocol.GOOGLE_GENERATE_CONTENT, raw, buffered = true)
-                // A streaming endpoint can return a JSON error under HTTP 200. Classify it before
-                // successful-response finishReason validation.
+                // A streaming endpoint can return a JSON error under HTTP 200.
+                // Classify it before successful-response finishReason validation.
                 val normalized = GoogleGenerateContentAdapter.normalizeBuffered(raw, json)
                 val terminal = googleCompletionReason(json.parseToJsonElement(raw).jsonObject)
                 check(terminal != null) { "Google response is missing finishReason or prompt block" }
@@ -582,14 +592,15 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
             if (payload == null) return false
             val done = consume(payload)
             // The next-event timeout starts after dispatch/backpressure completes.
-
+            // Any accepted decoded event counts, including private/model metadata.
+            // Comments and partial frames do not manufacture completed events.
             idle.progress()
             return done
         }
         suspend fun line(raw: String): Boolean {
             currentCoroutineContext().ensureActive()
-            // Measure stream inactivity between decoded events, including heartbeats, rather than visible
-            // text.
+            // Like Codex, wait for the next decoded event, not visible text.
+            // Valid metadata/thinking may be all a provider can report for a while.
             idle.check()
             return dispatch(framing.line(raw))
         }
@@ -617,7 +628,9 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
         val now = System.nanoTime()
         val effectiveDeadline = if (hadDeadline && oldDeadline - now < remainingDeadline - now) oldDeadline else remainingDeadline
         return try {
-
+            // A configured longer idle window must not be preempted by the
+            // client's inherited shorter body read timeout. Headers still use
+            // the existing client timeout; this override owns only body reads.
             timeout.timeout(idle.timeoutMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
             timeout.deadlineNanoTime(effectiveDeadline)
             ProviderPayloadLimits.readLine(source)
@@ -645,6 +658,8 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
             put("stream", true)
             put("stream_options", buildJsonObject {
                 existingStreamOptions?.forEach { (key, value) -> put(key, value) }
+                
+
 
                 put("include_usage", true)
             })
@@ -670,8 +685,9 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
     }
 
     private fun checkedProviderBody(body: String): String {
-        // Buffered callers need the same completion admission as streaming: an unfinished batch must
-        // never become executable merely because one call's arguments are valid JSON.
+        // Buffered callers need the same completion admission as streaming: an
+        // unfinished batch must never become executable merely because one call's
+        // arguments are valid JSON. Keep parsing inside the credential boundary.
         return ProviderResponseCompletion.bufferedChat(body, json)
     }
 
@@ -682,6 +698,7 @@ class LlmClient(private val providerConfiguration: ProviderRegistry.ConfiguredSn
         fun completedResponse(): String = delegate.completedResponse()
     }
 
+    /** Resolve using this client's exact configured authority, as actual request dispatch does. */
     internal fun estimateContext(systemText: String, history: List<JsonObject>, tools: JsonArray?,
         providerId: String, baseUrl: String, modelId: String): ContextEstimate =
         estimateContext(systemText, history, tools, providerId, baseUrl, modelId,

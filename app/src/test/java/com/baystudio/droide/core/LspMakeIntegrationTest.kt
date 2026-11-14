@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Make regression fixtures: production manager/transport, no executable server. */
 class LspMakeIntegrationTest {
     @Test(timeout=10000) fun passiveEditingNeverPromptsDiscoversOrUsesCliFallback() = runBlocking<Unit> {
         Fixture().use { f ->

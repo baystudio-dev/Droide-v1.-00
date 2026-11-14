@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Concrete call fakes + real private evidence files/forces. No live provider/native/network/process. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class SafProviderEffectsTest {
@@ -345,7 +346,7 @@ class SafProviderEffectsTest {
                 var inAttempt = false
                 var injected = false
                 f.beforeRead = { file ->
-
+                    // The predecessor is read by transition(ATTEMPTING), after whole-plan preflight.
                     if (file.name == SafOperationJournal.actionName(id, SafEffectPhase.PREPARED)) inAttempt = true
                     if (inAttempt && !injected && file.name.startsWith("payload-")) {
                         injected = true
@@ -697,7 +698,8 @@ class SafProviderEffectsTest {
                 f.calls.onRead = { id ->
                     if (f.operation.effects.getValue(deletionId).phase == SafEffectPhase.ATTEMPTING && !injected) {
                         if (id == f.calls.nodes.getValue("change").id) { oldReadCount++; sawOld = true }
-
+                        // The capability routine resolves the old child, then the parent, then directly
+                        // reads the old child a second time and the parent: inject on that final parent.
                         if (id == "root" && sawOld && oldReadCount >= 2) {
                             injected = true
                             if (mode == "changed-bytes") f.calls.nodes.getValue("change").bytes = byteArrayOf(99, 98)

@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.net.URI
 
+ 
 object GitRemoteSecurity {
     private val scpLike = Regex("^([A-Za-z0-9._-]+)@([A-Za-z0-9.-]+):([^\\s]+)$")
 

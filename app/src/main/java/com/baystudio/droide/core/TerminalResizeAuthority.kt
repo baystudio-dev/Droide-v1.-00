@@ -3,8 +3,8 @@ package com.baystudio.droide.core
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.channels.Channel
 
-// Only the newest pending geometry should cross a remote PTY boundary, and one consumer must
-// apply those updates serially.
+// Only the newest pending geometry should cross a remote PTY boundary, and one consumer must apply those updates serially.
+
 
 internal class TerminalResizeAuthority(
     columns: Int = DEFAULT_COLUMNS,
@@ -17,6 +17,7 @@ internal class TerminalResizeAuthority(
 
     fun latest(): Geometry = latest.get()
 
+     
     fun offer(columns: Int, rows: Int): Boolean {
         val next = normalize(columns, rows)
         while (true) {
@@ -29,6 +30,7 @@ internal class TerminalResizeAuthority(
         }
     }
 
+     
     fun signalLatest() {
         updates.trySend(latest.get())
     }

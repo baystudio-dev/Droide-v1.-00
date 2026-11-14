@@ -12,6 +12,7 @@ import java.util.UUID
 
 // Durable busy-session prompt admission inbox.
 
+
 class AgentPromptInbox(private val sessions: SessionManager) {
     data class Promoted(val input: AgentPendingInput, val runtimeConfig: AgentConfig?, val requestAdmittedAtNanos: Long? = null)
     private data class RuntimeInput(val config: AgentConfig, val requestAdmittedAtNanos: Long?)
@@ -34,8 +35,8 @@ class AgentPromptInbox(private val sessions: SessionManager) {
     val inputs: StateFlow<List<AgentPendingInput>> = _inputs.asStateFlow()
     internal val drainState: StateFlow<AgentPromptDrainSnapshot> = _drainState.asStateFlow()
 
-    // Lock order: inbox, then session write transaction. Never acquire this from a session
-    // transaction or hold a JVM monitor while this suspending block runs.
+    // Lock order: inbox, then session write transaction. Never acquire this from a
+    // session transaction or hold a JVM monitor while this suspending block runs.
     internal suspend fun <T> withPendingSnapshot(block: suspend (List<AgentPendingInput>) -> T): T = mutex.withLock {
         block(_inputs.value)
     }
@@ -130,6 +131,7 @@ class AgentPromptInbox(private val sessions: SessionManager) {
         }
     }
 
+
     suspend fun takeForIdle(runLease: Long, activeConfig: AgentConfig): List<Promoted> = mutex.withLock {
         synchronized(ownershipLock) {
         if (!drain.isReady(runLease)) return@withLock emptyList()
@@ -147,8 +149,11 @@ class AgentPromptInbox(private val sessions: SessionManager) {
         }
     }
 
-    /** Keep accepted prompts recoverable while local attachment/history preparation suspends. */
-
+    /**
+     * Keep accepted prompts recoverable while local attachment/history preparation suspends.
+     * The final commit callback must acknowledge without suspending; no provider request belongs
+     * in this transaction. Clear/load may replace ownership while preparation is in flight.
+     */
     internal suspend fun <T> promoteAtBoundary(
         runLease: Long,
         allowQueue: Boolean,
@@ -195,8 +200,8 @@ class AgentPromptInbox(private val sessions: SessionManager) {
         sessions.savePendingInputs(sessionId, next, commitAdmission = { publish -> synchronized(ownershipLock) {
             requireOwner(sessionId, epoch, sessionIsCurrent)
             publish()
-            // Primary JSON is committed. Publish ownership state before returning across the cancellable IO
-            // boundary so a later checkpoint cannot revive this input.
+            // Primary JSON is committed. Publish ownership state before returning across
+            // the cancellable IO boundary so a later checkpoint cannot revive this input.
             runtimeInputs.remove(id)
             _inputs.value = next
         } })
@@ -271,8 +276,8 @@ class AgentPromptInbox(private val sessions: SessionManager) {
         sessions.savePendingInputs(sessionId, next, commitAdmission = { publish -> synchronized(ownershipLock) {
             requireOwner(sessionId, epoch, sessionIsCurrent)
             publish()
-            // Publication is durable even if cancellation wins the dispatcher handoff. Keep the runtime
-            // configuration and visible inbox at that same commit point.
+            // Publication is durable even if cancellation wins the dispatcher handoff.
+            // Keep the runtime configuration and visible inbox at that same commit point.
             runtimeInputs[admitted.id] = RuntimeInput(config, requestAdmittedAtNanos.takeIf { origin == AgentInputOrigin.USER })
             _inputs.value = next
         } })

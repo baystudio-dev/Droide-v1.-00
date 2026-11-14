@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** No raw payload, tool, reasoning, continuation, credential or Throwable fields. */
 internal data class ProviderFailureSnapshot(val publicText: String, val usage: TokenUsage)
 
 /** One network attempt's accounting; marking precedes publication to prevent reentrant duplicates. */
@@ -64,7 +65,7 @@ internal class ProviderFailureProgress(private val providerId: String, private v
                 if (protocol == ProviderWireProtocol.ANTHROPIC_MESSAGES) anthropicUsage = null
             } else usage = when (protocol) {
                 ProviderWireProtocol.ANTHROPIC_MESSAGES -> {
-
+                    // Each reported field is cumulative, including malformed replacement fields.
                     anthropicUsage = JsonObject(anthropicUsage.orEmpty() + obj)
                     AnthropicMessagesAdapter.normalizeUsage(checkNotNull(anthropicUsage))
                 }
@@ -84,8 +85,8 @@ internal class ProviderFailureProgress(private val providerId: String, private v
         if (buffered || failed) reconcile(bufferedPublic(protocol, response))
         else if (protocol == ProviderWireProtocol.OPENAI_RESPONSES &&
             root["type"] in setOf(JsonPrimitive("response.completed"), JsonPrimitive("response.incomplete"))) {
-            // A typed cumulative public candidate may precede a tool-validation failure. Do not pre-emit it:
-            // successful accumulator events retain their existing order.
+            // A typed cumulative public candidate may precede a tool-validation failure.
+            // Do not pre-emit it: successful accumulator events retain their existing order.
             terminalPublicCandidate = bufferedPublic(protocol, response).also { requireCapacity(it.length) }
         }
     }
@@ -112,8 +113,8 @@ internal class ProviderFailureProgress(private val providerId: String, private v
 
     private fun reconcile(candidate: String) {
         requireCapacity(candidate.length)
-        // Never concatenate a cumulative snapshot onto already-emitted deltas. Divergent
-        // buffered/failure content cannot overwrite the emitted public order.
+        // Never concatenate a cumulative snapshot onto already-emitted deltas.
+        // Divergent buffered/failure content cannot overwrite the emitted public order.
         if (candidate.startsWith(publicText.toString())) {
             publicText.setLength(0)
             publicText.append(candidate)
@@ -121,7 +122,7 @@ internal class ProviderFailureProgress(private val providerId: String, private v
     }
 
     fun snapshot(secrets: Collection<String>): ProviderFailureSnapshot {
-
+        // Redact the complete accumulated value before presentation truncation.
         val emitted = publicText.toString()
         val retained = terminalPublicCandidate?.takeIf { it.startsWith(emitted) } ?: emitted
         val safeText = ProviderFailure.redact(retained, secrets).take(LlmClient.MAX_RESPONSE_CHARS)

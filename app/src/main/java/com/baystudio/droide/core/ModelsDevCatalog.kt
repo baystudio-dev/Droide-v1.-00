@@ -31,12 +31,12 @@ internal data class ModelsDevCatalogSnapshot(
     val capabilities: List<ModelCapabilities>,
 )
 
-// models.dev catalog bridge with bounded parsing, atomic cache replacement and conditional
-// refresh.
+// models.dev catalog bridge with bounded parsing, atomic cache replacement and conditional refresh.
+
 
 object ModelsDevCatalog {
     private val _revision = MutableStateFlow(0L)
-
+     
     val revision: StateFlow<Long> = _revision.asStateFlow()
 
     const val ENDPOINT = "https://models.dev/api.json"
@@ -55,6 +55,7 @@ object ModelsDevCatalog {
         .followSslRedirects(false)
         .build()
 
+     
     suspend fun initialize(context: Context) = withContext(Dispatchers.IO) {
         val cacheDir = File(context.filesDir, CACHE_DIR).apply { mkdirs() }
         val cache = File(cacheDir, CACHE_FILE)
@@ -110,6 +111,7 @@ object ModelsDevCatalog {
                 if (attempt == 0) delay(250)
             }
         }
+        // Stale cache/bootstrap remains authoritative when refresh fails.
 
         return
     }
@@ -236,6 +238,7 @@ object ModelsDevCatalog {
         val note: String,
     )
 
+
     private fun catalogRoute(id: String, npm: String): CatalogRoute? {
         if (npm != "@ai-sdk/openai-compatible") {
             if (npm == "@ai-sdk/google" && id == "google") {
@@ -293,8 +296,7 @@ object ModelsDevCatalog {
         if (override.string("npm") != null && packageProtocol != transport.wireProtocol &&
             !(packageProtocol == ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS && transport.wireProtocol == ProviderWireProtocol.OPENAI_RESPONSES)) return false
         val overrideApi = override.string("api")?.trimEnd('/') ?: return true
-        // Model overrides may require a separate host, path or credential binding. Do not send to the
-        // provider default.
+        // Model overrides may require a separate host, path or credential binding. Do not send to the provider default.
         return overrideApi == transport.baseUrl.trimEnd('/') || overrideApi == api?.trimEnd('/')
     }
 

@@ -54,6 +54,7 @@ class SkillManager private constructor(
     private data class Observation(val path: File, val key: Any, val bytes: Long, val modified: FileTime, val created: FileTime,
         val parents: List<Any>)
 
+    // Keep the existing full-discovery API for callers that explicitly need bodies.
     fun discover(): List<Skill> = (sources().mapNotNull { read(it, metadataOnly = false) } +
         bundledCatalog().asSequence().mapNotNull { BundledAgentSkills.document(it.name, workDir)?.skill })
         .distinctBy { it.name }.take(MAX_SKILLS).toList()

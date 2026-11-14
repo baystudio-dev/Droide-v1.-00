@@ -24,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/** Device gate with platform overscroll enabled; no inference, command, or toolchain installation. */
 @RunWith(AndroidJUnit4::class)
 class AgentChatScrollDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()

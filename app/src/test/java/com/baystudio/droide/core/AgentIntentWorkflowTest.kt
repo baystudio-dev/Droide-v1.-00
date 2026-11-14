@@ -56,7 +56,7 @@ class AgentIntentWorkflowTest {
         assertEquals(1, http.requests.size)
         assertFalse(root.resolve("parser.txt").exists())
         chat(agent, http, "Sekarang buat parser.txt sesuai penjelasan tadi, tetap jangan build.")
-        assertEquals(3, http.requests.size)
+        assertEquals(3, http.requests.size) // Explain, authorized tool request, result response.
         assertEquals(session, agent.currentSessionId)
         assertEquals(1, runBlocking { agent.sessions.count() })
         assertEquals("authorized implementation", root.resolve("parser.txt").readText())
@@ -137,7 +137,7 @@ class AgentIntentWorkflowTest {
         runBlocking { agent.loadSession(restored) }
         root.resolve("keep.txt").writeText("user source")
         chat(agent, http, "Lanjutkan review saja.")
-        assertEquals(2, http.requests.size)
+        assertEquals(2, http.requests.size) // Existing compaction call and ordinary next response.
         assertEquals(session.id, agent.currentSessionId)
         assertEquals("user source", root.resolve("keep.txt").readText())
         assertTrue(messages(http.requests.last()).any { it == checkpoint })

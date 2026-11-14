@@ -25,7 +25,7 @@ internal object LspCSharpCompletionContext {
         var lineStart = 0
         repeat(line - 1) { lineStart = text.indexOf('\n', lineStart).takeIf { it >= 0 }?.plus(1) ?: return null }
         val offset = lineStart + column - 1
-
+        // Reject string/comment contexts rather than borrowing a generic ASCII replacement range.
         if (!codeAt(text, offset)) return null
         if (offset < text.length && (identifierPart(text.codePointAt(offset)) || text[offset] in "@\\")) return null
         var start = offset

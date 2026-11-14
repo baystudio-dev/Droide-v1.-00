@@ -229,8 +229,8 @@ internal object LspZlsLaunchPolicy {
         })();
     """.trimIndent() + "\n"
 
-    // ProcessSecurityPolicy forbids literal LF/CR in an argument. This immutable bootstrap decodes
-    // only fixed app-owned bytes; no argv/project value is code.
+    // ProcessSecurityPolicy forbids literal LF/CR in an argument. This immutable
+    // bootstrap decodes only fixed app-owned bytes; no argv/project value is code.
     internal val script: String by lazy {
         "eval(Buffer.from('" + Base64.getEncoder().encodeToString(sourceScript.toByteArray(Charsets.UTF_8)) +
             "','base64').toString('utf8'));"

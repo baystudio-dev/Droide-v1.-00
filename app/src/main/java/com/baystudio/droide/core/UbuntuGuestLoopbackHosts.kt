@@ -17,8 +17,11 @@ import java.nio.channels.FileChannel
 import java.security.MessageDigest
 import java.util.concurrent.CancellationException
 
-/** Guest-local name data only. */
-
+/** Guest-local name data only. Call repair while holding FoundryUbuntuGuestMutationGate.
+ * Never changes DNS/NSS policy or invokes a resolver. Existing explicit localhost records win.
+ * Atomic rename prevents partial publication; before/after checks detect ordinary concurrent edits.
+ * This is not a compare-and-swap against hostile concurrent same-UID path replacement.
+ */
 internal object UbuntuGuestLoopbackHosts {
     internal const val MAX_BYTES = 65_536
     internal const val DEFAULTS = "127.0.0.1 localhost\n::1 localhost\n"

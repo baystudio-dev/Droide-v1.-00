@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** A line patch is resolved against the reviewed snapshot, before any write occurs. */
 data class CodexPatchHunk(
     val heading: String?, val before: List<String>, val after: List<String>, val atEnd: Boolean,
 )
@@ -78,8 +79,8 @@ internal object CodexPatchParser {
         return ops
     }
 
-    /** Kotlin lines() delimiter semantics without retaining a whole-input line list. Only CR/LF edges
-     * are trimmed; first/last marker whitespace rules remain unchanged. */
+    /** Kotlin lines() delimiter semantics without retaining a whole-input line list.
+     * Only CR/LF edges are trimmed; first/last marker whitespace rules remain unchanged. */
     private class LineCursor(private val text: String) {
         private var start = 0
         private var end = text.length
@@ -116,8 +117,8 @@ internal object CodexPatchParser {
         fun take(): String = peek().also { cached = null }
     }
 
-    /** Apply normalizes only CRLF before indexing. Lone CR remains literal text, unlike parse. Index
-     * exactly models removeSuffix(LF).split(LF), including retained empty final lines. */
+    /** Apply normalizes only CRLF before indexing. Lone CR remains literal text, unlike parse.
+     * Index exactly models removeSuffix(LF).split(LF), including retained empty final lines. */
     private class ApplyLineIndex(private val normalized: String) {
         private val end = normalized.length - if (normalized.endsWith('\n')) 1 else 0
         private val starts: IntArray

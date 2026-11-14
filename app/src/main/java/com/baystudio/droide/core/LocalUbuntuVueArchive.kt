@@ -12,8 +12,8 @@ import java.security.MessageDigest
 import java.util.zip.GZIPInputStream
 import kotlinx.serialization.json.*
 
-/** Finite, authenticated, data-only npm TAR projection. No package-manager invocation, imports,
- * lifecycle scripts, native tools, .bin shims, symlinks or hardlinks. */
+/** Finite, authenticated, data-only npm TAR projection. No package-manager invocation,
+ * imports, lifecycle scripts, native tools, .bin shims, symlinks or hardlinks. */
 internal object LocalUbuntuVueArchive {
     class Budget {
         var compressedBytes: Long = 0; private set
@@ -55,7 +55,8 @@ internal object LocalUbuntuVueArchive {
         require(measured == attrs.size() && digest.digest().hex() == artifact.getValue("sha512").jsonPrimitive.content) { "Vue original SHA-512 authentication failed" }
         val after = Files.readAttributes(archive.toPath(),BasicFileAttributes::class.java,NOFOLLOW_LINKS)
         require(after.isRegularFile && after.fileKey()==attrs.fileKey() && after.size()==attrs.size() && after.lastModifiedTime()==attrs.lastModifiedTime())
-
+        // The cache lease held by the caller and same-file checks protect the second read;
+        // also authenticate the exact stream consumed by the decoder before accepting proof.
         targets.forEach { require(!Files.exists(it.toPath(),NOFOLLOW_LINKS)); require(it.mkdirs()) }
         val files = linkedMapOf<String,JsonElement>()
         val secondDigest = MessageDigest.getInstance("SHA-512")

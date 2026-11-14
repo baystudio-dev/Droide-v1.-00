@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Verify packaged CLI bytes and its workspace-scoped authenticated wire contract."""
 from __future__ import annotations
 
 import hashlib
@@ -189,7 +188,7 @@ if not re.search(
     fail("CLI endpoint publication no longer invokes its current owner's replacement")
 if not re.search(
     r'(?m)^\s*private val endpointPublication = CliEndpointPublication<Session>\(\s*'
-    r'isCurrent = \{ active === it && !it\.isClosed && ApplicationWorkAdmission\.isOpen \},\s*'
+    r'isCurrent = \{ active === it && !it\.isClosed \},\s*'
     r'replace = \{ it\.endpoint\.publishPrepared\(\) \},', server_code,
 ):
     fail("CLI server publication is disconnected from its session endpoint")

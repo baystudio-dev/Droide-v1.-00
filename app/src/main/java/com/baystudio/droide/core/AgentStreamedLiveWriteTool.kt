@@ -41,7 +41,7 @@ internal object AgentStreamedLiveWriteTool {
         require(requested.split('/').none { it == "." || it == ".." })
         val path = requested.split('/').filter { it.isNotEmpty() }.joinToString("/")
         require(path.isNotEmpty())
-
+        // Hard policy denial precedes any target read or undo copy.
         if (c.perms.decide("edit", path, c.permissionScope) == PermEffect.DENY)
             return LiveResult.Rejected("DENIED (policy): edit $path")
         c.files.resolveChecked(path)

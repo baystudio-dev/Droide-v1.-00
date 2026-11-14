@@ -9,7 +9,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Exercise the application host with captured protocol metadata and a fake process/workspace. */
+/** Real application host and captured Codex metadata; fake process and workspace only. */
 class WorkspaceAcpCodexCollaborationTest {
     private class Peer : AutoCloseable {
         private val alive = AtomicBoolean(true)

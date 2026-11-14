@@ -34,14 +34,15 @@ data class GitCommitSummary(
     val parentCount: Int,
 )
 
+ 
 class GitManager(
     private val workDir: File,
     private val documentAuthority: WorkspaceDocumentAuthority? = null,
     private val githubCredentialResolver: (suspend () -> GitHubTransportCredential?)? = null,
     private val syncLinkedFolder: (suspend () -> String?)? = null,
 ) {
-    // Even read-oriented JGit entry points maintain info/exclude. Admission covers opening through
-    // close, not only the final worktree/index write.
+    // Even read-oriented JGit entry points maintain info/exclude. Admission covers
+    // opening through close, not only the final worktree/index write.
     private suspend fun <T> gitIo(action: suspend () -> T): T =
         ExportWriterAdmission.withSuspendingWriter(workDir, "Git operation") {
             withContext(Dispatchers.IO) { action() }
@@ -58,6 +59,7 @@ class GitManager(
         }.getOrNull()
     }
 
+     
     internal fun forWorkDir(root: File, documentAuthority: WorkspaceDocumentAuthority? = null): GitManager =
         GitManager(root, documentAuthority, githubCredentialResolver)
 
@@ -78,7 +80,7 @@ class GitManager(
         val outcome = try { action() }
             catch (cancelled: CancellationException) { cancellation = cancelled; "git error: $label interrupted; inspect workspace state" }
             catch (failure: Exception) { "git error: ${failure.message ?: label}" }
-
+        
         val settled = withContext(NonCancellable + Dispatchers.IO) {
             val sync = runSuspendCatching { syncLinkedFolder?.invoke() }
             val reconciliation = runSuspendCatching { documentAuthority?.reconcileAfterPersistedMutation() }
@@ -611,6 +613,7 @@ class GitManager(
 
     // Pull and push must therefore re-validate both fetch and push URLs.
 
+
     private fun requireConfiguredRemotesAllowed(repository: Repository) {
         val config = repository.config
         val remotes = config.getSubsections("remote")
@@ -654,11 +657,12 @@ class GitManager(
         }
     }
 
+
     private fun ensureRuntimeExclude() {
         val gd = gitDir()
         if (!gd.isDirectory) return
-        // Imported metadata can link to user files or contain oversized custom rules. Exclusion
-        // maintenance must never follow such links or replace unread rules.
+        // Imported metadata can link to user files or contain oversized custom rules.
+        // Exclusion maintenance must never follow such links or replace unread rules.
         val rawGit = File(workDir, ".git")
         val rawInfo = File(rawGit, "info")
         val rawExclude = File(rawInfo, "exclude")
@@ -666,9 +670,10 @@ class GitManager(
         val f = PathSecurity.resolveWithin(workDir, ".git/info/exclude")
         if (f.exists() && (!f.isFile || f.length() > 1_000_000)) return
         val wanted = listOf(
-            // Runtime files must not pollute status or block Stage all as sensitive. Existing tracked
-            // project configuration stays tracked by Git.
+            // Runtime files must not pollute status or block Stage all as sensitive.
+            // Existing tracked project configuration stays tracked by Git.
             "/.droide/",
+            
 
             ".droide/sessions/",
             ".droide/backups/",
@@ -684,6 +689,7 @@ class GitManager(
         if (changed || !f.exists()) atomicWrite(f, existing.joinToString("\n").trimEnd() + "\n")
     }
 
+
     private fun summarizePaths(paths: Collection<String>, max: Int = 50): String {
         if (paths.isEmpty()) return "[]"
         val sorted = paths.asSequence().sorted().toList()
@@ -691,6 +697,7 @@ class GitManager(
         return if (sorted.size > max) "$shown (+${sorted.size - max} more)" else shown
     }
 
+     
     private fun sanitizeDiff(raw: String): String {
         if (raw.isBlank()) return raw
         val out = StringBuilder(minOf(raw.length, 24_000))
@@ -710,6 +717,7 @@ class GitManager(
         return out.toString().trimEnd()
     }
 
+
     private fun validateRepoPath(path: String): String {
         val normalized = path.trim().replace('\\', '/')
         require(normalized.isNotBlank() && normalized.length <= 4_000 && '\u0000' !in normalized) { "Invalid repository path" }
@@ -723,6 +731,7 @@ class GitManager(
         require(safe.isNotBlank() && safe.length <= 500 && '\u0000' !in safe) { "Invalid commit message" }
         return safe
     }
+
 
     private fun atomicWrite(target: File, text: String) {
         target.parentFile?.mkdirs()

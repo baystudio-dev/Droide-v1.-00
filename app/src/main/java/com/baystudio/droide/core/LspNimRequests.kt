@@ -53,8 +53,12 @@ internal class LspNimRequests(
         var dispatched = false
     }
 
-    /** The 10-second budget begins before admission and includes queue time. [block] performs only
-     * the actual RPC, with transport write admission still manager-owned. */
+    /**
+     * The 10-second budget begins before admission and includes queue time. [block]
+     * performs only the actual RPC, with transport write admission still manager-owned.
+     * A detached UI caller cannot terminate/replace the process: native work drains to
+     * this deadline. Owner close, cancellation or deadline fences every exact attempt.
+     */
     suspend fun request(methodKey: String, isCurrent: () -> Boolean, block: suspend () -> JsonElement): JsonElement? {
         require(methodKey in methods) { "Unsupported fixed Nim request: $methodKey" }
         currentCoroutineContext().ensureActive()
@@ -182,8 +186,10 @@ internal class LspNimRequests(
         next?.let(::start)
     }
 
-    /** Expired live demand owns the same failure boundary even before its RPC is dispatched. */
-
+    /** Expired live demand owns the same failure boundary even before its RPC is dispatched.
+     * Detached, replaced or invalidated records remain inert drops. Never invoke the
+     * manager callback while holding this coordinator lock.
+     */
     private fun expireBeforeDispatch(record: Record): Boolean {
         if (record.deadlineNanos - nanoTime() > 0L) return false
         if (record.isCurrent()) failOwner(record.method, record)
@@ -198,8 +204,9 @@ internal class LspNimRequests(
             deadlinePublicationPending = true
             records.toList().also { records.clear(); active.clear(); queued.clear() }
         }
-        // The callback may acquire its lifetime lock and reenter close, so invoke it outside this lock.
-
+        // Fence the manager's held-result and wire admission before releasing callers.
+        // The callback may acquire its lifetime lock and reenter close, so invoke it
+        // outside this lock. A throwing callback must still release pending ownership.
         try { onDeadline(methodKey) }
         finally {
             pending.forEach { it.waiter.complete(null) }

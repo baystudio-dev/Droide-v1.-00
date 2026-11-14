@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import org.eclipse.jgit.transport.PushResult
 import org.eclipse.jgit.transport.RemoteRefUpdate
 
+ 
 object GitPushOutcome {
     fun render(results: Iterable<PushResult>): String {
         val updates = results.flatMap { result ->

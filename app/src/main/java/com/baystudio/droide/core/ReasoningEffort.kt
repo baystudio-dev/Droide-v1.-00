@@ -4,6 +4,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+// Runtime Models.dev reasoningoptions metadata is authoritative when present.
+
+
 @Serializable
 enum class ReasoningEffort(val label: String, val wireValue: String) {
     LOW("Low", "low"),
@@ -12,6 +15,7 @@ enum class ReasoningEffort(val label: String, val wireValue: String) {
     ULTRA("Ultra", "max"),
 }
 
+ 
 sealed interface ReasoningWire {
     data class OpenAiCompatible(val value: String) : ReasoningWire
     data class OpenRouter(val value: String) : ReasoningWire
@@ -23,6 +27,7 @@ sealed interface ReasoningWire {
 internal enum class GoogleNativeThinkingMode { BUDGET, LEVEL }
 
 // Persisted state remains the source of truth.
+
 
 object ReasoningSupport {
     fun wire(providerId: String, model: String, effort: ReasoningEffort): ReasoningWire? {
@@ -51,8 +56,7 @@ object ReasoningSupport {
             if (requiredKind !in capability.reasoningOptionTypes) return null
         }
 
-        // It is still constrained by the reviewed wire protocol so catalog metadata can never invent a
-        // serializer.
+        // It is still constrained by the reviewed wire protocol so catalog metadata can never invent a serializer.
 
         if (rawAdvertised.isNotEmpty()) {
             return catalogWire(providerId, model, effort, protocol)
@@ -73,6 +77,7 @@ object ReasoningSupport {
         }
     }
 
+     
     fun apply(
         builder: kotlinx.serialization.json.JsonObjectBuilder,
         providerId: String,
@@ -130,6 +135,7 @@ object ReasoningSupport {
         }
     }
 
+
     private fun anthropicWire(providerId: String, model: String, effort: ReasoningEffort, catalogAdvertised: Boolean): ReasoningWire? {
         return when (anthropicThinkingMode(model)) {
             AnthropicThinkingMode.ADAPTIVE -> {
@@ -142,7 +148,7 @@ object ReasoningSupport {
                     ReasoningEffort.HIGH -> 8_192
                     ReasoningEffort.XTRA_HIGH, ReasoningEffort.ULTRA -> return null
                 }
-
+                // These are derived presets; leave at least 1024 output tokens within a known model cap.
                 val cap = modelOutputLimit(providerId, model)
                 val capability = resolveCapability(providerId, model)
                 val maximum = minOf(capability?.reasoningBudgetMax ?: Int.MAX_VALUE, cap?.minus(1_024) ?: Int.MAX_VALUE)
@@ -199,8 +205,8 @@ object ReasoningSupport {
 
     internal fun googleNativeThinkingMode(model: String): GoogleNativeThinkingMode? {
         if (ProviderModelRequestPolicy.isGoogleSpeechModel(model)) return null
-        // Gemini 2.5 accepts token budgets. thinkingLevel is supported only by Gemini 3+. Unversioned
-        // aliases cannot determine which native thinking contract to serialize.
+        // Gemini 2.5 accepts token budgets. thinkingLevel is supported only by Gemini 3+.
+        // Unversioned aliases cannot determine which native thinking contract to serialize.
         val match = Regex("(?:^|/)gemini-(\\d+)(?:\\.(\\d+))?(?=[-.]|$)")
             .find(normalizedModelId(model)) ?: return null
         val major = match.groupValues[1].toIntOrNull() ?: return null
@@ -211,6 +217,7 @@ object ReasoningSupport {
             else -> null
         }
     }
+
 
     private fun openAiCompatibleFallbackEfforts(
         providerId: String,
@@ -228,6 +235,7 @@ object ReasoningSupport {
         val id = providerId.lowercase()
         if (id == "groq" && groqReasoningModel(m)) return setOf("low", "high")
         if (id == "fireworks" && fireworksReasoningModel(m)) return setOf("low", "high")
+
 
         // Reasoning capability alone does not prove that named effort parameters are supported.
         return emptySet()
@@ -267,12 +275,13 @@ object ReasoningSupport {
             "high" -> "high"
             "xhigh", "x-high", "extra-high", "extrahigh" -> "xhigh"
             "max", "maximum", "ultra" -> "max"
-            else -> null
+            else -> null 
         }
     }.toSet()
 
     private fun resolveCapability(providerId: String, model: String): ModelCapabilities? {
         ModelCapabilityRegistry.resolve(providerId, model)?.let { return it }
+        
 
         if (providerId.equals("gemini", ignoreCase = true)) {
             return ModelCapabilityRegistry.resolve("google", model)

@@ -29,8 +29,8 @@ class SessionOwnerReceiptThreadRetentionTest {
         fun retainedThreads() = Thread.getAllStackTraces().keys.count { it !in before && it.isAlive && it.name == "droide-cli-stop" }
         try {
             observer = async { owner.stopAndAwait() }
-            // Natural completion is now observed before stop too. Wait for the stop requests themselves, not
-            // for the first set of receipt observers.
+            // Natural completion is now observed before stop too. Wait for the stop
+            // requests themselves, not for the first set of receipt observers.
             withTimeout(3_000) { while (entered.get() < count || closes.get() != count) delay(5) }
             assertEquals(count, closes.get())
             assertFalse("Stop dispatch and dead state do not replace pending receipts", observer.isCompleted)

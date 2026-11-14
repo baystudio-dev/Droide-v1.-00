@@ -127,6 +127,7 @@ class AgentChatDisclosureJumpTest {
     }
 }
 
+// Baseline adapter: old production has no geometry publication API.
 @Suppress("EXTENSION_SHADOWED_BY_MEMBER", "UNUSED_PARAMETER")
 private fun AgentChatViewport.measuredDisclosurePadding(base: Int, extra: Int) = Unit
 

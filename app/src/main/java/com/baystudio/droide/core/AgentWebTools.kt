@@ -126,8 +126,7 @@ internal object AgentWebTools {
         if (result["kind"] in setOf(JsonPrimitive("open_batch"), JsonPrimitive("search_batch"))) return AgentWebBatch.bounded(result)
         val raw = result.toString()
         if (raw.length <= AgentWebDocuments.MAX_OUTPUT_CHARS) return raw
-        // A rare oversized batch/metadata response is an explicit valid-JSON preview, never half a JSON
-        // object.
+        // A rare oversized batch/metadata response is an explicit valid-JSON preview, never half a JSON object.
         val retained = result.filterKeys { it in setOf("success","kind","ref_id","url","source_ref_id","next_start_line","source_incomplete") }
         var preview = raw.take(6_000)
         fun envelope() = JsonObject(retained + mapOf("output_truncated" to JsonPrimitive(true), "original_chars" to JsonPrimitive(raw.length),

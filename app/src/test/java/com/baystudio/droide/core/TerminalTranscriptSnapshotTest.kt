@@ -97,6 +97,7 @@ class TerminalTranscriptSnapshotTest {
         assertEquals(2, newUpdates)
     }
 
+    /** Independent oracle: walk whole code points backwards instead of slicing UTF-16 units. */
     private fun codePointTail(text: String, limit: Int): String {
         var start = text.length
         var remaining = limit

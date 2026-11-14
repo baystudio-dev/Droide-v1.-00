@@ -104,7 +104,9 @@ internal object BundledAgentSkills {
             available image-editing MCP service for that workflow. Do not pretend a local pixel operation or
             text file is generated imagery. Follow the actual tool's input contract and report unsupported work.
         """),
-    )
+    ) + AgentWorkflowTemplates.entries.map {
+        Entry(it.skill, it.description, it.instructions.trimIndent() + "\n\n" + AgentWorkflowTemplates.executionRules)
+    }
     fun catalog(): List<SkillSummary> = entries.map { SkillSummary(it.name, it.description, "builtin") }
     fun document(name: String, root: File): SkillDocument? = entries.firstOrNull { it.name == name }?.let {
         val body = it.instructions.trimIndent()

@@ -9,6 +9,7 @@ import java.nio.charset.CodingErrorAction
 
 // Keep untrusted input and output bounded.
 
+
 object ContentLengthProtocol {
     const val MAX_HEADER_BYTES = 16 * 1024
     const val MAX_MESSAGE_BYTES = 8 * 1024 * 1024
@@ -48,7 +49,8 @@ object ContentLengthProtocol {
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
             .decode(ByteBuffer.wrap(payload)).toString()
-
+        // Bound nesting before either protocol transport enters the recursive JSON
+        // parser. Preserve this frame's size limit rather than the provider default.
         return ProviderPayloadLimits.checkedJson(text, maxChars = maxMessageBytes)
     }
 

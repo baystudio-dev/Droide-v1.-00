@@ -2,6 +2,9 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Public response admission, separate from transport success and recorded provider usage.
+ * No retries, model-window guesses, private reasoning publication or command lifetime limits.
+ */
 internal object AgentResponseOutcome {
     internal enum class Kind { COMPLETE, TOOL_TURN, EMPTY, OUTPUT_LIMIT, CONTEXT_LIMIT, PAUSED, BLOCKED, INVALID }
     internal data class Decision(val kind: Kind, val publicText: String, val diagnostic: String) {
@@ -16,8 +19,8 @@ internal object AgentResponseOutcome {
         val content = (raw as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
         val refusalRaw = message["refusal"]
         val refusal = (refusalRaw as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
-        // Adapters project public deltas in their original order. Refusal metadata can contain
-        // noncontiguous fragments, so never append it a second time.
+        // Adapters project public deltas in their original order. Refusal metadata
+        // can contain noncontiguous fragments, so never append it a second time.
         val publicText = content.ifBlank { refusal }
         val callsRaw = message["tool_calls"]
         val calls = callsRaw as? JsonArray
@@ -42,8 +45,8 @@ internal object AgentResponseOutcome {
             "Provider declined this response (finish: $reason). Its public explanation was preserved; no automatic retry was sent.")
         if (anthropic.isNotBlank() && anthropic !in setOf("end_turn", "stop_sequence", "tool_use", "max_tokens")) return Decision(Kind.INVALID, publicText,
             "Provider reported an unsupported terminal outcome (finish: $reason). No incomplete tools or automatic retry were started.")
-        // Native metadata is retained only by native adapters. Contradictory canonical success must
-        // never admit an explicitly truncated, blocked or malformed turn.
+        // Native metadata is retained only by native adapters. Contradictory canonical
+        // success must never admit an explicitly truncated, blocked or malformed turn.
         if (finish == "length" || native == "MAX_TOKENS" || anthropic == "max_tokens") return Decision(Kind.OUTPUT_LIMIT, publicText,
             "Provider reached its output limit before a complete answer (finish: $reason). Any visible partial text was preserved. Check the model's output/reasoning settings before continuing; no automatic retry was sent.")
         if (native in setOf("MALFORMED_FUNCTION_CALL", "UNEXPECTED_TOOL_CALL", "TOO_MANY_TOOL_CALLS", "MISSING_THOUGHT_SIGNATURE", "MALFORMED_RESPONSE", "UNKNOWN", "OTHER", "FINISH_REASON_UNSPECIFIED", "CONTINUATION", "ESCALATION", "PUP_LIMITED_DISABLED")) return Decision(Kind.INVALID, publicText,
@@ -66,8 +69,10 @@ internal object AgentResponseOutcome {
         return Decision(Kind.COMPLETE, content, "")
     }
 
-    /** Repair only the exact old empty assistant shell in the outgoing projection. */
-
+    /** Repair only the exact old empty assistant shell in the outgoing projection.
+     * The original session/ledger remains untouched. Unknown fields, private continuations,
+     * tool turns, user messages and visible content are never discarded here.
+     */
     fun providerHistory(history: List<JsonObject>): List<JsonObject> = history.filterNot { message ->
         message.keys == setOf("role", "content") && message["role"] == JsonPrimitive("assistant") &&
             (message["content"] == JsonNull || (message["content"] as? JsonPrimitive)?.let { it.isString && it.content.isBlank() } == true)

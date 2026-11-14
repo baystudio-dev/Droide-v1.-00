@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Inventory actual compiled extension catalogs and local installer admission."""
+"""Inventory actual compiled extension catalogs and local installer admission.
+
+Use a separate, successfully compiled Android source copy. Matching source files
+are checked before invoking the production policies. This does not install or
+execute extension commands; --require-local-routes makes uncovered families fail.
+"""
 import argparse
 import hashlib
 import json

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.*
 import java.io.*
 import java.util.concurrent.ConcurrentHashMap
 
+ 
 interface ITerminalSession {
     val supportsCommandInput: Boolean get() = false
     suspend fun prepareCommandInput(): Boolean = supportsCommandInput
@@ -24,6 +25,7 @@ interface ITerminalSession {
     suspend fun stopAndAwaitForExit() { throw IllegalStateException("This terminal backend has no verified Exit completion path") }
 }
 
+ 
 interface TerminalMetadataSession {
     val terminalTitle: StateFlow<String?>
 }
@@ -36,17 +38,25 @@ data class ExecResult(
     val exitCode: Int,
     val output: String,
     val timedOut: Boolean,
-
+    /** Backend capture completeness, independent of process status and output-retention cursors. */
     val outputIncomplete: Boolean = false,
 )
+
+
+
+
+
 
 class TerminalSession(
     private val workDir: File,
     private val scope: CoroutineScope,
     private val launchSpec: TerminalLaunchSpec = TerminalLaunchSpec(),
     val commandModeReason: String? = null,
+    internal val sharedRecording: TerminalOutputRecording = TerminalOutputRecording(workDir),
     private val humanCpuFactory: (((Long, Long) -> Unit, (String) -> Unit) -> HumanTerminalCpuProtection)? = null,
-) : ITerminalSession, TerminalOwnershipObservationSource, TerminalWorkingDirectorySession, TerminalCommandActivitySession, TerminalAgentActivitySession, WorkspaceCommandSession, TerminalCpuProtectionSession {
+) : ITerminalSession, TerminalOwnershipObservationSource, TerminalWorkingDirectorySession, TerminalCommandActivitySession, TerminalAgentActivitySession, WorkspaceCommandSession, TerminalCpuProtectionSession, TerminalDiagnosticsSession {
+    override val diagnosticsWorkspace: File get() = workDir
+    override val recording: TerminalOutputRecording get() = sharedRecording
     private var hostLayoutTestAuthority: TerminalHostLayoutTestAuthority? = null
     internal constructor(workDir: File, scope: CoroutineScope, launchSpec: TerminalLaunchSpec,
                          hostLayoutTestAuthority: TerminalHostLayoutTestAuthority) : this(workDir, scope, launchSpec) {
@@ -108,7 +118,7 @@ class TerminalSession(
     )
     private val processLeases = ConcurrentHashMap<Process, RemoteProcessLease>()
     private val executionLock = Any()
-    private var observationVersion: Any = Any()
+    private var observationVersion: Any = Any() // guarded by executionLock
     private val executions = mutableSetOf<Job>()
     @Volatile private var destroyed = false
     @Volatile private var executionCleanupFailure: Throwable? = null
@@ -152,6 +162,7 @@ class TerminalSession(
             val promptEnvironment = launchSpec.interactiveEnvironment +
                 (if (launchSpec.prefix.isEmpty()) LocalExecutionSubstrate.localTerminalPromptEnvironment() else emptyMap()) +
                 activity.environment
+            ExecutionDiagnostics.record(workDir, "Command shell", workDir.absolutePath, launchSpec, overrides = TerminalPipeShell.environment)
             val command = launchSpec.pipeCommand(promptEnvironment + lease.environment).joinToString(" ", transform = LocalExecutionSubstrate::shellQuote)
             ProcessBuilder(ownershipShell(), "-c", lease.wrap(command))
                 .directory(workDir).redirectErrorStream(true)
@@ -168,6 +179,7 @@ class TerminalSession(
         } },
         output = { text ->
             activity.observedOutput()
+            recording.append(text.toByteArray(Charsets.UTF_8))
             emit(Ansi.strip(directoryStream.consume(text)))
         },
         onFinished = { activity.closed(it) },
@@ -210,6 +222,7 @@ class TerminalSession(
 
     override fun send(cmd: String) { sendCommand(cmd) }
 
+    /** The command-mode field needs an admission receipt to preserve rejected drafts. */
     internal fun submitCommandInput(cmd: String): Boolean = commandHistory.submit(cmd, ::sendCommand)
 
     private fun sendCommand(cmd: String): Boolean {
@@ -224,8 +237,8 @@ class TerminalSession(
             appendLine("[terminal error] ${error.message ?: error.javaClass.simpleName}")
             return false
         }
-        // Admission has committed. A transcript-display failure must never report rejection and invite
-        // resubmission of a command already queued to the shell.
+        // Admission has committed. A transcript-display failure must never report
+        // rejection and invite resubmission of a command already queued to the shell.
         runCatching { appendLine("$ $cmd") }
         return true
     }
@@ -283,12 +296,11 @@ class TerminalSession(
                 ?.takeUnless { it == commandCwd }
                 ?.let(::WorkspaceDirectoryIdentity)
             val lease = RemoteProcessLease.createLocal("terminal")
-            val commandSpec = workspaceInvocation?.let { invocation ->
-                // Workspace Run/Task/Debug prelaunch commands are separate supervised subprocesses. Use current
-                // toolchains without restarting the human shell.
-                val resolver = workspaceLaunchTestResolver ?: LocalExecutionSubstrate::workspaceToolchainLaunchSpec
-                resolver(guestLaunch.spec, invocation.directory, invocation.root)
-            } ?: guestLaunch.spec
+            val resolver = workspaceLaunchTestResolver ?: LocalExecutionSubstrate::workspaceToolchainLaunchSpec
+            val refreshed = resolver(guestLaunch.spec, workspaceInvocation?.directory ?: commandCwd,
+                workspaceInvocation?.root ?: workDir) ?: guestLaunch.spec
+            val commandSpec = if (workspaceInvocation == null)
+                TerminalGuestCwdPolicy.withObservedCwd(refreshed, workDir, observedCwd) else refreshed
             execution.ensureActive()
             val guestEnvironment = if (commandSpec.prefix.isEmpty()) emptyMap() else lease.environment
             val commandArgv = workspaceInvocation?.let {
@@ -305,13 +317,16 @@ class TerminalSession(
                     CountedShellArgv.Node.literal("-c"), wrapped), expandedLimits, shellText.length.toLong(),
                     checkCancelled = { execution.ensureActive() }).also { expandedAttempt = it }.render()
             } else {
-
+                // Existing <=32k and unavailable-runtime paths remain byte-for-byte unchanged.
                 val targetArgv = if (shellText == null) commandSpec.command(commandArgv, guestEnvironment)
                     else commandSpec.shellCommand(shellText, guestEnvironment)
                 val targetCommand = targetArgv.joinToString(" ", transform = LocalExecutionSubstrate::shellQuote)
                 listOf(ownershipShell(), "-c", hostLayoutTestAuthority?.let { lease.wrapForHostTest(targetCommand, it) }
                     ?: lease.wrap(targetCommand))
             }
+            ExecutionDiagnostics.record(workspaceInvocation?.root ?: workDir,
+                if (workspaceInvocation == null) "Agent / terminal command" else "Run / Build / task",
+                observedCwd ?: commandCwd.absolutePath, commandSpec, payloadArgv.firstOrNull() ?: commandSpec.shell)
             val result = LocalProcessSupervisor.captureWithAdmission(
                 argv = ownedArgv,
                 cwd = commandCwd,
@@ -325,7 +340,7 @@ class TerminalSession(
                     }
                     catch (failure: Throwable) { recordCleanupFailure(failure); throw failure }
                 },
-                onOutput = { chunk -> runCatching { onOutput(Ansi.strip(chunk)) } },
+                onOutput = { chunk -> recording.append(chunk.toByteArray(Charsets.UTF_8)); runCatching { onOutput(Ansi.strip(chunk)) } },
                 keepTail = true,
                 streamInput = streamInput,
                 onCleanupCompleted = { failure -> if (failure != null) recordCleanupFailure(failure) },
@@ -372,6 +387,7 @@ class TerminalSession(
             synchronized(executionLock) { observationVersion = Any(); executions -= execution }
         }
     }
+
 
     private fun ownershipShell(): String =
         if (File("/system/bin/sh").canExecute()) "/system/bin/sh" else "/bin/sh"
@@ -432,8 +448,9 @@ class TerminalSession(
         running.forEach { it.cancel(CancellationException("Droide Exit")) }
         OwnedResourceCleanup.runSuspend(
             { interactive.destroyAndJoinForExit() },
-            { running.forEach { it.join() } },
-            { activity.closed(); outputPublisher.close() },
+            { withTimeoutOrNull(8_000) { running.forEach { it.join() }; true }
+                ?: error("Terminal command cleanup is still pending; its owner is retained") },
+            { activity.closed(); outputPublisher.close(); recording.awaitClosed() },
             { executionCleanupFailure?.let { throw IllegalStateException("Terminal command cleanup is incomplete", it) } },
         ).getOrThrow()
     }
@@ -448,7 +465,7 @@ class TerminalSession(
             executions.toList()
         }
         running.forEach { it.cancel(CancellationException("Terminal is closed")) }
-        try { interactive.destroy() } finally { outputPublisher.close() }
+        try { interactive.destroy() } finally { outputPublisher.close(); recording.close() }
     }
 
     private fun emit(s: String) {

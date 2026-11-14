@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 enum class ProviderAuthMethodKind { NONE, API_KEY, CREDENTIAL_BUNDLE, DEFAULT_CHAIN, OAUTH }
 
 data class ProviderAuthMethodDescriptor(

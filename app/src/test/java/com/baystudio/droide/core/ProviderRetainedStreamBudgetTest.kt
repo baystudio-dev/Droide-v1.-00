@@ -46,7 +46,7 @@ class ProviderRetainedStreamBudgetTest {
     @Test fun googlePlainTokenFragmentsAreCoalescedWithoutDroppingSignedParts() {
         val a = GoogleGenerateContentAdapter.StreamAccumulator(json)
         val payload = padded("""{"candidates":[{"content":{"parts":[{"text":"x"}]}}]}""")
-
+        // More tokens than a retained-JSON-object-per-token strategy can safely hold.
         repeat(40_000) { a.accept(payload) }
         a.accept("""{"candidates":[{"content":{"parts":[{"text":"signed","thoughtSignature":"sig"},{"functionCall":{"id":"c","name":"test","args":{}}}]},"finishReason":"STOP"}]}""")
         val result = message(a.completedResponse())

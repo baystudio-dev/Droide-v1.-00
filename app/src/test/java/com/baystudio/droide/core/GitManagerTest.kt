@@ -39,6 +39,7 @@ class GitManagerTest {
         assertTrue(git.status().contains("src/Main.kt"))
     }
 
+
     @Test fun pullAndPushRejectImportedUnsafeRemote() = runBlocking {
         git.init()
         val repo = FileRepositoryBuilder()

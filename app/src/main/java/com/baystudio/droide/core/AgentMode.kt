@@ -2,10 +2,12 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.Serializable
 
+
 @Serializable
 enum class AgentMode { BUILD, PLAN, REVIEW, EXPLORE }
 
 object AgentModePolicy {
+    
 
     private val mutating = setOf(
         "write_file", "write", "edit_file", "edit", "apply_patch", "save_files", "run_command", "bash", "exec_command", "write_stdin",
@@ -22,6 +24,9 @@ object AgentModePolicy {
         tool == "grep" -> "search_files"
         else -> tool
     }
+
+    // Runtime check remains authoritative too, so a stale/provider-injected call still fails closed instead of executing.
+
 
     fun isToolVisible(mode: AgentMode, tool: String): Boolean = check(mode, tool) == null
 

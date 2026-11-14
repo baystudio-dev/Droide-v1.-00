@@ -177,8 +177,8 @@ class JavascriptDebugServerTransportTest {
             val ownedFailure = IllegalStateException("Owned lease cleanup failed")
             cleanup.completeExceptionally(ownedFailure)
             val failure = runCatching { host.closeAndAwaitExit() }.exceptionOrNull()
-            // Debug-enabled coroutine recovery can copy the exception; its failure type/cause must survive
-            // rather than its object identity.
+            // Debug-enabled coroutine recovery can copy the exception; its
+            // failure type/cause must survive rather than its object identity.
             assertTrue(failure is IllegalStateException)
             assertTrue(generateSequence(failure) { it.cause }.any { it.message == ownedFailure.message })
             assertTrue(fixture.closed.get())

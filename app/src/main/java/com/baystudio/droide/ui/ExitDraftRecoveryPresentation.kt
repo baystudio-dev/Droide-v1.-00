@@ -18,3 +18,4 @@ internal fun exitDraftAttachmentDescription(attachment: ExitDraftAttachment, now
     val status = if (media.expiresAt <= now) "Expired reference" else "Reference only; availability is not checked"
     return "${attachment.name}: ${media.mediaType}, ${media.bytes} bytes. $status. Expiry: $expiry. Reattach before Send."
 }
+

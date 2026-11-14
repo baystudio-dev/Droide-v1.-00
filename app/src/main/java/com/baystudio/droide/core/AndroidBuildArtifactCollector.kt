@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import java.security.MessageDigest
 
+ 
 internal class AndroidBuildArtifactCollector internal constructor(
     private val cacheDir: File,
     private val shellBounded: suspend (String, Int) -> BridgeShellResult,

@@ -34,6 +34,7 @@ enum class LspSignatureTriggerKind(val wireValue: Int) {
     CONTENT_CHANGE(3),
 }
 
+ 
 internal object LspSignatureHelpProtocol {
     const val MAX_SIGNATURES = 12
     const val MAX_PARAMETERS = 64
@@ -44,8 +45,8 @@ internal object LspSignatureHelpProtocol {
         val root = result as? JsonObject ?: return null
         val rawSignatures = root["signatures"] as? JsonArray ?: return null
         if (rawSignatures.isEmpty()) return null
-        // Keep the server-selected overload even when the presentation window is bounded. Retain source
-        // indexes until parsing finishes: filtering must not select a different overload.
+        // Keep the server-selected overload even when the presentation window is bounded.
+        // Retain source indexes until parsing finishes: filtering must not select a different overload.
         val requestedSignature = ((root["activeSignature"] as? JsonPrimitive)?.intOrNull ?: 0)
             .takeIf { it in rawSignatures.indices } ?: 0
         val selectedIndexes = if (requestedSignature < MAX_SIGNATURES) {
@@ -64,8 +65,8 @@ internal object LspSignatureHelpProtocol {
             val requestedParameter = localActive
                 ?: (root["activeParameter"] as? JsonPrimitive)?.intOrNull
                 ?: 0
-            // Resolve against the original list before filtering or bounding presentation. An invalid index
-            // defaults to zero; a valid late parameter must not become another one.
+            // Resolve against the original list before filtering or bounding presentation.
+            // An invalid index defaults to zero; a valid late parameter must not become another one.
             val sourceParameter = requestedParameter.takeIf { it in rawParameters.indices } ?: 0
             val parameterIndexes = if (sourceParameter < MAX_PARAMETERS) {
                 rawParameters.indices.take(MAX_PARAMETERS)

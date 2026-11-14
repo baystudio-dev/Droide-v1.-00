@@ -1,0 +1,120 @@
+{
+  "allTwelveMatch": true,
+  "compiledClassSha256": "13a1a9265aadd2ea08f2680a7aaec5b8cc97116097abec959180be0ed6a4ebd0",
+  "freshCompiledJavaMethods": [
+    {
+      "descriptor": "()I",
+      "name": "ownedProcessApiVersion"
+    },
+    {
+      "descriptor": "()J",
+      "name": "reserveOwnedProcess"
+    },
+    {
+      "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+      "name": "createOwnedSubprocess"
+    },
+    {
+      "descriptor": "(JI)I",
+      "name": "requestOwnedStop"
+    },
+    {
+      "descriptor": "(J)J",
+      "name": "waitForOwnedProcess"
+    },
+    {
+      "descriptor": "(J)Z",
+      "name": "releaseOwnedProcess"
+    },
+    {
+      "descriptor": "(J[BII)J",
+      "name": "readOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(J[BII)J",
+      "name": "writeOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(JII)J",
+      "name": "pollOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(JI)V",
+      "name": "cancelOwnedPtyIo"
+    },
+    {
+      "descriptor": "(JI)Z",
+      "name": "releaseOwnedPtyLane"
+    },
+    {
+      "descriptor": "(JII)Z",
+      "name": "resizeOwnedPty"
+    }
+  ],
+  "javaClassExecutionPerformed": false,
+  "runtimeRegisterNativesSuccessEstablished": false,
+  "sourceContractSha256": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+  "sourceMethods": [
+    {
+      "cFunction": "owned_process_api_version",
+      "descriptor": "()I",
+      "name": "ownedProcessApiVersion"
+    },
+    {
+      "cFunction": "reserve_owned_process",
+      "descriptor": "()J",
+      "name": "reserveOwnedProcess"
+    },
+    {
+      "cFunction": "create_owned_subprocess",
+      "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+      "name": "createOwnedSubprocess"
+    },
+    {
+      "cFunction": "request_owned_stop",
+      "descriptor": "(JI)I",
+      "name": "requestOwnedStop"
+    },
+    {
+      "cFunction": "wait_for_owned_process",
+      "descriptor": "(J)J",
+      "name": "waitForOwnedProcess"
+    },
+    {
+      "cFunction": "release_owned_process",
+      "descriptor": "(J)Z",
+      "name": "releaseOwnedProcess"
+    },
+    {
+      "cFunction": "read_owned_pty_once",
+      "descriptor": "(J[BII)J",
+      "name": "readOwnedPtyOnce"
+    },
+    {
+      "cFunction": "write_owned_pty_once",
+      "descriptor": "(J[BII)J",
+      "name": "writeOwnedPtyOnce"
+    },
+    {
+      "cFunction": "poll_owned_pty_once",
+      "descriptor": "(JII)J",
+      "name": "pollOwnedPtyOnce"
+    },
+    {
+      "cFunction": "cancel_owned_pty_io",
+      "descriptor": "(JI)V",
+      "name": "cancelOwnedPtyIo"
+    },
+    {
+      "cFunction": "release_owned_pty_lane",
+      "descriptor": "(JI)Z",
+      "name": "releaseOwnedPtyLane"
+    },
+    {
+      "cFunction": "resize_owned_pty",
+      "descriptor": "(JII)Z",
+      "name": "resizeOwnedPty"
+    }
+  ],
+  "staticRegistrationCountUsesWholeTable": true
+}

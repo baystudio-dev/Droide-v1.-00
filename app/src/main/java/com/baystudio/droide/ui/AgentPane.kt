@@ -37,6 +37,11 @@ import androidx.compose.ui.unit.dp
 import com.baystudio.droide.core.*
 import kotlinx.coroutines.launch
 
+
+
+
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentPane(
@@ -55,6 +60,8 @@ fun AgentPane(
     onManageMcp: (() -> Unit)? = null,
     onManagePlugins: (() -> Unit)? = null,
     onManageSkills: (() -> Unit)? = null,
+    onOpenResult: ((String) -> Unit)? = null,
+    onExportResult: ((String) -> Unit)? = null,
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberWorkspaceCoroutineScope()
@@ -97,6 +104,7 @@ fun AgentPane(
     // Detection is a UI observation, never permission to silently change the selected backend.
     val usingExternalAgent = agentBackendId != "droide"
     val externalState = externalController[agentBackendId]
+    val displayedQuestion = pendingQuestion.takeUnless { usingExternalAgent }
     val workspaceSync = agentPlugins?.workspaceSyncState?.collectAsState()?.value
     val conversationKey = AgentChatConversationKey(agentBackendId, if (usingExternalAgent) externalState.historyId ?: externalState.sessionId else agent.currentSessionId)
     val savedChatPosition = remember(uiState, conversationKey) { uiState.chatPosition(conversationKey) }
@@ -115,8 +123,8 @@ fun AgentPane(
     var providerId by rememberSaveable { mutableStateOf("pollinations") }
     var model by rememberSaveable { mutableStateOf(ProviderRegistry.byId("pollinations").model) }
     var reasoningEffort by remember { mutableStateOf<ReasoningEffort?>(null) }
-    var taskCollapsed by rememberSaveable(agent.currentSessionId) { mutableStateOf(false) }
-    var taskHidden by rememberSaveable(agent.currentSessionId) { mutableStateOf(false) }
+    var taskCollapsed by rememberSaveable(conversationKey) { mutableStateOf(false) }
+    var taskHidden by rememberSaveable(conversationKey) { mutableStateOf(false) }
     var customAnswer by rememberSaveable(pendingQuestion?.id) { mutableStateOf("") }
     var sessionTitle by remember(agent.currentSessionId) { mutableStateOf("Agent session") }
     var showModelPicker by remember { mutableStateOf(false) }
@@ -132,21 +140,28 @@ fun AgentPane(
     val exitDraftError by uiState.exitDraftError
     val exitDraftNotice by uiState.exitDraftNotice
     var showSavedExitDrafts by remember(uiState) { mutableStateOf(false) }
+    var sessionTool by remember(uiState, conversationKey) { mutableStateOf<AgentSessionTool?>(null) }
     var showStreamDetails by remember(uiState, conversationKey) { mutableStateOf(savedChatPosition?.showDetails ?: false) }
     val visibleStreamParts = remember(streamParts, showStreamDetails) { visibleAgentStreamParts(streamParts, showStreamDetails) }
+    val visibleExternalStreamParts = remember(externalState.streamParts, showStreamDetails) {
+        visibleAgentStreamParts(externalState.streamParts, showStreamDetails)
+    }
+    val displayedTodos = if (usingExternalAgent) remember(externalState.streamParts, externalState.messages) {
+        externalAgentTasks(externalState)
+    } else todos
     var promptDelivery by rememberSaveable(agentBackendId) { mutableStateOf(AgentPromptDelivery.STEER) }
-    val visibleMessageIndices = remember(baseDisplayedMessages, showStreamDetails) {
-        baseDisplayedMessages.indices.filter { index ->
-            val part = baseDisplayedMessages[index].streamPart
+    val baseTranscriptMessages = if (usingExternalAgent) externalState.messages else baseDisplayedMessages
+    val visibleMessageIndices = remember(baseTranscriptMessages, showStreamDetails) {
+        baseTranscriptMessages.indices.filter { index ->
+            val part = baseTranscriptMessages[index].streamPart
             part == null || part.visibleInChat(showStreamDetails)
         }
     }
-    val displayedMessages = remember(baseDisplayedMessages, visibleMessageIndices) { visibleMessageIndices.map(baseDisplayedMessages::get) }
-    val transcriptMessages = if (usingExternalAgent) externalState.messages else displayedMessages
+    val transcriptMessages = remember(baseTranscriptMessages, visibleMessageIndices) { visibleMessageIndices.map(baseTranscriptMessages::get) }
     val transcriptKeys = remember(transcriptMessages, visibleMessageIndices, usingExternalAgent, externalState.historyWindow) {
         transcriptMessages.mapIndexed { index, message ->
-            val sourceIndex = if (usingExternalAgent) index else visibleMessageIndices[index]
-            val savedKey = if (usingExternalAgent) externalState.historyWindow?.messageKeys?.getOrNull(index) else null
+            val sourceIndex = visibleMessageIndices[index]
+            val savedKey = if (usingExternalAgent) externalState.historyWindow?.messageKeys?.getOrNull(sourceIndex) else null
             val identity = if (usingExternalAgent && externalState.historyWindow != null && savedKey == null) "pending:${externalController.activeRun?.runId}:$sourceIndex" else (savedKey ?: sourceIndex).toString()
             "message:$identity:${message.role}:${message.streamPart?.id.orEmpty()}"
         }
@@ -210,7 +225,7 @@ fun AgentPane(
         if (!usingExternalAgent && nativeLiveMedia.hidden > 0) add("older-live-media:${streamState.runId}")
         if (!usingExternalAgent) nativeLiveMedia.entries.forEach { add(it.key(streamState.runId)) }
         if (usingExternalAgent && externalController.activeRun?.agentId == agentBackendId) {
-            externalState.streamParts.forEach { add(it.id) }
+            visibleExternalStreamParts.forEach { add(it.id) }
             if (externalState.liveMedia.isNotEmpty()) add("external-agent-media")
         }
         if (showActivityTail) add(activityTailKey)
@@ -265,10 +280,24 @@ fun AgentPane(
     val canSendWithBackend = if (usingExternalAgent) selectedPlugin?.available == true else preferenceRead.state.ready && configured && !preflightBusy
     val hasDraft = input.isNotBlank() || attachedContexts.isNotEmpty()
     val canDeliverToActiveRun = if (usingExternalAgent) externalController.activeRun?.agentId == agentBackendId else busy
-    val localNavigation = attachedContexts.isEmpty() && when (AgentComposerShortcuts.command(input, false)) {
+    // Suggestions and dispatch share one list so local actions cannot shadow CLI commands.
+    val composerCommands = buildList {
+        if (onManageMcp != null) add(AgentComposerCommand.MCP)
+        if (onManagePlugins != null) add(AgentComposerCommand.PLUGINS)
+        if (onManageSkills != null) add(AgentComposerCommand.SKILLS)
+        if (!usingExternalAgent) {
+            add(AgentComposerCommand.COMPACT)
+            add(AgentComposerCommand.RESULTS)
+        }
+        add(AgentComposerCommand.WORKFLOWS)
+        if (!usingExternalAgent) add(AgentComposerCommand.RESUME)
+    }
+    fun draftCommand() = AgentComposerShortcuts.command(input, attachedContexts.isNotEmpty(), composerCommands)
+    val localNavigation = when (draftCommand()) {
         AgentComposerCommand.MCP -> onManageMcp != null
         AgentComposerCommand.PLUGINS -> onManagePlugins != null
         AgentComposerCommand.SKILLS -> onManageSkills != null
+        AgentComposerCommand.RESULTS, AgentComposerCommand.WORKFLOWS, AgentComposerCommand.RESUME -> true
         else -> false
     }
     val canSubmitDraft = (localNavigation && !mediaImporting && !mediaPickerPending) || hasDraft && !preflightBusy && !mediaImporting && !mediaPickerPending && canSendWithBackend &&
@@ -306,10 +335,13 @@ fun AgentPane(
 
     fun send() {
         if (mediaImporting || mediaPickerPending) return
-        val localAction = when (AgentComposerShortcuts.command(input, attachedContexts.isNotEmpty())) {
+        val localAction = when (draftCommand()) {
             AgentComposerCommand.MCP -> onManageMcp
             AgentComposerCommand.PLUGINS -> onManagePlugins
             AgentComposerCommand.SKILLS -> onManageSkills
+            AgentComposerCommand.RESULTS -> { { sessionTool = AgentSessionTool.RESULTS } }
+            AgentComposerCommand.WORKFLOWS -> { { sessionTool = AgentSessionTool.WORKFLOWS } }
+            AgentComposerCommand.RESUME -> { { sessionTool = AgentSessionTool.RESUME } }
             else -> null
         }
         if (localAction != null) {
@@ -368,7 +400,7 @@ fun AgentPane(
             compactContext(fromCommand = true)
             return
         }
-
+        // Preserve the human Send time across delayed provider preparation and admission.
         val requestAdmittedAtNanos = System.nanoTime()
 
         val ideContext = captureIdeContext()
@@ -418,6 +450,9 @@ fun AgentPane(
         uiState.ownPreparation(preparation)
     }
 
+
+
+
     val physicalLandscape = droidePhysicalLandscape()
     val imeVisible = rememberDroideImeVisible()
     LaunchedEffect(physicalLandscape, imeVisible, composerFocused) {
@@ -432,8 +467,8 @@ fun AgentPane(
     BoxWithConstraints(Modifier.fillMaxSize().background(DroideColors.Surface).then(agentImeInsetModifier)) {
         val denseComposer = maxHeight < 560.dp || landscapeImeTyping
         val compactControls = denseComposer || maxWidth < 430.dp
-        // IME height changes must not change transcript text width/row spacing mid-animation. Narrow
-        // panes keep their compact margins, including before the keyboard opens.
+        // IME height changes must not change transcript text width/row spacing mid-animation.
+        // Narrow panes keep their compact margins, including before the keyboard opens.
         val compactTranscript = maxWidth < 430.dp
         val paneWidth = maxWidth
         val composerOuterPadding = if (denseComposer) PaddingValues(horizontal = 7.dp, vertical = 5.dp) else PaddingValues(horizontal = 9.dp, vertical = 7.dp)
@@ -525,7 +560,7 @@ fun AgentPane(
                 },
             )
 
-            persistenceError?.let {
+            persistenceError?.takeUnless { usingExternalAgent }?.let {
                 DismissibleNotice(it, color = DroideColors.Error, ownerKey = conversationKey)
             }
             submissionError?.let {
@@ -557,8 +592,8 @@ fun AgentPane(
             }
 
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(DroideColors.Background)) {
-                // Keep the latest output clear of the composer without adding another keyboard inset. Scrollable
-                // padding uses the transcript's actual remaining height.
+                // Keep the latest output clear of the composer without adding another keyboard
+                // inset. Scrollable padding uses the transcript's actual remaining height.
                 val conversationBottomClearance = bottomTouchClearance(maxHeight)
                 val disclosureClearance = with(LocalDensity.current) { chatViewport.disclosureSpacePx.toDp() }.coerceAtMost(maxHeight)
                 val density = LocalDensity.current
@@ -591,7 +626,8 @@ fun AgentPane(
                             }
                         }
                         itemsIndexed(transcriptMessages, key = { index, _ -> transcriptKeys[index] }) { _, message ->
-                            AgentTranscriptItem(message, showStreamDetails, agent.workDir, if (usingExternalAgent) null else agent.currentSessionId)
+                            AgentTranscriptItem(message, showStreamDetails, agent.workDir, if (usingExternalAgent) null else agent.currentSessionId,
+                                legacyAssistantPresentation = if (usingExternalAgent) AgentTextPresentation.RESPONSE else AgentTextPresentation.LEGACY)
                         }
                         if (!usingExternalAgent && parallelAgents.tasks.isNotEmpty()) {
                             item(key = "parallel-agents:${parallelAgents.parentSessionId}") {
@@ -615,7 +651,7 @@ fun AgentPane(
                             AgentMediaCard(entry.ref, agent.workDir)
                         }
                         if (usingExternalAgent && externalController.activeRun?.agentId == agentBackendId) {
-                            itemsIndexed(externalState.streamParts, key = { _, part -> part.id }) { _, part ->
+                            itemsIndexed(visibleExternalStreamParts, key = { _, part -> part.id }) { _, part ->
                                 AgentStreamPartWithMedia(part, showStreamDetails, emptyList(), agent.workDir,
                                     if (part.kind == AgentStreamPartKind.TOOL) Modifier.agentActivityEntrance(part.id, activityEntrances, entranceEnabled) else Modifier)
                             }
@@ -624,8 +660,8 @@ fun AgentPane(
                             }
                         }
 
-                        // A single status follows the last activity in the same scroll owner. It never pins to the
-                        // composer or requests a scroll on status updates.
+                        // A single status follows the last activity in the same scroll owner.
+                        // It never pins to the composer or requests a scroll on status updates.
                         if (showActivityTail) item(key = activityTailKey) {
                             CompositionLocalProvider(LocalAgentStatusDetailMaxHeight provides statusDetailMaxHeight) {
                     if (!usingExternalAgent && (busy || streamParts.isNotEmpty())) {
@@ -661,7 +697,7 @@ fun AgentPane(
                         modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp).clip(MaterialTheme.shapes.small)
                             .semantics { contentDescription = "Scroll to latest activity" }.clickable {
                             scope.launch {
-                                chatViewport.latest()
+                                chatViewport.returnToLatest()
                             }
                         },
                         color = DroideColors.Surface3,
@@ -676,11 +712,11 @@ fun AgentPane(
                 }
             }
 
-            AgentTaskDock(todos, taskDockMaxHeight, denseComposer,
-                taskCollapsed, taskHidden, pendingQuestion != null || pendingApproval != null || landscapeImeTyping,
+            AgentTaskDock(displayedTodos, taskDockMaxHeight, denseComposer,
+                taskCollapsed, taskHidden, displayedQuestion != null || pendingApproval != null || landscapeImeTyping,
                 onCollapsedChange = { taskCollapsed = it }, onHiddenChange = { taskHidden = it })
 
-            pendingQuestion?.let { question ->
+            displayedQuestion?.let { question ->
                 InteractionDock(title = question.header.ifBlank { "Question" }, maxHeight = interactionDockMaxHeight) {
                     Text(question.question, style = MaterialTheme.typography.bodySmall)
                     question.options.forEach { option ->
@@ -693,7 +729,7 @@ fun AgentPane(
 
             HorizontalDivider(color = DroideColors.Border)
             Column(Modifier.fillMaxWidth().background(DroideColors.Surface).padding(composerOuterPadding)) {
-                PreferenceReadFailureRow("Provider preferences", preferenceRead.state.failed, preferenceRead::retry)
+                if (!usingExternalAgent) PreferenceReadFailureRow("Provider preferences", preferenceRead.state.failed, preferenceRead::retry)
                 if (recoveredExitDrafts.isNotEmpty() || exitDraftError != null) {
                     TextButton(onClick = { showSavedExitDrafts = true }, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)) {
                         Text("Saved drafts (${recoveredExitDrafts.size})", style = MaterialTheme.typography.labelSmall)
@@ -919,12 +955,12 @@ fun AgentPane(
 
                         val primaryControl: @Composable () -> Unit = {
                             val interactionSource = remember { MutableInteractionSource() }
-                            // Draft content owns Send, including while the current run is working. A blocked/preparing draft
-                            // stays a disabled Send, never a destructive tap.
+                            // Draft content owns Send, including while the current run is working.
+                            // A blocked/preparing draft stays a disabled Send, never a destructive tap.
                             val showsStop = (effectiveBusy || preflightBusy || !usingExternalAgent && compactionActivity?.running == true) && !hasDraft
                             val enabled = showsStop || canSubmitDraft
                             val actionLabel = when {
-                                localNavigation -> if (AgentComposerShortcuts.command(input, false) == AgentComposerCommand.MCP) "Open Manage MCP" else "Open plugins"
+                                localNavigation -> draftCommand()?.description ?: "Open feature"
                                 showsStop && preflightBusy -> "Cancel provider preflight"
                                 showsStop && !usingExternalAgent && !busy && compactionActivity?.running == true -> "Cancel context compaction"
                                 showsStop -> "Stop active agent run"
@@ -935,12 +971,12 @@ fun AgentPane(
                             FilledIconButton(
                                 onClick = {
                                     if (showsStop) {
-                                        // An input commit can precede recomposition of this callback. Never let the old Stop action
-                                        // cancel a newly typed instruction.
+                                        // An input commit can precede recomposition of this callback.
+                                        // Never let the old Stop action cancel a newly typed instruction.
                                         if (input.isBlank() && attachedContexts.isEmpty()) stopActiveRun()
                                     } else if (canSubmitDraft) send()
                                 },
-
+                                // With a draft, explicit Stop remains in the run-options menu below.
                                 enabled = enabled,
                                 modifier = Modifier.size(48.dp),
                                 interactionSource = interactionSource,
@@ -974,12 +1010,7 @@ fun AgentPane(
                         AgentComposerInput(
                             value = input,
                             catalogKey = agent,
-                            commands = buildList {
-                                if (onManageMcp != null) add(AgentComposerCommand.MCP)
-                                if (onManagePlugins != null) add(AgentComposerCommand.PLUGINS)
-                                if (onManageSkills != null) add(AgentComposerCommand.SKILLS)
-                                if (!usingExternalAgent) add(AgentComposerCommand.COMPACT)
-                            },
+                            commands = composerCommands,
                             loadMentions = { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                                 AgentMentionCatalog.load(agent.workDir, agent.mcpPluginSource(), SkillManagement.personalRoot(ctx))
                             } },
@@ -1010,7 +1041,7 @@ fun AgentPane(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-
+                            // Keep attachments available while the remaining controls scroll.
                             attachControl()
                             Row(
                                 Modifier.weight(1f).horizontalScroll(rememberScrollState()),
@@ -1062,12 +1093,57 @@ fun AgentPane(
         )
     }
 
+
     mediaRecovery?.let { controller ->
         ProjectCopyRecoverySheet(controller, imports = false, projectKey = agent.workDir.absolutePath,
             sessionId = mediaRecoverySession, enabled = mediaRecoveryEnabled)
     }
 
     if (showSavedExitDrafts) RecoveredExitDraftsDialog(uiState) { showSavedExitDrafts = false }
+
+    fun prepareSessionDraft(text: String) {
+        val next = if (input.isBlank()) text else input.trimEnd() + "\n\n" + text
+        if (next.length > AgentService.MAX_USER_MESSAGE_CHARS) {
+            uiState.submissionError.value = AGENT_DRAFT_LIMIT_ERROR
+        } else {
+            input = next
+            sessionTool = null
+        }
+    }
+    fun continuationAvailability(): AgentContinuation = when {
+        usingExternalAgent -> AgentContinuation.NEEDS_REVIEW
+        preflightBusy || effectiveBusy || compactionActivity?.running == true -> AgentContinuation.WORKING
+        else -> agent.continuationAvailability(conversationKey.sessionId)
+    }
+    when (sessionTool) {
+        AgentSessionTool.RESULTS -> if (!usingExternalAgent) AgentResultsDialog(
+            messages = messages,
+            live = if (streamState.sessionId == conversationKey.sessionId) streamParts else emptyList(),
+            media = emptyList(), workDir = agent.workDir, historyIsWindowed = false,
+            onOpen = onOpenResult?.let { open -> { path -> open(path); sessionTool = null } },
+            onExport = onExportResult?.let { export -> { path -> export(path); sessionTool = null } },
+            onDismiss = { sessionTool = null },
+        )
+        AgentSessionTool.WORKFLOWS -> AgentWorkflowsDialog(
+            loadTemplates = { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val available = SkillManagement(FileRepository(agent.workDir), agent.mcpPluginSource(), SkillManagement.personalRoot(ctx))
+                    .manager().invocationCatalog().map { it.name }.toSet()
+                AgentWorkflowTemplates.entries.filter { it.skill in available }
+            } },
+            onSelect = ::prepareSessionDraft,
+            onManageSkills = onManageSkills?.let { manage -> { sessionTool = null; manage() } },
+            onDismiss = { sessionTool = null },
+        )
+        AgentSessionTool.RESUME -> if (!usingExternalAgent) AgentContinuationDialog(
+            availability = continuationAvailability(),
+            messages = messages,
+            onPrepare = {
+                if (continuationAvailability() == AgentContinuation.READY) prepareSessionDraft(AGENT_CONTINUATION_PROMPT)
+            },
+            onDismiss = { sessionTool = null },
+        )
+        null -> Unit
+    }
 
     if (!usingExternalAgent && showBillingSheet) {
         DroideModalBottomSheet(onDismissRequest = { showBillingSheet = false }) { dismiss ->
@@ -1077,7 +1153,8 @@ fun AgentPane(
 }
 
 @Composable
-internal fun AgentTranscriptItem(message: AgentMessage, showStreamDetails: Boolean, workDir: java.io.File, sessionId: String? = null) {
+internal fun AgentTranscriptItem(message: AgentMessage, showStreamDetails: Boolean, workDir: java.io.File, sessionId: String? = null,
+    legacyAssistantPresentation: AgentTextPresentation = AgentTextPresentation.LEGACY) {
     if (message.publicContent != null) {
         AgentArchivedPublicAnswer(message, workDir, sessionId)
         AgentMessageMedia(message.media, workDir)
@@ -1088,10 +1165,13 @@ internal fun AgentTranscriptItem(message: AgentMessage, showStreamDetails: Boole
         return
     }
     message.streamPart?.let { part ->
-        AgentStreamPartWithMedia(part, showStreamDetails, message.media, workDir)
+        val displayedPart = if (part.kind == AgentStreamPartKind.TEXT && part.textPresentation == AgentTextPresentation.LEGACY &&
+            legacyAssistantPresentation != AgentTextPresentation.LEGACY) part.copy(textPresentation = legacyAssistantPresentation) else part
+        AgentStreamPartWithMedia(displayedPart, showStreamDetails, message.media, workDir)
         return
     }
-    if (message.textPresentation == AgentTextPresentation.LEGACY && message.content.startsWith("TOOL|")) {
+    if (legacyAssistantPresentation == AgentTextPresentation.LEGACY &&
+        message.textPresentation == AgentTextPresentation.LEGACY && message.content.startsWith("TOOL|")) {
         val parts = message.content.split("|", limit = 4)
         val tool = parts.getOrNull(1) ?: "tool"
         val args = parts.getOrNull(2).orEmpty()
@@ -1101,10 +1181,11 @@ internal fun AgentTranscriptItem(message: AgentMessage, showStreamDetails: Boole
         return
     }
 
-    if (message.role == "assistant" && message.textPresentation != AgentTextPresentation.LEGACY) {
+    val presentation = message.textPresentation.takeUnless { it == AgentTextPresentation.LEGACY } ?: legacyAssistantPresentation
+    if (message.role == "assistant" && presentation != AgentTextPresentation.LEGACY) {
         AgentPublicTextContent(
             markdown = message.content,
-            presentation = message.textPresentation,
+            presentation = presentation,
             presentationId = message.presentationId,
             publicTextSpans = message.publicTextSpans,
             modifier = Modifier.fillMaxWidth(),

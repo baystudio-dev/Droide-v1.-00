@@ -4,8 +4,8 @@ import java.io.File
 
 /** User bin locations in each guest's own /root; no bind or binary sharing between guests. */
 internal object LocalLinuxUserEnvironment {
-    // npm derives its global prefix from the selected Node installation otherwise. User CLI installs
-    // must not alter a sealed managed Node payload. Explicit --prefix still wins.
+    // npm derives its global prefix from the selected Node installation otherwise. User CLI
+    // installs must not alter a sealed managed Node payload. Explicit --prefix still wins.
     val environment: Map<String, String> = mapOf("NPM_CONFIG_PREFIX" to "/root/.local")
     private val userBins = listOf(
         "/root/.local/bin", "/root/.local/share/mise/shims", "/root/.dotnet", "/root/.opencode/bin", "/root/.npm-global/bin",
@@ -18,6 +18,7 @@ internal object LocalLinuxUserEnvironment {
     /** Only the known guest-owned bin roots; managed bind paths have separate authority. */
     fun executableRoots(): List<String> = userBins + userSdkBins() + systemBins
 
+    /** Standard user SDK roots are considered before an implicit managed SDK default. */
     val userAndroidSdkRoots = listOf("/root/Android/Sdk", "/root/.local/share/android-sdk", "/root/android-sdk")
 
     private fun userSdkBins(): List<String> = userAndroidSdkRoots.flatMap { root ->
@@ -49,8 +50,8 @@ internal object LocalLinuxUserEnvironment {
     }.toMap()
 
     fun path(managedBins: List<String>, preferredManagedBins: List<String> = emptyList()): String =
-        // Read installer PATH additions without executing or replacing user shell startup files.
-
+        // Keep the directory in PATH before installation, so an already-open shell discovers
+        // the official OpenCode installer output without sourcing or replacing user rc files.
         (preferredManagedBins + userBins + userSdkBins() + managedBins.sortedBy { if (it == "/opt/droide/bin") 0 else 1 } + systemBins)
             .distinct().joinToString(":")
 }

@@ -95,7 +95,8 @@ class FileProjectStorePublicationTest {
         val store = FileProjectStore(temp.root) { from, to, options ->
             calls++
             if (calls == 1) {
-                // Cooperating stores now serialize, so nesting and joining a second store inside this callback
+                // A noncooperating CLI-style writer remains unrestricted. Cooperating stores
+                // now serialize, so nesting and joining a second store inside this callback
                 // would deadlock rather than simulate an external filesystem write.
                 val external = Files.newBufferedReader(to, UTF_8).use { it.readText() }.replace("Before", concurrent.name)
                 Files.newBufferedWriter(to, UTF_8).use { it.write(external) }

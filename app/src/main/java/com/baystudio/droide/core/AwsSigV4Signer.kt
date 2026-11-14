@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+ 
 internal object AwsSigV4Signer {
     data class SignedHeaders(
         val authorization: String,

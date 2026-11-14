@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
+/** App-local Ruby bundle; publisher archives are verified before any native build runs. */
 internal class LocalUbuntuRubyInstaller(
     context: Context,
     private val projectRoot: File,

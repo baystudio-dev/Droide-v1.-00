@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object ApprovalPolicyGuard {
     fun remainsPermitted(
         permissions: PermissionEngine,

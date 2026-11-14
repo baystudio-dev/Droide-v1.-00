@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** DOM form editing and preparation. Pointer/key events are dispatched by Android. */
 internal object AgentBrowserInteraction {
     val operations = setOf("click", "type", "check", "key", "hover", "swipe", "drag", "scroll", "wait_for")
 

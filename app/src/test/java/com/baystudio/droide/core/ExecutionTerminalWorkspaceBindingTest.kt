@@ -9,6 +9,7 @@ import kotlinx.serialization.json.put
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Real host shell commands through a selected-tab fixture; PTY dispatch is a capability fake. */
 class ExecutionTerminalWorkspaceBindingTest {
     private open class Session(val humanCwd: File, val marker: String) :
         ITerminalSession, InteractivePtyCommandSession {

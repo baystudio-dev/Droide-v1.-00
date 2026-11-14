@@ -33,7 +33,8 @@ internal class BrowserApplicationTimers(private val reportFailure: (Throwable) -
     fun attach(view: WebView) {
         checkMainThread()
         if (liveViews().none { it === view }) views += WeakReference(view)
-
+        // Settle a failed/dead renderer's timer suspension through a new live view.
+        // No hidden WebView is constructed solely for timer management.
         if (suspensionPossible && owner?.get() == null) resume(view)
         if (visible) resume(view) else pause(view)
     }
@@ -45,8 +46,8 @@ internal class BrowserApplicationTimers(private val reportFailure: (Throwable) -
         val replacement = liveViews().lastOrNull()
         if (replacement != null) resume(replacement)
         else if (!rendererGone) resume(view)
-        // Never call through or retain a destroyed renderer. A failed resume remains pending and is
-        // retried via the next attached live view.
+        // Never call through or retain a destroyed renderer. A failed resume remains
+        // pending and is retried via the next attached live view.
         owner = null
         pauseConfirmed = false
         if (!visible && replacement != null) pause(replacement)

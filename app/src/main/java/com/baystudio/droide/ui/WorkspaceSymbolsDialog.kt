@@ -17,6 +17,7 @@ import com.baystudio.droide.core.LspSymbol
 import com.baystudio.droide.core.runSuspendCatching
 import kotlinx.coroutines.delay
 
+ 
 @Composable
 fun WorkspaceSymbolsDialog(
     lsp: LspManager,

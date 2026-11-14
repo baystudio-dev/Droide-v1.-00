@@ -80,6 +80,14 @@ class StreamedCommandArgumentExtractorTest {
         val explicit=prepared(s,args("x","cmd",mapOf("keep_stdin_open" to JsonPrimitive(false),"requires_tty" to JsonPrimitive(false),"yield_time_ms" to JsonPrimitive(1000))),"exec_command")
         assertEquals(implicit.semanticDigest,explicit.semanticDigest)
     }
+    @Test fun ptyImplicitInputMatchesTrueButNotExplicitFalse()=fixture { s ->
+        val tty=mapOf("requires_tty" to JsonPrimitive(true))
+        val implicit=prepared(s,args("x","cmd",tty),"exec_command")
+        val open=prepared(s,args("x","cmd",tty+("keep_stdin_open" to JsonPrimitive(true))),"exec_command")
+        val closed=prepared(s,args("x","cmd",tty+("keep_stdin_open" to JsonPrimitive(false))),"exec_command")
+        assertEquals(implicit.semanticDigest,open.semanticDigest)
+        assertNotEquals(implicit.semanticDigest,closed.semanticDigest)
+    }
     @Test fun incompleteWrongKindOwnerAndCancellationCannotMaterialize()=fixture { s ->
         val incomplete=s.begin(OwnedResponseContentStore.Kind.TOOL_ARGUMENTS).use{it.append("{}");it.sealIncomplete()}
         assertTrue(runCatching{StreamedCommandArgumentExtractor.extract(s,incomplete.handle,"call","run_command")}.isFailure)

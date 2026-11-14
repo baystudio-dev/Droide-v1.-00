@@ -73,7 +73,7 @@ class FileRepositoryTextBudgetTest {
                     return WorkspaceSearchCapture()
                 }
             }
-
+            // The invalid first path would throw if normalization ran before the count admission.
             val page = FileRepository(root).searchPageBounded("needle",
                 excludedPaths = linkedSetOf("../outside", "b.kt", "c.kt"), documents = documents,
                 limits = WorkspaceSearchLimits(excludedPaths = 2),

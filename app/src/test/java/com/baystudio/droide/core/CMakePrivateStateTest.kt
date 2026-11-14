@@ -75,8 +75,8 @@ class CMakePrivateStateTest {
         try {
             val state=CMakePrivateState.allocate(app,"environment")
             val sentinel=File(state.localRoot,"sentinel").apply{writeText("preserve")}
-            // Deterministically challenge the retained original-key comparison. This is an authored JVM
-            // identity mismatch, not a claim to schedule an Android rename race.
+            // Deterministically challenge the retained original-key comparison. This is an
+            // authored JVM identity mismatch, not a claim to schedule an Android rename race.
             CMakePrivateState::class.java.getDeclaredField("originalRootFileKey").apply{isAccessible=true}.set(state,Any())
             assertEquals(CMakePrivateCleanupStatus.QUARANTINED,state.cleanup(true))
             assertEquals("preserve",sentinel.readText())

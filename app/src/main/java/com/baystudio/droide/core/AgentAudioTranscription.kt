@@ -8,6 +8,7 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
+/** Explicit remote speech recognition, separate from metadata inspection and the conversation model. */
 internal class AgentAudioTranscription(private val transport: Transport = HttpTransport) {
     internal fun interface Transport { suspend fun execute(provider: AiProvider, request: Request): Pair<Int, ByteArray> }
     suspend fun execute(args: JsonObject, c: AgentTools.Ctx, permission: suspend (String, String) -> String?): String = withContext(Dispatchers.IO) {

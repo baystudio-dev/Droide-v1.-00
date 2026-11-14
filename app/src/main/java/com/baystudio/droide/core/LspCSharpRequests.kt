@@ -73,8 +73,10 @@ internal class LspCSharpRequests(
             if (remaining <= 0) throw NotAdmitted()
             return ceilMillis(remaining)
         }
-        /** Called at the existing serialized writer admission, never at mutex acquisition. */
-
+        /** Called at the existing serialized writer admission, never at mutex acquisition.
+         * A rejection here follows the transport's failed-write cleanup, not an inert pre-RPC drop.
+         * Keep the manager's pure current check outside our lock (manager lifetime lock comes first).
+         */
         fun markDispatched() {
             check(record.isCurrent()) { "C# demand lost its current capture at serialized admission" }
             synchronized(lock) {
@@ -179,8 +181,7 @@ internal class LspCSharpRequests(
             throw cancel
         } catch (failure: Exception) {
             if (record.propagateFailure && failure !is NotAdmitted) record.waiter.completeExceptionally(failure)
-            // Completed native errors are unavailable; guarded transaction validation can still report a
-            // rejection.
+            // Completed native errors are unavailable; guarded transaction validation can still report a rejection.
         } finally {
             finish(record, result)
         }
@@ -216,11 +217,13 @@ internal class LspCSharpRequests(
         next?.let(::start)
     }
 
-    /** Expired live demand owns the same failure boundary even before its RPC is dispatched. */
-
+    /** Expired live demand owns the same failure boundary even before its RPC is dispatched.
+     * Detached, replaced or invalidated records remain inert drops. Never invoke the
+     * manager callback while holding this coordinator lock.
+     */
     private fun expireBeforeDispatch(record: Record): Boolean {
         if (record.deadlineNanos - nanoTime() > 0L) return false
-
+        // Expired undispatched work is an inert drop; no native write needs cleanup.
         return true
     }
 
@@ -232,8 +235,9 @@ internal class LspCSharpRequests(
             deadlinePublicationPending = true
             records.toList().also { records.clear(); active.clear(); queued.clear() }
         }
-        // The callback may acquire its lifetime lock and close this coordinator, so never invoke it
-        // under our lock.
+        // Fence the manager's held-result and wire admission before releasing any caller.
+        // The callback may acquire its lifetime lock and close this coordinator, so never
+        // invoke it under our lock. Always release pending callers even if it throws.
         try { onDeadline(methodKey) }
         finally {
             pending.forEach { it.waiter.complete(null) }
@@ -248,14 +252,15 @@ internal class LspCSharpRequests(
             records.toList().also { records.clear(); active.clear(); queued.clear() } to !deadlinePublicationPending
         }
         pending.forEach { it.waiter.complete(null) }
-        // A deadline callback may reenter close after fencing the manager. Its finally still owns
-        // pending unavailable publication before cancellation of their parent.
+        // A deadline callback may reenter close after fencing the manager. Its finally
+        // still owns pending unavailable publication before cancellation of their parent.
         if (cancelOwner) ownerJob.cancel(CancellationException("C# request owner closed"))
     }
 
     private fun ceilMillis(nanos: Long): Long = (nanos - 1L) / NANOS_PER_MS + 1L
 }
 
+/** Exact C# route, isolated from generic and older-family transports. */
 internal class CSharpLspManager(
     scope: CoroutineScope,
     private val workspace: File,
@@ -326,7 +331,7 @@ internal class CSharpLspManager(
     private fun uri(path: String): String = File(path).toURI().toString()
     private fun current(s: Session): Boolean = !closed && job.isActive && session === s && s.active && s.generation == generation &&
         (s.ready || System.nanoTime() < s.preparationDeadline) && selection.isCurrent(s.selection) && permit === s.permit && consent.isCurrent(s.permit) && observeRoute() && s.owner.isCurrent
-
+    /** Observed registry replacement permanently retires its old grant, including route ABA. */
     private fun observeRoute(): Boolean {
         if (routeCurrent()) return true
         if (permit != null || session?.active == true || startup?.isActive == true)
@@ -376,7 +381,7 @@ internal class CSharpLspManager(
                 if (selected.mode == CSharpAnalysisSelections.Mode.NATIVE_DIRECTORY_DISCOVERY) "\nNative recursive discovery prefers discovered .sln/.slnx by declared project count, otherwise all discovered .csproj/.fsproj outside node_modules. It is not selected-file-only or offline analysis." else "",
             LspCSharpProfile.INSTALLATION_DISCLOSURE)) { synchronized(lock) { !closed && selection.isCurrent(selected) && routeCurrent() && consent.isCurrent(ticket) } }
         if (!allowed) return "C# project analysis remains disabled."
-
+        // Re-observe metadata and exact activation after the potentially long confirmation UI.
         withContext(Dispatchers.IO) { check(selection.revalidate(selected)); check(host?.reviewedCSharpLaunchIdentity(LspCSharpProfile.COMMAND, workspace.path) == native) }
         synchronized(lock) {
             check(selection.isCurrent(selected) && routeCurrent())
@@ -530,7 +535,7 @@ internal class CSharpLspManager(
         startup?.cancel(); startup = null
         held.clear(); completions.clear(); reports.clear(); publishDiagnostics(emptyMap())
         val old = session
-        old?.active = false
+        old?.active = false // fence held result and callback/writer authority before releasing waiters
         old?.requests?.close()
         old?.notifications?.cancel()
         detail = reason
@@ -538,8 +543,8 @@ internal class CSharpLspManager(
             val previous = cleanup
             cleanup = retirementScope.launch {
                 previous?.join()
-                // Feature/callback authority was already fenced. Only this exact old transport gets a bounded
-                // shutdown/exit grace; no replacement can exist before receipt.
+                // Feature/callback authority was already fenced. Only this exact old transport
+                // gets a bounded shutdown/exit grace; no replacement can exist before receipt.
                 synchronized(lock) { old.retiring = true }
                 withTimeoutOrNull(2_000L) {
                     runCatching { old.rpc.request("shutdown", timeoutMs = 1_500L) }

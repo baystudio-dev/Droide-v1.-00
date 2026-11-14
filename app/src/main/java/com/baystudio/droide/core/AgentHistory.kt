@@ -8,7 +8,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
 internal object AgentHistory {
-
+    /** boundedUi keeps a suffix. Rebase the frozen/live split when its prefix is evicted. */
     fun retainedBaseMessageCount(baseCount: Int, sourceSize: Int, retainedSize: Int): Int {
         require(sourceSize >= 0 && retainedSize in 0..sourceSize)
         return (baseCount.coerceIn(0, sourceSize) - (sourceSize - retainedSize)).coerceAtLeast(0)
@@ -72,6 +72,7 @@ internal object AgentHistory {
         return selected.flatMap { it }
     }
 
+
     fun boundedUi(source: List<AgentMessage>, maxMessages: Int, maxChars: Int): List<AgentMessage> {
         val reversed = ArrayList<AgentMessage>()
         var chars = 0L
@@ -106,14 +107,15 @@ internal object AgentHistory {
             selected += index
             recentBytes += size
         }
-
+        // Keep the most recent admitted user request byte-for-byte, even across a long tool turn.
         groups.indexOfLast { group -> group.firstOrNull()?.get("role") == JsonPrimitive("user") }
             .takeIf { it >= 0 }?.let(selected::add)
         groups.forEachIndexed { index, group ->
             if (group.any { it["role"] in listOf(JsonPrimitive("system"), JsonPrimitive("developer")) }) selected += index
         }
-        // Keep a bounded suffix of earlier user requests verbatim as well.
-
+        // Keep a bounded suffix of earlier user requests verbatim as well. A short
+        // constraint must not depend only on the summary after a long tool turn.
+        // Whole messages retain their roles, media and provenance; never splice text.
         var userBytes = minOf(4_000L, keepRecentTokens.toLong() / 4L) * 4L
         for (index in groups.indices.reversed()) {
             if (index in selected || groups[index].firstOrNull()?.get("role") != JsonPrimitive("user")) continue

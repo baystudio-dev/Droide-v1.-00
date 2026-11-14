@@ -13,15 +13,17 @@ internal interface ExportCaptureParticipant {
     suspend fun <T> withQuiescence(action: suspend () -> T): T
 }
 
-/** Small, non-waiting fence for mapped application writers not covered by the repository mutex. */
-
+/** Small, non-waiting fence for mapped application writers not covered by the repository mutex.
+ * No callback runs under this monitor. Nested writers are counted, not locked; SAF/repository
+ * publication keeps its existing receipts and lock order. This is NOT an external-process lock.
+ */
 internal object ExportWriterAdmission {
     private class ManagedWriter(val label: String, val participant: ExportCaptureParticipant)
     private data class State(var capturing: Boolean = false, val writers: MutableMap<String, Int> = mutableMapOf(),
         val managed: MutableSet<ManagedWriter> = linkedSetOf(), var captureDone: CompletableDeferred<Unit>? = null,
         var captureLabel: String = "Export", var allowsConcurrentFileWriters: Boolean = false)
     private val states = mutableMapOf<String, State>()
-    private var observationVersion: Any = Any()
+    private var observationVersion: Any = Any() // guarded by states; opaque ABA-safe token
     data class RegisteredWriter(val root: String, val label: String, val count: Int)
     class Observation internal constructor(writers: List<RegisteredWriter>, managed: List<RegisteredWriter>,
                                           captures: List<RegisteredWriter>, private val validateState: () -> Unit) {
@@ -106,8 +108,8 @@ internal object ExportWriterAdmission {
         return try { action() } finally { leaveWriter(key, label) }
     }
 
-    /** Resource disposal waits outside the owner's mutex. It must not lose a close request in the
-     * interval between releasing owner locks and releasing capture. */
+    /** Resource disposal waits outside the owner's mutex. It must not lose a close
+     * request in the interval between releasing owner locks and releasing capture. */
     internal suspend fun <T> withWriterAfterCapture(root: File, label: String, action: suspend () -> T): T {
         val key = key(root)
         while (true) {
@@ -136,8 +138,9 @@ internal object ExportWriterAdmission {
             }.distinct().sorted()
         }
     }
-    /** A single regular file is content-validated instead of treating every live process as a
-     * conflicting writer. */
+    /** A single regular file is content-validated instead of treating every live process as
+     * a conflicting writer. Recovery/catalog captures remain exclusive. No process is stopped
+     * or removed from its lifetime/Exit ledger by this export-only observation. */
     internal fun snapshotVerifiedFileBlockers(file: File): List<String> {
         val key = key(file)
         return synchronized(states) {
@@ -146,8 +149,10 @@ internal object ExportWriterAdmission {
         }
     }
 
-    /** Only used with a regular-file permit that ExportCaptureStore verifies before sealing. */
-
+    /** Only used with a regular-file permit that ExportCaptureStore verifies before sealing.
+     * Existing managed databases retain their checkpoint/mutex handoff. New managed owners
+     * are still refused until capture ends. App-owned metadata (including cold SQLite opens)
+     * is excluded by source admission and never uses this concurrent-file path. */
     internal suspend fun <T> withVerifiedFileCapture(file: File, action: suspend () -> T): T {
         currentCoroutineContext().ensureActive()
         val key = key(file)
@@ -180,8 +185,8 @@ internal object ExportWriterAdmission {
         return AutoCloseable { if (closed.compareAndSet(false, true)) endCapture(key) }
     }
 
-    /** Reserve before checkpointing: no new mapped writer can race the owner handoff. No owner
-     * callback, continuation or disk IO runs under the registry monitor. */
+    /** Reserve before checkpointing: no new mapped writer can race the owner handoff.
+     * No owner callback, continuation or disk IO runs under the registry monitor. */
     internal suspend fun <T> withQuiescentCapture(root: File, label: String = "Export", action: suspend () -> T): T {
         currentCoroutineContext().ensureActive()
         val key = key(root)

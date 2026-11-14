@@ -83,6 +83,7 @@ data class SubagentTaskRecord(
 
 data class SubagentCompletion(val record: SubagentTaskRecord, val config: AgentConfig, val activeSiblings: Int = 0)
 
+ 
 data class SubagentTaskView(
     val id: String,
     val childSessionId: String,
@@ -134,8 +135,8 @@ internal class SubagentOwnedJob(val attempt: Int, val job: Job) {
     internal var resourceRoot: String? = null
 }
 
-// Only resources acquired by this execution are registered here. Every registered disposer runs,
-// even when another disposer throws during cancellation or startup.
+// Only resources acquired by this execution are registered here. Every registered
+// disposer runs, even when another disposer throws during cancellation or startup.
 internal class SubagentOwnedResources(private val reportFailure: (String, Exception) -> Unit) {
     private class Entry(val operation: String, val dispose: suspend () -> Unit,
                         val terminal: TerminalOwnershipObservationSource? = null, val root: String? = null)
@@ -357,8 +358,8 @@ internal class SubagentTaskStore(
                 ))
             }
         }
-        // Failed enumeration/publication must remain retryable. Previously the first failure permanently
-        // skipped recovery, leaving old RUNNING rows looking live.
+        // Failed enumeration/publication must remain retryable. Previously the first failure
+        // permanently skipped recovery, leaving old RUNNING rows looking live.
         recovered = true
     }
 
@@ -391,8 +392,8 @@ internal class SubagentTaskStore(
             tmp.writeText(encoded)
             publishRecord(tmp, target)
         } finally {
-            // Permission loss while cleaning a temporary file must not replace the original publication
-            // failure (especially CancellationException).
+            // Permission loss while cleaning a temporary file must not replace the
+            // original publication failure (especially CancellationException).
             try { if (tmp.exists()) tmp.delete() } catch (_: SecurityException) { }
         }
     }
@@ -405,6 +406,7 @@ internal class SubagentTaskStore(
 }
 
 // Fresh tasks create durable child sessions.
+
 
 class SubagentManager(
     private val files: FileRepository,
@@ -429,7 +431,7 @@ class SubagentManager(
     private val profiles = AgentProfileManager(workDir, pluginSource)
     private val scope = CoroutineScope(runtimeContext + SupervisorJob(runtimeContext[Job]))
     private val slots = Semaphore(MAX_CONCURRENT_SUBAGENTS)
-
+    
     private val sharedMutationSlot = Semaphore(1)
     private val jobs = SubagentJobOwners()
     private val liveChildren = ConcurrentHashMap<String, AgentService>()
@@ -440,16 +442,15 @@ class SubagentManager(
     private val exitMutex = Mutex()
     private val failedChildCheckpoints = ConcurrentHashMap<String, AgentService>()
     private val unsettledRecords = ConcurrentHashMap<String, SubagentTaskRecord>()
-    // A failed write must still be visible, even if another child refreshes the dashboard. These
-    // records are retried on the next refresh and never presented as durable.
+    // A failed write must still be visible, even if another child refreshes the dashboard.
+    // These records are retried on the next refresh and never presented as durable.
     private val unsavedTerminalRecords = LinkedHashMap<String, SubagentTaskRecord>()
     private var closed = false
     @Volatile private var boundParentSessionId: String? = null
     private val _dashboard = MutableStateFlow(SubagentDashboardState())
     val dashboard: StateFlow<SubagentDashboardState> = _dashboard.asStateFlow()
 
-    // Switches the monitoring surface to one parent session and restores durable task rows after
-    // restart.
+    // Switches the monitoring surface to one parent session and restores durable task rows after restart.
     fun bindParent(parentSessionId: String?) {
         synchronized(dashboardLock) {
             if (closed || !exitFence.isOpen) return
@@ -477,8 +478,8 @@ class SubagentManager(
         config: AgentConfig,
         onProgress: (AgentToolProgress) -> Unit = {},
     ): String {
-        // Admit before provisioning/session creation/QUEUED publication. Background work takes ownership
-        // of this same lease through delivery and job completion.
+        // Admit before provisioning/session creation/QUEUED publication. Background
+        // work takes ownership of this same lease through delivery and job completion.
         val exportWriter = ExportWriterAdmission.beginWriter(files.root, "Subagent admission/execution/delivery")
         var writerTransferred = false
         try {
@@ -609,8 +610,8 @@ class SubagentManager(
             }
             val owned = SubagentOwnedJob(record.attempt, job)
             jobs[record.id] = owned
-            // Completion also runs when cancellation wins before LAZY dispatch. No writer may enter the
-            // publication-to-dispatch or completion-callback gap.
+            // Completion also runs when cancellation wins before LAZY dispatch.
+            // No writer may enter the publication-to-dispatch or completion-callback gap.
             job.invokeOnCompletion {
                 try { jobs.remove(record.id, owned) }
                 finally { exportWriter.close() }
@@ -623,8 +624,8 @@ class SubagentManager(
         }
 
         return coroutineScope {
-            // Foreground tasks own a child Job too: their terminal row can become visible before disposal
-            // finishes, so resume/discard must still wait.
+            // Foreground tasks own a child Job too: their terminal row can become
+            // visible before disposal finishes, so resume/discard must still wait.
             val owned = SubagentOwnedJob(record.attempt, checkNotNull(currentCoroutineContext()[Job]))
             jobs[record.id] = owned
             try {
@@ -641,8 +642,8 @@ class SubagentManager(
     private suspend fun executeScheduled(
         initial: SubagentTaskRecord, prompt: String, profile: AgentProfile, config: AgentConfig, onProgress: (AgentToolProgress) -> Unit,
     ): SubagentTaskRecord = ExportWriterAdmission.withSuspendingWriter(files.root, "Subagent execution/finalization") {
-        // Nested inside run's transferred lease: capture cannot enter between durable QUEUED publication
-        // and this execution/finalization span.
+        // Nested inside run's transferred lease: capture cannot enter between
+        // durable QUEUED publication and this execution/finalization span.
         executeScheduledAdmitted(initial, prompt, profile, config, onProgress)
     }
 
@@ -666,8 +667,8 @@ class SubagentManager(
             }
         }
     } catch (cancel: CancellationException) {
-        // A queued task can be cancelled before execute() is entered. Finalize it here too, without
-        // replacing the original cancellation with a storage/cleanup exception.
+        // A queued task can be cancelled before execute() is entered. Finalize it here too,
+        // without replacing the original cancellation with a storage/cleanup exception.
         try {
             withContext(NonCancellable) {
                 withTimeout(FINALIZATION_TIMEOUT_MS) {
@@ -1040,7 +1041,8 @@ class SubagentManager(
     }
 
     // SupervisorJob isolates siblings; it does not consume an unhandled launch exception.
-
+    // Keep every manager-owned root launch behind this boundary. Reporting is memory-only
+    // so an unavailable task directory cannot make the error handler fail recursively.
     private fun launchOwned(
         parentSessionId: String, operation: String, start: CoroutineStart = CoroutineStart.DEFAULT,
         action: suspend () -> Unit,
@@ -1090,8 +1092,8 @@ class SubagentManager(
         )
         val terminal = try {
             store.update(initial.id) { current ->
-                // A late progress/cleanup failure must not erase a committed result or overwrite an explicit
-                // parent's KILLED/DELIVERED cancellation record.
+                // A late progress/cleanup failure must not erase a committed result or
+                // overwrite an explicit parent's KILLED/DELIVERED cancellation record.
                 if (current.state !in ACTIVE_TASK_STATES || current.attempt != initial.attempt) current
                 else fallback.copy(startedAtMs = current.startedAtMs)
             }?.also { unsettledRecords.remove(initial.id) } ?: error("Subagent task disappeared: ${initial.id}")
@@ -1104,8 +1106,8 @@ class SubagentManager(
             synchronized(dashboardLock) {
                 if (!closed) {
                     unsavedTerminalRecords[initial.id] = unsaved
-                    // Never evict the sole copy of a failed terminal receipt. Further task admissions are fenced
-                    // while storage needs repair.
+                    // Never evict the sole copy of a failed terminal receipt.
+                    // Further task admissions are fenced while storage needs repair.
                 }
             }
             reportDashboardFailure(initial.parentSessionId, "Could not save status for ${initial.id}", storageFailure)

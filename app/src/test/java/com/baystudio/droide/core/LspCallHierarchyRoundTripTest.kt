@@ -6,6 +6,9 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Invokes the actual manager parser, with a non-live generic state fixture.
+ * Constructor bypass deliberately avoids unrelated process/native-manager lifecycle.
+ */
 class LspCallHierarchyRoundTripTest {
     private fun allocate(type: Class<*>): Any {
         val unsafeType=Class.forName("sun.misc.Unsafe")
@@ -15,6 +18,7 @@ class LspCallHierarchyRoundTripTest {
     private fun field(target: Any, name: String, value: Any?) {
         target.javaClass.getDeclaredField(name).also { it.isAccessible=true }.set(target,value)
     }
+
 
     private fun check(data:String) {
         val root=createTempDirectory("droide-call-roundtrip").toFile()
@@ -32,7 +36,7 @@ class LspCallHierarchyRoundTripTest {
             val result=try {method.invoke(manager,input,state) as LspCallHierarchyItem}
                 catch(e:InvocationTargetException) {throw e.targetException}
             assertEquals("one.txt",result.path);assertEquals(1,result.line)
-
+            // This is the same parsing operation used by callHierarchyRelations before dispatch.
             val outgoing=Json.parseToJsonElement(result.rawJson)
             assertEquals(input,outgoing)
         } finally {root.deleteRecursively()}

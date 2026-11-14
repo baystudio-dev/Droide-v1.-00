@@ -28,7 +28,7 @@ data class TokenUsage(
     val cacheRead: Int = 0,
     val cacheWrite: Int = 0,
     val costUsd: Double = 0.0,
-
+    // Total coverage is independent of whether the provider supplied a complete breakdown.
     val tokenAuthority: UsageAuthority = UsageAuthority.UNKNOWN,
     val costAuthority: UsageAuthority = UsageAuthority.UNKNOWN,
     val requestCount: Long = 0,
@@ -36,7 +36,7 @@ data class TokenUsage(
     val knownCostRequestCount: Long = 0,
     val breakdownComplete: Boolean = false,
     val breakdownMismatch: Boolean = false,
-
+    // Token overflow describes the total; clipped component sums make the breakdown incomplete.
     val tokenOverflow: Boolean = false,
     val costOverflow: Boolean = false,
 )
@@ -56,6 +56,7 @@ class TokenTracker {
     val history: StateFlow<List<Pair<String, TokenUsage>>> = SnapshotView(snapshot) { it.history }
     val warning: StateFlow<String?> = SnapshotView(snapshot) { it.warning }
 
+    /** One completed model request. Missing reports remain unknown, including image requests. */
     fun add(model: String, completionResponse: String): TokenUsage = addForProvider("", model, completionResponse)
 
     /** Provider identity admits only that provider's documented usage aliases. Never infer it from the model. */
@@ -70,7 +71,7 @@ class TokenTracker {
             val accumulated = accumulate(before.usage, sample)
             val label = model.take(80).map { if (it.isISOControl()) ' ' else it }.joinToString("").trim().ifEmpty { "model" }
             val entry = "Request ${accumulated.requestCount} · $label" to sample
-
+            // One publication, with no writes after it: an unconfined observer may reset reentrantly.
             state.value = before.copy(usage = accumulated, history = (before.history + entry).takeLast(200))
         }
         return sample
@@ -139,8 +140,7 @@ class TokenTracker {
             )
         }
 
-        // Presence has priority over fallback aliases: invalid canonical data cannot become a valid
-        // alias.
+        // Presence has priority over fallback aliases: invalid canonical data cannot become a valid alias.
         private fun JsonObject.first(vararg names: String): JsonElement? = names.firstOrNull(::containsKey)?.let(::get)
         private fun JsonElement?.count(): Int? = (this as? JsonPrimitive)?.takeUnless { it.isString }
             ?.intOrNull?.takeIf { it >= 0 }

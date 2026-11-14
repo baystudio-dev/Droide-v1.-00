@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 sealed interface LlmStreamEvent {
     data object Thinking : LlmStreamEvent
     data class RetryScheduled(val attempt: Int, val statusCode: Int, val delayMs: Long) : LlmStreamEvent
@@ -11,6 +12,7 @@ sealed interface LlmStreamEvent {
         val argumentsFragment: String?,
     ) : LlmStreamEvent
 
+     
     data class BufferedResponse(val text: String) : LlmStreamEvent
 }
 

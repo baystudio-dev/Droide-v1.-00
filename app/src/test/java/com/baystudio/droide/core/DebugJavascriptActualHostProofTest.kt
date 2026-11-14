@@ -46,7 +46,7 @@ class DebugJavascriptActualHostProofTest {
                     override suspend fun awaitExit() = withContext(Dispatchers.IO) { process.waitFor() }
                     override fun close() {
                         runCatching { process.outputStream.close() }; runCatching { process.inputStream.close() }; runCatching { process.errorStream.close() }
-
+                        // ProcessHandle is a host JDK API, absent from Android's compile API.
                         runCatching {
                             val handle = Process::class.java.getMethod("toHandle").invoke(process)
                             val type = Class.forName("java.lang.ProcessHandle")

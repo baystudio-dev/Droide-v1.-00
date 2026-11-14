@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Verify a current-source release candidate without claiming device certification."""
+"""Verify a current-source release candidate without claiming device certification.
+
+The historical Termux release gate remains unchanged. This path verifies actual
+current Java/compiler outputs, native registration and APK contents independently.
+Building an unsigned/signed candidate does not authorize public distribution.
+"""
 import argparse
 import hashlib
 import json
@@ -11,6 +16,8 @@ import zipfile
 from current_native_jni_guard import required_methods, verify_library
 from termux_native_elf import inspect as inspect_termux
 from verify_pty_dex_binding import DEX_NAME, Dex
+from verify_distribution_assets import verify_assets
+from verify_distribution_native import verify_native
 
 ABIS = ("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
 INPUT_CHECKS = (
@@ -18,10 +25,6 @@ INPUT_CHECKS = (
     "verify_resolved_runtime_licenses.py", "verify_runtime_licenses.py",
     "verify_third_party_integrity.py", "verify_bundled_runtime.py",
     "verify_artifact_transfer_manifest.py",
-)
-VERIFIER_SOURCES = (
-    "verify_source_release.py", "current_native_jni_guard.py",
-    "termux_native_elf.py", "verify_pty_dex_binding.py",
 )
 
 
@@ -34,16 +37,6 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def verifier_sources(root):
-    sources = {}
-    for name in VERIFIER_SOURCES:
-        path = root / "tools" / name
-        require(path.is_file() and path.stat().st_size > 0,
-                "Missing or empty release verifier source: " + name)
-        sources[name] = sha(path.read_bytes())
-    return sources
-
-
 def run(command):
     result = subprocess.run(list(map(str, command)), capture_output=True, text=True, timeout=180)
     require(result.returncode == 0, "Check failed: " + str(command[0]) + "\n" + result.stdout + result.stderr)
@@ -52,8 +45,9 @@ def run(command):
 
 def native_contract(root):
     contract = json.loads((root / "tools/termux-native-v1.json").read_text())
-
-
+    # Reuse the terminal's ABI/table specification, not a historical filesystem
+    # build receipt. The current filesystem library is checked against its Kotlin
+    # declarations and fresh CMake outputs below.
     owned = json.loads((root / "third_party/termux/native/OWNED_PROCESS_ABI.json").read_text())
     require(owned["ownedProcessApiVersion"] == contract["ownedProcessApiVersion"] == 2, "Terminal ABI changed")
     for path, digest in owned["sourceSha256ByPath"].items():
@@ -68,7 +62,6 @@ def native_contract(root):
 
 
 def verify_inputs(root):
-    verifier_sources(root)
     native_contract(root)
     upstream = json.loads((root / "third_party/termux/UPSTREAM_PROVENANCE.json").read_text())
     for artifact in upstream["artifacts"].values():
@@ -84,7 +77,12 @@ def verify_inputs(root):
 
 
 def native_methods_from_dex(entries):
-    """Read native declarations, independent of R8's optimized debug positions."""
+    """Read native declarations, independent of R8's optimized debug positions.
+
+    The historical PTY verifier compares complete, unoptimized method bodies.
+    Its debug-PC constraints are unsuitable for R8's shared debug programs.
+    Reuse its bounds-checked DEX tables without changing that verifier's scope.
+    """
     target = "Lcom/termux/terminal/JNI;"
     require("classes.dex" in entries and all(DEX_NAME.fullmatch(name) for name in entries),
             "Unexpected APK DEX names")
@@ -133,7 +131,8 @@ def native_methods_from_dex(entries):
     return matches[0]
 
 
-def verify_apk(root, build, engine, sdk, signing):
+def verify_apk(root, build, engine, sdk, signing, fdroid_candidate=False, native_source=None):
+    require(fdroid_candidate == (native_source is not None), "Native source build must match distribution mode")
     output = build / "outputs/apk/release"
     candidates = list(output.glob("*.apk"))
     require(len(candidates) == 1, "Expected exactly one release APK; remove stale build outputs")
@@ -143,6 +142,11 @@ def verify_apk(root, build, engine, sdk, signing):
             "Engine receipt must retain its measured build-only scope")
     require(sha((engine / "terminal-engine.aar").read_bytes()) == receipt["inspection"]["aarSha256"],
             "Engine AAR changed after its independent builds")
+    if fdroid_candidate:
+        require(receipt.get("fullSourceRebuild") is True and receipt.get("binaryBaseRetained") is False,
+                "F-Droid terminal must be compiled entirely from source")
+        require(sha((engine / "terminal-view.aar").read_bytes()) == receipt["outputs"]["terminal-view.aar"],
+                "Full-source terminal view differs from its receipt")
     for path, digest in receipt["sourceInputs"].items():
         require(sha((root / path).read_bytes()) == digest, "Engine source changed: " + path)
     contract = native_contract(root)
@@ -172,15 +176,8 @@ def verify_apk(root, build, engine, sdk, signing):
                 else:
                     verify_library(data, abi, filesystem_methods)
                 libraries[name] = sha(data)
-        for source in (root / "app/src/main/jniLibs").rglob("*.so"):
-            name = "lib/" + source.relative_to(root / "app/src/main/jniLibs").as_posix()
-            require(archive.read(name) == source.read_bytes(), "Bundled runtime library changed: " + name)
-            libraries[name] = sha(source.read_bytes())
-        for source in (root / "app/src/main/assets").rglob("*"):
-            if source.is_file():
-                name = "assets/" + source.relative_to(root / "app/src/main/assets").as_posix()
-                require(archive.read(name) == source.read_bytes(), "Packaged asset missing/changed: " + name)
-                asset_count += 1
+        libraries.update(verify_native(root, build, archive, native_source))
+        asset_count = verify_assets(root, archive, fdroid_candidate, native_source)
         if signing == "unsigned":
             require(not any(re.fullmatch(r"META-INF/[^/]+\.(SF|RSA|DSA|EC)", name, re.I) for name in names),
                     "Unsigned output unexpectedly contains signing material")
@@ -200,6 +197,7 @@ def verify_apk(root, build, engine, sdk, signing):
         "status": "RELEASE_VARIANT_BUILD_VERIFIED", "apk": str(apk),
         "apkSha256": sha(apk.read_bytes()), "apkBytes": apk.stat().st_size,
         "signing": signing, "deviceValidated": False, "publicationApproved": False,
+        "fdroidCandidate": fdroid_candidate, "fdroidAccepted": False,
         "engineAarSha256": receipt["inspection"]["aarSha256"],
         "jniDexEntry": dex_entry, "jniMethods": packaged_methods,
         "nativeLibraries": libraries, "nativeRegistration": registrations,
@@ -207,7 +205,9 @@ def verify_apk(root, build, engine, sdk, signing):
         "nativeSources": {str(p.relative_to(root)): sha(p.read_bytes()) for p in (
             root / "third_party/termux/native/termux.c", root / "app/src/main/cpp/droide_files.c",
             root / "app/src/main/cpp/CMakeLists.txt")},
-        "verifierSources": verifier_sources(root),
+        "verifierSources": {name: sha((root / "tools" / name).read_bytes()) for name in (
+            "verify_source_release.py", "current_native_jni_guard.py", "filesystem_native_v1.py",
+            "termux_native_elf.py", "verify_pty_dex_binding.py")},
     }
     (build / "outputs/source-release-verification.json").write_text(json.dumps(result, indent=2) + "\n")
     print("SOURCE_RELEASE_APK_VERIFIED", signing, result["apkSha256"], apk)
@@ -220,9 +220,15 @@ if __name__ == "__main__":
     for name in ("build-dir", "engine", "sdk"):
         parser.add_argument("--" + name, type=Path)
     parser.add_argument("--signing", choices=("unsigned", "signed"))
+    parser.add_argument("--fdroid-candidate", action="store_true")
+    parser.add_argument("--native-source", type=Path)
     args = parser.parse_args()
     if args.action == "inputs":
-        verify_inputs(args.root.resolve())
+        if args.fdroid_candidate:
+            from verify_fdroid_inputs import verify
+            verify(args.root.resolve())
+        else:
+            verify_inputs(args.root.resolve())
     else:
         require(all((args.build_dir, args.engine, args.sdk, args.signing)), "APK verification arguments missing")
-        verify_apk(args.root.resolve(), args.build_dir.resolve(), args.engine.resolve(), args.sdk.resolve(), args.signing)
+        verify_apk(args.root.resolve(), args.build_dir.resolve(), args.engine.resolve(), args.sdk.resolve(), args.signing, args.fdroid_candidate, args.native_source)

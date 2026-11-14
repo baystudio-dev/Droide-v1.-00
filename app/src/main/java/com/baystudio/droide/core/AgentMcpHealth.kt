@@ -21,7 +21,7 @@ suspend fun AgentService.refreshMcpHealth(serverName: String): McpHealthSnapshot
     when (perms.decide("mcp", identity, scope)) {
         PermEffect.ALLOW -> try { manager.discoverTools(selection) }
         catch (cancelled: CancellationException) { throw cancelled }
-        catch (_: Exception) {   }
+        catch (_: Exception) { /* The manager publishes the checked failure to mcpHealth. */ }
         PermEffect.DENY -> McpHealthRegistry.permissionDeferred(workDir, server, denied = true)
         else -> McpHealthRegistry.permissionDeferred(workDir, server, denied = false)
     }

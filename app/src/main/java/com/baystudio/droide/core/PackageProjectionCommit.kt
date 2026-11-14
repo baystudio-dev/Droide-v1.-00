@@ -13,12 +13,11 @@ internal object PackageProjectionCommit {
     ) {
         try {
             project(next)
-            // No suspension between durable registry commit and return; cancellation cannot undo a committed
-            // registry.
+            // No suspension between durable registry commit and return; cancellation cannot undo a committed registry.
             persist(next)
         } catch (failure: Throwable) {
             withContext(NonCancellable) {
-
+                
                 try {
                     persist(before)
                 } catch (rollbackFailure: Throwable) {

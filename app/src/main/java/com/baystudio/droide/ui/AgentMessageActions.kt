@@ -9,6 +9,9 @@ import android.widget.TextView
 import android.widget.FrameLayout
 import android.view.ViewGroup
 import androidx.core.net.toUri
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
@@ -39,8 +42,8 @@ import kotlin.math.roundToInt
 
 private val LocalSelectAgentText = staticCompositionLocalOf<((String) -> Unit)?> { null }
 internal const val AGENT_SELECTION_TEXT_TAG = "Droide agent selection text"
-// A conservative app-side IPC budget, not a promise about a device's shared Binder buffer. The
-// complete source remains available through bounded selection pages.
+// A conservative app-side IPC budget, not a promise about a device's shared Binder buffer.
+// The complete source remains available through bounded selection pages.
 internal const val MAX_AGENT_CLIPBOARD_TEXT_CHARS = 128_000
 
 /** Pane-owned: live items can be replaced by durable messages without closing a selection. */
@@ -60,6 +63,11 @@ internal fun AgentMessageActions(markdown: String, linkError: String? = null) {
     val select = LocalSelectAgentText.current
     var copied by remember { mutableStateOf(false) }
     var copyError by remember { mutableStateOf<String?>(null) }
+    val copyTint by animateColorAsState(
+        targetValue = if (copied) DroideColors.Success else DroideColors.Muted,
+        animationSpec = if (rememberDroideMotionEnabled()) tween(AgentActivityMotion.StatusMillis) else snap(),
+        label = "Agent response copy feedback",
+    )
     LaunchedEffect(copied) { if (copied) { delay(1_600); copied = false } }
     DisableSelection {
         Column {
@@ -77,7 +85,7 @@ internal fun AgentMessageActions(markdown: String, linkError: String? = null) {
                 ) {
                     Icon(if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
                         "Copy response", Modifier.size(19.dp),
-                        tint = if (copied) DroideColors.Success else DroideColors.Muted)
+                        tint = copyTint)
                 }
                 if (select != null) {
                     IconButton(onClick = { select(markdown) }, modifier = Modifier.size(48.dp)) {
@@ -93,6 +101,7 @@ internal fun AgentMessageActions(markdown: String, linkError: String? = null) {
     }
 }
 
+/** Exact source, including complete code and URL targets. Service errors become inline feedback. */
 internal fun copyAgentText(context: Context, text: String, label: String): String? = try {
     if (text.length > MAX_AGENT_CLIPBOARD_TEXT_CHARS) {
         "This response is too large for one clipboard copy. Select response text and copy a smaller page."

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object LocalLlamaServerPolicy {
     const val PROVIDER_ID = "local.llama"
     const val CONTEXT_SIZE = 4_096

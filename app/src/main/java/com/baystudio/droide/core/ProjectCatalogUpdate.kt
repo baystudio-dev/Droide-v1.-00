@@ -10,8 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-// Explicit integration only; supplied staging files remain caller-owned and recovery remains
-// explicit.
+// Explicit integration only; supplied staging files remain caller-owned and recovery remains explicit.
 internal class ProjectCatalogUpdate(
     appFilesDir: File,
     private val enrollment: CanonicalFileOperationJournal.Enrollment,
@@ -229,7 +228,7 @@ internal class ProjectCatalogUpdate(
                 journal.requireCompletedCustody(history, context)
                 check(inspectAuthority(context) == history && journal.membershipCommands(context) == commands)
                 identity.requireCurrent(); context.ensureActive()
-                return@serialized receipt
+                return@serialized receipt // preserve the actual acknowledgement state
             }
             check(!receipt.acknowledged)
             val pending = checkNotNull(history.pending)
@@ -252,8 +251,8 @@ internal class ProjectCatalogUpdate(
             if (scope == MembershipFinishScope.STAGED_COMPLETION) {
                 journal.requirePreparationInventory(pending, null, context)
             }
-            // Later phases deliberately use resumeLocked's exact phase-specific custody proofs. In
-            // particular an interrupted native move is inspected, never reissued.
+            // Later phases deliberately use resumeLocked's exact phase-specific custody proofs.
+            // In particular an interrupted native move is inspected, never reissued.
             journal.requireCompletedCustody(history, context)
             rootBoundary()
             check(inspectAuthority(context) == history && journal.membershipCommands(context) == commands)
@@ -329,8 +328,9 @@ internal class ProjectCatalogUpdate(
         }
     }
 
-    // Opt-in read-only collector.
-
+    // Opt-in read-only collector. All receipt fields below originate in the journal's
+    // validated codec, persisted retention policy, and exact custody observations.
+    // A successful collection is still stale-able evidence, never held writer admission.
     suspend fun collectReleaseReview(): CatalogReleasePreflight.Snapshot = serialized { context ->
         val appIdentity = WorkspaceDirectoryIdentity(app)
         val history = inspectAuthority(context)
@@ -363,8 +363,8 @@ internal class ProjectCatalogUpdate(
         )
     }
 
-    // Editor/process producers are not integrated. Omitted evidence therefore blocks; supplied
-    // evidence is an observation only, not a claim of global writer exclusion.
+    // Editor/process producers are not integrated. Omitted evidence therefore blocks;
+    // supplied evidence is an observation only, not a claim of global writer exclusion.
     suspend fun reviewRelease(selectedAt: CatalogReleasePreflight.Snapshot, selectedIds: List<String>,
                               editor: CatalogReleasePreflight.EditorEvidence? = null,
                               processes: CatalogReleasePreflight.ProcessEvidence? = null): CatalogReleasePreflight.Result =
@@ -421,8 +421,8 @@ internal class ProjectCatalogUpdate(
         }
         check(inspectAuthority(context) == history) { "Catalog update history changed while reading; retained work requires review" }
         journal.requireCompletedCustody(history, context)
-        // Custody verification can outlive the catalog observation above. Do not return a previously
-        // loaded catalog after its identity or bytes changed meanwhile.
+        // Custody verification can outlive the catalog observation above. Do not return
+        // a previously loaded catalog after its identity or bytes changed meanwhile.
         appIdentity.requireCurrent()
         AnchoredWorkspaceFiles(metadata).use { files ->
             check(snapshots.inspect(files, CATALOG, context) == before) {

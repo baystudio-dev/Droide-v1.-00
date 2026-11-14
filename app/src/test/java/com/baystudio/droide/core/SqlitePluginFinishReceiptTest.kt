@@ -11,6 +11,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
+/** Real native transactions and lost-return faults. Fixtures are retained; no device/crash claim. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], manifest = Config.NONE)
 @SQLiteMode(SQLiteMode.Mode.NATIVE)

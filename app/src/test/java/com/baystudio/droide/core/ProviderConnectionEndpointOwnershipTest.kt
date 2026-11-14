@@ -42,7 +42,7 @@ class ProviderConnectionEndpointOwnershipTest {
             ProviderConnectionIdentity.fingerprint(original))
         try {
             assertTrue(store.put(receipt))
-
+            // Invalid ciphertext makes an accidental SecretStore.get observable: it removes it.
             assertTrue(rawSecrets.edit().putString(original.id, "fixture-preserve-without-decrypting").commit())
             ProviderRegistry.installConfigured(listOf(current))
             val backend = ProviderConnectionBackend(app)

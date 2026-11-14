@@ -43,8 +43,8 @@ class DebugBreakpointReplyRaceTest {
                 assertEquals(333, debugger.breakpointForRequestedLine("main.py", 1)!!.id)
                 return@runBlocking
             }
-            // Seed the initial model without scheduling an additional request, so the exact production
-            // suspend call under test can be awaited rather than relying on sleeps.
+            // Seed the initial model without scheduling an additional request, so the exact
+            // production suspend call under test can be awaited rather than relying on sleeps.
             @Suppress("UNCHECKED_CAST")
             val model = DebugManager::class.java.getDeclaredField("_breakpoints").apply { isAccessible = true }
                 .get(debugger) as MutableStateFlow<Map<String, List<DebugBreakpoint>>>

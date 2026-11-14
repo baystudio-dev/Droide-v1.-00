@@ -2,8 +2,10 @@ package com.baystudio.droide.core
 
 import java.security.MessageDigest
 
-/** Evidence is not a lock, reservation or writer proof. */
-
+/** Pure, in-memory comparison of supplied observations. There is deliberately no production
+ * collector or release capability here. Evidence is not a lock, reservation or writer proof.
+ * PRECONDITION for a future collector: raw encoded records and decoded fields must come
+ * from the same verified journal read. This evaluator does not decode/validate raw JSON. */
 internal object CatalogReleasePreflight {
     const val LIMITATION = "Physical release is unavailable until writer admission and durable retirement are integrated."
     data class Scope(val owner: String, val authority: String, val root: String,
@@ -53,8 +55,8 @@ internal object CatalogReleasePreflight {
         data class Blocked(val blockers: Set<Blocker>) : Result
     }
 
-    // Inputs must not be concurrently mutated during construction/evaluation. Stored snapshots own
-    // their collection structure; they cannot be rewritten through the original lists.
+    // Inputs must not be concurrently mutated during construction/evaluation. Stored snapshots
+    // own their collection structure; they cannot be rewritten through the original lists.
     fun evaluate(selectedAt: Snapshot?, current: Snapshot?, selectedIds: List<String>,
                  editor: EditorEvidence?, processes: ProcessEvidence?): Result {
         val selectedIds = selectedIds.toList()
@@ -143,8 +145,8 @@ internal object CatalogReleasePreflight {
     private fun validVersion(v: CanonicalFileSnapshot.Version) = v.identity.isNotBlank() && v.size >= 0 &&
         v.sha256.matches(Regex("[0-9a-f]{64}")) && v.mode >= 0
 
-    // Same length-prefixed membership encoding as retention schema 2. Includes ALL records, not just
-    // selections. Policy comes from both compared snapshots, never a relaxed override.
+    // Same length-prefixed membership encoding as retention schema 2. Includes ALL records,
+    // not just selections. Policy comes from both compared snapshots, never a relaxed override.
     private fun historyDigest(snapshot: Snapshot): String = hash(buildList {
         add(snapshot.policy.maxEntries.toString()); add(snapshot.policy.maxBytes.toString())
         snapshot.records.sortedBy { it.id }.forEach { add(it.id); add(it.retainedBytes.toString()); add(it.encoded) }

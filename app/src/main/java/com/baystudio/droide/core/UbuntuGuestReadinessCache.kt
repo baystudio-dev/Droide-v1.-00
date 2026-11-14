@@ -6,6 +6,7 @@ import java.nio.file.LinkOption
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
+/** Short, process-local admission reuse. Callers serialize through the Ubuntu mutation gate. */
 internal class UbuntuGuestReadinessCache(private val nanoTime: () -> Long = System::nanoTime) {
     private var seal: String? = null
     private var admittedAt = 0L
@@ -39,14 +40,19 @@ internal class UbuntuGuestReadinessCache(private val nanoTime: () -> Long = Syst
                 val attrs = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, noFollow)
                 require(!attrs.isSymbolicLink && if (file in directories) attrs.isDirectory else attrs.isRegularFile)
                 add(file.path)
+                // Installing a command or writing APT's checkpoint changes directory mtime/size.
                 // Admission depends on the directory's identity/mode, not on its child count.
-
+                // Executables still include their content-change metadata; the 30s health bound
+                // and per-install dpkg/integrity checks remain independent of this cache.
+                // Some Unix providers derive creationTime from ctime/mtime. Use the stable
+                // device/inode key when available; unknown keys retain the conservative seal.
                 add(if (file in directories && attrs.fileKey() != null) "${attrs.fileKey()}"
                     else "${attrs.fileKey()}:${attrs.creationTime()}:${attrs.lastModifiedTime()}:${attrs.size()}")
                 add(Files.getPosixFilePermissions(file.toPath(), noFollow).toString())
             }
             // A retained backup is not an active transaction while the current root exists.
-
+            // The bootstrap reconciler never restores it over that root. Missing/replaced current
+            // directories above still force reconciliation; an unsafe backup is never admitted.
             retainedPrevious?.let { previous ->
                 add(previous.path)
                 if (!Files.exists(previous.toPath(), noFollow)) add("absent")

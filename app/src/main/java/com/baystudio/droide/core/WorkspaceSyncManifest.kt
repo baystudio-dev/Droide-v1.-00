@@ -1,7 +1,7 @@
 package com.baystudio.droide.core
 
-// V2 rows bind both content and projected POSIX mode so a chmod-only change cannot leave the
-// remote mirror stale.
+// V2 rows bind both content and projected POSIX mode so a chmod-only change cannot leave the remote mirror stale.
+
 
 internal object WorkspaceSyncManifest {
     private const val REGULAR_MODE = 420
@@ -33,6 +33,7 @@ internal object WorkspaceSyncManifest {
             val mode: Int?
             val rel: String
             if (secondTab < 0) {
+                
 
                 mode = null
                 rel = remainder

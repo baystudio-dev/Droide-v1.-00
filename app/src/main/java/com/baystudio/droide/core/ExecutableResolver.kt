@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+ 
 object ExecutableResolver {
     fun resolve(command: String, additionalDirs: List<File> = emptyList(), path: String? = System.getenv("PATH")): String? {
         val trimmed = command.trim()

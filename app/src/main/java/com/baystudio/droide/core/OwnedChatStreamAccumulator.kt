@@ -5,8 +5,9 @@ import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream
 
-/** Chat-compatible typed ingress. No production switch and no tool executor live here. Per-event
- * JSON remains bounded; this does not yet parse a huge single SSE scalar incrementally. */
+/** Chat-compatible typed ingress. No production switch and no tool executor live here.
+ * Per-event JSON remains bounded; this does not yet parse a huge single SSE scalar incrementally.
+ */
 internal class OwnedChatStreamAccumulator(
     private val responseSession: OwnedResponseContentStore.Session,
     private val callSession: (String) -> OwnedResponseContentStore.Session,
@@ -133,8 +134,10 @@ internal class OwnedChatStreamAccumulator(
         events
     }
 
-    /** Only the transport reader may finish after clean EOF; the finish-reason gate must pass before
-     * dispatch. */
+    /** Only the transport reader calls this after DONE or successful clean EOF. The independent
+     * finish_reason gate is mandatory; incomplete, malformed and cancelled generations never yield
+     * typed calls. Full response completion remains more conservative than Codex item-level dispatch.
+     */
     fun finishAtTransportEnd(end: TransportEnd): OwnedChatResult = guarded {
         if (end == TransportEnd.DONE_MARKER) require(done) { "Transport DONE was not observed" }
         if (end == TransportEnd.CLEAN_EOF) require(!done) { "Inconsistent transport completion" }
@@ -165,7 +168,7 @@ internal class OwnedChatStreamAccumulator(
             ascii("{\"role\":\"assistant\",\"content\":")
             quotedSource(responseSession, completeFields.getValue("content"))
             completeFields["refusal"]?.let { ascii(",\"refusal\":"); quotedSource(responseSession, it) }
-            run {
+            run { // Private provider fields are retained even for a refusal outcome.
                 for (key in listOf("reasoning_content", "reasoning")) completeFields[key]?.let {
                     ascii(","); quote(key); ascii(":"); quotedSource(responseSession, it)
                 }
@@ -194,6 +197,7 @@ internal class OwnedChatStreamAccumulator(
 
     fun transportFailed() { failed = true }
 
+    /** Response fields use the responseSession; tool fields use callSession(callId). */
     data class ReceivedStage(val callId: String?, val handle: OwnedResponseContentStore.Handle)
     data class Recovery(
         val checkpoints: List<OwnedResponseContentStore.AbortCheckpoint>,

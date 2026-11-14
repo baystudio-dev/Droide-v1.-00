@@ -26,6 +26,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowProcess
 
+/** Actual settings navigation and scroll actions; no tool install or authenticated service. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w900dp-h640dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -44,8 +45,8 @@ class SettingsControlsWorkflowTest {
     private val opened = mutableListOf<String>()
     private val mounted = mutableStateOf(true)
 
-    // Android's journal requires a positive app PID; Robolectric Application defaults to zero. No
-    // operation is started and no real process is signaled by these settings-only tests.
+    // Android's journal requires a positive app PID; Robolectric Application defaults to zero.
+    // No operation is started and no real process is signaled by these settings-only tests.
     @Before fun prepareProcessIdentity() { ShadowProcess.setPid(4242) }
 
     @After fun cleanup() { terminals.dispose(false); bridge.close(); scope.cancel(); PathSecurity.deleteTreeNoFollow(root) }

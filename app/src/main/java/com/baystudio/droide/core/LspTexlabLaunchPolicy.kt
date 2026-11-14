@@ -10,8 +10,8 @@ internal object LspTexlabLaunchPolicy {
         "trap cleanup EXIT; trap 'exit 143' TERM; trap 'exit 130' INT; trap 'exit 129' HUP;",
         "export XDG_RUNTIME_DIR=\"\$runtime\";",
         if (health) "cd \"\$runtime\";" else ":;",
-        // Foreground execution preserves stdin; argv is never interpolated into code. Hard-kill cleanup
-        // is best effort. Never recursively remove runtime contents.
+        // Foreground execution preserves stdin; argv is never interpolated into code.
+        // Hard-kill cleanup is best effort. Never recursively remove runtime contents.
         "set +e; \"\$@\"; result=\$?; exit \"\$result\"",
     ).joinToString(" ")
 

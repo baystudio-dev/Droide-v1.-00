@@ -34,8 +34,8 @@ object ProviderAuthManager {
                 ProviderRequestAuthorizer.resolveOnly(provider, apiKey)
                 return@withContext Result.success(provider.configuredModels)
             }
-            // Stage all requested pages before publishing live capabilities. A failed or cancelled
-            // continuation must not be certified as a successful first page.
+            // Stage all requested pages before publishing live capabilities. A failed or
+            // cancelled continuation must not be certified as a successful first page.
             val entries = ProviderModelPagination.collect(provider, json) { modelsPath ->
                 val modelsUrl = provider.baseUrl.trimEnd('/') + modelsPath
                 val target = NetworkSecurity.validateProviderTarget(provider, modelsUrl)
@@ -67,6 +67,7 @@ object ProviderAuthManager {
             Result.failure(Exception("Connection failed: ${e.message}", e))
         }
     }
+
 
     private suspend fun validateBedrock(provider: AiProvider, apiKey: String): Result<List<String>> {
         val region = provider.authRegion ?: runCatching {
@@ -103,6 +104,7 @@ object ProviderAuthManager {
         ProviderAuthScheme.GITHUB_COPILOT,
     )
 
+     
     fun cleanupLegacyWorkspaceSecrets(workDir: File): Unit =
         ExportWriterAdmission.withWriter(workDir, "Legacy workspace credential cleanup") {
             runCatching { PathSecurity.resolveWithin(workDir, ".droide/auth.json").delete() }

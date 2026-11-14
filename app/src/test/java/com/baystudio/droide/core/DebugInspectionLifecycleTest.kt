@@ -210,6 +210,7 @@ class DebugInspectionLifecycleTest {
         assertFalse(host.closed.get())
     }
 
+
     @Test fun changingThreadRefreshesWatchForItsSelectedFrame() = scenario {
         manager.addWatch("value")
         completeScopes(stopAt(81))

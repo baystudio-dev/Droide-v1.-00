@@ -25,6 +25,13 @@ data class ManagedPackageProvenanceLock(
     val sources: List<ManagedPackageSourcePin>,
 )
 
+
+
+
+
+
+
+
 object ManagedPackageProvenance {
     const val FILE_NAME = "PROVENANCE.lock.json"
     const val PURPOSE = "droide-managed-package"

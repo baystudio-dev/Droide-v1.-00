@@ -33,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Measures real Compose text and controls. WebView rendering and OEM insets need device QA. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w1200dp-h900dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -58,7 +59,8 @@ class AdaptiveUiBoundsTest {
         val layouts = mutableListOf<TextLayoutResult>()
         node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val layout = layouts.single()
-
+        // didOverflowHeight also reports intentional horizontal ellipsis with maxLines=1.
+        // Compare actual line geometry to the visible text bounds instead.
         assertTrue("$text extends below its viewport (${viewport.value}, font ${scale.value})", layout.getLineBottom(layout.lineCount - 1) <=
             node.fetchSemanticsNode().boundsInRoot.height + 1f)
     }

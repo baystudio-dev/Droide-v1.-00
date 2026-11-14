@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual controller, real local child, no Android/ADB or unknown process discovery. */
 class AcpTerminalStdinEofTest {
     @Test(timeout = 8_000) fun noninteractiveAcpTerminalMustReachEofWithoutUnavailableInputOperation() = runBlocking {
         val root = Files.createTempDirectory("f148-acp-eof-").toFile()
@@ -40,7 +41,7 @@ class AcpTerminalStdinEofTest {
             val result = withTimeoutOrNull(1_000) { controller.waitForExit(created) }
             val blockedAlive = child!!.isAlive
             if (result == null) {
-
+                // Controlled diagnostic, after the failed observation: EOF alone releases the same child.
                 child!!.outputStream.close()
                 val afterEof = withTimeout(2_000) { controller.waitForExit(created) }
                 assertEquals(0, afterEof.getValue("exitCode").jsonPrimitive.int)
@@ -54,7 +55,7 @@ class AcpTerminalStdinEofTest {
             controller.close()
             child?.let { if (it.isAlive) it.destroyForcibly(); it.waitFor(1, TimeUnit.SECONDS) }
             scope.cancel(); scope.coroutineContext.job.join()
-
+            // Retain this isolated fixture directory as evidence; no user files touched.
         }
     }
 

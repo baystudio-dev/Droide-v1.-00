@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Shares the IDE's literal matcher, ignore rules and live-document authority. */
 class AgentWorkspaceSearch(
     private val files: FileRepository,
     private val documents: WorkspaceDocumentAuthority? = null,

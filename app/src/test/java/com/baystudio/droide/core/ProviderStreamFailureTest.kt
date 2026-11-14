@@ -70,8 +70,8 @@ class ProviderStreamFailureTest {
     }
 
     @Test fun bedrockResolvedSessionTokenIsRedactedInHttpAndSseFailures() {
-        // The STS token differs from both the configured credential bundle and SigV4 Authorization
-        // signature. A plain message echo has no regex hint.
+        // The STS token differs from both the configured credential bundle and
+        // SigV4 Authorization signature. A plain message echo has no regex hint.
         val token = "resolved-bedrock-sts-fixture-" + "a".repeat(600)
         val request = Request.Builder().url("https://bedrock-runtime.us-east-1.amazonaws.com/model/fixture/invoke")
             .header("Authorization", "AWS4-HMAC-SHA256 Credential=fixture-access-key/20261008/us-east-1/bedrock/aws4_request, SignedHeaders=host;x-amz-security-token, Signature=fixture-signature")
@@ -79,6 +79,8 @@ class ProviderStreamFailureTest {
         val payload = buildJsonObject { put("type", "authentication_error"); put("message", "Rejected $token") }
         val body = buildJsonObject { put("error", payload) }.toString()
 
+        // Invoke the unchanged production HTTP error boundary with resolved
+        // request headers. This test performs no AWS request or paid inference.
         val httpBoundary = LlmClient::class.java.getDeclaredMethod("httpFailure", Integer.TYPE, String::class.java,
             Request::class.java, String::class.java, String::class.java).apply { isAccessible = true }
         val http = httpBoundary.invoke(LlmClient(), 403, body, request, null, null) as LlmHttpException

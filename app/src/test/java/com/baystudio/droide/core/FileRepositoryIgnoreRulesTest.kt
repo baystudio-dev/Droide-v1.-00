@@ -52,8 +52,7 @@ class FileRepositoryIgnoreRulesTest {
 
     @Test fun ignoredLargeTreeDoesNotExhaustScanBudgetBeforeVisibleSource() = withWorkspace { root ->
         root.resolve(".gitignore").writeText("dependency/\n!dependency/keep.kt\n")
-        // Regression fixture is intentionally larger than MAX_SCAN_ENTRIES; never run as an ad hoc
-        // probe.
+        // Regression fixture is intentionally larger than MAX_SCAN_ENTRIES; never run as an ad hoc probe.
         val ignored = root.resolve("dependency").apply { mkdir() }
         repeat(50_001) { ignored.resolve("file-$it.kt").writeText("needle") }
         write(root, "source.kt", "needle")

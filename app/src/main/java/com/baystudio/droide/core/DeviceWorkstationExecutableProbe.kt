@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 object DeviceWorkstationExecutableProbe {
     private const val MAX_COMMANDS = 4_096
     private const val MAX_OUTPUT_BYTES = 768 * 1024
@@ -49,7 +50,10 @@ object DeviceWorkstationExecutableProbe {
         return parseInventoryOutput(result.stdout, root)
     }
 
+     
     internal fun parseInventoryOutput(stdout: String, root: String): Map<String, String> {
+        // PATH is deterministic and authoritative.
+
 
         val pathExecutables = linkedMapOf<String, String>()
         val fallbackCandidates = linkedMapOf<String, MutableSet<String>>()

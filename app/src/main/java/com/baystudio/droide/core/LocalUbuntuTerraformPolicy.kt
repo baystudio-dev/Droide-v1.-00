@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import java.security.MessageDigest
 
+/** Exact publisher checksum/HEAD metadata; binary layout and target acceptance remain separate. */
 internal object LocalUbuntuTerraformPolicy {
     const val FAMILY = "lsp.terraform-ls"
     const val VERSION = "0.39.0"

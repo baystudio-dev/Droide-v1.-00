@@ -293,7 +293,7 @@ class AgentImageGeneration internal constructor(
             if (config.apiKey.isBlank()) return null
             val provider = ProviderRegistry.findById(config.providerId, snapshot) ?: return null
             val base = config.baseUrl.trimEnd('/')
-
+            // Google's official v1 and v1beta are documented aliases on the same credential origin.
             val googleBases = setOf("https://generativelanguage.googleapis.com/v1", "https://generativelanguage.googleapis.com/v1beta")
             val officialGoogleAlias = provider.authScheme == ProviderAuthScheme.GOOGLE_API_KEY &&
                 provider.wireProtocol == ProviderWireProtocol.GOOGLE_GENERATE_CONTENT &&

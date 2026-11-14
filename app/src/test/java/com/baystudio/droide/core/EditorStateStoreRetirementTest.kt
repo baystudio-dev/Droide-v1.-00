@@ -40,8 +40,8 @@ class EditorStateStoreRetirementTest {
         }
         try {
             gate.awaitEntered()
-            // UNDISPATCHED reaches mutex.lock before returning, so this is a queued caller, not merely a
-            // coroutine scheduled to start after the token-owned write finishes.
+            // UNDISPATCHED reaches mutex.lock before returning, so this is a queued caller,
+            // not merely a coroutine scheduled to start after the token-owned write finishes.
             val staleSave = async(start = CoroutineStart.UNDISPATCHED) {
                 runCatching { f.store.save(staleCheckpoint) }.exceptionOrNull()
             }

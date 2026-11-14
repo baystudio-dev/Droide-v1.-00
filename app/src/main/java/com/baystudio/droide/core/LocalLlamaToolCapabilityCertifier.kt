@@ -152,7 +152,8 @@ class LocalLlamaToolCapabilityCertifier(
         block()
     } catch (failure: Throwable) {
         revoke(modelId)
-
+        // Nested tool arguments are parsed after the outer response boundary.
+        // Serializer diagnostics may contain a pre-clipped credential prefix.
         val malformed = failure is SerializationException
         throw ProbeRejectedException(
             "Local GGUF failed tool-capability validation: " +

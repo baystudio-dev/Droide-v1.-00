@@ -5,7 +5,8 @@ import kotlinx.serialization.json.*
 /** Deliberate bounded compatibility bridge for the unchanged small-tool pipeline. */
 internal object OwnedChatLegacyProjection {
     /** Public execution/history projection ONLY after native continuation is durably retained.
-     * Receipt is registry-issued and independently owner-authorized, not a caller Boolean bypass. */
+     * Receipt is registry-issued and independently owner-authorized, not a caller Boolean bypass.
+     */
     fun publicResponse(result: OwnedChatResult, retained: NativeAssistantRegistry.BoundAssistant,
         provider: AiProvider, callSession: (String) -> OwnedResponseContentStore.Session,
         checkCancelled: () -> Unit = {}): String? {

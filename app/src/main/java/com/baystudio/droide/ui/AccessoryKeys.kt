@@ -55,11 +55,13 @@ internal fun AccessoryInputTarget.keyProfile(): AccessoryKeyProfile? = when (thi
     AccessoryInputTarget.NONE -> null
 }
 
+
 internal class AccessoryInputFocusOwner internal constructor(
     val target: AccessoryInputTarget,
 )
 
 // One authoritative focus owner for the whole workbench accessory surface.
+
 
 @Stable
 internal class AccessoryInputFocusController {
@@ -89,6 +91,7 @@ internal class AccessoryInputFocusController {
 
     fun owns(owner: AccessoryInputFocusOwner): Boolean = activeOwner === owner
 }
+
 
 @Stable
 internal class AccessoryModifierController {
@@ -120,6 +123,7 @@ internal class AccessoryModifierController {
     fun clear() { policy.clear(); snapshot = policy.snapshot }
 }
 
+
 internal fun accessoryKeysShouldBeActive(
     ownsInputFocus: Boolean,
     imeVisible: Boolean,
@@ -129,8 +133,8 @@ internal fun accessoryKeysShouldBeActive(
 private val AccessoryCompactRowHeight = 44.dp
 private val AccessoryComfortableRowHeight = 48.dp
 
-// Portrait uses a fixed 2x7 two-bar deck so fourteen high-frequency keys never require
-// horizontal scrolling.
+// Portrait uses a fixed 2x7 two-bar deck so fourteen high-frequency keys never require horizontal scrolling.
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -184,7 +188,7 @@ internal fun AccessoryKeysScaffold(
     Box(modifier.fillMaxSize().then(accessoryImeInsetModifier)) {
         Column(Modifier.fillMaxSize()) {
             content()
-
+            
             if (keepSurface) {
                 AccessoryRevealLayout(
                     fullHeight = bodyHeight,
@@ -208,6 +212,7 @@ internal fun AccessoryKeysScaffold(
         }
 
         if (keepSurface && showOverlayHandle) {
+            
 
             AccessoryHandle(
                 profile = profile,
@@ -301,6 +306,7 @@ private fun AccessoryKeysBody(
                 }
             }
         } else {
+            
 
             val portraitEntries: List<EditorFastEntry> = when (profile) {
                 AccessoryKeyProfile.EDITOR -> editorPortraitEntries(languageId)
@@ -375,6 +381,7 @@ private fun AccessoryFastKeyRow(
         content = content,
     )
 }
+
 
 @Composable
 private fun EditorAccessoryActionButton(
@@ -474,6 +481,7 @@ private fun AccessoryKeyRow(
             content = content,
         )
 
+        
         if (scrollState.value > 0) {
             Box(
                 Modifier
@@ -520,8 +528,9 @@ private fun ModifierKey(key: AccessoryControlKey, controller: AccessoryModifierC
         locked = mode == AccessoryModifierMode.LOCKED,
         stateDescription = state,
         compactFixed = compactFixed,
-        // Foundation waits for its double-tap timeout before a single onClick when onDoubleClick is
-        // supplied.
+        // Foundation waits for its double-tap timeout before a single onClick when
+        // onDoubleClick is supplied. Arm on release now so a fast following key
+        // reads the modifier; the policy recognizes a second release without waiting.
         onClick = { controller.tapAt(modifier, SystemClock.uptimeMillis(),
             configuration.doubleTapMinTimeMillis, configuration.doubleTapTimeoutMillis) },
     )
@@ -563,7 +572,8 @@ private fun AccessoryKey(
                 this.contentDescription = if (longPressDescription == null) contentDescription else "$contentDescription; long press: $longPressDescription"
                 if (stateDescription != null) this.stateDescription = stateDescription
             }
-
+            // Disabled combinedClickable still hit-tests and consumes down/up in Foundation
+            // 1.7.0. Keep the exiting pixels, but remove their input node immediately.
             .then(if (inputEnabled) Modifier.combinedClickable(
                 onClick = { if (allowInput()) onClick() },
                 onLongClick = onLongClick?.let { action -> { if (allowInput()) action() } },
@@ -636,6 +646,7 @@ private fun AccessoryHandle(
     }
 }
 
+ 
 internal fun dispatchAccessoryKey(view: View, keyCode: Int, metaState: Int = 0): Boolean {
     val editorMeta = (view as? io.github.rosemoe.sora.widget.CodeEditor)?.keyMetaStates
     val normalized = KeyEvent.normalizeMetaState(metaState)
@@ -646,7 +657,7 @@ internal fun dispatchAccessoryKey(view: View, keyCode: Int, metaState: Int = 0):
             add(KeyEvent.KEYCODE_ALT_LEFT to KeyEvent.META_ALT_MASK)
     }
     try {
-
+        // The editor tracks Shift/Alt transitions separately from arrow-event flags.
         modifiers.forEach { (key, _) ->
             editorMeta?.onKeyDown(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN, key, 0, metaState))
         }
@@ -661,8 +672,10 @@ internal fun dispatchAccessoryKey(view: View, keyCode: Int, metaState: Int = 0):
     }
 }
 
-/** Decorative accessory pixels must not own a hit-test target. Material3's ordinary Surface
- * installs a pointerInput blocker even without onClick; input belongs to the enclosing key. */
+/**
+ * Decorative accessory pixels must not own a hit-test target. Material3's ordinary Surface
+ * installs a pointerInput blocker even without onClick; input belongs to the enclosing key.
+ */
 @Composable
 private fun AccessoryVisualSurface(
     modifier: Modifier,

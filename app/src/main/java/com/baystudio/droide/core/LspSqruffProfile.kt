@@ -21,6 +21,7 @@ internal object LspSqruffProfile {
     val tokenTypes = listOf("keyword", "string", "number", "comment", "operator", "function", "type", "variable", "parameter", "property", "macro")
     val legend = LspSemanticTokenLegend(tokenTypes, emptyList())
 
+    // Keep the existing SQL editor family's case-insensitive suffix policy.
     fun supportsPath(path: String): Boolean =
         path.replace('\\', '/').substringAfterLast('/').substringAfterLast('.', "").equals("sql", ignoreCase = true)
 
@@ -204,7 +205,7 @@ internal object LspSqruffProfile {
         if (range.keys != setOf("start", "end") || position(range["start"]) != (0 to 0)) return null
         val replacement = string(edit["newText"]) ?: return null
         if (!boundedText(replacement)) return null
-
+        // Rust str::lines counts LF delimiters, discarding a final empty line; lone CR is ordinary text.
         val lines = replacement.count { it == '\n' } + if (replacement.isNotEmpty() && !replacement.endsWith('\n')) 1 else 0
         val scalars = replacement.codePointCount(0, replacement.length)
         if (position(range["end"]) != (lines to scalars)) return null
@@ -212,6 +213,7 @@ internal object LspSqruffProfile {
         return JsonArray(listOf(JsonObject(edit + ("range" to JsonObject(range + ("end" to end))))))
     }
 
+    /** Shared capability parsing is deliberately unchanged; this guard retains the reviewed raw shape. */
     fun requireInitializeContract(result: JsonElement) {
         val caps = (result as? JsonObject)?.get("capabilities") as? JsonObject
             ?: error("sqruff initialize result is missing capabilities")

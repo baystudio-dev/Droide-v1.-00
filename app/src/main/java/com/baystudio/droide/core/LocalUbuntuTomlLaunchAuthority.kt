@@ -6,6 +6,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 
+/** Independent exact original LSP/core + Node tuple. No other language receipt supplies authority. */
 internal object LocalUbuntuTomlLaunchAuthority {
     const val HEALTH_SEED="toml-health-identity.json"
     const val POLICY=LspTomlLaunchPolicy.PROFILE

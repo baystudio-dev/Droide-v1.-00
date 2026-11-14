@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 
 private const val PICKER_QUERY_MAX_CHARS = 256
 
+
 @Composable
 fun AgentModelPickerMenu(
     expanded: Boolean,
@@ -236,7 +237,7 @@ fun AgentModelPickerMenu(
                                 } catch (_: CancellationException) {
                                     // 08ay owns rollback/cleanup; keep the picker open after cancellation.
                                 } catch (_: Throwable) {
-
+                                    
                                 }
                             }
                         },
@@ -341,7 +342,8 @@ fun AgentModelPickerMenu(
 
 @Composable
 internal fun ModelPickerMenuList(width: androidx.compose.ui.unit.Dp, height: androidx.compose.ui.unit.Dp, content: LazyListScope.() -> Unit) {
-
+    // DropdownMenu uses intrinsic width and a scrolling Column. This viewport answers intrinsic
+    // measurements and bounds the lazy list before either reaches its unsupported measurement path.
     Box(Modifier.width(width).height(height)) {
         LazyColumn(Modifier.fillMaxSize(), content = content)
     }

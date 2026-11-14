@@ -43,6 +43,7 @@ private data class MarketplaceStoreIndex(
     val activeArtifactSha256: Map<String, String> = emptyMap(),
 )
 
+// App-private metadata cache and exact VSIX rollback history for Open VSX installs.
 class ExtensionMarketplaceStore(context: Context) {
     private val root = File(context.applicationContext.filesDir, "extension-marketplace")
     private val artifactsRoot = File(root, "artifacts")

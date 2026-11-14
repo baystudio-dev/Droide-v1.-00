@@ -74,7 +74,7 @@ class GitCredentialTlsPolicyTest {
             val before = repo.config.toText()
             (Transport.open(repo, origin) as TransportHttp).use { transport ->
                 val originalFactory = transport.httpConnectionFactory
-
+                // Neither the factory nor the additional-header map has been initialized by this test.
                 GitTransportSecurity.callback(true).configure(transport)
                 assertTrue(transport.httpConnectionFactory is GitCredentialConnectionFactory)
                 assertNotSame(originalFactory, transport.httpConnectionFactory)

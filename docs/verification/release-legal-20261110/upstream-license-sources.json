@@ -1,0 +1,20 @@
+[
+  {
+    "file": "joni-license.txt",
+    "url": "https://raw.githubusercontent.com/jruby/joni/joni-2.2.7/LICENSE",
+    "bytes": 1067,
+    "sha256": "cd6c90a4a6f514d1e797f090839d0fc553b61ff032037ec1cd94ab437ba68159"
+  },
+  {
+    "file": "jcodings-license.txt",
+    "url": "https://raw.githubusercontent.com/jruby/jcodings/jcodings-1.0.64/LICENSE.txt",
+    "bytes": 1055,
+    "sha256": "5d3d477f7450dc6abb60ede67707f3365836cb4caf914f63d0c2baa3a5e7764e"
+  },
+  {
+    "file": "slf4j-license.txt",
+    "url": "https://raw.githubusercontent.com/qos-ch/slf4j/v_1.7.36/LICENSE.txt",
+    "bytes": 1154,
+    "sha256": "6fbe2eaf44b193b8a40eed9208f52848572224ad8d7672dd09418aa174847e73"
+  }
+]

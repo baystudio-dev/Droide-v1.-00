@@ -158,7 +158,7 @@ class McpManagementWorkflowTest {
     @Test fun permissionBlockedStatusCanBeCheckedAgainAfterPolicyChanges() {
         runBlocking { management.save(management.load(), McpServerDraft("local", "node"), null) }
         McpHealthRegistry.permissionDeferred(root, manager.list().single(), denied = true)
-        mount()
+        mount() // The controller now observes Ask, while health still records the earlier Deny.
         compose.onNodeWithText("local", substring = false).performScrollTo().performClick()
         compose.onNodeWithText("Connect", substring = false).performScrollTo().performClick()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Connect once").fetchSemanticsNodes().isNotEmpty() }

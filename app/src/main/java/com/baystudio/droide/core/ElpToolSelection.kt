@@ -111,7 +111,7 @@ internal class ElpGuestFilesystem(private val rootfs: File, private val workspac
         var pending = guest.split('/').filter { it.isNotEmpty() }.toMutableList()
         val done = mutableListOf<String>(); val aliases = mutableListOf<ElpPathIdentity>(); var links = 0
         while (pending.isNotEmpty()) {
-
+            // A real PRoot bind endpoint is resolved before its unbound host-shaped parents.
             val bindParts = guestWorkspaceRoot.split('/').filter { it.isNotEmpty() }
             if (workspace != null && done.isEmpty() && pending.take(bindParts.size) == bindParts) {
                 aliases += ElpPathIdentity(guestWorkspaceRoot, attributes(workspace, true))
@@ -152,8 +152,7 @@ internal class ElpGuestFilesystem(private val rootfs: File, private val workspac
     fun exists(path: String): Boolean {
         require(path == "/" || LspElpLaunchPolicy.path(path))
         if (path == "/" || workspace != null && path == guestWorkspaceRoot) return true
-        // Resolve guest parents before asking about the final entry. Host absolute aliases are not guest
-        // absence.
+        // Resolve guest parents before asking about the final entry. Host absolute aliases are not guest absence.
         return try {
             val parent = resolve(path.substringBeforeLast('/').ifEmpty { "/" }).first
             val entry = File(local(parent), path.substringAfterLast('/'))
@@ -184,8 +183,7 @@ internal class ElpGuestFilesystem(private val rootfs: File, private val workspac
         val name = if (role == "python") "python3.12" else role
         val roots = LocalLinuxUserEnvironment.executableRoots().distinct(); require(roots.size <= 64)
         val path = roots.map { "$it/$name" }.firstOrNull(::exists) ?: return null
-        // A selected dynamic/version-manager wrapper is unavailable, never executed to discover its
-        // behavior.
+        // A selected dynamic/version-manager wrapper is unavailable, never executed to discover its behavior.
         require(!path.contains("/mise/shims/") && !path.contains("/shims/"))
         val (identity, bytes) = capture(path, 64 * 1024 * 1024, deadline)
         require(Files.isExecutable(local(identity.canonicalGuestPath).toPath()))

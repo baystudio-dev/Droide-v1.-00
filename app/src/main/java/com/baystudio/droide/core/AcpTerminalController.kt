@@ -28,6 +28,7 @@ import kotlinx.serialization.json.put
 
 // Agents receive process semantics, never a free-form shell string.
 
+
 internal class AcpTerminalController(
     private val processHost: StdioProcessHost,
     private val mapper: WorkspacePathMapper,
@@ -54,8 +55,8 @@ internal class AcpTerminalController(
     private val terminals = ConcurrentHashMap<String, TerminalSession>()
     private val createMutex = Mutex()
     @Volatile private var approvalSessionId: String? = null
-    // This operation has no ACP stdin counterpart. Keep its potentially blocking close off the
-    // caller/owner monitor, without making it an exit prerequisite.
+    // This operation has no ACP stdin counterpart. Keep its potentially blocking
+    // close off the caller/owner monitor, without making it an exit prerequisite.
     internal var startInputCloseWorker: (Runnable) -> Unit = { action ->
         Thread(action, "droide-acp-terminal-eof").apply { isDaemon = true }.start()
     }
@@ -125,8 +126,8 @@ internal class AcpTerminalController(
         val id = "droide-acp-terminal-${ids.getAndIncrement()}"
         val session = TerminalSession(id, process, outputLimit)
         try {
-            // start may suspend while the turn ends. Register against the same epoch under the cancellation
-            // lock, or reap the newly returned owned process.
+            // start may suspend while the turn ends. Register against the same epoch
+            // under the cancellation lock, or reap the newly returned owned process.
             synchronized(lifecycleLock) {
                 requireCurrent()
                 terminals[id] = session
@@ -192,16 +193,16 @@ internal class AcpTerminalController(
                 try { session.process.stdin.close() }
                 catch (failure: Throwable) {
                     if (report(failure, "stdin EOF")) {
-                        // Only this already-retained handle is stopped. The existing completion observer still requires
-                        // its real exit/cleanup.
+                        // Only this already-retained handle is stopped. The existing
+                        // completion observer still requires its real exit/cleanup.
                         try { session.process.close() }
                         catch (cleanup: Throwable) { report(cleanup, "cleanup after stdin EOF") }
                     }
                 }
             })
         } catch (failure: Throwable) {
-            // No worker was admitted. Keep the registered process available to Stop/release/session cleanup;
-            // never block create on close here.
+            // No worker was admitted. Keep the registered process available to
+            // Stop/release/session cleanup; never block create on close here.
             report(failure, "stdin EOF worker startup")
         }
     }
@@ -281,7 +282,8 @@ internal class AcpTerminalController(
 
     private suspend fun drain(input: java.io.InputStream, session: TerminalSession) = withContext(Dispatchers.IO) {
         input.use { stream ->
-
+            // Keep partial UTF-8 bytes private to this stream. A char-buffer boundary
+            // can split a surrogate pair before the retained byte cap is applied.
             val decoder = Utf8StreamDecoder { appendBounded(session, it) }
             val bytes = ByteArray(4_096)
             while (true) {
@@ -338,8 +340,8 @@ internal class AcpTerminalController(
 
 internal enum class AcpPermissionKind { MUTATION, EXECUTE }
 
-// One-shot bridge between ACP's permission request and the immediately following client
-// operation.
+// One-shot bridge between ACP's permission request and the immediately following client operation.
+
 
 internal class AcpPermissionLedger {
     private data class Grant(

@@ -77,6 +77,7 @@ data class PluginMarketplaceCatalogDocument(
 
 // Hash-pinned catalog parser.
 
+
 object PluginMarketplaceCatalog {
     private const val MAX_CATALOG_BYTES = 4 * 1024 * 1024
     private val json = Json { ignoreUnknownKeys = false }
@@ -102,6 +103,7 @@ object PluginMarketplaceCatalog {
         .digest(bytes).joinToString("") { "%02x".format(it) }
 }
 
+ 
 object PluginMarketplaceResolver {
     fun resolveInstalled(entry: PluginMarketplaceEntry, records: List<ManagedPackageRecord>): ManagedPackageRecord {
         entry.validate()

@@ -151,8 +151,8 @@ class JsonRpcLifetimeTest {
             val first = async { fixture.rpc.start() }
             try {
                 withTimeout(1000) { entered.await() }
-                // Same dispatcher context makes withContext(IO) undispatched; this caller reaches the held mutex
-                // before launch returns. No timer race.
+                // Same dispatcher context makes withContext(IO) undispatched; this
+                // caller reaches the held mutex before launch returns. No timer race.
                 val queued = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) { fixture.rpc.start() }
                 assertTrue(queued.isActive)
                 queued.cancelAndJoin()
@@ -183,13 +183,15 @@ class JsonRpcLifetimeTest {
             val caller = launch(callerDispatcher) { fixture.rpc.start() }
             fun nextTask(): Runnable = tasks.poll(2, TimeUnit.SECONDS) ?: error("Missing start continuation")
             try {
-
+                // Hold the IO liveness probe until the original queued runner has
+                // returned. This guarantees actual suspension: a fast IO completion
+                // otherwise returns inline without posting a continuation.
                 nextTask().run()
                 withContext(Dispatchers.IO) { assertTrue(probeEntered.await(2, TimeUnit.SECONDS)) }
                 releaseProbe.countDown()
                 val returning = withContext(Dispatchers.IO) { nextTask() }
-                // Force prompt cancellation at the real withContext return boundary, without adding a production
-                // seam or delaying startup heuristically.
+                // Force prompt cancellation at the real withContext return boundary,
+                // without adding a production seam or delaying startup heuristically.
                 caller.cancel()
                 returning.run()
                 withTimeout(1000) { caller.join() }

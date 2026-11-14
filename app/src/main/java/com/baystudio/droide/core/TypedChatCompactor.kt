@@ -7,8 +7,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
-/** Produces a candidate only. */
-
+/** Produces a candidate only. Caller owns PRE/POST compaction hooks, expected session revision,
+ * original checkpoint identity and current run/permission admission at atomic commit. Never calls
+ * tools, changes session state, downgrades provider identity or discards exact history.
+ */
 internal object TypedChatCompactor {
     class Candidate private constructor(
         val original: TypedChatCheckpoint, val checkpoint: TypedChatCheckpoint,
@@ -43,8 +45,8 @@ internal object TypedChatCompactor {
                         require(cursor < suffix.size) { "Retained groups must be an unchanged ordered suffix selection" }
                         cursor++
                     }
-                    // Older completed tool groups within a long user turn may be summarized, but the actual request,
-                    // later authority and latest complete group cannot be lost.
+                    // Older completed tool groups within a long user turn may be summarized, but
+                    // the actual request, later authority and latest complete group cannot be lost.
                     val required = suffix.filterIndexed { index, group -> index == 0 || index == suffix.lastIndex ||
                         group.any { it is TypedChatEntry.Legacy && it.message["role"] in listOf(JsonPrimitive("system"), JsonPrimitive("developer")) }
                     }.groupingBy { it }.eachCount()
@@ -90,7 +92,7 @@ internal object TypedChatCompactor {
             kept += index
             bytes = Math.addExact(bytes, cost)
         }
-        if (suffix.isNotEmpty()) kept += 0
+        if (suffix.isNotEmpty()) kept += 0 // latest admitted user request, even on a long tool turn
         suffix.forEachIndexed { index, group ->
             if (group.entries.any { role(it, setOf("system", "developer")) }) kept += index
         }
@@ -143,8 +145,8 @@ internal object TypedChatCompactor {
         val available = checkNotNull(ContextBudget.effectiveInputTokens(provider.id, target.modelId,
             checkNotNull(ProviderRequestBudget.explicitOutputTokens(finalOptions))))
         val remainingBytes = (available.toLong() * 4 - prefixBytes.count - ContextBudget.serializedUtf8Bytes(finalOptions) - 2_048).coerceAtLeast(0)
-        // Leave half of the remaining input room for the checkpoint and continued work. Only complete
-        // groups are measured/selected; no streamed arguments are materialized.
+        // Leave half of the remaining input room for the checkpoint and continued work.
+        // Only complete groups are measured/selected; no streamed arguments are materialized.
         val selection = select(checkpoint.live,live, remainingBytes / 2) { group ->
             val counter = CountingBytes()
             SourceAwareChatHistoryWriter.writeMessages(group.items, target, counter, checkCurrent)
@@ -161,7 +163,7 @@ internal object TypedChatCompactor {
         fun request(groups: List<Group>, prior: String?): List<SourceAwareChatHistoryWriter.Item> = buildList {
             add(instruction)
             selection.authority.forEach { addAll(it.items) }
-
+            // Tool groups summarized from the ongoing turn still need the user's goal and limits.
             selection.recent.firstOrNull()?.takeIf { group -> group.entries.any {
                 it is TypedChatEntry.Legacy && it.message["role"] == JsonPrimitive("user")
             } }?.let { addAll(it.items) }
@@ -199,8 +201,8 @@ internal object TypedChatCompactor {
                     summaryOptions,batch,responseSession,
                     { id -> resources.owned.authorize(owner.copy(callId=id)) },
                     { recovery ->
-                        // The helper owns the generated summary identity. Persist recovery here, before an optional UI
-                        // observer, including cancelled/incomplete streams.
+                        // The helper owns the generated summary identity. Persist recovery here,
+                        // before an optional UI observer, including cancelled/incomplete streams.
                         resources.recovery.persist(owner,target,recovery)
                         onRecovery(recovery)
                     }) { checkCurrent() }

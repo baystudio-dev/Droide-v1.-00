@@ -6,8 +6,12 @@ import android.util.Log
 import android.webkit.WebView
 import java.util.concurrent.atomic.AtomicLong
 
-/** A few logcat breadcrumbs per actual WebView creation, never per page or recomposition. */
-
+/**
+ * A few logcat breadcrumbs per actual WebView creation, never per page or recomposition.
+ * Native process crashes cannot be caught here: a missing phase completion is evidence
+ * for a reproducer, not proof that the corresponding application call caused the crash.
+ * No URL, page content, exception message, project path or credential is recorded.
+ */
 internal class BrowserInitializationDiagnostics(
     private val clock: () -> Long,
     private val emit: (String) -> Unit,
@@ -53,7 +57,7 @@ internal class BrowserInitializationDiagnostics(
     private fun write(message: String) {
         try { emit("surface=$id $message".trim().take(MAX_LINE_CHARACTERS)) }
         catch (_: Exception) { /* Diagnostics must not prevent normal browser operation. */ }
-        catch (_: LinkageError) {   }
+        catch (_: LinkageError) { /* A diagnostic backend may be unavailable independently. */ }
     }
 
     companion object {

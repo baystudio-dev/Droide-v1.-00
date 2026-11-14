@@ -45,6 +45,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
+ 
 enum class WorkspaceAgentTransport { ACP_V1 }
 
 data class WorkspaceAgentPluginSpec(
@@ -55,8 +56,8 @@ data class WorkspaceAgentPluginSpec(
     val args: List<String>,
     val transport: WorkspaceAgentTransport = WorkspaceAgentTransport.ACP_V1,
     val planModeCandidates: List<String> = listOf("plan", "read-only", "ask", "architect"),
-    // Only documented, non-escalating defaults belong here. A prior native profile is restored
-    // separately; the advertised list is never an escalation menu.
+    // Only documented, non-escalating defaults belong here. A prior native profile
+    // is restored separately; the advertised list is never an escalation menu.
     val editModeCandidates: List<String> = emptyList(),
     val cliCommand: String = command,
     val collaborationPlanModeCandidates: List<String> = emptyList(),
@@ -120,6 +121,7 @@ data class WorkspaceAgentTurnResult(
     val conflicts: List<String>,
 )
 
+
 class WorkspaceAgentPluginHost internal constructor(
     private val projectRoot: File,
     private val cacheDir: File,
@@ -165,7 +167,7 @@ class WorkspaceAgentPluginHost internal constructor(
         val steering: AcpSteerBoundary = AcpSteerBoundary(),
         @Volatile var attachments: AcpAttachmentAccess.Lease? = null,
     ) {
-
+        /** Called under this session's monitor, including from the ordered RPC reader. */
         fun replaceConfiguration(value: WorkspaceAgentSessionConfiguration) {
             if (configuration.currentModeId != value.currentModeId || configuration.modeConfigId != value.modeConfigId ||
                 configuration.modes != value.modes || configuration.collaborationModes != value.collaborationModes ||
@@ -236,8 +238,8 @@ class WorkspaceAgentPluginHost internal constructor(
         withRetainedRecovery { recovery, _ -> recovery.conflicts.inspect(path) }
 
     internal suspend fun resolveWorkspaceConflict(review: MirrorConflictRecovery.Review) {
-        // This records matching saved files, not an editor-clean or payload-release decision. Newer
-        // unsaved buffers remain owned by their editor generation.
+        // This records matching saved files, not an editor-clean or payload-release
+        // decision. Newer unsaved buffers remain owned by their editor generation.
         withRetainedRecovery(quiescent = true) { recovery, admission -> recovery.conflicts.resolve(review, admission) }
     }
 
@@ -371,7 +373,7 @@ class WorkspaceAgentPluginHost internal constructor(
             syncPhase(WorkspaceAgentSyncPhase.RUNNING, session.mapper, notice = deferredSync)
             deferredSync?.let { onEvent(WorkspaceAgentEvent.Status(it)) }
             session.mutex.withLock {
-
+            // Reject native command/media combinations before touching attachment files or decoders.
             if (media.isNotEmpty()) AcpSessionCommands.nativePrompt(prompt, true, session.rpc.commands.snapshot(session.sessionId))
             session.promptCapabilities.admissionError(media, fileBridgeAvailable = processHost is LocalAgentWorkspaceProcessHost)?.let { error(it) }
             val owner = mediaOwnerId ?: "cli-turn-${java.util.UUID.randomUUID()}"
@@ -383,8 +385,8 @@ class WorkspaceAgentPluginHost internal constructor(
             }
             onEvent(WorkspaceAgentEvent.SessionBound(session.sessionId))
             onEvent(WorkspaceAgentEvent.Configuration(session.sessionId, session.configuration))
-            // Preparation is read-only. Native mode confirmation happens below, immediately before this turn
-            // receives mutation authority and the prompt is admitted.
+            // Preparation is read-only. Native mode confirmation happens below, immediately
+            // before this turn receives mutation authority and the prompt is admitted.
             val preparationEpoch = session.rpc.prepareTurn()
             val turnGeneration = session.steering.begin()
             var steerSignal: Job? = null
@@ -419,8 +421,8 @@ class WorkspaceAgentPluginHost internal constructor(
                     val admission = session.modeSelection.admission(selectedMode, session.configuration, session.configurationRevision)
                     session.rpc.activateTurn(mode, preparationEpoch) to admission
                 }
-                // Mode selection may replace advertised commands. Admit on this same live session after the last
-                // preparatory suspension, with no change to mode/permission gates.
+                // Mode selection may replace advertised commands. Admit on this same live session
+                // after the last preparatory suspension, with no change to mode/permission gates.
                 val content = AcpSessionCommands.nativePrompt(prompt, media.isNotEmpty(), session.rpc.commands.snapshot(session.sessionId))
                     ?: ordinaryContent
                 val streamed = StringBuilder()
@@ -465,7 +467,8 @@ class WorkspaceAgentPluginHost internal constructor(
                             onEvent(WorkspaceAgentEvent.Thought(if (separator.isEmpty()) it else separator + it))
                         }
                         "tool_call", "tool_call_update" -> {
-                            val event = WorkspaceAgentEvent.Tool.fromAcp(update, session.rpc::terminalPreview)
+                            val decoded = WorkspaceAgentEvent.Tool.fromAcp(update, session.rpc::terminalPreview)
+                            val event = decoded.copy(update = decoded.update?.withWorkspacePaths(session.mapper))
                             val patch = event.update
                             val references = (update["content"] as? JsonArray)?.mapNotNull { item ->
                                 val block = item as? JsonObject ?: return@mapNotNull null
@@ -522,7 +525,8 @@ class WorkspaceAgentPluginHost internal constructor(
                     }
                 } catch (failure: Throwable) {
                     // A local cancellation or failed await is not the ACP turn's terminal response.
-
+                    // V1 updates carry only sessionId: retire this exact transport before allowing
+                    // another prompt to bind a listener. Keep the saved native ID for supported load.
                     try { retireSession(agentId, session) }
                     catch (cleanup: Throwable) { if (cleanup !== failure) failure.addSuppressed(cleanup) }
                     throw failure
@@ -595,8 +599,8 @@ class WorkspaceAgentPluginHost internal constructor(
         try {
             session.rpc.cancelTurn(session.sessionId)
         } catch (cancelled: CancellationException) {
-            // Stop can race the prompt's retirement, which cancels the transport's pending write. Propagate
-            // cancellation only when this caller is cancelled.
+            // Stop can race the prompt's retirement, which cancels the transport's
+            // pending write. Propagate cancellation only when this caller is cancelled.
             currentCoroutineContext().ensureActive()
             retireSession(agentId, session)
         } catch (_: Throwable) {
@@ -634,6 +638,7 @@ class WorkspaceAgentPluginHost internal constructor(
         }
     }
 
+    /** Prepare once, then reuse the same live Agent session for models and later turns. */
     override suspend fun prepareSession(
         agentId: String,
         resumeSessionId: String?,
@@ -712,8 +717,8 @@ class WorkspaceAgentPluginHost internal constructor(
 
     private suspend fun claimWorkspace() = kotlinx.coroutines.coroutineScope {
         val caller = currentCoroutineContext()
-        // A retiring host must also release a caller queued behind a replacement's claim. Cancel this
-        // admission child, never the caller's unrelated parent work.
+        // A retiring host must also release a caller queued behind a replacement's claim.
+        // Cancel this admission child, never the caller's unrelated parent work.
         val retirement = hostClosed.invokeOnCompletion { caller[Job]?.cancel(CancellationException("CLI workspace host is closed")) }
         try {
             WorkspaceAgentHostOwnership.claim(workspaceOwnerKey, this@WorkspaceAgentPluginHost) {
@@ -747,15 +752,15 @@ class WorkspaceAgentPluginHost internal constructor(
                 spec, boot.process, boot.rpc, boot.sessionId, boot.approvalSessionId, boot.mapper, boot.configuration, boot.promptCapabilities,
                 lifetime,
             ).also { live ->
-                // Do not hold live's monitor while entering delivery: reader delivery owns delivery -> live ->
-                // RPC order. Seed and subscribe are one atomic handoff.
+                // Do not hold live's monitor while entering delivery: reader delivery owns
+                // delivery -> live -> RPC order. Seed and subscribe are one atomic handoff.
                 live.rpc.installConfigurationListener(live.sessionId, onSnapshot = { configuration ->
                     synchronized(live) { live.replaceConfiguration(configuration) }
                 }, onUpdate = { update ->
                     synchronized(live) {
                         val updated = WorkspaceAgentSessionConfigurations.update(update, live.configuration)
-                        // Every mode replacement passes through the revision owner. A change away and back cannot
-                        // resurrect an older prompt admission.
+                        // Every mode replacement passes through the revision owner. A change
+                        // away and back cannot resurrect an older prompt admission.
                         if (updated !== live.configuration) live.replaceConfiguration(updated)
                     }
                 })
@@ -788,7 +793,7 @@ class WorkspaceAgentPluginHost internal constructor(
                             session.rpc.requireTurn(preparationEpoch)
                         }
                     }, onResponse = { result ->
-
+                    // Apply in wire order, before a later config/mode update can overtake the response.
                     synchronized(session) {
                         session.replaceConfiguration(WorkspaceAgentSessionConfigurations.modeResponse(
                             result, session.configuration, selection.id, method == "session/set_config_option", selection.collaborationMode))
@@ -797,8 +802,8 @@ class WorkspaceAgentPluginHost internal constructor(
                 })
                 synchronized(session) { session.modeSelection.accepted(selection, session.configuration) }
             } catch (failure: Throwable) {
-                // A cancelled/timed-out set request may have executed. Never reuse uncertain native state, retry
-                // it blindly, or continue by sending the user's prompt.
+                // A cancelled/timed-out set request may have executed. Never reuse uncertain
+                // native state, retry it blindly, or continue by sending the user's prompt.
                 retireUncertainConfiguration(session, failure)
             }
         } else synchronized(session) { session.modeSelection.accepted(selection, session.configuration) }
@@ -812,8 +817,8 @@ class WorkspaceAgentPluginHost internal constructor(
     }
 
     private suspend fun retireUncertainConfiguration(session: LiveSession, failure: Throwable): Nothing {
-        // Model and reasoning responses can also replace mode metadata. A late response must not leave
-        // an apparently confirmed mode on a transport we continue to use.
+        // Model and reasoning responses can also replace mode metadata. A late response
+        // must not leave an apparently confirmed mode on a transport we continue to use.
         try { retireSession(session.spec.id, session) }
         catch (cleanup: Throwable) { if (cleanup !== failure) failure.addSuppressed(cleanup) }
         throw failure
@@ -869,6 +874,7 @@ class WorkspaceAgentPluginHost internal constructor(
         return current
     }
 
+    // The editor workspace remains authoritative; inspect and approve mirror changes first.
     private suspend fun reconcileRemoteWorkspace(
         mapper: WorkspacePathMapper,
         before: Map<String, WorkspaceSyncManifest.Entry>,
@@ -918,8 +924,8 @@ class WorkspaceAgentPluginHost internal constructor(
             val local = if (version.existed) WorkspaceSyncManifest.Entry(version.sha256, if (version.executable) 493 else 420) else null
             val base = before[rel]
             val now = current[rel]
-            // A prior publication (including ACP writes or a provider-sync failure) may already have
-            // committed these bytes. Convergence is not a conflict.
+            // A prior publication (including ACP writes or a provider-sync failure)
+            // may already have committed these bytes. Convergence is not a conflict.
             if (same(local, now)) continue
             if (base != observedBaseline[rel]) {
                 conflict(rel, "Synchronization baseline changed for this file; review it again against the current project.")
@@ -992,7 +998,7 @@ class WorkspaceAgentPluginHost internal constructor(
                 reviewDigest.update(':'.code.toByte())
                 reviewDigest.update(bytes)
             }
-
+            // Session consent binds both sides of this diff; filesystem admission remains separate.
             reviewField("workspace-reconcile-v2")
             reviewField(projectRoot.absolutePath)
             reviewField(remote)
@@ -1116,8 +1122,8 @@ class WorkspaceAgentPluginHost internal constructor(
                     failureReason(failure).take(400)))
             }
         }
-        // Three-way refresh advances successful publications and preserves pending CLI bytes/deletions.
-        // It never resets the CLI tree after a conflict or denial.
+        // Three-way refresh advances successful publications and preserves pending
+        // CLI bytes/deletions. It never resets the CLI tree after a conflict or denial.
         val pending = try {
             refreshPending(conflicts)
         } catch (cancelled: CancellationException) {
@@ -1171,8 +1177,8 @@ class WorkspaceAgentPluginHost internal constructor(
     }
 
     private suspend fun retireClosingSessionsLocked() {
-        // Switching the selected CLI must not bypass a failed cleanup from another agent in this
-        // workspace. Healthy sibling sessions remain owned and are not stopped.
+        // Switching the selected CLI must not bypass a failed cleanup from another agent
+        // in this workspace. Healthy sibling sessions remain owned and are not stopped.
         for ((id, owner) in sessionOwners.entries.toList()) {
             if (owner.processes.isClosing) retireSessionLocked(id)
         }
@@ -1209,8 +1215,8 @@ class WorkspaceAgentPluginHost internal constructor(
                 retireSessionLocked(id)
             } }.toTypedArray()).getOrThrow()
         }
-        // Process/RPC completion also has to precede the old turn's reconciliation and attachment
-        // finalizers. A replacement host must not race those workspace writes.
+        // Process/RPC completion also has to precede the old turn's reconciliation and
+        // attachment finalizers. A replacement host must not race those workspace writes.
         try {
             kotlinx.coroutines.withTimeout(15_000) {
                 workspaceTurns.withLock { Unit }
@@ -1228,7 +1234,8 @@ class WorkspaceAgentPluginHost internal constructor(
         hostClosed.complete(Unit)
         val stopped = OwnedResourceCleanup.run(*sessionOwners.values.map { owner -> { owner.requestStop().getOrThrow() } }.toTypedArray())
         scope.cancel()
-
+        // Closeable requests stop. Graceful workspace shutdown uses closeAndAwait; this retained
+        // worker also drains ordinary close, and keeps failure visible in synchronization state.
         scope.launch(kotlinx.coroutines.NonCancellable + Dispatchers.IO) {
             runCatching { closeAndAwait() }.onFailure {
                 syncPhase(WorkspaceAgentSyncPhase.INTERRUPTED, notice = "CLI cleanup failed: ${it.message}; process ownership was retained.")
@@ -1238,6 +1245,7 @@ class WorkspaceAgentPluginHost internal constructor(
     }
 }
 
+ 
 internal class AcpNdjsonConnection(
     private val process: HostedStdioProcess,
     private val files: FileRepository,
@@ -1293,7 +1301,8 @@ internal class AcpNdjsonConnection(
     @Volatile private var transportFailure: Throwable? = null
 
     init {
-
+        // Keep the diagnostic pipe flowing independently of ACP stdout. A CLI
+        // can otherwise block before replying when its stderr pipe fills up.
         stderrJob = scope.launch(Dispatchers.IO) {
             try {
                 InputStreamReader(process.stderr, Charsets.UTF_8).use { reader ->
@@ -1314,7 +1323,7 @@ internal class AcpNdjsonConnection(
                     .onMalformedInput(CodingErrorAction.REPORT)
                     .onUnmappableCharacter(CodingErrorAction.REPORT)
                 BufferedReader(InputStreamReader(process.stdout, decoder)).use { reader ->
-
+                    // One four-MiB ACP image is roughly 5.6 million base64 characters.
                     val lines = BoundedProtocolLineReader(reader, 6_000_000)
                     while (isActive) {
                         val line = lines.readLine() ?: break
@@ -1343,8 +1352,8 @@ internal class AcpNdjsonConnection(
                                 }
                             }
                         } else {
-                            // Earlier dispatch already requires a primitive ID. Bound it before escaping a scalar into the
-                            // cancellation lookup key.
+                            // Earlier dispatch already requires a primitive ID. Bound it
+                            // before escaping a scalar into the cancellation lookup key.
                             check(rawId.jsonPrimitive.content.length <= maxInboundIdChars) {
                                 "ACP request identifier exceeds the supported size"
                             }
@@ -1360,8 +1369,8 @@ internal class AcpNdjsonConnection(
                                 })
                                 continue
                             }
-                            // Charge the already bounded wire payload without serializing the parsed params. Map removal
-                            // does not end a job's lifetime.
+                            // Charge the already bounded wire payload without serializing
+                            // the parsed params. Map removal does not end a job's lifetime.
                             val lease = inboundRetention.tryAcquire(line.length.toLong())
                             if (lease == null) {
                                 send(buildJsonObject {
@@ -1389,8 +1398,8 @@ internal class AcpNdjsonConnection(
                                 lease.release()
                             }
                             if (inbound.putIfAbsent(key, call) == null) {
-                                // An already cancelled scope may complete the lazy job and its hook before this map insertion.
-
+                                // An already cancelled scope may complete the lazy job and
+                                // its hook before this map insertion.
                                 if (!job.start()) inbound.remove(key, call)
                             } else {
                                 job.cancel()
@@ -1410,8 +1419,8 @@ internal class AcpNdjsonConnection(
                 pending.clear()
                 inbound.values.forEach { it.job.cancel() }
                 inbound.clear()
-                // EOF can occur while the underlying host remains alive. Reap this connection's processes; IO
-                // failure must not escape its launch job.
+                // EOF can occur while the underlying host remains alive. Reap this
+                // connection's processes; IO failure must not escape its launch job.
                 synchronized(this@AcpNdjsonConnection) {
                     authorityEpoch.incrementAndGet()
                     mutationTurnBinding = null
@@ -1435,8 +1444,9 @@ internal class AcpNdjsonConnection(
     @Synchronized
     fun bindSession(value: String, approvalOwner: String) {
         require(value.isNotBlank() && value.length <= 512) { "Invalid ACP session id" }; require(approvalOwner.isNotBlank() && approvalOwner.length <= 512) { "Invalid ACP approval session id" }
-        // A connection owns one native session.
-
+        // A connection owns one native session. Retire its outstanding authority
+        // before binding can reject reuse; queued file replies/writes must not
+        // retain authority from a failed ownership transition.
         authorityEpoch.incrementAndGet()
         readSessionBinding = null
         mutationTurnBinding = null
@@ -1715,8 +1725,8 @@ internal class AcpNdjsonConnection(
                 )
             }
         }
-        // A user response may arrive after Stop, a new turn, or failed rebind. It must neither authorize
-        // the old CLI nor seed the next turn's ledger.
+        // A user response may arrive after Stop, a new turn, or failed rebind.
+        // It must neither authorize the old CLI nor seed the next turn's ledger.
         val stillApproved = synchronized(this) {
             val current = approved && isCurrent() &&
                 (requestedGrant == null || accessPolicy.allowsWorkspaceMutation()) &&
@@ -1850,8 +1860,8 @@ internal class AcpNdjsonConnection(
             val count = (limit ?: 2_000).coerceIn(1, 10_000)
             content = content.lineSequence().drop(start).take(count).joinToString("\n")
         }
-        // IO and the owned writer may both suspend. Revalidate at the writer's publication boundary so a
-        // queued response cannot outlive its authority.
+        // IO and the owned writer may both suspend. Revalidate at the writer's
+        // publication boundary so a queued response cannot outlive its authority.
         requireCurrentRead()
         send(buildJsonObject {
             put("jsonrpc", "2.0"); put("id", id)
@@ -1939,8 +1949,8 @@ internal class AcpNdjsonConnection(
 
     private suspend fun send(message: JsonObject, beforeWrite: (() -> Unit)? = null) {
         transportFailure?.let { throw IllegalStateException("ACP agent transport is closed", it) }
-        // The owned writer runs off the caller/UI thread; waiting remains cancellable even when the
-        // child has stopped reading its input pipe.
+        // The owned writer runs off the caller/UI thread; waiting remains
+        // cancellable even when the child has stopped reading its input pipe.
         val write = scope.async(Dispatchers.IO) {
             writeMutex.withLock {
                 transportFailure?.let { throw IllegalStateException("ACP agent transport is closed", it) }

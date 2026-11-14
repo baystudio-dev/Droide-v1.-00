@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
+
 class UserInitiatedArtifactTransfer(context: Context) {
     private val appContext = context.applicationContext
     private val store = ArtifactTransferStore(appContext)
@@ -146,8 +147,8 @@ class UserInitiatedArtifactTransfer(context: Context) {
                 }
             }
             }
-            // UIDT owns the transfer's wake lock. Restore our CPU lease before verifying the completed
-            // cache; legacy foreground transfers still require the caller's lease.
+            // UIDT owns the transfer's wake lock. Restore our CPU lease before verifying
+            // the completed cache; legacy foreground transfers still require the caller's lease.
             if (Build.VERSION.SDK_INT >= 34) OwnedDevelopmentOperation.withCpuIdle { awaitWorker() }
             else awaitWorker()
             return cached(spec, onProgress)
@@ -187,8 +188,8 @@ class UserInitiatedArtifactTransfer(context: Context) {
                     PackageTransferForegroundService.start(appContext, transferId, request.requestIdentity, epoch)
                 }
             } catch (failure: Exception) {
-                // Admission failed before a worker took ownership. Keep Retry and recovery from mistaking an
-                // unscheduled request for a transfer that is still waiting to run.
+                // Admission failed before a worker took ownership. Keep Retry and recovery from
+                // mistaking an unscheduled request for a transfer that is still waiting to run.
                 try {
                     store.markSchedulingFailed(transferId, request.requestIdentity, failure.message ?: "Transfer scheduling failed")
                 } catch (persistenceFailure: Exception) {
@@ -364,7 +365,8 @@ internal class ArtifactTransferStore internal constructor(
                 check(existing.digestAlgorithm == spec.digestAlgorithm && existing.digestHex.equals(spec.digestHex, true))
                 check(existing.maxBytes == spec.maxBytes)
                 check(!existing.hasStoredExpectedBytes || existing.expectedBytes == spec.expectedBytes)
-
+                // Schema 2 originally mixed observed Content-Length with the descriptor's expected length.
+                // The matching transfer ID already includes the incoming immutable expected length.
                 val matching = if (existing.hasStoredExpectedBytes) existing else existing.copy(
                     expectedBytes = spec.expectedBytes, hasStoredExpectedBytes = true,
                 )
@@ -813,8 +815,8 @@ class UserInitiatedArtifactTransferJobService : JobService() {
                 jobs.cancel(id, requestIdentity)
                 return@withArtifactTransferAdmission false
             }
-            // Android Task Manager may kill the process without this callback. A later explicit request
-            // still recovers its durable record and revalidates any retained partial data.
+            // Android Task Manager may kill the process without this callback. A later explicit
+            // request still recovers its durable record and revalidates any retained partial data.
             if (params.stopReason == JobParameters.STOP_REASON_USER) {
                 val reason = "Transfer stopped by the user through Android"
                 UserInitiatedArtifactTransfer.recordSystemCancellationIf(id, reason) {
@@ -858,7 +860,7 @@ class PackageTransferForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-
+        // Channel creation is delayed until an admitted START; a stale intent does no transfer work.
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -1005,6 +1007,7 @@ class ArtifactTransferCancelReceiver : BroadcastReceiver() {
     }
 }
 
+/** Phase transitions are immediate; numeric updates within one phase stay throttled. */
 internal class ArtifactTransferNotificationGate {
     private var lastPhase: TrustedArtifactDownloadPhase? = null
     private var lastNotificationAtMs: Long? = null
@@ -1062,8 +1065,8 @@ internal object ArtifactTransferNotifications {
         return PendingIntent.getBroadcast(context, ArtifactTransferStore.jobId(record.id),
             Intent(context, ArtifactTransferCancelReceiver::class.java)
                 .setAction("com.baystudio.droide.action.CANCEL_ARTIFACT_REQUEST")
-                // Distinct PendingIntent identity prevents FLAG_UPDATE_CURRENT from upgrading a stale
-                // notification's cancellation authority to a later request/session.
+                // Distinct PendingIntent identity prevents FLAG_UPDATE_CURRENT from upgrading
+                // a stale notification's cancellation authority to a later request/session.
                 .setData(Uri.parse("droide-artifact-transfer://cancel/$epoch/${record.requestIdentity}/${record.id}"))
                 .putExtra(ArtifactTransferStore.EXTRA_TRANSFER_ID, record.id)
                 .putExtra(ArtifactTransferStore.EXTRA_REQUEST_IDENTITY, record.requestIdentity)

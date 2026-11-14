@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 
 internal data class ExtensionSelection(val familyId: String, val version: String)
 
+/** Keep deep-link navigation pending until discovery replaces the initial detection placeholders. */
 @Composable
 internal fun ExtensionNavigationEffects(
     items: List<ExtensionVersionState>,
@@ -78,8 +79,8 @@ internal fun ExtensionCatalogRefreshEffects(
     onFailure: (String) -> Unit,
     environmentRevision: Long = 0L,
 ) {
-    // This is one view's handled-input marker, not a catalog cache. Explicit refreshes and every
-    // real terminal installer transition remain fresh requests.
+    // This is one view's handled-input marker, not a catalog cache. Explicit
+    // refreshes and every real terminal installer transition remain fresh requests.
     var handledInputs by remember(managerIdentity) { mutableStateOf<Triple<String, Any?, Long>?>(null) }
     LaunchedEffect(managerIdentity, activeFile, bridgeConnection, installerState.phase, installerState.operationActive, environmentRevision) {
         if (installerState.running) return@LaunchedEffect
@@ -92,12 +93,12 @@ internal fun ExtensionCatalogRefreshEffects(
         )
         if (!inputsChanged && !terminalPhase) return@LaunchedEffect
         val result = runSuspendCatching { refresh(activeFile) }
-        // A non-cooperative callback can return/fail after cancellation. It cannot publish an obsolete
-        // error or mark these inputs as handled.
+        // A non-cooperative callback can return/fail after cancellation. It cannot
+        // publish an obsolete error or mark these inputs as handled.
         currentCoroutineContext().ensureActive()
         result.onFailure { if (inputsChanged) onFailure(it.message ?: "Extensions refresh failed") }
-        // Cancellation escapes runSuspendCatching. Do not mark cancelled inputs as handled: a phase
-        // change must not strand the latest file/bridge request.
+        // Cancellation escapes runSuspendCatching. Do not mark cancelled inputs as
+        // handled: a phase change must not strand the latest file/bridge request.
         handledInputs = inputs
     }
 
@@ -139,6 +140,7 @@ fun ExtensionsPane(
         onInitialFamilyHandled = onInitialFamilyHandled,
     )
 
+    // Keep detail status and actions tied to the same snapshot as the catalog.
     val selection = selectedIdentity
     val selected = selection?.let { identity ->
         snapshot.items.firstOrNull { it.family.id == identity.familyId && it.version.version == identity.version }
@@ -932,7 +934,7 @@ private fun ExtensionDetail(
                                 installJob = scope.launch {
                                     try {
                                         runSuspendCatching { manager.unifiedAuthority.repairVersion(item.family.id, item.version.version) }
-                                            .onSuccess { txResult ->
+                                            .onSuccess { txResult -> 
                                                 if (txResult.success) {
                                                     installMessage = txResult.message
                                                     onRefresh()
@@ -1037,6 +1039,9 @@ private fun ExtensionDetail(
                     Text("Version ${currentPlan.resolvedVersion}", style = MaterialTheme.typography.bodyMedium)
                     Text("Will install:", style = MaterialTheme.typography.labelMedium)
                     currentPlan.components.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                    manager.installer.externalDownloadNotice(currentPlan)?.let { notice ->
+                        Text(notice, style = MaterialTheme.typography.bodyMedium)
+                    }
                     androidPlan?.let { ap ->
                         Text("${ap.toolchainEntry.abi} · SHA-256 ${ap.toolchainEntry.sha256.take(16)}…", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
                         Text(ap.toolchainEntry.provenance, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1130,16 +1135,19 @@ private fun ExtensionDetail(
                                 }
                             }
                         } else {
-                            // Only the confirmation is pane-local. The manager owns the job and progress presentation before
-                            // this dialog leaves the Composition.
-                            if(currentPlan is com.baystudio.droide.core.ExtensionInstallPlan.LocalVendor && currentPlan.familyId=="lsp.elp") {
-                                installJob=scope.launch {
-                                    try { runSuspendCatching { manager.installer.requestElpHealthApproval(currentPlan) }
-                                        .onSuccess { elpHealthRequest=currentPlan to it;plan=null }
-                                        .onFailure { installMessage=it.message?:"Selected Erlang tools unavailable; ELP remains inactive" }
-                                    } finally { installJob=null }
-                                }
-                            } else { manager.installInBackground(currentPlan);plan=null }
+                            // Only the confirmation is pane-local. The manager owns the job and
+                            // progress presentation before this dialog leaves the Composition.
+                            installJob = scope.launch {
+                                try {
+                                    runSuspendCatching {
+                                        manager.installer.acceptExternalDownloadFromUser(currentPlan)
+                                        if (currentPlan is com.baystudio.droide.core.ExtensionInstallPlan.LocalVendor && currentPlan.familyId == "lsp.elp") {
+                                            elpHealthRequest = currentPlan to manager.installer.requestElpHealthApproval(currentPlan)
+                                        } else manager.installInBackground(currentPlan)
+                                        plan = null
+                                    }.onFailure { installMessage = it.message ?: "Installation could not start" }
+                                } finally { installJob = null }
+                            }
                         }
                     },
                 ) { Text(if (needsLicense) "Accept license" else if (installState.familyId == item.family.id && installState.phase in setOf(

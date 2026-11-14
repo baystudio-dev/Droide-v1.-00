@@ -28,10 +28,10 @@ internal object LocalUbuntuCMakeWheelProjector {
         val lower=value.lowercase(Locale.ROOT)
         require(listOf(".pyc", ".pyo", ".pth", ".egg-link", ".so", ".dll", ".dylib", ".exe", ".a", ".o", ".wasm").none { lower.endsWith(it) })
     }
-
+    /** Parser separated from publisher admission so authored malformed fixtures exercise real code. */
     internal fun parse(bytes: ByteArray): List<Member> {
         require(bytes.size in 22..254_702)
-
+        // No comment, trailing envelope, split archive, SFX prefix or ZIP64 locator is admitted.
         val e=bytes.size-22
         require(u32(bytes,e)==0x06054b50L && u16(bytes,e+20)==0 && u16(bytes,e+4)==0 && u16(bytes,e+6)==0)
         val count=u16(bytes,e+10); require(count in 1..4096 && u16(bytes,e+8)==count)
@@ -80,7 +80,7 @@ internal object LocalUbuntuCMakeWheelProjector {
                 } finally { inflater.end() }
             }
             require(CRC32().apply { update(data) }.value==crc)
-
+            // Reject executable/native magic even under a harmless extension. Python source shebangs are data.
             require(!(data.size>=4 && listOf("7f454c46","0061736d","feedface","feedfacf","cefaedfe","cffaedfe","cafebabe").contains(data.take(4).joinToString("") { "%02x".format(it.toInt() and 255) })))
             require(!(data.size>=2 && data[0]==77.toByte() && data[1]==90.toByte()))
             total=Math.addExact(total,size); require(total<=MAX_BYTES)

@@ -37,8 +37,7 @@ internal class SafWriteJournal(
         val (parent, leaf) = ensureParent(path)
         var target = parent.findFile(leaf)
         check(target?.isDirectory != true) { "SAF sync conflict: refusing to replace a directory with a file: $path" }
-        // Both the old provider bytes and the intended new bytes are durable before "wt" can truncate
-        // the provider document.
+        // Both the old provider bytes and the intended new bytes are durable before "wt" can truncate the provider document.
 
         val entry = File(recoveryRoot, UUID.randomUUID().toString())
         check(entry.mkdirs()) { "Cannot create SAF recovery journal" }
@@ -53,7 +52,7 @@ internal class SafWriteJournal(
                 output.fd.sync()
             }
             replace(tmp, metadata)
-
+            
             var directory: File? = entry
             while (directory != null && directory != context.applicationContext.filesDir) {
                 syncDirectory(directory)
@@ -182,7 +181,7 @@ internal class SafWriteJournal(
         val known = currentManifest()
         for (entry in recoveryRoot.listFiles().orEmpty().filter { it.isDirectory }) {
             val metadata = File(entry, "pending.json")
-
+            
             if (!metadata.isFile) { PathSecurity.deleteTreeNoFollow(entry); continue }
             require(metadata.length() in 1..16_384) { "Invalid SAF recovery metadata size" }
             val record = json.decodeFromString(PendingSafWrite.serializer(), metadata.readText())

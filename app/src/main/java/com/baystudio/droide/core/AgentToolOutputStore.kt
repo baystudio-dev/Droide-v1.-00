@@ -10,8 +10,10 @@ import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/** Quotas affect retention only, never tool execution. */
-
+/** Immutable model-output artifacts. Quotas affect retention only, never tool execution.
+ * Published files and crash remnants are never automatically deleted. Ownership is a
+ * private directory entry, not authority supplied in a model-generated reference.
+ */
 internal class AgentToolOutputStore(private val root: File, private val limits: Limits = Limits()) {
     data class Limits(val bytes: Long = 128L * 1024 * 1024, val entries: Int = 512,
         val outputBytes: Long = 16L * 1024 * 1024) {
@@ -67,8 +69,9 @@ internal class AgentToolOutputStore(private val root: File, private val limits: 
     private fun syncDirectory(dir: File) {
         FileChannel.open(safe(dir).toPath(), StandardOpenOption.READ).use { it.force(true) }
     }
-    /** User-requested fork ownership links are session metadata, not new retained content, and are
-     * never charged another logical storage quota. */
+    /** Streams directory entries and retains at most the unique-blob quota in
+     * memory. User-requested fork ownership links are session metadata, not new
+     * retained content, and are never charged another logical storage quota. */
     private fun admit(bytes: Long, entries: Int = 1) {
         safe(root)
         var size = bytes
@@ -210,12 +213,12 @@ internal class AgentToolOutputStore(private val root: File, private val limits: 
         val originals = references.map { verified(source, it) }
         val dir = owner(target); mkdir(dir)
         val missing = originals.filter { !File(dir, it.name).exists() }
-        // Explicit session forks grant metadata only. Never block a user fork because the optional
-        // new-output retention quota is full.
+        // Explicit session forks grant metadata only. Never block a user fork
+        // because the optional new-output retention quota is full.
         for (file in missing) {
             val destination = safe(File(dir, file.name))
-            // Immutable hard link grants ownership without duplicating data. Unsupported filesystems fail
-            // the fork visibly, rather than publishing broken references.
+            // Immutable hard link grants ownership without duplicating data. Unsupported
+            // filesystems fail the fork visibly, rather than publishing broken references.
             Files.createLink(destination.toPath(), file.toPath())
         }
         syncDirectory(dir)

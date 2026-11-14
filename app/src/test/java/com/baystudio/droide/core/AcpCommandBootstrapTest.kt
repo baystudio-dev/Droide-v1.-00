@@ -115,7 +115,7 @@ class AcpCommandBootstrapTest {
                 assertEquals(listOf("compact"), boot.rpc.commands.snapshot("selected"))
                 assertTrue(boot.rpc.commands.snapshot("wrong").isEmpty())
                 assertNull(approvals.pending.value)
-
+                // No configuration listener is installed between bootstrap and these updates.
                 assertNull(boot.rpc.configurationListener)
                 val delivered = CopyOnWriteArrayList<String>()
                 boot.rpc.updateListener = { delivered += it["sessionUpdate"]!!.jsonPrimitive.content }

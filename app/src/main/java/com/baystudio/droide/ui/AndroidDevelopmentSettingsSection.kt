@@ -43,6 +43,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/** Ubuntu build readiness and the ADB connection used for deployment/debugging. */
 @Composable
 fun AndroidDevelopmentSettingsSection(
     manager: AndroidDevelopmentManager,

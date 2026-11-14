@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import kotlinx.serialization.json.*
 
+/** Exact two authenticated original libraries; no npm solver, scripts, .bin guessing or project modules. */
 internal object LocalUbuntuTomlPolicy {
     const val FAMILY = "lsp.taplo-wasm"
     const val FAMILY_ID = FAMILY

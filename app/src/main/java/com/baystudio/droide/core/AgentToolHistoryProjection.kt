@@ -1,7 +1,10 @@
 package com.baystudio.droide.core
 
-/** Does not change execution, success evidence, or advertise a retrieval operation. */
-
+/**
+ * Generic model-history preview. Does not change execution, success evidence, or
+ * advertise a retrieval operation. Structured web continuations use their own
+ * projection in AgentWebTools. This is not an exact-output archival mechanism.
+ */
 internal object AgentToolHistoryProjection {
     internal const val MAX_CHARS = 12_000
 

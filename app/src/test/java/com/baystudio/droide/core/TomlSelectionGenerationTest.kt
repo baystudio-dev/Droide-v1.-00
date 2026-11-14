@@ -78,7 +78,7 @@ class TomlSelectionGenerationTest {
         val writer=Thread { try { first.put(old.copy(metadata=mapOf("generation" to "new"))) } catch(t:Throwable){failure.set(t)} }
         writer.start();assertTrue(entered.await(5,TimeUnit.SECONDS))
         val during=second.tomlPackageGeneration();assertFalse(second.isTomlPackageGenerationCurrent(before))
-        assertEquals(old,second.list().single())
+        assertEquals(old,second.list().single()) // actual second-instance read sees old storage
         val attempted=CountDownLatch(1);val finished=CountDownLatch(1);val created=java.util.concurrent.atomic.AtomicBoolean(false)
         val admission=Thread { attempted.countDown();TomlGenerationAdmission.withAdmission { if(second.isTomlPackageGenerationCurrent(during))created.set(true) };finished.countDown() }
         admission.start();assertTrue(attempted.await(5,TimeUnit.SECONDS));assertFalse(finished.await(50,TimeUnit.MILLISECONDS))

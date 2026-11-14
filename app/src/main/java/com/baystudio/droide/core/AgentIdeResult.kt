@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+
 internal object AgentIdeResult {
     private const val JSON_BUDGET = 8_000
 

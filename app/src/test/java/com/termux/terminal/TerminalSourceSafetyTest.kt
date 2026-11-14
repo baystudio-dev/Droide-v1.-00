@@ -222,7 +222,7 @@ class TerminalSourceSafetyTest {
     }
 
     @Test fun aggregateReservationCountsReachableHistoryAndIncludesReflowSpace() {
-
+        // Isolate the process-wide allocator for this deterministic unit test; no GC timing assumptions.
         val field = TerminalMemoryBudget::class.java.getDeclaredField("owners").apply { isAccessible = true }
         @Suppress("UNCHECKED_CAST")
         val registry = field.get(null) as java.util.WeakHashMap<TerminalEmulator, Boolean>
@@ -252,7 +252,7 @@ class TerminalSourceSafetyTest {
         repeat(20) { column -> repeat(63) { buffer.setChar(column, 1, 0x0301, 0L) } }
         val cursor = intArrayOf(0, 0)
         buffer.resize(20, 17, 100, cursor, 0L, false)
-
+        // Move a retained enlarged row into a soon-inactive slot, like ring-buffer recycling.
         val enlarged = buffer.mLines[1]
         buffer.mLines[1] = buffer.mLines[16]
         buffer.mLines[16] = enlarged

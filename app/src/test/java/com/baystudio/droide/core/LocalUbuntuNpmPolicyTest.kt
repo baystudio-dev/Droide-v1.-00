@@ -154,6 +154,7 @@ class LocalUbuntuNpmPolicyTest {
                     entry.familyId, version, entry.packageName, version, entry.command,
                     22, entry.provenance, registryIntegrity = entry.reviewedIntegrity,
                     additionalDependencies = when (entry.familyId) {
+                        LspMdxProfile.FAMILY -> mapOf("typescript" to LocalUbuntuTypeScriptServerPolicy.VERSION)
                         LocalUbuntuPerlNavigatorPolicy.FAMILY_ID -> LocalUbuntuPerlNavigatorPolicy.dependencies
                         LocalUbuntuPrismaPolicy.FAMILY_ID -> LocalUbuntuPrismaPolicy.dependencies
                         LocalUbuntuSveltePolicy.FAMILY_ID -> LocalUbuntuSveltePolicy.dependencies

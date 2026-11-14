@@ -18,6 +18,7 @@ data class DeclarativeReverseTcpCapability(
     )
 }
 
+ 
 @Serializable
 data class DeclarativeDebugAdapterCapability(
     val id: String,
@@ -50,6 +51,7 @@ object PackageProtocolCapabilityPolicy {
         }
     }
 
+     
     fun runtimeReady(manifest: DeclarativePackageManifest): Boolean {
         val adapter = manifest.debugAdapter ?: return true
         val runtime = manifest.githubRelease?.runtimeCompatibility ?: return false

@@ -35,7 +35,8 @@ internal data class ProjectPythonConfiguration private constructor(
         /** Only an absent configuration permits the caller's default interpreter. */
         fun load(root: File): ProjectPythonConfiguration? {
             val bytes = try {
-
+                // Check each optional component separately: an absent file is different from a
+                // broken link or unreadable directory, neither of which may silently fall back.
                 PathSecurity.resolveWithin(root, ".droide")
                 val directory = File(root, ".droide")
                 val directoryAttributes = attributesOrAbsent(directory) ?: return null
@@ -77,7 +78,7 @@ internal data class ProjectPythonConfiguration private constructor(
         }
 
         private fun readBounded(file: File): ByteArray {
-
+            // A size check alone is insufficient if the file changes before or during the read.
             val bytes = ByteArray(WorkspaceJsonConfig.MAX_BYTES + 1)
             var count = 0
             Files.newInputStream(file.toPath(), LinkOption.NOFOLLOW_LINKS).use { input ->
@@ -97,7 +98,8 @@ internal data class ProjectPythonConfiguration private constructor(
 
         private fun literalInterpreter(value: String): String {
             require(value.length in 1..MAX_INTERPRETER_LENGTH && value.none(::isControl)) { "Invalid interpreter length or control character" }
-
+            // JSON escapes can encode lone UTF-16 surrogates even in an otherwise valid UTF-8 file.
+            // Reject them rather than silently changing the command when argv is encoded for exec.
             Charsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT).encode(java.nio.CharBuffer.wrap(value))
             require(!value.startsWith('-')) { "Interpreter must not start with an option" }
             if ('/' !in value) {

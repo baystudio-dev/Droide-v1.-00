@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
+
 class PersistentLocalTerminalHost private constructor(
     private val appContext: Context,
     private val sessionFactory: (File, CoroutineScope) -> NativePtySessionHandle = { dir, scope ->
@@ -28,8 +29,7 @@ class PersistentLocalTerminalHost private constructor(
         val session: NativePtySessionHandle,
     )
 
-    // Cancelling a WorkspaceViewModel therefore cannot silently break execOnce/execArgv on a
-    // retained PTY.
+    // Cancelling a WorkspaceViewModel therefore cannot silently break execOnce/execArgv on a retained PTY.
 
     private val processScope = CoroutineScope(SupervisorJob() + mainDispatcher)
     private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -43,7 +43,7 @@ class PersistentLocalTerminalHost private constructor(
     init {
         if (reviveOverride == null && startupRecovery.clearTerminalRevive) reviveStore.clearAll()
     }
-    private var ownershipVersion: Any = Any()
+    private var ownershipVersion: Any = Any() // guarded by host monitor
     private val tabsByProject = linkedMapOf<String, LinkedHashMap<String, HostedTab>>()
     private val activeLocalByProject = mutableMapOf<String, String>()
     private val explicitlyClosedRecoveryProjects = mutableSetOf<String>()
@@ -89,6 +89,7 @@ class PersistentLocalTerminalHost private constructor(
     internal val hydratedHistorySize: Int
         get() = synchronized(this) { hydratedProjects.size }
 
+
     suspend fun reviveProject(projectKey: String, projectRoot: File): List<HostedTab> {
         synchronized(this) {
             tabsByProject[projectKey]?.values?.toList()?.takeIf { it.isNotEmpty() }?.let { return it }
@@ -126,8 +127,8 @@ class PersistentLocalTerminalHost private constructor(
                         session = sessionFactory(descriptor.workDir, processScope),
                     )
                     created += hosted
-                    // Track the handle before start: a failed native startup still owns partially-created
-                    // threads/process resources that must be destroyed.
+                    // Track the handle before start: a failed native startup still owns
+                    // partially-created threads/process resources that must be destroyed.
                     hosted.session.start()
                 }
                 synchronized(this@PersistentLocalTerminalHost) {
@@ -149,6 +150,7 @@ class PersistentLocalTerminalHost private constructor(
         }
     }
 
+    
     fun create(projectKey: String, projectRoot: File, title: String, workDir: File, activate: Boolean): HostedTab {
         NativePtyThreadPolicy.requireMainThread(
             isMainThread = Looper.getMainLooper().thread === Thread.currentThread(),
@@ -168,6 +170,7 @@ class PersistentLocalTerminalHost private constructor(
         }
         synchronized(this) {
             val projectTabs = tabsByProject.getOrPut(projectKey) { linkedMapOf() }
+            
 
             try { requireCapacity(projectKey, 1) } catch (failure: IllegalStateException) {
                 if (projectTabs.isEmpty()) tabsByProject.remove(projectKey)
@@ -219,6 +222,7 @@ class PersistentLocalTerminalHost private constructor(
         return true
     }
 
+    /** Manager has already observed this exact session's successful Exit receipt. */
     internal fun removeAfterVerifiedExit(projectKey: String, projectRoot: File, id: String, expected: ITerminalSession) {
         synchronized(this) {
             val projectTabs = tabsByProject[projectKey]
@@ -234,8 +238,8 @@ class PersistentLocalTerminalHost private constructor(
                 if (projectTabs.isEmpty()) tabsByProject.remove(projectKey)
             }
         }
-        // Retry persistence even if a previous attempt removed metadata then failed. Never call destroy
-        // here: the exact completed stop must not be replayed.
+        // Retry persistence even if a previous attempt removed metadata then failed.
+        // Never call destroy here: the exact completed stop must not be replayed.
         schedulePersist(projectKey, projectRoot)
     }
 
@@ -256,6 +260,7 @@ class PersistentLocalTerminalHost private constructor(
         failure?.let { throw it }
     }
 
+     
     suspend fun flush(projectKey: String, projectRoot: File) {
         persistenceMutex.withLock { persistLatest(projectKey, projectRoot) }
     }
@@ -273,8 +278,8 @@ class PersistentLocalTerminalHost private constructor(
             }
             tabs to activeLocalByProject[projectKey]
         }
-        // A conservative crash restart uses a pipe shell. It has no new native descriptors; onStop must
-        // not turn that absence into deletion of the prior launch metadata.
+        // A conservative crash restart uses a pipe shell. It has no new native descriptors;
+        // onStop must not turn that absence into deletion of the prior launch metadata.
         if (state.first.isEmpty() && preserveSuppressedRevive && synchronized(this) {
             projectKey !in explicitlyClosedRecoveryProjects
         }) return

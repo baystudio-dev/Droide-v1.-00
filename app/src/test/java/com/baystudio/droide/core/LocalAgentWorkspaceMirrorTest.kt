@@ -472,7 +472,7 @@ class LocalAgentWorkspaceMirrorTest {
             File(copy, "preview.png").writeBytes(byteArrayOf(-119, 80, 78, 71, 0, -1))
             File(copy, "app.apk").outputStream().use { output ->
                 val block = ByteArray(64 * 1024) { (it % 256).toByte() }
-                repeat(48) { output.write(block) }
+                repeat(48) { output.write(block) } // 3 MiB: previously rejected at 2 MB.
             }
             val expected = listOf("kucing.glb", "preview.png", "app.apk")
                 .associateWith { hash(File(copy, it)) }
@@ -619,7 +619,7 @@ class LocalAgentWorkspaceMirrorTest {
             assertEquals("new source", File(copy, "file").readText())
             assertFalse(File(copy, "deleted").exists())
             File(copy, "file").writeText("CLI result")
-            original.writeText("CLI result")
+            original.writeText("CLI result") // Successful guarded publication in the host.
             mirror.refresh()
             assertEquals(hash(original), mirror.baseline().getValue("file").sha256)
             original.writeText("next source edit")

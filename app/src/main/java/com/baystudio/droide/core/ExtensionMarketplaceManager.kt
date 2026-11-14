@@ -92,6 +92,7 @@ private data class MarketplacePlanNode(
     val parsed: ParsedDeclarativeVsix,
 )
 
+
 class ExtensionMarketplaceManager(context: Context) {
     private val client = OpenVsxRegistryClient(context.applicationContext)
     private val store = ExtensionMarketplaceStore(context.applicationContext)
@@ -244,6 +245,7 @@ class ExtensionMarketplaceManager(context: Context) {
                     }
                 }
 
+
                 nodes.forEach { node ->
                     val existing = installedBefore[node.parsed.manifest.id]
                     if (existing != null) {
@@ -266,6 +268,7 @@ class ExtensionMarketplaceManager(context: Context) {
                             nodes.size,
                         )
                         val record = DeclarativeExtensionRuntime.install(node.downloaded.file)
+                        
 
                         changed += id to previous
                         val persisted = store.persistArtifact(node.inspection.detail, node.downloaded)

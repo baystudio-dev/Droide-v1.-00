@@ -148,8 +148,11 @@ internal class ProjectCopyJournal(
         membership = ProjectCopyMembership(root, rootKey, durability, authorityHome)
     }
 
-    /** A recovery permit additionally requires trusted process-local acceptance time of a NEW user
-     * request, captured before queueing/picker launch, never refreshed when old work starts. */
+    /** Call before making project parent directories, and close the lease on every exit.
+     * A recovery permit additionally requires trusted process-local acceptance time of a NEW
+     * user request, captured before queueing/picker launch, never refreshed when old work starts.
+     * Null is valid for ordinary copies but cannot consume a recovery permit.
+     */
     fun begin(owner: Owner, destination: String, requestAdmittedAtNanos: Long? = null): Lease =
         begin(owner, destination, requestAdmittedAtNanos, planStage = false)
 
@@ -258,7 +261,7 @@ internal class ProjectCopyJournal(
                     "Recovery confirmation expired or its evidence changed; inspect again"
                 }
             }
-
+            // Recheck every other relevant attempt at the actual publication boundary.
             scan.records.map { it.record }.filter {
                 it.intent.id != intent.id && !it.retired && (it.active || it.status == Status.UNKNOWN) &&
                     conflicts(it.intent, intent.owner, intent.destination)
@@ -270,7 +273,7 @@ internal class ProjectCopyJournal(
             val attempt = Attempt(version = if (parents == null) 1 else 2, intentHash = digest(intent),
                 preparation = preparation, stageParents = parents)
             admittedAttempt = attempt
-            this.preparation = preparation
+            this.preparation = preparation // A failed force is conservatively uncertain as well.
             try { write(File(directory, intent.id), recordDirKey, "attempt.json", attempt) }
             catch (failure: Throwable) { shared.tainted += intent.id; throw failure }
         }
@@ -290,8 +293,8 @@ internal class ProjectCopyJournal(
                 val current = readRecord(File(directory, intent.id))
                 check(current.record.intent == intent && current.chain?.attempt == attempt && current.record.problem == null)
                 write(File(directory, intent.id), recordDirKey, "receipt.json", record)
-                // Seal visibility proves only barriers preceding seal creation. Its own force is not inferred
-                // from visibility. This live lease remains UNKNOWN on any exception.
+                // Seal visibility proves only barriers preceding seal creation. Its own force is
+                // not inferred from visibility. This live lease remains UNKNOWN on any exception.
                 write(File(directory, intent.id), recordDirKey, "seal.json", seal)
                 published = receipt
             } catch (failure: Throwable) { shared.tainted += intent.id; throw failure }
@@ -427,8 +430,8 @@ internal class ProjectCopyJournal(
         val record = scan.records.singleOrNull { it.record.intent.id == inspection.record.intent.id }?.record
         check(record != null && approvalStillMatches(inspection, record)) { "Recovery evidence changed; inspect again" }
         check(shared.permissions.size < MAX_APPROVALS)
-        // All filesystem work is complete. Trusted owner admission must synchronously invoke grant
-        // exactly once on this thread; it may hold its lifecycle lock only around grant.
+        // All filesystem work is complete. Trusted owner admission must synchronously invoke
+        // grant exactly once on this thread; it may hold its lifecycle lock only around grant.
         val grantThread = Thread.currentThread()
         var accepting = true
         var granted = false
@@ -521,8 +524,8 @@ internal class ProjectCopyJournal(
         check(actual.type == "directory" && (shared.directoryKey == null || shared.directoryKey == actual.key)) { "Copy journal identity changed" }
         shared.directoryKey = actual.key
         if (create) {
-            // A previous mkdir may have survived a failed parent force. Re-establish the complete
-            // namespace's reachability before every new durable intent.
+            // A previous mkdir may have survived a failed parent force. Re-establish the
+            // complete namespace's reachability before every new durable intent.
             durability.forceDirectory(root)
             durability.forceDirectory(metadata)
             requireRoot()
@@ -556,8 +559,8 @@ internal class ProjectCopyJournal(
                     records += readRecord(file, children)
                 }
             }
-            // A whole record can disappear without changing the journal directory identity. Retain only
-            // knowledge already held by this process; this is not a restart ledger.
+            // A whole record can disappear without changing the journal directory identity.
+            // Retain only knowledge already held by this process; this is not a restart ledger.
             val observedIds = records.mapTo(mutableSetOf()) { it.record.intent.id }
             val missingKnownId = (shared.active + shared.tainted).filter { it !in observedIds }.minOrNull()
             check(missingKnownId == null) {

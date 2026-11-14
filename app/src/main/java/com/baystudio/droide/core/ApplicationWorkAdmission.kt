@@ -46,3 +46,4 @@ internal object ApplicationWorkAdmission {
 
     private fun requireState() = checkNotNull(state) { "Application work admission has not been initialized" }
 }
+

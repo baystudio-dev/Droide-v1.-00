@@ -37,7 +37,7 @@ class ArtifactTransferIoTest {
                     val input = checkNotNull(response.body).byteStream()
                     check(input.read() == 1)
                     firstByte.complete(Unit)
-                    input.read()
+                    input.read() // The server deliberately keeps the body open.
                 }
             }
             withTimeout(2_000) { firstByte.await() }

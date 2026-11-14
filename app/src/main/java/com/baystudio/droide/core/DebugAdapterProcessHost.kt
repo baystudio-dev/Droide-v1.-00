@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.coroutines.CoroutineScope
 
+ 
 fun StdioProcessHost.forDebugAdapterTransport(
     scope: CoroutineScope,
     transport: DebugAdapterTransport,

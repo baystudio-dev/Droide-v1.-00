@@ -7,8 +7,7 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
-// SHA-256 helper that never follows the final path component and can enforce project
-// containment.
+// SHA-256 helper that never follows the final path component and can enforce project containment.
 internal object SafeFileDigest {
     fun sha256RegularNoFollow(file: File, containmentRoot: File? = null): String {
         if (containmentRoot != null) require(PathSecurity.contains(containmentRoot, file)) { "File escapes project root: ${file.path}" }

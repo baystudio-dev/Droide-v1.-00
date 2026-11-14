@@ -12,6 +12,7 @@ import com.baystudio.droide.core.PathSecurity
 import java.io.File
 import java.net.URI
 
+ 
 internal fun captureAgentIdeContext(
     workspaceRoot: File,
     activeFile: String,

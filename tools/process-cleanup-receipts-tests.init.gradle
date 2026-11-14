@@ -1,0 +1,14 @@
+// F115 exact-cleanup replay; keep existing F114 controls and explicit host JNI only.
+apply from: new File(gradle.startParameter.currentDir, 'tools/process-boot-tests.init.gradle')
+gradle.projectsEvaluated {
+    gradle.rootProject.project(':app').tasks.named('compileDebugKotlin').configure {
+        source(project.fileTree('src/main/java/com/baystudio/droide/core') {
+            include('MirrorProcessCleanupReceipts.kt', 'MirrorSqliteRollbackRecovery.kt')
+        })
+    }
+    gradle.rootProject.project(':app').tasks.named('compileDebugUnitTestKotlin').configure {
+        source(project.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('MirrorProcessCleanupReceiptsTest.kt', 'MirrorProcessCleanupReceiptFilesTest.kt')
+        })
+    }
+}

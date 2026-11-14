@@ -75,7 +75,8 @@ class UserToolchainEnvironmentTest {
         try {
             val profile = File(root, "profile").apply { writeText("export JAVA_HOME=/profile/jdk; ANDROID_SDK_ROOT=/profile/sdk; export PATH=/profile/bin:\"\$PATH\"\n") }
             val rc = File(root, "bashrc").apply { writeText("export JAVA_HOME=/bash/jdk\n") }
-
+            // The fixture substitutes private profile/rc paths rather than modifying
+            // the host's real /etc/profile or user's home configuration.
             val process = ProcessBuilder("/bin/sh", "-c",
                 ". \"\$1\"; " + UserToolchainEnvironment.exportDefinedLoginVariables() + "; exec /bin/bash --noprofile --rcfile \"\$2\" -ic \"\$3\"", "profile-fixture",
                 profile.path, rc.path, UserToolchainEnvironment.script(nonce)).redirectErrorStream(true)
@@ -84,7 +85,7 @@ class UserToolchainEnvironmentTest {
             val values = UserToolchainEnvironment.parse(process.inputStream.readBytes().toString(Charsets.UTF_8), nonce, root.path)
             assertEquals("/profile/sdk", values["ANDROID_SDK_ROOT"]); assertEquals("/bash/jdk", values["JAVA_HOME"])
             val bins = values.getValue("PATH").split(':')
-
+            // System Bash rc may prepend legitimate environment-manager bins.
             assertTrue(bins.toString(), "/profile/bin" in bins)
             assertTrue(bins.toString(), bins.indexOf("/profile/bin") < bins.indexOf("/usr/bin"))
         } finally { root.deleteRecursively() }

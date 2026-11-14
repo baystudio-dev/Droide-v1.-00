@@ -101,8 +101,8 @@ internal suspend fun prepareEditorProjectHandoff(
                     gate.reserve(this)
                     nativeLease = native.begin(::onReleased)
                 }
-                // Finishing composition may have delivered text. It must be captured and checked before
-                // acceptance, never suppressed by read-only/handoff policy.
+                // Finishing composition may have delivered text. It must be captured and
+                // checked before acceptance, never suppressed by read-only/handoff policy.
                 validate()
                 admitted = true
             } catch (failure: Throwable) {
@@ -158,8 +158,8 @@ internal suspend fun prepareEditorProjectHandoff(
                     nativeLease = null
                     return
                 }
-                // One immutable release-time snapshot. No recovery data is acknowledged until the exact retired
-                // store has accepted this write.
+                // One immutable release-time snapshot. No recovery data is acknowledged
+                // until the exact retired store has accepted this write.
                 pendingSnapshot = snapshot()
                 val scope = preservationScope
                 if (scope != null) scope.launch {

@@ -18,6 +18,7 @@ import com.baystudio.droide.core.FileQueryPage
 import com.baystudio.droide.core.runSuspendCatching
 import kotlinx.coroutines.delay
 
+ 
 @Composable
 fun QuickOpenDialog(
     files: FileRepository,

@@ -142,8 +142,7 @@ internal object LocalUbuntuCMakePolicy {
     }
     fun guestWrapper(guest: String): String {
         requireAbsolute(guest)
-        // A terminal may explicitly request the lifecycle probe, but cannot bypass the typed owner with
-        // a normal managed launch.
+        // A terminal may explicitly request the lifecycle probe, but cannot bypass the typed owner with a normal managed launch.
         return "#!/bin/sh\nset -eu\n[ \"${'$'}#\" -eq 1 ] && [ \"${'$'}1\" = --droide-health ] || { printf '%s\\n' 'Use the CMake analysis selection and Enable analysis in Droide.' >&2; exit 64; }\n" + LocalUbuntuCMakeLspHealth.handoff(guest)
     }
     fun hostWrapper(launcher: String, guest: String): String {

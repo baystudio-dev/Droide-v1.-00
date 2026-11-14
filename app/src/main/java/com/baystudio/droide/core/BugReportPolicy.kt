@@ -75,8 +75,7 @@ internal object BugReportPolicy {
         return true
     }
 
-    // HTML email input's common ASCII form, without coercing or silently changing the user's
-    // address.
+    // HTML email input's common ASCII form, without coercing or silently changing the user's address.
     private val EMAIL = Regex("[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
 
     fun formFields(draft: BugReportDraft): Map<String, String> {

@@ -17,12 +17,13 @@ data class ValidatedNetworkTarget(
     val allowLoopback: Boolean = false,
 )
 
+ 
 object NetworkSecurity {
-
+    
     fun validatePublicHttpsUrl(raw: String): URI = validatePublicHttpsUrl(raw, InetAddress::getByName)
 
-    // The callback only parses a canonical IPv6 literal. IPv4 and hostnames never invoke it, keeping
-    // structural validation independent of hostname resolution.
+    // The callback only parses a canonical IPv6 literal. IPv4 and hostnames never
+    // invoke it, keeping structural validation independent of hostname resolution.
     internal fun validatePublicHttpsUrl(raw: String, parseIpv6Literal: (String) -> InetAddress): URI {
         val uri = URI(raw.trim())
         require(uri.scheme.equals("https", ignoreCase = true)) { "Only HTTPS URLs are allowed" }
@@ -35,8 +36,8 @@ object NetworkSecurity {
             ?: throw IllegalArgumentException("Invalid HTTPS URL")
         require(!canonicalHost.equals("localhost", true) && !canonicalHost.trimEnd('.').endsWith(".localhost", true) &&
             !canonicalHost.trimEnd('.').equals("localhost", true)) { "Localhost is blocked" }
-        // Do not send a numeric-looking hostname to getByName: malformed IPv4, trailing dots and
-        // shorthand can otherwise fall back to hostname DNS.
+        // Do not send a numeric-looking hostname to getByName: malformed IPv4,
+        // trailing dots and shorthand can otherwise fall back to hostname DNS.
         val literal = when {
             canonicalHost.contains(':') -> parseIpv6Literal(canonicalHost)
             canonicalHost.all { it in '0'..'9' || it == '.' } -> {
@@ -63,6 +64,7 @@ object NetworkSecurity {
         return ValidatedNetworkTarget(uri.toASCIIString(), host, addresses)
     }
 
+
     fun validateProviderTarget(provider: AiProvider, raw: String): ValidatedNetworkTarget = when (provider.networkScope) {
         ProviderNetworkScope.PUBLIC_HTTPS -> validatePublicHttpsTarget(raw)
         ProviderNetworkScope.LOOPBACK_ONLY -> validateLoopbackTarget(raw)
@@ -82,6 +84,7 @@ object NetworkSecurity {
         return ValidatedNetworkTarget(uri.toASCIIString(), host, addresses, allowLoopback = true)
     }
 
+     
     fun pinnedDns(target: ValidatedNetworkTarget): Dns = object : Dns {
         override fun lookup(hostname: String): List<InetAddress> {
             if (hostname.equals(target.host, ignoreCase = true)) return target.addresses
@@ -103,24 +106,24 @@ object NetworkSecurity {
             val y = b[1].toInt() and 0xff
             val z = b[2].toInt() and 0xff
             if (x == 0 || x == 10 || x == 127) return true
-            if (x == 100 && y in 64..127) return true
+            if (x == 100 && y in 64..127) return true 
             if (x == 169 && y == 254) return true
             if (x == 172 && y in 16..31) return true
             if (x == 192 && y == 168) return true
-            if (x == 192 && y == 0 && z == 0) return true
-            if (x == 192 && y == 0 && z == 2) return true
-            if (x == 192 && y == 88 && z == 99) return true
-            if (x == 198 && y in 18..19) return true
-            if (x == 198 && y == 51 && z == 100) return true
-            if (x == 203 && y == 0 && z == 113) return true
+            if (x == 192 && y == 0 && z == 0) return true   
+            if (x == 192 && y == 0 && z == 2) return true   
+            if (x == 192 && y == 88 && z == 99) return true 
+            if (x == 198 && y in 18..19) return true        
+            if (x == 198 && y == 51 && z == 100) return true 
+            if (x == 203 && y == 0 && z == 113) return true  
             if (x >= 224) return true
         }
         if (a is Inet6Address && b.isNotEmpty()) {
             val first = b[0].toInt() and 0xff
             val second = if (b.size > 1) b[1].toInt() and 0xff else 0
-            if ((first and 0xfe) == 0xfc) return true
-            if (first == 0xff) return true
-            if (first == 0x20 && second == 0x01 && b.size >= 4 && (b[2].toInt() and 0xff) == 0x0d && (b[3].toInt() and 0xff) == 0xb8) return true
+            if ((first and 0xfe) == 0xfc) return true 
+            if (first == 0xff) return true            
+            if (first == 0x20 && second == 0x01 && b.size >= 4 && (b[2].toInt() and 0xff) == 0x0d && (b[3].toInt() and 0xff) == 0xb8) return true 
         }
         return false
     }

@@ -90,7 +90,7 @@ class MembershipOperationCompactionTest {
         println("ENVELOPE_BYTES before=$charge after=${f.charge()}"); assertTrue(f.charge() < charge); assertEquals(tables, f.immutableTables()); assertEquals(custody, f.custody())
         assertTrue(f.manager.discoverMembershipCommands().isEmpty())
         assertEquals(1, f.store.inspectRecovery().completed.count { it.id == r.operationId })
-        f.store.enableMembershipCommands(); f.store.enableMembershipCompaction()
+        f.store.enableMembershipCommands(); f.store.enableMembershipCompaction() // checked idempotent enables
     }
     @Test fun reconstructedPreparedMatchesOriginalFrozenBytes() = fixture { f ->
         val r = f.acceptedOperation()
@@ -176,8 +176,7 @@ class MembershipOperationCompactionTest {
         assertEquals(1, f.store.inspectRecovery().completed.count { it.id == r.operationId })
     }
     private fun rewriteCanonicalState(f: Fixture, state: CatalogMembershipCommands.State) {
-        // Synthetic corruption fixture: recompute envelope membership so owner validation, not digest
-        // mismatch, is exercised.
+        // Synthetic corruption fixture: recompute envelope membership so owner validation, not digest mismatch, is exercised.
         val method = CatalogMembershipCommands::class.java.getDeclaredMethod("write", SQLiteDatabase::class.java,
             List::class.java, Map::class.java, List::class.java).apply { isAccessible = true }
         f.db { method.invoke(CatalogMembershipCommands, it, state.receipts, state.operations, state.compacted) }

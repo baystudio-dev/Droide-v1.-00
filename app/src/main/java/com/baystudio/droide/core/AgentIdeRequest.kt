@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+
 internal data class AgentIdeRequest(
     val operation: String,
     val path: String? = null,

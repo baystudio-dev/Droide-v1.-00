@@ -6,6 +6,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Independent review. Runs actual controller and real domain objects; no SQLite/native/Android runtime. */
 class IndependentHistoryRetryReviewTest {
     private data class Finish(val id: String, val reply: String?, val notices: List<String>, val status: PluginHistoryStatus, val media: List<ChatMediaRef>)
     private class Store : PluginConversationHistory {

@@ -12,6 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Actual AgentService -> provider wire -> tool admission, with a loopback model fixture. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AgentContextDiscoveryWorkflowTest {

@@ -4,6 +4,7 @@ import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
+/** Complement CLI execution with editor observations and explicitly approved toolchain setup. */
 internal class ExternalIdeTools(
     private val files: FileRepository,
     documents: WorkspaceDocumentAuthority?,

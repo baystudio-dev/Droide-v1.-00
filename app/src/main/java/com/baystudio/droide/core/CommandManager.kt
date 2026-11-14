@@ -4,6 +4,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+
 data class DroideCommand(val name: String, val description: String, val template: String)
 
 class CommandManager(private val workDir: File) {

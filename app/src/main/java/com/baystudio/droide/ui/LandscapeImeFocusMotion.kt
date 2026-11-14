@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,18 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.constrainWidth
+
+
+
+
+
+
+
+
+
+
+
+
 
 @Composable
 internal fun droideImeStableWorkbenchLayout(
@@ -49,6 +62,7 @@ internal fun droideImeStableWorkbenchLayout(
 
 internal data class DroideLandscapeImeFocusLayout(
     val userPaneFit: DroidePaneFit,
+    val contentPaneFit: DroidePaneFit,
     private val sidebarWidth: State<Dp>,
     private val agentWidth: State<Dp>,
     private val sidebarVisible: State<Boolean>,
@@ -73,25 +87,34 @@ internal fun rememberDroideLandscapeImeFocusLayout(
     requestedAgentWidth: Dp,
 ): DroideLandscapeImeFocusLayout {
     val userPaneFit = droidePaneFit(adaptive, availableWidth, sidebarTool, sidebarVisible, agentVisible, requestedAgentWidth)
-    val focusActive = presentation.landscapeImeActive && focusMode
-    // Animate visibility, not the requested size. Direct drag/resize follows the finger even when
-    // the keyboard is open; it must not chase a new animated width on every pointer event.
-    val fraction = animateFloatAsState(
+    val contentPaneFit = if (presentation.landscape)
+        droidePaneFit(adaptive, availableWidth, sidebarTool, true, true, requestedAgentWidth) else userPaneFit
+    val focusActive = presentation.landscape && focusMode
+    // Animate visibility, not the requested size. Direct drag/resize follows the finger even
+    // when the keyboard is open; it must not chase a new animated width on every pointer event.
+    val fraction = if (presentation.landscape) rememberUpdatedState(1f) else animateFloatAsState(
         targetValue = if (focusActive) 0f else 1f,
         animationSpec = tween(DroideMotion.PaneMillis, easing = FastOutSlowInEasing),
         label = "landscapeImePaneVisibility",
     )
     val motionEnabled = rememberDroideMotionEnabled()
-    return remember(userPaneFit, sidebarVisible, agentVisible, fraction, motionEnabled, focusActive) {
+    val sidebarFraction = if (presentation.landscape)
+        rememberLandscapeVisibility(sidebarVisible && !focusActive, "landscapeSidebar") else fraction
+    val agentFraction = if (presentation.landscape)
+        rememberLandscapeVisibility(agentVisible && !focusActive, "landscapeAgent") else fraction
+    return remember(userPaneFit, contentPaneFit, sidebarVisible, agentVisible, sidebarFraction, agentFraction,
+        motionEnabled, focusActive, presentation.landscape) {
         val sidebarWidth = derivedStateOf {
-            droideFocusPaneWidth(userPaneFit.sidebarWidth + 1.dp, sidebarVisible && userPaneFit.sidebarWidth > 0.dp,
-                if (motionEnabled) fraction.value else if (focusActive) 0f else 1f)
+            droideFocusPaneWidth(contentPaneFit.sidebarWidth + 1.dp,
+                (presentation.landscape || sidebarVisible) && contentPaneFit.sidebarWidth > 0.dp,
+                if (motionEnabled) sidebarFraction.value else if (focusActive || !sidebarVisible) 0f else 1f)
         }
         val agentWidth = derivedStateOf {
-            droideFocusPaneWidth(userPaneFit.agentWidth + 10.dp, agentVisible && userPaneFit.agentWidth > 0.dp,
-                if (motionEnabled) fraction.value else if (focusActive) 0f else 1f)
+            droideFocusPaneWidth(contentPaneFit.agentWidth + 10.dp,
+                (presentation.landscape || agentVisible) && contentPaneFit.agentWidth > 0.dp,
+                if (motionEnabled) agentFraction.value else if (focusActive || !agentVisible) 0f else 1f)
         }
-        DroideLandscapeImeFocusLayout(userPaneFit, sidebarWidth, agentWidth,
+        DroideLandscapeImeFocusLayout(userPaneFit, contentPaneFit, sidebarWidth, agentWidth,
             derivedStateOf { sidebarWidth.value > 0.dp }, derivedStateOf { agentWidth.value > 0.dp })
     }
 }
@@ -99,6 +122,7 @@ internal fun rememberDroideLandscapeImeFocusLayout(
 internal fun droideFocusPaneWidth(fullWidth: Dp, visible: Boolean, fraction: Float): Dp =
     if (!visible) 0.dp else fullWidth.coerceAtLeast(0.dp) * fraction.coerceIn(0f, 1f)
 
+ 
 @Composable
 internal fun RowScope.DroideClippedPaneRegion(
     visibleWidth: Dp,

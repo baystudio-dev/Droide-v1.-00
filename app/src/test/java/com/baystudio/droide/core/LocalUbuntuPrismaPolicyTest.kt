@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Authored registry-metadata fixtures. No npm resolution, downloaded package or project executes. */
 class LocalUbuntuPrismaPolicyTest {
     private val recipe get() = WorkstationInstallRecipe(LocalUbuntuPrismaPolicy.FAMILY_ID, "31.13.0", "@prisma/language-server", "31.13.0",
         "prisma-language-server", 22, "https://github.com/prisma/language-tools", LocalUbuntuPrismaPolicy.INTEGRITY,

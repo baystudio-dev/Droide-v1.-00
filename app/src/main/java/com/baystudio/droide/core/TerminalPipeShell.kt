@@ -16,6 +16,9 @@ internal object TerminalPipeShell {
         }
     } + "-s"
 
+    // A single quoted eval frame prevents user input, heredocs and read() from consuming
+    // our metadata or another queued command. Basic mode has no interactive stdin/job control.
+    // eval stays in the same shell, so cd/export and $? survive; no subprocess per command.
     fun command(command: String): String {
         require(command.length <= MAX_COMMAND_CHARS && '\u0000' !in command) { "Terminal command is too large or invalid" }
         val token = TerminalCommandActivityTracker.TOKEN_ENV

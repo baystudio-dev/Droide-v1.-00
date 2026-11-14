@@ -289,8 +289,8 @@ internal class LocalAgentWorkspaceMirror private constructor(
     private fun writeIndex(file: File, text: String) {
         require(!Files.isSymbolicLink(file.toPath())) { "CLI metadata cannot be a symlink" }
         val bytes = text.toByteArray(Charsets.UTF_8)
-        // Compare actual bounded metadata bytes, not a cached mtime or guest-provided hash. Unchanged
-        // turns need no temp file, fsync, rename or watcher event.
+        // Compare actual bounded metadata bytes, not a cached mtime or guest-provided hash.
+        // Unchanged turns need no temp file, fsync, rename or watcher event.
         if (sameIndexBytes(file, bytes)) return
         val temporary = Files.createTempFile(file.parentFile.toPath(), ".droide-sync-", ".tmp").toFile()
         try {
@@ -395,7 +395,7 @@ internal class LocalAgentWorkspaceMirror private constructor(
                 if (blockedPath(relative) || protectedPath(relative)) continue
                 val target = PathSecurity.resolveWithin(directory, relative)
                 val old = working.files[relative]
-
+                // A pending CLI deletion also blocks a source-side file-to-directory change.
                 if (old == null && relative !in working.directories &&
                     (relative in previous || relative in directoryHistory ||
                         historicalPaths.ceiling("$relative/")?.startsWith("$relative/") == true)) {
@@ -441,7 +441,7 @@ internal class LocalAgentWorkspaceMirror private constructor(
                         // With a known base, absence is an unpublished CLI deletion, not a cache miss.
                         if (base != null || relative in directoryHistory ||
                             working.opaque.any { relative == it || relative.startsWith("$it/") }) continue
-                    } else if (old.entry != base) continue
+                    } else if (old.entry != base) continue // Both sides diverged, or an unknown legacy copy.
                     if (copyIfUnchanged(relative, fresh, old, context, retainedStages, originals.value, workspace.value)) {
                         next[relative] = fresh.entry
                         nextDirectories.removeAll { it == relative || it.startsWith("$relative/") }
@@ -521,8 +521,8 @@ internal class LocalAgentWorkspaceMirror private constructor(
         if (tree.opaque.any { it.startsWith(prefix) }) return false
         val descendants = tree.files.filterKeys { it.startsWith(prefix) }
         if (descendants.any { (path, version) -> version.entry != base[path] }) return false
-        if (base.keys.any { it.startsWith(prefix) && it !in descendants }) return false // Pending deletion. Unknown empty directories are CLI output too. Only remove ancestry of known
- // clean files.
+        if (base.keys.any { it.startsWith(prefix) && it !in descendants }) return false // Pending deletion.
+        // Unknown empty directories are CLI output too. Only remove ancestry of known clean files.
         return tree.directories.filter { it == relative || it.startsWith(prefix) }
             .all { dir -> descendants.keys.any { it.startsWith("$dir/") } }
     }

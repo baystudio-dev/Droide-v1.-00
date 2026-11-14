@@ -7,8 +7,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 import kotlinx.serialization.json.*
 
-/** Never an npm solver. */
-
+/** Frozen registry metadata and authored Node resolution layout. Never an npm solver.
+ * Original bytes are admitted only by SHA-512 before data-only extraction. Pure file
+ * validators reused below confer no Nim launch, process, health or receipt authority. */
 internal object LocalUbuntuVuePolicy {
     const val FAMILY = "lsp.vue"
     const val FAMILY_ID = FAMILY
@@ -93,8 +94,8 @@ internal object LocalUbuntuVuePolicy {
                 buildJsonObject { put(expected.getValue("name").jsonPrimitive.content.substringAfterLast('/'),bin) } else bin
             require(normalized(raw) == normalized(want)) { "Vue original package metadata differs: $identity/$key" }
         }
-        // Bundled TS-LSP is a five-file published bundle. Its build-time Rollup dependencies are source
-        // attribution candidates, not invented on-disk npm prerequisites.
+        // Bundled TS-LSP is a five-file published bundle. Its build-time Rollup dependencies
+        // are source attribution candidates, not invented on-disk npm prerequisites.
         require(value["name"] == expected["name"] && value["version"] == expected["version"])
     }
     fun requireGraph() {
@@ -114,8 +115,9 @@ internal object LocalUbuntuVuePolicy {
             require(slots[s("parent")] == s("identity") && resolve(s("parent"),s("key")) == s("target") && slots[s("target")] == s("target_identity"))
         }
     }
-    /** Archive proof is generated after authenticated extraction, then bound to the durable receipt
-     * by the complete installation seal. */
+    /** Archive proof is generated after authenticated extraction, then bound to the durable
+     * receipt by the complete installation seal. Every file, directory, placement and edge
+     * is freshly checked; package.json-only and partial-closure proofs are insufficient. */
     fun validateInstalledLayout(stage: File, proof: JsonObject, active: () -> Unit = {}): JsonObject {
         requireGraph()
         require(proof.keys == setOf("schema","policy","archives") && proof["schema"] == JsonPrimitive(1) && proof["policy"] == JsonPrimitive(DATA_SHA256))

@@ -4,6 +4,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.*
 
+ 
 class LocalLinuxProcessHost(
     private val root: File,
     private val scope: CoroutineScope,
@@ -162,8 +163,7 @@ class LocalLinuxProcessHost(
         require(owner is LocalGraphqlPreparedOwner);deadline.check();val work=deadline.reserve(GraphqlResourcePolicy.RETIRE_MS)
         val epoch=ApplicationWorkAdmission.requireOpen()
         try {
-            // The entire native creation attempt remains strongly owned if a JVM call stalls or returns
-            // late.
+            // The entire native creation attempt remains strongly owned if a JVM call stalls or returns late.
             owner.beginFactory {
                 work.check();scope.ensureActive();val identity=owner.identity
                 val spec=owner.requirePreparedLaunchSpec();val command=spec.prefix+LspGraphqlLaunchPolicy.adapterArgv(identity,owner)
@@ -340,7 +340,7 @@ class LocalLinuxProcessHost(
                 owner.observeSelection()
                 val context = currentCoroutineContext(); context.ensureActive()
                 val command = spec.prefix + LocalUbuntuCMakeLaunchPolicy.supervisorArgv(identity, owner)
-
+                // The fixed outer shell writes its birth locator before exec; no PID is used as destructive signal authority.
                 val control = owner.privateState.localRoot
                 val script = "set -euC; umask 077; printf '%s\\n' \"$$\" > " + LocalExecutionSubstrate.shellQuote(File(control, "outer.pid").absolutePath) +
                     "; /system/bin/cat /proc/$$/stat > " + LocalExecutionSubstrate.shellQuote(File(control, "outer.stat").absolutePath) +
@@ -380,7 +380,7 @@ class LocalLinuxProcessHost(
         val process = handoffLocalHostedProcess {
             scope.ensureActive()
             ProcessSecurityPolicy.validateArgv(argv); ProcessSecurityPolicy.validateEnvironment(environment); resourceLimits.validate()
-
+            // Runtime preparation can suspend and take the package gate itself. Finish it before proof/creation.
             val spec = LocalExecutionSubstrate.prepareUbuntuLaunchSpec(cwd, workspaceRoot = root, toolchainWorkspaceRoot = toolchainWorkspaceRoot)
             scope.ensureActive()
             val creationContext = currentCoroutineContext()
@@ -391,6 +391,8 @@ class LocalLinuxProcessHost(
                 "ulimit -f ${l.fileSizeKiB} && ulimit -n ${l.openFiles} && " +
                 "ulimit -u ${l.processes} && ulimit -v ${l.virtualMemoryKiB} && exec \"\$@\"", "droide") + argv
             val command = spec.prefix + (environment + lease.environment).map { (k, v) -> "$k=$v" } + payload
+        ExecutionDiagnostics.record(root, "Language server / debugger / tool transport", workingDirectory.absolutePath,
+            spec, argv.first(), environment)
             val builder = ProcessBuilder("/system/bin/sh", "-c", lease.wrap(command.joinToString(" ", transform = LocalExecutionSubstrate::shellQuote)))
                 .directory(cwd).apply { environment().putAll(spec.environment) }
             LocalExecutionSubstrate.withReviewedSqruffLaunchIdentity<LocalHostedProcess>(identity, toolchainWorkspaceRoot) { selectionAdmission ->
@@ -401,7 +403,7 @@ class LocalLinuxProcessHost(
                         check(created == null) { "Reviewed Sqruff creation action was invoked twice" }
                         scope.ensureActive(); creationContext.ensureActive()
                         selectionAdmission {
-
+                            // Monitor acquisition can block after the outer check; recheck at the factory itself.
                             scope.ensureActive(); creationContext.ensureActive()
                             createOwnedLocalHostedProcess(
                                 start = { builder.start() },
@@ -440,7 +442,7 @@ class LocalLinuxProcessHost(
         val process = handoffLocalHostedProcess {
             scope.ensureActive()
             ProcessSecurityPolicy.validateArgv(argv); ProcessSecurityPolicy.validateEnvironment(environment)
-
+            // Runtime preparation can suspend and take the package gate itself. Finish it before proof/creation.
             val spec = LocalExecutionSubstrate.prepareUbuntuLaunchSpec(cwd, workspaceRoot = root, toolchainWorkspaceRoot = toolchainWorkspaceRoot)
             scope.ensureActive()
             val creationContext = currentCoroutineContext()
@@ -458,7 +460,7 @@ class LocalLinuxProcessHost(
                         check(created == null) { "Reviewed Svelte creation action was invoked twice" }
                         scope.ensureActive(); creationContext.ensureActive()
                         selectionAdmission {
-
+                            // Monitor acquisition can block after the outer check; recheck at the factory itself.
                             scope.ensureActive(); creationContext.ensureActive()
                             createOwnedLocalHostedProcess(
                                 start = { builder.start() },
@@ -497,7 +499,7 @@ class LocalLinuxProcessHost(
         val process = handoffLocalHostedProcess {
             scope.ensureActive()
             ProcessSecurityPolicy.validateArgv(argv); ProcessSecurityPolicy.validateEnvironment(environment)
-
+            // Runtime preparation can suspend and take the package gate itself. Finish it before proof/creation.
             val spec = LocalExecutionSubstrate.prepareUbuntuLaunchSpec(cwd, workspaceRoot = root, toolchainWorkspaceRoot = toolchainWorkspaceRoot)
             scope.ensureActive()
             val creationContext = currentCoroutineContext()
@@ -518,7 +520,7 @@ class LocalLinuxProcessHost(
                         check(created == null) { "Reviewed PowerShell creation action was invoked twice" }
                         scope.ensureActive(); creationContext.ensureActive()
                         selectionAdmission {
-
+                            // Monitor acquisition can block after the outer check; recheck at the factory itself.
                             scope.ensureActive(); creationContext.ensureActive()
                             createOwnedLocalHostedProcess(
                                 start = { builder.start() },
@@ -597,8 +599,8 @@ class LocalLinuxProcessHost(
             admitLocalHostedProcess({ create -> admitStart(create).also { requireStartContext() } }) {
                 requireStartContext()
                 WorkspaceProcessWriteAdmission.create(root, processCustody,
-                    // Durable admission can block on IO; abort before entering the process-capable factory when
-                    // cancellation/Exit won meanwhile.
+                    // Durable admission can block on IO; abort before entering the
+                    // process-capable factory when cancellation/Exit won meanwhile.
                     beforeFactory = {
                         requireStartContext()
                         (createPrepared as? PreparedLocalNativeProcess)?.validateBeforeStart()
@@ -635,8 +637,11 @@ class LocalLinuxProcessHost(
     }
 }
 
-/** Final native factory: validation observes exactly the builder later started. */
-
+/** Final native factory: validation observes exactly the builder later started.
+ * Unknown/custom factories receive no no-start inference; their failures remain
+ * conservatively owned. Validation is invoked only by the validation-only admission
+ * phase, never after a callback could already have created a child.
+ */
 internal class PreparedLocalNativeProcess(
     private val builder: ProcessBuilder,
     private val scope: CoroutineScope,
@@ -686,6 +691,7 @@ internal suspend fun admitLocalHostedProcess(
     }
 }
 
+/** Keep the process-creation result inside the IO handoff boundary used by start. */
 internal suspend fun handoffLocalHostedProcess(
     create: suspend CoroutineScope.() -> LocalHostedProcess,
 ): LocalHostedProcess {
@@ -750,8 +756,8 @@ internal class LocalHostedProcess(
                 processPipesClosed = true
             }.onFailure { closeFailure = it }
         }
-        // Never run a blocking wait undispatched in the host's start() call: the caller needs these
-        // streams while its LSP/DAP/Agent peer is alive.
+        // Never run a blocking wait undispatched in the host's start() call:
+        // the caller needs these streams while its LSP/DAP/Agent peer is alive.
         waiter = scope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
             try {
                 code = runInterruptible { process.waitFor() }
@@ -763,8 +769,8 @@ internal class LocalHostedProcess(
                 scheduleCleanup()
             }
         }
-        // Parent cancellation may win before a lazy coroutine ever enters its body. That must still reap
-        // the already-created OS process.
+        // Parent cancellation may win before a lazy coroutine ever enters its
+        // body. That must still reap the already-created OS process.
         waiter.invokeOnCompletion {
             if (!completed.isCompleted) scheduleCleanup()
         }
@@ -772,10 +778,11 @@ internal class LocalHostedProcess(
     }
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
-
+        // Natural process exit may have retired the first registry observation already.
         ExitHostedProcessRegistry.retain(this)
         waiter.cancel()
-
+        // Kill/reap before touching a pipe whose monitor may be held by a blocked reader.
+        // A normal exit may already be complete; explicit close still closes its pipes.
         scheduleCleanup()
         closeWorker.start()
     }
@@ -789,8 +796,9 @@ internal class LocalHostedProcess(
             if (failure == null) failure = error else failure.addSuppressed(error)
         }
         try {
-            // Natural exit leaves unread stdout/stderr available for protocol readers. Explicit stop,
-            // cancellation, and transport failure close the streams after terminating the owned process.
+            // Natural exit leaves unread stdout/stderr available for protocol
+            // readers. Explicit stop, cancellation, and transport failure close
+            // the streams after terminating the owned process.
             if (process.isAlive || closed.get() || waiter.isCancelled || waitFailure != null) {
                 LocalProcessSupervisor.terminate(process)
                 processPipesClosed = true
@@ -800,16 +808,18 @@ internal class LocalHostedProcess(
             if (failure == null) failure = error else failure.addSuppressed(error)
         } finally {
             code = code ?: if (waitFailure == null) 143 else -1
-            // A failed lease cleanup is observable by the process owner, not an uncaught launch exception
-            // capable of crashing the Android IDE.
+            // A failed lease cleanup is observable by the process owner, not an
+            // uncaught launch exception capable of crashing the Android IDE.
             if (failure == null) completed.complete(code ?: 143)
             else completed.completeExceptionally(IllegalStateException("Owned process lifecycle failed", failure))
         }
     }
 }
 
-/** A failed wrapper may have partially started workers, so this fallback only reaps known
- * resources: it NEVER certifies workspace custody or clears the unknown-factory fence. */
+/** Adopt the returned raw handle before any wrapper initialization. A failed wrapper
+ * may have partially started workers, so this fallback only reaps known resources:
+ * it NEVER certifies workspace custody or clears the unknown-factory fence.
+ */
 internal fun createOwnedLocalHostedProcess(
     start: () -> Process,
     scope: CoroutineScope,
@@ -828,8 +838,9 @@ internal fun createOwnedLocalHostedProcess(
     }
 }
 
-/** Retained retries use the same Process object, never a rediscovered PID. Even a successful
- * teardown cannot prove absence of partial-wrapper workers/descendants. */
+/** Retained retries use the same Process object, never a rediscovered PID. Even a
+ * successful teardown cannot prove absence of partial-wrapper workers/descendants.
+ */
 private class FailedLocalProcessConstruction : HostedStdioProcess {
     private lateinit var process: Process
     lateinit var failure: Throwable
@@ -841,21 +852,21 @@ private class FailedLocalProcessConstruction : HostedStdioProcess {
     override val stderr get() = process.errorStream
     override val isAlive get() = process.isAlive
     override val exitCode: Int? get() = runCatching { process.exitValue() }.getOrNull()
-    override fun close() = Unit
+    override fun close() = Unit // awaitExit starts/observes the retained attempt.
     override suspend fun awaitExit(): Int = withContext(NonCancellable) {
         val pending = synchronized(this@FailedLocalProcessConstruction) {
             attempt?.takeUnless { it.isCompleted && it.isCancelled } ?: cleanupScope.async {
                 reapKnownChild()
             }.also { attempt = it }
         }
-        // Process.destroy itself can block closing a pipe held by another reader. Timeout only
-        // observation, never cancel/replace a still-running attempt.
+        // Process.destroy itself can block closing a pipe held by another reader.
+        // Timeout only observation, never cancel/replace a still-running attempt.
         withTimeout(2_000) { pending.await() }
         throw IllegalStateException("Raw child reaped after wrapper failure; complete workspace cleanup remains unconfirmed", failure)
     }
     private fun reapKnownChild() {
-        // Do not retry lease cleanup: a partially initialized wrapper may own it. Reap before touching
-        // streams whose monitors may belong to blocked readers.
+        // Do not retry lease cleanup: a partially initialized wrapper may own it.
+        // Reap before touching streams whose monitors may belong to blocked readers.
         if (process.isAlive) process.destroy()
         if (!process.waitFor(200, java.util.concurrent.TimeUnit.MILLISECONDS)) {
             process.destroyForcibly()
@@ -865,7 +876,7 @@ private class FailedLocalProcessConstruction : HostedStdioProcess {
         }
         check(!process.isAlive) { "Raw child still alive after wrapper failure" }
         process.waitFor()
-        // Do not explicitly close pipes: partial-wrapper readers or escaped descendants can still hold
-        // them. All custody stays retained.
+        // Do not explicitly close pipes: partial-wrapper readers or escaped
+        // descendants can still hold them. All custody stays retained.
     }
 }

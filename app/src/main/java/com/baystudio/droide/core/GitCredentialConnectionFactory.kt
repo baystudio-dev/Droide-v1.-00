@@ -48,7 +48,7 @@ internal class GitCredentialConnectionFactory(
     }
 
     private fun admit(url: URL) {
-
+        // JGit adds service query parameters. Repository-URL policy is intentionally stricter.
         if (!GitHubGitTransportPolicy.isGitHubRequest(url)) {
             throw IOException("GitHub credential request blocked: HTTPS github.com on port 443 is required")
         }
@@ -65,7 +65,8 @@ internal class GitCredentialConnectionFactory(
             if (!http.cookieFile.isNullOrBlank() || http.saveCookies) {
                 throw IOException("GitHub credential requests cannot use configured HTTP cookie storage")
             }
-
+            // Redirect mode/limit remain JGit's configuration. Every destination is admitted again
+            // before creation, including redirects which otherwise retain cached Basic credentials.
         }
 
         internal fun requireSafeHeaders(headers: Collection<String>) {

@@ -35,8 +35,7 @@ internal object AgentWebDocuments {
         val seen = mutableSetOf<String>()
         var linksTruncated = false
         var linkChars = 0
-        // Resolve against the final URL and the document's base URL, never against the original redirect
-        // URL.
+        // Resolve against the final URL and the document's base URL, never against the original redirect URL.
         for (element in doc.select("a[href],img[src]")) {
             val image = element.tagName() == "img"
             val resolved = AgentWebUrl.resolve(element.baseUri(), element.attr(if (image) "src" else "href")) ?: continue
@@ -90,7 +89,7 @@ internal object AgentWebDocuments {
     fun text(raw: String, title: String = ""): AgentWebText {
         val clipped = raw.take(MAX_TEXT_CHARS)
         val lines = clipped.replace("\r\n", "\n").replace('\r','\n').split('\n').flatMap { line ->
-
+            // Wrapped lines make continuation and find offsets useful even for minified/very long text.
             val clean = line.replace('\u0000', ' ').trimEnd()
             if (clean.length <= 180) listOf(clean) else clean.chunked(180)
         }.filter { it.isNotBlank() }
@@ -143,6 +142,7 @@ internal class AgentWebStore {
         }
     }
 
+    /** A binary render may outlive cache eviction; its file is deleted when that render releases it. */
     @Synchronized fun lease(owner: String, id: String): AgentWebDocumentLease? =
         document(owner, id)?.let(::pin)
 

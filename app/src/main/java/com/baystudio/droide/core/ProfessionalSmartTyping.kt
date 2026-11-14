@@ -7,6 +7,7 @@ data class SmartTypingProfile(
     val backtick: Boolean = false,
 )
 
+ 
 object ProfessionalSmartTyping {
     const val INDENT_SPACES = 4
     const val BACKWARD_BALANCE_SCAN = 4_096
@@ -72,8 +73,10 @@ object ProfessionalSmartTyping {
         if (hasSelection) return true
         val previous = line.getOrNull(cursorColumn - 1)
         if (previous == '\\') return false
-
+        
         if ((quote == '\'' || quote == '`') && previous != null && isIdentifierish(previous)) return false
+        
+
 
         if (quoteIsOpen(line, cursorColumn.coerceIn(0, line.length), quote)) return false
         return true

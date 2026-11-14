@@ -1,5 +1,5 @@
-// Frozen ledger implementation, object renamed only for mixed-version tests. Original SHA-256:
-// 79669110f6e39cfb90ffc770d7db3e2e2cdb940a6c41012f0b1fdf8c247cf322
+// Frozen F116 ledger implementation, object renamed only for mixed-version tests.
+// Original SHA-256: 79669110f6e39cfb90ffc770d7db3e2e2cdb940a6c41012f0b1fdf8c247cf322
 package com.baystudio.droide.core
 
 import android.database.Cursor
@@ -8,8 +8,10 @@ import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.UUID
 
-/** Metadata only. */
-
+/** Metadata only. MirrorMetadataAuthority owns the binding, schema upgrade, transaction
+ * and durability. These rows are unresolved ownership, not a process inventory or proof
+ * that legacy/untracked writers have stopped. No PID/cwd inference can remove a row.
+ */
 internal object LegacyV5ProcessCustodyLedger {
     const val MAX_OWNERS = 256
     const val BOOT_SCHEMA = 5
@@ -108,8 +110,8 @@ internal object LegacyV5ProcessCustodyLedger {
 
     fun confirm(db: SQLiteDatabase, binding: String, owners: List<Owner>, owner: Owner) {
         check(db.inTransaction())
-        // Retrying after a committed confirmation lost its response is safe. The caller still holds the
-        // original exact-process receipt, and IDs are never reused.
+        // Retrying after a committed confirmation lost its response is safe. The caller
+        // still holds the original exact-process receipt, and IDs are never reused.
         val existing = owners.find { it.id == owner.id } ?: return
         check(existing == owner) { "Process cleanup belongs to a different owner" }
         db.execSQL("DELETE FROM process_owners WHERE id=? AND runtime_id=?", arrayOf(owner.id, owner.runtimeId))

@@ -37,16 +37,18 @@ import kotlinx.serialization.Serializable
     val sections: List<SafRetirementSectionRef>,
 )
 
-/** A self-contained checkpoint and detached exact deletion inventories are published in ONE
- * atomic replacement. */
+/**
+ * Demand-driven successful-history retirement under the existing root lease. A self-contained
+ * checkpoint and detached exact deletion inventories are published in ONE atomic replacement.
+ * Uncertain operations, changed names and unsupported large inventories never gain authority.
+ */
 internal class SafJournalRetirement(private val journal: SafOperationJournal) {
     private val storage get() = journal.storage
     private val limits get() = journal.limits
     private val current get() = File(journal.directory, CURRENT)
     private val candidate get() = File(journal.directory, CANDIDATE)
     private val controlLimit get() = minOf(limits.recordBytes, 1024L * 1024)
-    // SAF1 remains readable/writable for small inventories. SAF2 adds bounded sections in the SAME
-    // file.
+    // SAF1 remains readable/writable for small inventories. SAF2 adds bounded sections in the SAME file.
     private val wholeLimit get() = Math.addExact(limits.aggregateMetadataBytes, limits.manifestBytes)
     private class InventoryTooLarge : Exception("SAF successful inventory exceeds bounded retirement control capacity")
     private fun budget(current: Long, additional: Long): Long {
@@ -90,8 +92,8 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
         }
         val (checkpoint, image, charge) = decoded
         validate(checkpoint, image, poll)
-        // A replacement or force may have been interrupted. Only this exact durable record/link can
-        // admit missing private files; an ordinary recovered COMMITTED record cannot do so.
+        // A replacement or force may have been interrupted. Only this exact durable record/link
+        // can admit missing private files; an ordinary recovered COMMITTED record cannot do so.
         poll()
         if (forceDurability) {
             storage.syncFile(current)
@@ -139,6 +141,7 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
     private data class Captured(val receipt: SafRetirementReceipt,
         val sections: List<Pair<SafRetirementSection, SafRetirementSectionRef>>, val metadataBytes: Long)
 
+    /** Pricing and writing encode the same captured references; neither regenerates payload hashes. */
     private fun price(head: SafRetirementCheckpoint, image: ByteArray, poll: () -> Unit,
         captured: Map<String, List<Pair<SafRetirementSection, SafRetirementSectionRef>>> = emptyMap(),
         forceSections: Boolean = false, captureLimit: Long = limits.aggregateMetadataBytes): Priced {
@@ -305,7 +308,7 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
             }
             require(privateMetadata == it.charge.metadata && privateIndex == it.charge.index)
             require(it.historicalPayload >= 0)
-
+            // A successful manifest still conservatively charges its former namespace candidate.
             privatePayload = SafOperationJournal.boundedAdd(privatePayload,
                 it.files.single { ref -> ref.name == "planned.bin" }.identity.bytes, it.charge.payload)
             privatePayload = SafOperationJournal.boundedAdd(privatePayload, it.historicalPayload, it.charge.payload)
@@ -405,8 +408,8 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
         }
         receipt.custody?.let { custody ->
             val owned = File(journal.workspace, custody.directory)
-            // The validated parent list is root-first. No callback may interleave these direct type/key
-            // checks with descendant stats: NOFOLLOW protects only the final component.
+            // The validated parent list is root-first. No callback may interleave these direct
+            // type/key checks with descendant stats: NOFOLLOW protects only the final component.
             fun parents() {
                 custody.parents.forEach { parent ->
                     val file = File(journal.workspace, parent.path)
@@ -542,8 +545,8 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
             capturedMetadata = inventoryBudget(capturedMetadata, capturedReceipt.metadataBytes)
         }
         if (selected.isEmpty()) return admission
-        // All immutable pins are read once. Shrinking the finite batch below only re-encodes bounded
-        // control, never rereads historical bodies or copies the manifest repeatedly.
+        // All immutable pins are read once. Shrinking the finite batch below only re-encodes
+        // bounded control, never rereads historical bodies or copies the manifest repeatedly.
         val allPinned = try { proposal(old, all, emptyList(), trusted, visible, poll) } catch (_: InventoryTooLarge) {
             retained("Retained operation pins exceed bounded retirement control capacity")
             return admission
@@ -564,10 +567,10 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
             retained("SAF retirement transition lacks exact bounded control/headroom; successful history retained")
             return admission
         }
-        // The direct freshly published State must satisfy the same complete typed invariants as cold
-        // decode, including private/custody identity uniqueness, before any allocation.
+        // The direct freshly published State must satisfy the same complete typed invariants
+        // as cold decode, including private/custody identity uniqueness, before any allocation.
         validate(chosen.checkpoint, trusted.bytes, poll)
-
+        // Final complete re-admission precedes allocation. No credit is taken for future deletion.
         val fresh = journal.recoverAdmission(poll)
         check(fresh.head?.identity == old?.identity)
         check(fresh.operations.map { it.id }.toSet() == all.map { it.id }.toSet())
@@ -638,7 +641,7 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
             retained("SAF compact checkpoint lacks exact headroom; completed sections remain charged")
             return admission
         }
-
+        // Complete absence, original parents and current head are re-established before allocation.
         forceAbsences(old.checkpoint.receipts, poll)
         requireCheckpoint(old, poll)
         requirePins(next, admission.operations, poll)
@@ -682,7 +685,8 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
 
     private fun inventory(operation: SafOperationJournal.Operation, captureLimit: Long, poll: () -> Unit): Captured? {
         check("committed.json" in operation.files)
-
+        // A successful activation's already-removed historical bytes may be uncharged. Surviving
+        // sibling stages/backups and legacy sibling Delete custody have no restart cleanup grant.
         for (effect in operation.effects.values) {
             poll()
             if (effect.plan.localArtifacts.any { it.kind != SafLocalArtifactKind.LOCAL_ROOT &&
@@ -772,6 +776,7 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
         return true
     }
 
+    /** Invocation-local barrier deduplication after all absence checks, followed by all rechecks. */
     private fun forceAbsences(receipts: List<SafRetirementReceipt>, poll: () -> Unit) {
         if (receipts.isEmpty()) return
         fun absent() {
@@ -895,8 +900,8 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
 
     private fun requireCheckpointLink(state: State, poll: () -> Unit) {
         journal.validateRoot(poll)
-        // Content was fully admitted/forced once. This continuity check does not establish trust from
-        // timestamps: it also pins the exact inode, and no callback follows node validation.
+        // Content was fully admitted/forced once. This continuity check does not establish trust
+        // from timestamps: it also pins the exact inode, and no callback follows node validation.
         check(SafLocalFiles.version(storage, current) == state.version)
         check(storage.attributes(candidate) == null)
     }
@@ -940,7 +945,7 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
         val baselineVersion = requireNotNull(SafLocalFiles.version(storage, baseline))
         if (state == null) check(storage.attributes(current) == null)
         else check(storage.describe(current, wholeLimit, cancel) == state.identity)
-
+        // No general callback or observed file read after the final complete checkpoint digest.
         cancel()
         storage.requireRealAncestors(journal.workspace)
         storage.requireRealAncestors(journal.directory)
@@ -958,7 +963,7 @@ internal class SafJournalRetirement(private val journal: SafOperationJournal) {
     companion object {
         internal const val CURRENT = "checkpoint.json"
         internal const val CANDIDATE = "checkpoint-next.json"
-        private const val MAGIC = 0x53414631
+        private const val MAGIC = 0x53414631 // Original small raw frame, with unchanged canonical bytes.
         private const val SECTION_MAGIC = 0x53414632
         private const val PRIVATE = "private"
         private const val CUSTODY = "custody"

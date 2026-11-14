@@ -1,7 +1,9 @@
 package com.baystudio.droide.core
 
-/** Finite, client-authored context for the built-in legacy Prisma route only. */
-
+/** Finite, client-authored context for the built-in legacy Prisma route only.
+ * Positions and replacement ranges are one-based UTF-16, like the editor LSP API.
+ * This is not a schema parser. Unknown insertion/token forms need a native textEdit.
+ */
 internal object LspPrismaCompletionContext {
     data class Context(
         val prefix: String,
@@ -40,9 +42,9 @@ internal object LspPrismaCompletionContext {
             if (end == start) return false
             if (end == insertion.length) return true
             return when (insertion[end]) {
-                '(' -> true
-                '$' -> item.isSnippet
-                ':' -> !dottedLeaf && attributeSigns == 0
+                '(' -> true // Native leaf/attribute call; argument text stays unchanged.
+                '$' -> item.isSnippet // Native datasource name or following tab stop.
+                ':' -> !dottedLeaf && attributeSigns == 0 // Named argument.
                 ' ', '\t', '\n', '\r' -> !dottedLeaf && attributeSigns == 0 && item.isSnippet
                 else -> false // In particular, never infer a full qualified insertion.
             }

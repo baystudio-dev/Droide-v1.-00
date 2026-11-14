@@ -33,6 +33,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 
+/** Actual SAF participant boundary for local completion versus uncertain provider completion. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [SafPreservationDirectoryOs::class])
 class PatchDeleteSafReceiptIndependentTest {
@@ -68,7 +69,7 @@ class PatchDeleteSafReceiptIndependentTest {
         assertArrayEquals(original, stage.readBytes())
         assertTrue(localDelete.plan.local!!.destination.path.startsWith(".droide/saf-delete-custody/"))
         val providerDelete = f.records().single { it.plan.kind == SafEffectKind.DELETE && it.phase == SafEffectPhase.RETURNED }
-
+        // DocumentsContract converts this provider IOException into a false return.
         assertEquals(SafEffectReturn.REJECTED, providerDelete.result)
         assertEquals(SafProviderReturnShape.BOOLEAN, providerDelete.providerReturn!!.shape)
         assertEquals(false, providerDelete.providerReturn!!.boolean)

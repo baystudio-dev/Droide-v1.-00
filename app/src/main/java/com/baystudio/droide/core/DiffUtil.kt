@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object DiffUtil {
     fun unified(old: String, new: String, context: Int = 3, maxChangedLines: Int = 800): String {
         if (old == new) return "(no changes)"

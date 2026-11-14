@@ -58,7 +58,8 @@ class ExternalAgentPromptStreamingTest {
     private fun fixture(block: suspend (ExternalAgentSessionController, Backend) -> Unit) = runBlocking {
         withTimeout(8_000) {
             val scope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]))
-
+            // This pure controller fixture has no Application startup. Model an explicitly
+            // opened app session through the existing seam; retain the production Exit fence.
             val controller = ExternalAgentSessionController(scope, workAdmission = { true })
             val host = Backend()
             try { block(controller, host) }

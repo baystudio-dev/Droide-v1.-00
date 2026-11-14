@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
+ 
 data class LspHeldTextResult(val text: String, val guard: LspHeldResultGuard? = null)
 
 enum class LspCompletionPolicy { POWERSHELL_NATIVE, CMAKE_NATIVE, VUE_NATIVE, CSHARP_NATIVE, TOML_NATIVE, GRAPHQL_NATIVE, ELP_NATIVE }
@@ -59,7 +60,7 @@ interface LspManager : AutoCloseable {
     suspend fun didOpen(path: String, text: String) {}
     suspend fun didChange(path: String, text: String) {}
     suspend fun didSave(path: String, text: String? = null) {}
-
+    /** Disk snapshot and live editor text can differ when typing continues during Save. */
     suspend fun didSaveSnapshot(path: String, savedText: String, currentText: String) {
         didSave(path, savedText)
         if (currentText != savedText) didChange(path, currentText)
@@ -101,6 +102,7 @@ class TemporaryRecoveryLspManager : LspManager {
 
     override fun serverStatus(path: String): String = UNAVAILABLE_REASON
 
+    // All other operations retain LspManager's inert defaults, including close and shutdown.
     private companion object {
         const val UNAVAILABLE_REASON =
             "Language servers and installed tools are temporarily unavailable in built-in startup recovery."
@@ -144,7 +146,7 @@ data class LspTextEdit(
 
 data class LspWorkspaceEdit(
     val edits: List<LspTextEdit>,
-
+     
     val expectedContent: Map<String, String> = emptyMap(),
     val documentVersions: Map<String, Int> = emptyMap(),
     /** Optional exact-owner preflight; does not promise rollback after an application failure. */
@@ -174,6 +176,7 @@ data class LspCodeAction(
     val rawJson: String? = null,
     val activationGuard: LspHeldResultGuard? = null,
 )
+
 
 class ProfessionalLspManager(
     private val scope: CoroutineScope,
@@ -229,29 +232,29 @@ class ProfessionalLspManager(
         var vueRequests: LspVueRequests? = null
         val vueSync = LspVueCompanionAuthority()
         var vueReceipt: LspVueCompanionAuthority.Receipt? = null
-        val vueTickets = java.util.IdentityHashMap<JsonElement, VueTicket>()
+        val vueTickets = java.util.IdentityHashMap<JsonElement, VueTicket>() // lifetimeLock
         var vueBatch = 0L // only completion acceptance depends on this
         var vueSignature = 0L
         var vueRequestSerial = 0L
         var vueOutcomeNote = "No captured native result yet."
-        var vueDiagnosticGeneration = 0L
+        var vueDiagnosticGeneration = 0L // native refresh notification, lifetimeLock
         var vueDiagnosticPath: String? = null
         var vueDiagnosticRerun: Job? = null
         var nimObservation: NimMetadataObservation? = null
         var nimRequests: LspNimRequests? = null
-        var nimPartialResults = false
-        val nimTickets = java.util.IdentityHashMap<JsonElement, NimTicket>()
-        var nimWireTicket: NimTicket? = null
-        val cmakeTickets = java.util.IdentityHashMap<JsonElement, CMakeTicket>()
-        var cmakeWireTicket: CMakeTicket? = null
+        var nimPartialResults = false // lifetimeLock
+        val nimTickets = java.util.IdentityHashMap<JsonElement, NimTicket>() // lifetimeLock
+        var nimWireTicket: NimTicket? = null // documentMutex + lifetimeLock
+        val cmakeTickets = java.util.IdentityHashMap<JsonElement, CMakeTicket>() // lifetimeLock
+        var cmakeWireTicket: CMakeTicket? = null // documentMutex + lifetimeLock
         var svelteWatch: LspSvelteWatchAuthority? = null
         val svelteCompanions = LspSvelteCompanionAuthority()
         @Volatile var svelteObservation: LspSvelteWatchAuthority.Observation? = null
         @Volatile var svelteDraining = false
         @Volatile var svelteSuperseded = false
-        var svelteWireCapture: Map<String, DocumentSnapshot>? = null
-        var svelteWireRequest: DocumentRequest? = null
-        val svelteTickets = java.util.IdentityHashMap<JsonElement, SvelteTicket>()
+        var svelteWireCapture: Map<String, DocumentSnapshot>? = null // lifetimeLock
+        var svelteWireRequest: DocumentRequest? = null // lifetimeLock
+        val svelteTickets = java.util.IdentityHashMap<JsonElement, SvelteTicket>() // lifetimeLock
         val documentSync = LspDocumentSyncAuthority(rpc, capabilities.sync, forceInitialFullChange = LspServerProfiles.isPowerShell(spec) || LspServerProfiles.isNim(spec))
         var powershellRequests: LspPowerShellRequests? = null
         val closedDocumentUris = ConcurrentHashMap.newKeySet<String>()
@@ -263,13 +266,13 @@ class ProfessionalLspManager(
         val sqruffWireDocuments = ConcurrentHashMap<String, SqruffWireDocument>()
         val sqruffFormatMutex = Mutex()
         @Volatile var sqruffFormatting = false
-        var sqruffFormatIssued = false
-        var sqruffFormatPath: String? = null
+        var sqruffFormatIssued = false // lifetimeLock, actual serialized writer admission
+        var sqruffFormatPath: String? = null // lifetimeLock
         @Volatile var prismaDegraded = false
         @Volatile var powershellRequestUnavailable = false
         val diagnosticRequests = ConcurrentHashMap<String, Long>()
-        // Open lifetimes may reuse wire versions. A late push at a retired version cannot certify which
-        // lifetime it describes; correlated pulls still can.
+        // Open lifetimes may reuse wire versions. A late push at a retired version
+        // cannot certify which lifetime it describes; correlated pulls still can.
         val retiredDiagnosticVersions = ConcurrentHashMap<String, Int>()
         var notificationJob: Job? = null
 
@@ -324,7 +327,7 @@ class ProfessionalLspManager(
     }
 
     @Volatile private var vueIdentity: VueManagedLaunchIdentity? = null
-    private var vueLedgerMutation = 0L
+    private var vueLedgerMutation = 0L // monotonic across eras, closes, reopen and all dirty publications
     private var vueLedgerEra = 1L
     private val vueLedger = LinkedHashMap<String, DocumentSnapshot>() // Vue-owned bounded lifetime view; generic tombstones remain untouched
     private var vueLedgerUnavailable = false
@@ -360,8 +363,8 @@ class ProfessionalLspManager(
     private data class SvelteTicket(val method: String, val snapshots: Map<String, DocumentSnapshot>,
         val observation: LspSvelteWatchAuthority.Observation, val request: DocumentRequest? = null)
     private val svelteConfigDigests = ConcurrentHashMap<String, String>()
-    // Retains only an already-issued authority pointer for unavailable-root status. It cannot
-    // authorize startup and is always checked against the consent owner.
+    // Retains only an already-issued authority pointer for unavailable-root status.
+    // It cannot authorize startup and is always checked against the consent owner.
     private val svelteGrantedPermits = ConcurrentHashMap<String, LspProjectAnalysisConsent.Permit>()
     private val svelteAdmissions = ConcurrentHashMap<String, DocumentRequest>()
     private val root = files.root.canonicalFile
@@ -387,8 +390,8 @@ class ProfessionalLspManager(
         } }, routeForPath = ::isElp) }
     private var elpDiagnosticUris: Set<String> = emptySet()
     private fun isElp(path: String): Boolean = LanguageServerRegistry.forPath(path, extraLanguageServers()).firstOrNull()?.let(LspServerProfiles::isElp) == true
-    // Capture every editor companion before ordinary-family routing; disk configuration may be
-    // non-Erlang and every closed/reopened lifetime must withdraw ELP held results.
+    // Capture every editor companion before ordinary-family routing; disk configuration may
+    // be non-Erlang and every closed/reopened lifetime must withdraw ELP held results.
     private fun observeElpCompanion(path: String, text: String, opened: Boolean = false) {
         if (!SensitivePathPolicy.isSensitive(path)) elp.observeEditorDocument(path, text, opened)
     }
@@ -397,7 +400,7 @@ class ProfessionalLspManager(
         { LanguageServerRegistry.forPath("__graphql_profile__.graphql", extraLanguageServers()).firstOrNull()?.let(LspServerProfiles::isGraphql) == true }, approveProjectAnalysis,
         onDiagnostics = { publication -> synchronized(lifetimeLock) {
             if (!closed) publication.publishIfCurrent { native ->
-
+                // Outer parent lifetime then inner GraphQL admission; the callback is a pure state update.
                 _diagnostics.update { ordinary -> (ordinary - graphqlDiagnosticUris) + native }
                 graphqlDiagnosticUris = native.keys
             }
@@ -442,8 +445,8 @@ class ProfessionalLspManager(
         } }, routeForPath = ::isToml) }
     private var tomlDiagnosticUris: Set<String> = emptySet()
     private fun isToml(path: String): Boolean = LanguageServerRegistry.forPath(path, extraLanguageServers()).firstOrNull()?.let(LspServerProfiles::isToml) == true
-    // Ordinary editor routes keep their existing canonical authority. A path that this read-only
-    // profile can never admit must not break an unrelated editor.
+    // Ordinary editor routes keep their existing canonical authority. A path that
+    // this read-only profile can never admit must not break an unrelated editor.
     private fun tomlCompanionAllowed(key: String): Boolean = key.isNotEmpty() &&
         !SensitivePathPolicy.isSensitive(File(root, key).path)
     private fun observeTomlCompanion(key: String, text: String) {
@@ -464,18 +467,18 @@ class ProfessionalLspManager(
     private val startMutex = Mutex()
     private val servers = ConcurrentHashMap<ServerKey, ServerState>()
     private val unavailableUntil = ConcurrentHashMap<ServerKey, Long>()
-    private var environmentEpoch = 0L
+    private var environmentEpoch = 0L // guarded by lifetimeLock
     private val startupFailures = ConcurrentHashMap<ServerKey, LspStartupFailure>()
     @Volatile private var diskIndexMutationEpoch = 0L
     private val analysisConsent = LspProjectAnalysisConsent()
-    // Tokens order admitted ZLS saves within one open lifetime. They do not retract a save already
-    // admitted to the transport's NonCancellable write boundary.
-    private val zlsSaveTokens = mutableMapOf<String, Long>()
+    // Tokens order admitted ZLS saves within one open lifetime. They do not retract
+    // a save already admitted to the transport's NonCancellable write boundary.
+    private val zlsSaveTokens = mutableMapOf<String, Long>() // lifetimeLock
     private data class ZlsSaveDemand(val path: String, val spec: LanguageServerSpec, val key: ServerKey,
         val permit: LspProjectAnalysisConsent.Permit, val generation: Long, val token: Long)
     private val pendingAnalysis = ConcurrentHashMap<LspProjectAnalysisConsent.Ticket, Deferred<Boolean>>()
-    // Registered before discovery. Authority retirement captures startup preparation as well as
-    // established sessions; only the exact attempt may remove its ownership.
+    // Registered before discovery. Authority retirement captures startup preparation as
+    // well as established sessions; only the exact attempt may remove its ownership.
     private class AnalysisStartup(
         val permit: LspProjectAnalysisConsent.Permit, val path: String,
         val spec: LanguageServerSpec, val key: ServerKey,
@@ -489,12 +492,13 @@ class ProfessionalLspManager(
         var detail: String? = null
         var powershellNoticeBits = 0 // lifetimeLock; fixed local categories, never remote message text
     }
-    private val clojureWarmups = mutableMapOf<ServerKey, AnalysisStartup>()
+    private val clojureWarmups = mutableMapOf<ServerKey, AnalysisStartup>() // lifetimeLock
     private val _statusRevision = MutableStateFlow(0L)
     override val statusRevision: StateFlow<Long> = _statusRevision.asStateFlow()
     private fun statusChanged() { _statusRevision.update { it + 1L } }
-    private val analysisStartups = mutableSetOf<AnalysisStartup>() // lifetimeLock Immutable entries are revision/open-generation tokens. A null text is a durable
- // close tombstone, including when no process existed at the time of didClose.
+    private val analysisStartups = mutableSetOf<AnalysisStartup>() // lifetimeLock
+    // Immutable entries are revision/open-generation tokens. A null text is a durable
+    // close tombstone, including when no process existed at the time of didClose.
     private class DocumentSnapshot(val text: String?, val generation: Long) { val revision = LSP_DOCUMENT_REVISION.incrementAndGet() }
     private data class DocumentRequest(
         val path: String,
@@ -503,10 +507,10 @@ class ProfessionalLspManager(
         val suppliedText: String?,
         val admission: Any?,
     )
-    // A file-backed request is evidence only for its immutable captured bytes. It neither opens an
-    // editor ledger entry nor certifies external disk freshness.
+    // A file-backed request is evidence only for its immutable captured bytes. It
+    // neither opens an editor ledger entry nor certifies external disk freshness.
     private class PrismaAdmission(val request: DocumentRequest, val key: ServerKey) {
-        var owner: ServerState? = null
+        var owner: ServerState? = null // lifetimeLock
     }
     private data class PrismaWireDocument(val snapshot: DocumentSnapshot?, val admission: Any?, val text: String)
     private val prismaAdmissions = ConcurrentHashMap<String, PrismaAdmission>()
@@ -518,8 +522,8 @@ class ProfessionalLspManager(
     private fun builtinSqruff(path: String): LanguageServerSpec? =
         LanguageServerRegistry.forPath(path, extraLanguageServers()).firstOrNull()?.takeIf(LspServerProfiles::isSqruff)
 
-    // Called under lifetimeLock after publishing the authoritative revision. Queued frames fail on
-    // the epoch immediately; actual process cleanup stays outside it.
+    // Called under lifetimeLock after publishing the authoritative revision. Queued
+    // frames fail on the epoch immediately; actual process cleanup stays outside it.
     private fun invalidateSqruffText(path: String): SqruffCleanup {
         val projects = buildSet {
             builtinSqruff(path)?.let { add(serverKey(it, path).projectPath) }
@@ -593,11 +597,39 @@ class ProfessionalLspManager(
 
     override suspend fun diagnose(relPath: String): String = if (isElp(relPath)) elp.diagnose(relPath) else if (isGraphql(relPath)) graphql.diagnose(relPath) else if (isToml(relPath)) toml.diagnose(relPath) else if (isCSharp(relPath)) csharp.diagnose(relPath) else diagnoseRequest(relPath)
 
+    private fun usesLocalDocumentFeatures(path: String): Boolean = LocalDocumentIntelligence.supports(path) &&
+        LanguageServerRegistry.forPath(path, extraLanguageServers()).isEmpty()
+
+    private fun localDocumentGuard(request: DocumentRequest) = LspHeldResultGuard {
+        !closed && managerJob.isActive && documentRequestStillCurrent(request) && usesLocalDocumentFeatures(request.path)
+    }
+
+    private suspend fun localDocumentResult(request: DocumentRequest): LocalDocumentIntelligence.Result? {
+        val result = withContext(Dispatchers.Default) { LocalDocumentIntelligence.analyze(request.path, request.text) }
+        return result.takeIf { localDocumentGuard(request).isCurrent() }
+    }
+
+    private suspend fun localDocumentDefinitions(request: DocumentRequest, line: Int, column: Int): List<LspLocation> {
+        val result = withContext(Dispatchers.Default) {
+            LocalDocumentIntelligence.definition(request.path, request.text, line, column)
+        }
+        val guard = localDocumentGuard(request)
+        return if (guard.isCurrent()) result.map { it.copy(activationGuard = guard) } else emptyList()
+    }
+
     private suspend fun diagnoseExistingVue(state: ServerState, path: String): String = diagnoseRequest(path, state)
 
     private suspend fun diagnoseRequest(relPath: String, expectedVue: ServerState? = null): String {
         if (builtinCMake(canonicalPath(relPath)) != null) return LspCMakeProfile.FEATURE_NOTE
         val request = admitDocument(relPath)
+        if (usesLocalDocumentFeatures(request.path)) {
+            val result = localDocumentResult(request) ?: return "Document changed; request local checks again."
+            result.limit?.let { return it }
+            if (LanguageRegistry.forFile(request.path)?.id == "batch")
+                return "Batch outline and navigation are available. Syntax diagnostics require a custom language server."
+            return result.diagnostics.joinToString("\n") { "${it.line}:${it.column}: ${it.message}" }
+                .ifBlank { "Local syntax checks completed. No issue found in the supported checks; runtime and schema validation were not performed." }
+        }
         val state = (if (expectedVue == null) serverFor(request.path) else synchronized(lifetimeLock) {
             expectedVue.takeIf { vueOwnerCurrent(it) }
         }) ?: return if (analysisTarget(request.path) != null)
@@ -622,8 +654,8 @@ class ProfessionalLspManager(
         }
         val basis = previous?.takeIf { !LspServerProfiles.isVue(state.spec) && !LspServerProfiles.isSvelte(state.spec) && it.state === state && it.resultId != null }
         val provenance = "pull request $requestId; version $version"
-        // The timeout bounds waiting only. Neither silence, cancellation nor an error constitutes an
-        // empty report. Caller cancellation still propagates normally.
+        // The timeout bounds waiting only. Neither silence, cancellation nor an error
+        // constitutes an empty report. Caller cancellation still propagates normally.
         val response = runSuspendCatching {
             withTimeoutOrNull(if (LspServerProfiles.isVue(state.spec)) 11_000 else 2_000) {
                 featureRequest(state, prepared, "textDocument/diagnostic", buildJsonObject {
@@ -668,8 +700,8 @@ class ProfessionalLspManager(
         }
     }
 
-    // Caller owns lifetimeLock: checking provenance and producing the verdict is atomic with editor
-    // revision publication and newer push/pull report admission.
+    // Caller owns lifetimeLock: checking provenance and producing the verdict is atomic
+    // with editor revision publication and newer push/pull report admission.
     private fun renderDiagnostics(path: String, state: ServerState, prepared: PreparedDocument, report: DiagnosticReport?): String {
         val version = prepared.requestVersions[prepared.request.path]
         if (!requestStillCurrent(state, prepared)) return "Diagnostics stale: $path changed; request diagnostics again."
@@ -713,6 +745,16 @@ class ProfessionalLspManager(
         if (builtinSqruff(canonicalPath(path)) != null) return LspSqruffProfile.FEATURE_NOTE
         if (builtinCMake(canonicalPath(path)) != null && op !in setOf("completion", "hover")) return LspCMakeProfile.FEATURE_NOTE
         val request = admitDocument(path)
+        if (usesLocalDocumentFeatures(request.path)) {
+            captureGuard?.invoke(localDocumentGuard(request))
+            val result = localDocumentResult(request) ?: return "Document changed; request local features again."
+            result.limit?.let { return it }
+            return when (op) {
+                "documentSymbol" -> result.symbols.joinToString("\n") { "${it.line}:${it.column}: ${it.name}" }.ifBlank { "(no symbols)" }
+                "goToDefinition" -> localDocumentDefinitions(request, line, col).joinToString("\n") { "${it.path}:${it.line}:${it.column}" }.ifBlank { "(no local definition)" }
+                else -> "${LocalDocumentIntelligence.status(request.path)}. $op requires an appropriate custom language server."
+            }
+        }
         if (builtinCMake(request.path) != null) {
             val view = LspCMakePositionCodec.capture(request.text) ?: return "CMake text is unavailable for scalar analysis."
             if (view.toWire(line, col) == null || op == "completion" && LspCMakeCompletionContext.capture(view, line, col) == null)
@@ -873,7 +915,7 @@ class ProfessionalLspManager(
                 requiredCaret = if (inferred) prismaContext?.requestCaret else null, isCurrent = ::applicationCurrent))
         }
         val guard = LspCompletionApplicationGuard(prepared.text) {
-
+            // A popup acceptance check performs no filesystem I/O or suspension.
             synchronized(lifetimeLock) {
                 !closed && servers[state.key] === state && clojureReady(state) && state.rpc.isRunning &&
                     state.key.workspaceMutationEpoch == mutationEpoch(state.spec) &&
@@ -974,8 +1016,8 @@ class ProfessionalLspManager(
         if (builtinCMake(canonicalPath(path)) != null || builtinNim(canonicalPath(path)) != null) return emptyList()
         val request = admitDocument(path, currentText)
         if (builtinSqruff(request.path) != null) {
-            // A finite quiet interval bounds automatic demand without launching from didChange or retrying
-            // forever during continuous typing.
+            // A finite quiet interval bounds automatic demand without launching from
+            // didChange or retrying forever during continuous typing.
             delay(500)
             if (!documentRequestStillCurrent(request)) return emptyList()
         }
@@ -1020,6 +1062,11 @@ class ProfessionalLspManager(
     }
 
     override suspend fun locationItems(op: String, path: String, line: Int, col: Int): List<LspLocation> {
+        if (usesLocalDocumentFeatures(path)) {
+            if (op != "goToDefinition") return emptyList()
+            val request = admitDocument(path)
+            return localDocumentDefinitions(request, line, col)
+        }
         if (isElp(path)) return elp.locationItems(op, path, line, col)
         if (isGraphql(path) || isToml(path)) return emptyList()
         if (isCSharp(path)) return csharp.locationItems(op, path, line, col)
@@ -1049,6 +1096,12 @@ class ProfessionalLspManager(
     }
 
     override suspend fun symbolItems(path: String): List<LspSymbol> {
+        if (usesLocalDocumentFeatures(path)) {
+            val request = admitDocument(path)
+            val result = localDocumentResult(request) ?: return emptyList()
+            val guard = localDocumentGuard(request)
+            return result.symbols.map { it.copy(activationGuard = guard) }
+        }
         if (isElp(path)) return elp.symbolItems(path)
         if (isGraphql(path)) return graphql.symbolItems(path)
         if (isToml(path)) return toml.symbolItems(path)
@@ -1322,6 +1375,7 @@ class ProfessionalLspManager(
         }, state, requestText, requestVersions, prepared)
     }
 
+
     private suspend fun formatSqruff(state: ServerState, request: DocumentRequest, options: LspFormattingOptions?): LspWorkspaceEdit? =
         state.sqruffFormatMutex.withLock {
             val prepared = prepareDocument(state, request) ?: return@withLock null
@@ -1349,8 +1403,8 @@ class ProfessionalLspManager(
                     }, state, prepared.requestText, prepared.requestVersions)
                 }
             } finally {
-                // Native formatting mutates its own buffer before acceptance. Never let a proposal, rejection,
-                // timeout or cancellation reuse that owner.
+                // Native formatting mutates its own buffer before acceptance. Never
+                // let a proposal, rejection, timeout or cancellation reuse that owner.
                 retireServer(state)
             }
         }
@@ -1497,8 +1551,8 @@ class ProfessionalLspManager(
         val beforeRead = synchronized(lifetimeLock) {
             if (closed) return
             val snapshot = documents[key]
-            // Both save entrypoints require an existing editor lifetime for ZLS. A null-text save after
-            // Close must not resurrect a disk-backed tab.
+            // Both save entrypoints require an existing editor lifetime for ZLS.
+            // A null-text save after Close must not resurrect a disk-backed tab.
             if (LanguageServerRegistry.forPath(key, extraLanguageServers()).firstOrNull()?.let { LspServerProfiles.isZls(it) || LspServerProfiles.isPrisma(it) || LspServerProfiles.isSqruff(it) || LspServerProfiles.isCMake(it) || LspServerProfiles.isNim(it) } == true &&
                 snapshot?.text == null) return
             snapshot
@@ -1589,8 +1643,8 @@ class ProfessionalLspManager(
         if (builtinNim(key) != null) {
             val cleanup = synchronized(lifetimeLock) {
                 if (closed || documents[key] !== savedGeneration) return
-                // Direct save API refresh is scoped to this Nim root. The ordinary persisted-workspace callback
-                // separately invalidates all disk indexes.
+                // Direct save API refresh is scoped to this Nim root. The ordinary
+                // persisted-workspace callback separately invalidates all disk indexes.
                 val spec = builtinNim(key) ?: return
                 val project = serverKey(spec, key).projectPath
                 nimSaveRefreshEpochs.merge(project, 1L, Long::plus)
@@ -1613,7 +1667,7 @@ class ProfessionalLspManager(
             }
             cleanup.second.forEach(::stopAnalysisStartup)
             cleanup.first.forEach(::retireServer)
-            return
+            return // Next supported demand starts once; no native didSave or automatic restart.
         }
         val demand = synchronized(lifetimeLock) {
             val spec = LanguageServerRegistry.forPath(key, extraLanguageServers()).firstOrNull()
@@ -1640,8 +1694,8 @@ class ProfessionalLspManager(
             documentMutex.withLock {
                 if (closed || !handlesDocument(state, key) ||
                     (LspServerProfiles.isZls(state.spec) && (demand == null || !currentZlsSave(demand)))) return@withLock
-                // A fresh ZLS owner must see every live dirty sibling before its save-triggered build work, not
-                // just the file that was persisted.
+                // A fresh ZLS owner must see every live dirty sibling before its
+                // save-triggered build work, not just the file that was persisted.
                 if (LspServerProfiles.isZls(state.spec)) {
                     replayDocuments(state)
                     if (demand == null || !currentZlsSave(demand)) return@withLock
@@ -1651,8 +1705,8 @@ class ProfessionalLspManager(
                 if (documents[key]?.generation != savedGeneration.generation) return@withLock
                 synchronizeServerDocument(state, key, latest)
                 if (LspServerProfiles.isZls(state.spec) && (demand == null || !currentZlsSave(demand))) return@withLock
-                // ZLS advertises save=true without text. A later already-admitted notification may redundantly
-                // check, but cannot restore older text.
+                // ZLS advertises save=true without text. A later already-admitted
+                // notification may redundantly check, but cannot restore older text.
                 state.documentSync.saveSnapshot(uriFor(state, key), languageId(key), savedText, latest)
             }
         }
@@ -1688,8 +1742,8 @@ class ProfessionalLspManager(
             csharp.didClose(path); return
         }
         val key = canonicalPath(path)
-        // A native server may retain its last dirty buffer after didClose. Reuse only when the closing
-        // snapshot matches disk; discarded/unknown text retires it.
+        // A native server may retain its last dirty buffer after didClose. Reuse only
+        // when the closing snapshot matches disk; discarded/unknown text retires it.
         val closingSnapshot = synchronized(lifetimeLock) {
             documents[key]?.takeIf { snapshot -> snapshot.text != null && clojureWarmups.values.any { owner ->
                 owner.phase == LspProjectAnalysisReadiness.READY &&
@@ -1734,8 +1788,8 @@ class ProfessionalLspManager(
         clojureCleanup.forEach(::stopAnalysisStartup)
         documentMutex.withLock {
             if (closed) return@withLock
-            // Close the recorded owner even if a marker changed the current route. If a new open won, only
-            // its current owner may receive that buffer.
+            // Close the recorded owner even if a marker changed the current route.
+            // If a new open won, only its current owner may receive that buffer.
             servers.values.toList().filter { key in it.documentPaths || handlesDocument(it, key) }.forEach { state ->
                 val currentOwner = handlesDocument(state, key)
                 val latest = documents[key]?.text
@@ -1836,8 +1890,8 @@ class ProfessionalLspManager(
         return synchronized(lifetimeLock) {
             val available = projectAvailable(target.first, File(target.second.projectPath)) &&
                 (!LspServerProfiles.isVue(target.first) || LspVueProfile.documentAvailable(root, document))
-            // Temporary disk unavailability is an admission barrier, not a newly observed configuration that
-            // should erase an unchanged prior grant.
+            // Temporary disk unavailability is an admission barrier, not a newly
+            // observed configuration that should erase an unchanged prior grant.
             val permit = if (LspServerProfiles.isVue(target.first) && !available)
                 vueGrantedPermits[root.path]?.takeIf(analysisConsent::isCurrent)
             else if (LspServerProfiles.isNim(target.first) && !available)
@@ -2064,15 +2118,15 @@ class ProfessionalLspManager(
             clearDiagnosticReports { LspServerProfiles.isVue(it.state.spec) }
             prismaAdmissions.clear()
             sqruffAdmissions.clear()
-
+            // Retain readiness for servers that synchronize edits/saves in place (such as R).
             clojureWarmups.entries.removeAll { LspServerProfiles.refreshAfterPersistedMutation(it.value.spec) }
             statusChanged()
             servers.values.filter { LspServerProfiles.refreshAfterPersistedMutation(it.spec) } to
                 analysisStartups.filter { LspServerProfiles.refreshAfterPersistedMutation(it.spec) }
                     .map { it.task to it.rpc }
         }
-        // Freshness is independent of project consent. Capture exact owners under the publication lock,
-        // then cancel/close outside it; never launch on mutation.
+        // Freshness is independent of project consent. Capture exact owners under
+        // the publication lock, then cancel/close outside it; never launch on mutation.
         obsolete.second.forEach(::stopAnalysisStartup)
         obsolete.first.forEach(::retireServer)
     }
@@ -2107,8 +2161,7 @@ class ProfessionalLspManager(
             }
             statusChanged()
         }
-        // Normal startup revalidates consent, route and process admission; never replaces a healthy
-        // owner.
+        // Normal startup revalidates consent, route and process admission; never replaces a healthy owner.
         return if (serverFor(canonical) != null) serverStatus(canonical) else
             startupFailure(canonical)?.message ?: serverStatus(canonical)
     }
@@ -2178,8 +2231,8 @@ class ProfessionalLspManager(
     }
 
     private fun clojureNotReady(owner: AnalysisStartup): LspProjectAnalysisNotReadyException? = synchronized(lifetimeLock) {
-        // Replay can publish READY between queueing and this observation. Capture the phase and
-        // construct its typed result under the same publication lock.
+        // Replay can publish READY between queueing and this observation. Capture
+        // the phase and construct its typed result under the same publication lock.
         if (owner.phase == LspProjectAnalysisReadiness.READY) return@synchronized null
         LspProjectAnalysisNotReadyException(owner.phase, owner.detail ?: if (owner.phase == LspProjectAnalysisReadiness.FAILED)
             "${preparationLabel(owner.spec)} project analysis failed; check project tools/configuration, then choose Retry or Revoke."
@@ -2216,8 +2269,8 @@ class ProfessionalLspManager(
             created.task = managerScope.async(start = CoroutineStart.LAZY) {
                 var completed = false
                 try {
-                    // The deadline starts at registration, not when a delayed lazy coroutine finally gets scheduled.
-                    // No retry resets this budget.
+                    // The deadline starts at registration, not when a delayed lazy
+                    // coroutine finally gets scheduled. No retry resets this budget.
                     val elapsedMs = (System.nanoTime() - created.registeredAtNanos).coerceAtLeast(0L) / 1_000_000L
                     val remainingMs = requireNotNull(LspBackgroundPreparationPolicy.forSpec(spec)).attemptMs - elapsedMs
                     if (remainingMs <= 0L) {
@@ -2292,8 +2345,8 @@ class ProfessionalLspManager(
             statusChanged()
             owner.task to owner.rpc
         }
-        // Never cancel/close while holding the publication lock or await this owner from its own inbound
-        // request/notification callback.
+        // Never cancel/close while holding the publication lock or await this owner
+        // from its own inbound request/notification callback.
         managerScope.launch { stopAnalysisStartup(cleanup) }
     }
 
@@ -2354,8 +2407,9 @@ class ProfessionalLspManager(
         check(!closed && managerJob.isActive) { "Language-server manager has been closed" }
         retireObservedClojure(path)
         requirePrismaSupport(path)
-        // Initial replay owns documentMutex.
-
+        // Initial replay owns documentMutex. A feature caller must observe the
+        // manager-owned preparation state without waiting behind that replay.
+        // Keep custom routes and all other families on their existing path.
         LanguageServerRegistry.forPath(path, extraLanguageServers()).firstOrNull()
             ?.takeIf(::usesBackgroundPreparation)?.let { spec ->
                 val key = serverKey(spec, path)
@@ -2411,8 +2465,8 @@ class ProfessionalLspManager(
         val project = if (LspServerProfiles.isCMake(spec)) cmakeSelection(path)?.sourceLocalCanonical?.let(::File)
             ?: File(root, path).parentFile else if (LspServerProfiles.hasProjectRoots(spec))
             LspServerProfiles.projectRoot(spec, root, files.resolveChecked(path)) else root
-        // The released Vim server uses marker names from initialization, not rootUri. Replacing markers
-        // at the same path must therefore invalidate the session.
+        // The released Vim server uses marker names from initialization, not rootUri.
+        // Replacing markers at the same path must therefore invalidate the session.
         return ServerKey(spec.id, project.path, LspServerProfiles.initializationOptions(spec, project),
             if (LspServerProfiles.requiresProjectAnalysis(spec, path)) analysisConfiguration(spec, project) else null,
             if (spec.id == "marksman") LspServerProfiles.analysisConfiguration(spec) else null,
@@ -2682,7 +2736,7 @@ class ProfessionalLspManager(
                     vueCaptureCurrent(state, ticket, false)
                 }
                 if (current) return ticket
-
+                // No failure or retagging: replay the latest full set in the same operation budget.
                 if (request != null && !synchronized(lifetimeLock) { documentRequestStillCurrent(request) }) throw LspVueRequests.NotAdmitted()
             } catch (drop: LspVueRequests.NotAdmitted) { throw drop }
             catch (failure: Throwable) { failVue(state, "Vue synchronization failed; Retry after owned cleanup."); throw failure }
@@ -2713,8 +2767,8 @@ class ProfessionalLspManager(
             val (result, outcomes) = LspVueResultAuthority.response(response, envelope)
             synchronized(lifetimeLock) {
                 if (ticket.diagnosticGeneration != null && ticket.diagnosticGeneration != state.vueDiagnosticGeneration) return JsonNull
-                // Native work completed with a valid correlated envelope. Superseded UI/capture results are
-                // inert: only malformed envelopes, uncertain transport and deadlines retire the pair.
+                // Native work completed with a valid correlated envelope. Superseded UI/capture results
+                // are inert: only malformed envelopes, uncertain transport and deadlines retire the pair.
                 if (!vueCaptureCurrent(state, ticket, false)) return JsonNull
                 state.vueOutcomeNote = outcomes.entries.joinToString("; ") { (source, raw) ->
                     val o = raw as JsonObject
@@ -3023,6 +3077,7 @@ class ProfessionalLspManager(
         var discoveryFailure: ToolchainProbeFailed? = null
         for (candidate in spec.commands) {
             if (candidate.isEmpty()) continue
+            
 
             val remote = remoteProcessHost ?: continue
             val resolved = try {
@@ -3105,8 +3160,8 @@ class ProfessionalLspManager(
                     if (LspServerProfiles.isSqruff(spec))
                         return remote.startReviewedSqruffInWorkspace(requireNotNull(sqruffIdentity), argv, environment,
                             mapper.localToRemote(projectRoot), requireNotNull(resourceLimits)) { create ->
-                            // The host verifies managed bytes under its package gates before entering this bounded action.
-                            // No suspension or hashing occurs under lifetimeLock.
+                            // The host verifies managed bytes under its package gates before entering
+                            // this bounded action. No suspension or hashing occurs under lifetimeLock.
                             synchronized(lifetimeLock) {
                                 requireCurrentStart()
                                 create()
@@ -3140,8 +3195,8 @@ class ProfessionalLspManager(
                 require(remote.executionScope == ProcessExecutionScope.LOCAL_LINUX_ARM64) { "The reviewed Texlab launcher requires local Ubuntu" }
                 LspTexlabLaunchPolicy.command(originalCommand)
             } else originalCommand
-            // Compute mapping once on the ordinary preparation path, never while answering a native callback
-            // on the serialized inbound handler.
+            // Compute mapping once on the ordinary preparation path, never while
+            // answering a native callback on the serialized inbound handler.
             val powershellWorkspaceFolders = if (LspServerProfiles.isPowerShell(spec)) buildJsonArray {
                 if (key.publishesWorkspaceRoot) add(workspaceFolder(mapper, projectRoot, spec))
             } else null
@@ -3200,8 +3255,9 @@ class ProfessionalLspManager(
                         startup?.let { stopAnalysisStartup(it.task to it.rpc) }
                     }
                 })
-            // A single exact callback guard therefore covers the queued response without a per-request map,
-            // transport changes or filesystem reads on the callback path.
+            // JsonRpcProcess handles inbound requests serially and awaits each response write.
+            // A single exact callback guard therefore covers the queued response without a
+            // per-request map, transport changes or filesystem reads on the callback path.
             val powershellCallbackAdmission = java.util.concurrent.atomic.AtomicReference<(() -> Boolean)?>(null)
             val nimCallbackAdmission = java.util.concurrent.atomic.AtomicReference<(() -> Boolean)?>(null)
             val nimRootUri = if (LspServerProfiles.isNim(spec)) mapper.remoteUriFor(projectRoot).trimEnd('/') else ""
@@ -3319,8 +3375,8 @@ class ProfessionalLspManager(
                                 }
                             }
                             check(projectAvailable(spec, projectRoot)) { unavailableProjectMessage(spec, File(key.projectPath)) }
-                            // A shared parent session is not owned forever by its first document. Check configuration here
-                            // and each actual URI below.
+                            // A shared parent session is not owned forever by its first
+                            // document. Check configuration here and each actual URI below.
                             check(LanguageServerRegistry.forPath(path, extraLanguageServers()).any {
                                 it.id == spec.id && analysisConfiguration(it, projectRoot) == key.analysisConfiguration
                             }) { "Language-server configuration changed" }
@@ -3433,7 +3489,7 @@ class ProfessionalLspManager(
                         svelteCallbackAdmission.set {
                             val current = svelteOwnerCurrent() && authority.registrationCurrent(result)
                             if (current && result is LspSvelteWatchAuthority.RegistrationResult.Accepted && result.observation != null)
-                                svelteRegistrationWritten.complete(Unit)
+                                svelteRegistrationWritten.complete(Unit) // inside the serialized writer, before any replay frame
                             current
                         }
                         when (result) {
@@ -3518,7 +3574,9 @@ class ProfessionalLspManager(
                     put("workspaceFolders", buildJsonArray { if (key.publishesWorkspaceRoot) add(workspaceFolder(mapper, projectRoot, spec)) })
                     put("capabilities", LspServerProfiles.clientCapabilities(spec))
                     put("initializationOptions", if (LspServerProfiles.isPowerShell(spec))
-                        LspPowerShellProfile.initializationOptions(mapper.localToRemote(projectRoot)) else key.initializationOptions)
+                        LspPowerShellProfile.initializationOptions(mapper.localToRemote(projectRoot))
+                        else if (LspMdxProfile.matches(spec)) LspMdxProfile.initializationOptions(executable)
+                        else key.initializationOptions)
                     put("trace", "off")
                 }
                 failureStage = LspStartupStage.INITIALIZE
@@ -3560,7 +3618,8 @@ class ProfessionalLspManager(
                 if (startup?.background == true) startup.state = initializedState
                 initializedState.notificationJob = earlyNotifications ?: managerScope.launch(start = CoroutineStart.UNDISPATCHED) {
                     rpc.notifications.collect { event ->
-
+                        // Subscribe before initialized, but expose neither events nor the
+                        // server to callers until that notification is fully sent.
                         published.await()
                         if (event.method == "textDocument/publishDiagnostics") consumeDiagnostics(event.params, initializedState)
                     }
@@ -3618,10 +3677,11 @@ class ProfessionalLspManager(
                 state?.let { servers.remove(key, it); it.close() } ?: try { rpc.close() } finally { nimOwner?.close() }
             }
         }
+        
 
         // Failed observation must not look like a missing server or enter the missing-tool backoff.
         discoveryFailure?.let { throw it }
-
+        // Failure publication and backoff share the exact lifetime/consent/admission fence.
         synchronized(lifetimeLock) {
             if (!closed && managerJob.isActive && runCatching { requireCurrentStart() }.isSuccess) {
                 if (lastError != null || capturedEnvironmentEpoch == environmentEpoch)
@@ -3641,8 +3701,8 @@ class ProfessionalLspManager(
             if (LspServerProfiles.isVue(state.spec) && LspVueProfile.relevantPath(path) && !LspVueProfile.supportsPath(path)) continue
             if (path !in state.documentPaths || handlesDocument(state, path)) continue
             if (!usesScopedRouting(state)) {
-                // Generic sessions span this workspace. A changed/removed route no longer owns this document;
-                // never reuse its process or diagnostics.
+                // Generic sessions span this workspace. A changed/removed route no
+                // longer owns this document; never reuse its process or diagnostics.
                 retireServer(state)
                 continue
             }
@@ -3651,8 +3711,8 @@ class ProfessionalLspManager(
         }
     }
 
-    // Caller owns documentMutex. Keep other documents in a shared old session alive until their own
-    // routing is reconciled; never remove a replacement instance.
+    // Caller owns documentMutex. Keep other documents in a shared old session alive
+    // until their own routing is reconciled; never remove a replacement instance.
     private fun retireEmptyProjectServer(state: ServerState) {
         if (state.documentPaths.isEmpty()) retireServer(state)
     }
@@ -3750,8 +3810,8 @@ class ProfessionalLspManager(
         val (snapshot, admission) = synchronized(lifetimeLock) {
             check(!closed && managerJob.isActive) { "Language-server manager has been closed" }
             val snapshot = documents[key]
-            // Without an editor-owned revision, a later file-backed request supersedes an older one. Reserve
-            // before disk I/O/discovery can suspend either caller.
+            // Without an editor-owned revision, a later file-backed request supersedes
+            // an older one. Reserve before disk I/O/discovery can suspend either caller.
             val admission = if (snapshot?.text == null) Any().also {
                 unmanagedAdmissions[key] = it; prismaAdmissions.remove(key)
                 clearSvelteDiagnosticsForRevision(key)
@@ -3783,7 +3843,7 @@ class ProfessionalLspManager(
             synchronized(lifetimeLock) {
                 check(documentRequestStillCurrent(request)) { "Prisma document changed during admission; retry with current text" }
                 val support = prismaTextStatus(text)
-
+                // Unsupported authoritative text wins over a stale supplied buffer.
                 if (support.permitsAnalysis) require(currentText == null || currentText == text) {
                     "Prisma editor snapshot changed; synchronize before analysis"
                 }
@@ -3801,8 +3861,8 @@ class ProfessionalLspManager(
                 analysisStartups.filter { it.path == key && LspServerProfiles.isPrisma(it.spec) }.map { it.task to it.rpc }
             }
             obsolete.forEach(::stopAnalysisStartup)
-            // Eligibility is already published. Reconcile the recorded old owner, including an unmanaged URI
-            // that never entered the editor ledger.
+            // Eligibility is already published. Reconcile the recorded old owner,
+            // including an unmanaged URI that never entered the editor ledger.
             retireChangedProjectRoots(key)
             throw LspDocumentSupportUnavailableException(unavailable)
         }
@@ -3810,6 +3870,7 @@ class ProfessionalLspManager(
             synchronized(lifetimeLock) { svelteAdmissions[key] = request }
         return request
     }
+
 
     /** Pure captured-owner check: lexical ledger, registry declaration and completed observation only. */
     private fun svelteCaptureCurrent(state: ServerState, snapshots: Map<String, DocumentSnapshot>,
@@ -3879,8 +3940,8 @@ class ProfessionalLspManager(
             val supported = inside && sameRoot && LspSvelteProfile.supportedCompanion(file.path) &&
                 entry?.type == LspSvelteFilePoller.Type.FILE
             if (!supported) {
-                // An unsupported managed dirty source may influence native disk reads. Never silently ignore it
-                // or manufacture a custom update for an unsupported suffix.
+                // An unsupported managed dirty source may influence native disk reads. Never
+                // silently ignore it or manufacture a custom update for an unsupported suffix.
                 val diskMatches = if (entry?.type == LspSvelteFilePoller.Type.FILE)
                     entry.digest == svelteTextDigest(snapshot.text)
                 else if (!inside) runSuspendCatching {
@@ -3926,8 +3987,8 @@ class ProfessionalLspManager(
     private fun relevantDocuments(state: ServerState): Map<String, DocumentSnapshot> =
         if (LspServerProfiles.isVue(state.spec)) vueLedger.filterValues { it.text != null }
         else if (LspServerProfiles.isSvelte(state.spec)) documents.filterKeys { path ->
-            // Conservative workspace-wide capture stays pure on popup/result acceptance. Replay still routes
-            // only exact primary-root documents; scripts use the separate ledger.
+            // Conservative workspace-wide capture stays pure on popup/result acceptance.
+            // Replay still routes only exact primary-root documents; scripts use the separate ledger.
             LspSvelteProfile.supportsPath(path) || LspSvelteProfile.isScriptCandidate(path)
         } else if (LspServerProfiles.isCMake(state.spec)) documents.filterKeys { path ->
             LspCMakeProfile.supportsPath(path) && cmakeSelection(path) === state.cmakeSelection
@@ -3979,8 +4040,8 @@ class ProfessionalLspManager(
             (!LspServerProfiles.isSqruff(state.spec) || sqruffWireStillCurrent(state, prepared.request.path)) &&
             (!LspServerProfiles.isSvelte(state.spec) || prepared.svelteObservation?.let { state.svelteWatch?.isCurrent(it) } == true)
 
-    // Caller owns documentMutex. If edits arrive during a suspendable wire write, repeat until every
-    // relevant buffer/close has reached this session's ledger.
+    // Caller owns documentMutex. If edits arrive during a suspendable wire write,
+    // repeat until every relevant buffer/close has reached this session's ledger.
     private suspend fun replayDocuments(state: ServerState): Map<String, DocumentSnapshot> {
         if (LspServerProfiles.isVue(state.spec)) return synchronizeVue(state).snapshots
         while (true) {
@@ -4038,15 +4099,15 @@ class ProfessionalLspManager(
 
     private suspend fun closeServerDocument(state: ServerState, path: String, allowCleanSharedClose: Boolean = false) {
         if (LspServerProfiles.isVue(state.spec)) {
-
+            // Full desired membership is the sole close route; no generic native close is written.
             if (state.rpc.isRunning && servers[state.key] === state) synchronizeVue(state)
             return
         }
         if ((usesBackgroundPreparation(state.spec) && !(allowCleanSharedClose &&
                 LspServerProfiles.reusesReadySessionAcrossDocumentClose(state.spec))) ||
             LspServerProfiles.isSqruff(state.spec) || LspServerProfiles.isCMake(state.spec)) {
-            // Native didClose retains dirty analysis for files still on disk. A never-owned tombstone is
-            // inert; an actual owner must be discarded.
+            // Native didClose retains dirty analysis for files still on disk. A
+            // never-owned tombstone is inert; an actual owner must be discarded.
             if (path in state.documentPaths) retireServer(state)
             return
         }
@@ -4062,7 +4123,8 @@ class ProfessionalLspManager(
             retireTransport = true
             throw cancel
         } catch (_: Exception) {
-
+            // A failed close has uncertain wire delivery. Retire this exact process;
+            // a subsequent request will replay current buffers into a fresh ledger.
             retireTransport = true
         } finally {
             state.documentPaths.remove(path)
@@ -4179,8 +4241,9 @@ class ProfessionalLspManager(
             } catch (failure: Throwable) { retireServer(state); throw failure }
             finally { synchronized(lifetimeLock) { if (state.cmakeWireTicket === ticket) state.cmakeWireTicket = null } }
         } else if (LspServerProfiles.isAsm(state.spec)) {
-            // Reopen only the changed buffer on demand; retain the healthy process, configuration and
-            // workspace grant.
+            // Upstream applies incremental tree edits against already-updated text,
+            // and rejects range-less full changes. Reopen only the changed buffer on
+            // demand; retain the healthy process, configuration and workspace grant.
             try {
                 if (state.documentSync.text(uri)?.let { it != effectiveText } == true) state.documentSync.close(uri)
                 state.documentSync.synchronize(uri, languageId(path), effectiveText)
@@ -4207,8 +4270,8 @@ class ProfessionalLspManager(
         put("name", projectRoot.name.ifBlank { "workspace" })
     }
 
-    // Called only after the finite profile parser validates the file URI envelope. No discovery,
-    // prompts or documentMutex: native codeAction waits for this reply.
+    // Called only after the finite profile parser validates the file URI envelope.
+    // No discovery, prompts or documentMutex: native codeAction waits for this reply.
     private fun ownsLemMinxConfigurationScope(state: ServerState, uri: String): Boolean {
         if (closed || !managerJob.isActive || !state.rpc.isRunning || servers[state.key] !== state ||
             state.key.workspaceMutationEpoch != mutationEpoch(state.spec) ||
@@ -4257,6 +4320,7 @@ class ProfessionalLspManager(
     private fun localUri(uri: String, state: ServerState): String =
         localFileFromUri(uri, state)?.toURI()?.toString() ?: uri
 
+
     private suspend fun consumeDiagnostics(params: JsonElement?, state: ServerState) = documentMutex.withLock {
         // Svelte unversioned pushes cannot replace captured inter-file pull evidence.
         if (LspServerProfiles.isVue(state.spec) || LspServerProfiles.isSvelte(state.spec) || LspServerProfiles.isAsm(state.spec)) return@withLock
@@ -4284,8 +4348,8 @@ class ProfessionalLspManager(
             } else null
             val text = sqlView?.originalText ?: state.documentSync.text(uri)
             if (LspServerProfiles.isPrisma(state.spec) && text != state.prismaWireDocuments[path]?.text) return@synchronized
-            // An edit may have published its new authoritative snapshot while waiting for documentMutex. An
-            // old wire-version report must not validate it.
+            // An edit may have published its new authoritative snapshot while waiting
+            // for documentMutex. An old wire-version report must not validate it.
             if (documents[path]?.text?.let { it != text } == true) return@synchronized
             val diagnostics = if (sqlView != null) LspSqruffProfile.convertDiagnostics(
                 obj["diagnostics"] as? JsonArray ?: return@synchronized, sqlView) ?: return@synchronized else obj["diagnostics"]
@@ -4306,8 +4370,10 @@ class ProfessionalLspManager(
         }
     }
 
-    // Caller owns lifetimeLock.
-
+    // Caller owns lifetimeLock. The Svelte capture conservatively includes every
+    // in-workspace primary/companion ledger entry, so any effective revision can
+    // invalidate a captured pull from any Svelte owner. Identical-text updates do
+    // not call this method. This only withdraws reports; it never certifies new text.
     private fun clearSvelteDiagnosticsForRevision(path: String) {
         if (LspVueProfile.relevantPath(path)) {
             vueLedgerMutation++
@@ -4432,7 +4498,7 @@ class ProfessionalLspManager(
             val o = requireNotNull(el as? JsonObject) {
                 "Language server returned a malformed workspace document edit"
             }
-
+            
             require(o["kind"] == null) { "Language server requested a file resource operation; Droide will not apply it implicitly" }
             val textDocument = requireNotNull(o["textDocument"] as? JsonObject) {
                 "Language server document edit is missing its document"
@@ -4488,7 +4554,7 @@ class ProfessionalLspManager(
             return (coordinate("line") ?: return null) to
                 (coordinate("character") ?: return null)
         }
-
+        // Reject malformed targets instead of inventing coordinates or overflowing +1.
         val start = position(range["start"]) ?: return null
         val end = position(range["end"]) ?: return null
         if (end.first < start.first || (end.first == start.first && end.second < start.second)) return null
@@ -4501,15 +4567,16 @@ class ProfessionalLspManager(
             line = start.first + 1,
             column = start.second + 1,
             // Protocol identity/data must round-trip intact for incoming/outgoing calls.
-
+            // Display fields above are independently bounded; truncating this JSON
+            // would silently turn a valid item into an unusable follow-up request.
             rawJson = o.toString(),
         )
     }
 
     private fun parseCodeActions(result: JsonArray, state: ServerState, requestText: Map<String, String>, requestVersions: Map<String, Int?>, prepared: PreparedDocument? = null): List<LspCodeAction> =
         result.mapNotNull { parseCodeAction(it as? JsonObject ?: return@mapNotNull null, state, requestText, requestVersions, prepared) }
-        // Matching display text does not identify a deferred action. Opaque data or commands can resolve
-        // to different fixes even when no edit is available yet.
+        // Matching display text does not identify a deferred action. Opaque data or
+        // commands can resolve to different fixes even when no edit is available yet.
         .distinctBy { Triple(it.title, it.kind, it.edit?.edits) to it.rawJson }
 
     private fun parseCodeAction(o: JsonObject, state: ServerState, requestText: Map<String, String>, requestVersions: Map<String, Int?>, prepared: PreparedDocument? = null): LspCodeAction? {
@@ -4517,8 +4584,8 @@ class ProfessionalLspManager(
         val unsupportedProfileCommand = (LspServerProfiles.isLemMinx(state.spec) || LspServerProfiles.isMake(state.spec) || usesBackgroundPreparation(state.spec) || LspServerProfiles.isPrisma(state.spec)) && o["command"] != null && o["command"] != JsonNull
         val edit = if (unsupportedProfileCommand) null else o["edit"]?.let { runCatching { parseWorkspaceEdit(it, state, requestText, requestVersions, prepared) }.getOrNull() }
         val command = if (unsupportedProfileCommand) null else o["command"] as? JsonObject
-        // Invalid disabled metadata must not turn an action into an enabled one. Ignore only that
-        // malformed item, preserving other actions in the response.
+        // Invalid disabled metadata must not turn an action into an enabled one.
+        // Ignore only that malformed item, preserving other actions in the response.
         val disabledMetadata = if (unsupportedProfileCommand || o["disabled"] == null || o["disabled"] == JsonNull) null
             else o["disabled"] as? JsonObject ?: return null
         val disabledReason = disabledMetadata?.let {
@@ -4537,8 +4604,8 @@ class ProfessionalLspManager(
             edit = edit,
             commandTitle = commandTitle,
             disabledReason = disabled,
-            // Keep opaque resolve data intact; only the display fields are previews. A truncated JSON string
-            // silently prevents codeAction/resolve dispatch.
+            // Keep opaque resolve data intact; only the display fields are previews.
+            // A truncated JSON string silently prevents codeAction/resolve dispatch.
             rawJson = o.toString(),
         )
     }
@@ -4567,8 +4634,8 @@ class ProfessionalLspManager(
                     (location["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull ?: continue
                 } else null
                 val range = (o["selectionRange"] ?: o["range"] ?: location?.get("range")) as? JsonObject
-                // Invalid symbol coordinates must not silently navigate to 1:1 or overflow the editor's
-                // one-based position representation.
+                // Invalid symbol coordinates must not silently navigate to 1:1 or
+                // overflow the editor's one-based position representation.
                 fun position(element: JsonElement?): Pair<Int, Int>? {
                     val value = element as? JsonObject ?: return null
                     fun coordinate(key: String): Int? {
@@ -4604,6 +4671,7 @@ class ProfessionalLspManager(
         return out
     }
 
+
     private fun parseLocations(result: JsonElement, state: ServerState, captured: Map<String, String>? = null): List<LspLocation> {
         val arr = when (result) {
             is JsonArray -> result
@@ -4619,7 +4687,8 @@ class ProfessionalLspManager(
             val range = (o["range"] ?: o["targetSelectionRange"]) as? JsonObject
             if ((LspServerProfiles.isNim(state.spec) || LspServerProfiles.isVue(state.spec)) && (captured?.get(rel)?.let { LspNimResultAuthority.validRange(it, range) } != true || rel !in state.documentPaths)) { nimOmitted(state); return@mapNotNull null }
             // A malformed target must not become a plausible 1:1 navigation result.
-
+            // Validate zero-based UTF-16 coordinates before converting to the editor's
+            // one-based representation; never let malformed siblings abort valid results.
             fun position(element: JsonElement?): Pair<Int, Int>? {
                 val value = element as? JsonObject ?: return null
                 fun coordinate(key: String): Int? {
@@ -4706,6 +4775,7 @@ class ProfessionalLspManager(
     }
 }
 
+ 
 class CliLspManager(
     private val terminal: ITerminalSession,
     private val files: FileRepository? = null,

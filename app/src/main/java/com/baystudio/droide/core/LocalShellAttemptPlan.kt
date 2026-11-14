@@ -3,11 +3,12 @@ package com.baystudio.droide.core
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Necessary argv-only bounds and explicit render reservation. */
-
+/** Necessary argv-only bounds and explicit render reservation. Unknown inherited environment
+ * remains untouched by the launcher and is NOT included in an exact aggregate claim.
+ * This is not permission, success prediction, or authority to retry failed start. */
 internal object LocalShellAttemptPlan {
-    // Shared budget for NEW expanded launches only. Legacy launches are unaffected. Covers final
-    // builder/string/encoder copies and retained input conservatively, not all JVM heap.
+    // Shared budget for NEW expanded launches only. Legacy launches are unaffected.
+    // Covers final builder/string/encoder copies and retained input conservatively, not all JVM heap.
     internal class MemoryBudget(private val maximumBytes: Long = 8L * 1024 * 1024) {
         private var held = 0L
         @Synchronized fun reserve(bytes: Long): Closeable {
@@ -48,8 +49,8 @@ internal object LocalShellAttemptPlan {
         }
         @Synchronized override fun close() {if(!closed){closed=true;reserved.close()}}
     }
-    /** ASCII-only expansion until selected ProcessBuilder Unicode encoder is verified. No changes to
-     * old <=32k Unicode behavior. Source/output are otherwise exact. */
+    /** ASCII-only expansion until selected ProcessBuilder Unicode encoder is verified.
+     * No changes to old <=32k Unicode behavior. Source/output are otherwise exact. */
     fun prepare(nodes:List<CountedShellArgv.Node>, limits:CountedShellArgv.Limits,
                 originalChars:Long, checkCancelled:()->Unit={}, budget:MemoryBudget=memory):Prepared {
         require(originalChars >= 0) { "Invalid source length" }
@@ -58,7 +59,8 @@ internal object LocalShellAttemptPlan {
         val known=validate(frozen,limits)
         var chars=0L
         frozen.forEach { chars=Math.addExact(chars,it.stats.chars) }
-
+        // Source already exists on current String API. Account conservatively for retaining it,
+        // final UTF16 builder + String, and multiple native encoding copies plus fixed overhead.
         val bytes=Math.addExact(65_536L,Math.addExact(Math.multiplyExact(originalChars,2),Math.multiplyExact(chars,12)))
         val ticket=budget.reserve(bytes)
         return try {checkCancelled();Prepared(frozen,ticket,checkCancelled,limits,known)} catch(t:Throwable){ticket.close();throw t}
@@ -73,7 +75,7 @@ internal object LocalShellAttemptPlan {
             require(n.stats.chars<=Int.MAX_VALUE && Math.addExact(n.stats.utf8,1)<=single) { "Expanded command exceeds native per-string bound" }
             sum=Math.addExact(sum,Math.addExact(n.stats.utf8,1))
         }
-
+        // exec path is same as argv[0] in this existing ProcessBuilder path.
         sum=Math.addExact(sum,Math.addExact(nodes.first().stats.utf8,1))
         sum=Math.addExact(sum,Math.multiplyExact(nodes.size.toLong(),limits.pointerBytes.toLong()))
         require(sum<=limits.argMax) { "Expanded command exceeds known argv native bound" }

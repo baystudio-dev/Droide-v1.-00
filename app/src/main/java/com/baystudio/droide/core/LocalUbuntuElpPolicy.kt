@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import kotlinx.serialization.json.*
 
+/** One original publisher image; selected OTP/Rebar are prerequisites with unverified provenance. */
 internal object LocalUbuntuElpPolicy {
     const val FAMILY = "lsp.elp"
     const val COMMAND = "elp"

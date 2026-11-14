@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 
+
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class AgentIdeContextSnapshot(
@@ -111,6 +112,7 @@ object AgentIdeProblemRelevance {
 }
 
 // Workspace-derived strings are explicitly marked as untrusted data, not model instructions.
+
 
 object AgentIdeContextProjection {
     private const val MAX_CONTEXT_CHARS = 8_000

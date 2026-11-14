@@ -6,10 +6,11 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 
+/** Independent exact original LSP/core + Node tuple. No other language receipt supplies authority. */
 internal object LocalUbuntuGraphqlLaunchAuthority {
     const val HEALTH_SEED="graphql-health-identity.json"
     const val POLICY=LspGraphqlLaunchPolicy.PROFILE
-
+    // Exact authored helper bytes. Genuine original/native health remains a separate future gate.
     val expectedHelperHashes:Map<String,String> = mapOf(
         "payload/graphql-adapter.cjs" to "830f722da27d12aa654c4b1587b4a7a406c2f0907398e1cb2b97c2fecc4ce6b7",
         "payload/graphql-bootstrap.cjs" to "4d86782e994071032d03341b0d5fa0f16516eeb7dcb3c566eff4f02073b83f4e",

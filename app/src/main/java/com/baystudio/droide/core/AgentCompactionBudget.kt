@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 
+/** Budget for the history that will be installed, after reserving the next request's prefix. */
 internal data class AgentCompactionBudget(val historyTokens: Int, val keepRecentTokens: Int) {
     init { require(historyTokens > 0 && keepRecentTokens > 0) }
 
@@ -18,8 +19,8 @@ internal data class AgentCompactionBudget(val historyTokens: Int, val keepRecent
         fun forRequest(config: AgentConfig, system: String, tools: JsonArray?): AgentCompactionBudget {
             val prefix = ContextBudget.estimate(system, emptyList(), tools, config.providerId, config.model, null,
                 AgentRequestSupport.outputTokens(config))
-            // Trigger early at the soft threshold, but admit against the real input ceiling. A large fixed
-            // prefix alone can exceed the soft threshold without filling the window.
+            // Trigger early at the soft threshold, but admit against the real input ceiling.
+            // A large fixed prefix alone can exceed the soft threshold without filling the window.
             val ceiling = ContextBudget.effectiveInputTokens(config.providerId, config.model, prefix.reservedOutputTokens)
                 ?: ContextBudget.MOBILE_COMPACT_CHARS / 4
             val limit = ceiling - prefix.approximateTokens - 256
@@ -28,8 +29,8 @@ internal data class AgentCompactionBudget(val historyTokens: Int, val keepRecent
                 (limit / 2).coerceAtLeast(1)))
         }
 
-        // A provider sample can correct a cheap character estimate. Never use cumulative billing,
-        // subtract cached input, or reuse a sample from another session/model/window.
+        // A provider sample can correct a cheap character estimate. Never use cumulative
+        // billing, subtract cached input, or reuse a sample from another session/model/window.
         fun calibrated(estimate: ContextEstimate, previous: AgentContextUsage?, sessionId: String,
             providerId: String, model: String): ContextEstimate = estimate.copy(approximateTokens =
             kotlin.math.ceil(estimate.approximateTokens * scale(previous, sessionId, providerId, model))

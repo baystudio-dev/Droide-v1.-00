@@ -225,8 +225,8 @@ class WorkspaceProcessWriteAdmissionTest {
         }.exceptionOrNull()
         assertTrue(failure.toString(), failure?.message.orEmpty().contains("Capture lease cleanup failed"))
         busy(root)
-        // The process is dead, but its failed receipt deliberately remains owned. This class runs in a
-        // fresh JVM; no test clears a failed production ownership ledger.
+        // The process is dead, but its failed receipt deliberately remains owned. This
+        // class runs in a fresh JVM; no test clears a failed production ownership ledger.
     }
 
     @Test(timeout = 10_000) fun sessionCleanupReleasesOnlyItsConfirmedWriterBeforeReturning() = fixture { root ->

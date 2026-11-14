@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+
 internal class LocalAndroidApkInspector(
     private val projectRoot: File,
     private val runtimeTemporaryRoot: File,

@@ -14,8 +14,11 @@ internal object LegacyAlpineRuntimeRetirement {
 
     fun reject(): Nothing = throw UnsupportedOperationException(UNSUPPORTED_MESSAGE)
 
-    /** Inspect only path metadata, stopping at the first link, non-directory, or missing ancestor. */
-
+    /**
+     * Inspect only path metadata, stopping at the first link, non-directory, or missing ancestor.
+     * Even an empty historical directory is retained and reported; intent contents are never read.
+     * Unknown files, stages, malformed intents and all old guest bytes remain exactly as found.
+     */
     fun pendingCleanupWarning(appRoot: File): String? {
         val root = appRoot.toPath().toAbsolutePath()
         if (root.nameCount > 64 || root.any { it.toString() == "." || it.toString() == ".." }) return PENDING_MESSAGE

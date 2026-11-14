@@ -1,0 +1,38 @@
+--- V1
++++ V2
+@@ -1,3 +1,4 @@
++// Versioned V2 resource-owner correction; exact V1 baseline preserved beside this file.
+ // Separate additional actual-engine contract cohort; not a replacement for the full suite.
+ if (gradle.startParameter.projectProperties['DROIDE_CURRENT_APP_RUNTIME_CONTRACTS'] != 'true') {
+     throw new GradleException('Explicit current app runtime contract opt-in required')
+@@ -74,6 +75,12 @@
+     if (target.exists()) throw new GradleException('Refusing to overwrite contract evidence: ' + target)
+     target.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(value)) + '\n'
+ }
++def resourcePolicy = evaluate(rootProject.file('tools/current_runtime_resources_v2.groovy'))
++def resourceShapes = [
++    android_merged_manifest:[path:'intermediates/packaged_manifests/debugUnitTest/processDebugUnitTestManifest/AndroidManifest.xml',task:'processDebugUnitTestManifest',directory:false],
++    android_resource_apk:[path:'intermediates/apk_for_local_test/debugUnitTest/packageDebugUnitTestForUnitTest/apk-for-local-test.ap_',task:'packageDebugUnitTestForUnitTest',directory:false],
++    android_merged_assets:[path:'intermediates/assets/debug/mergeDebugAssets',task:'mergeDebugAssets',directory:true]
++]
+ def evidenceDir = layout.buildDirectory.dir('current-app-runtime-contracts')
+ def fixtureFiles = fixtures.collect { relative ->
+     def matches = fixtureRoots.collect { new File(it, relative) }.findAll { it.isFile() }
+@@ -236,10 +243,14 @@
+             if (!config.getProperty('android_merged_manifest') || !config.getProperty('android_resource_apk')) {
+                 throw new GradleException('Real AGP manifest/resource APK configuration missing')
+             }
++            resourcePolicy.workingDirectory(projectDir, testTask.get().workingDir)
++            if(config.getProperty('android_custom_package')!='com.baystudio.droide') throw new GradleException('Wrong generated runtime package')
+             def resourceInputs = [:]
+-            ['android_merged_manifest','android_resource_apk'].each { name ->
+-                def path = new File(config.getProperty(name))
+-                resourceInputs[name] = [path:path.absolutePath, sha256:sha(regularBytes(path))]
++            resourceShapes.each { name, shape ->
++                def expected = (shape.directory ? layout.buildDirectory.dir(shape.path) : layout.buildDirectory.file(shape.path)).get().asFile
++                def path = resourcePolicy.resolve(projectDir, config.getProperty(name), expected, shape.directory,
++                        tasks.named(shape.task).get().outputs.files.files)
++                resourceInputs[name] = shape.directory ? [path:path.absolutePath, kind:'directory'] : [path:path.absolutePath, sha256:sha(regularBytes(path))]
+             }
+             writeJson(new File(evidence, 'runtime-inputs.json'), [classpath:classpathEvidence, providers:providers,
+                 robolectricConfig:[origin:configs[0].origin, properties:config], resources:resourceInputs,

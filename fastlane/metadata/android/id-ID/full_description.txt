@@ -1,0 +1,10 @@
+<p>Droide menghadirkan editor kode dan ruang kerja pengembangan di ponsel dan tablet Android.</p>
+<ul>
+<li>Edit proyek dengan penyorotan sintaks, banyak tab, pencarian, language server, dan pemulihan draft.</li>
+<li>Gunakan terminal Ubuntu interaktif, Git, SSH, alat Run/Build, dan browser terintegrasi.</li>
+<li>Pilih penyedia AI atau agent CLI opsional, tinjau aktivitasnya, dan lengkapi alur kerja dengan server MCP serta skill.</li>
+<li>Instal dan perbarui alat pengembangan sesuai kebutuhan. Impor dan ekspor proyek melalui pemilih berkas Android.</li>
+<li>Bekerja dalam mode potret atau gunakan ruang kerja landscape adaptif dengan panel samping.</li>
+</ul>
+<p>Ubuntu lokal memerlukan perangkat ARM64 yang didukung. Pada penggunaan pertama, pilih Instal environment untuk mengunduh sekitar 30 MB dari Canonical. Instalasi dilakukan sekali dan lingkungan digunakan kembali. Setup dapat ditunda agar kamu tetap bisa mengedit berkas.</p>
+<p>Layanan AI opsional dapat memerlukan akun, API key, internet, atau pembayaran. Ubuntu dan alat tambahan diperoleh dari penerbit eksternal setelah persetujuan; unduhan program ini berada di luar pemeriksaan F-Droid.</p>

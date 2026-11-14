@@ -99,8 +99,7 @@ class AgentServiceOwnedChatTest {
                 agent.loadSession(saved)
                 withTimeout(15000){agent.chat("Continue",fixture.config,maxTurns=1)}
                 assertFalse(root.resolve("large.txt").exists())
-                // Runtime Stop can prove no execution began; replay receives cancellation, never an execution
-                // permit.
+                // Runtime Stop can prove no execution began; replay receives cancellation, never an execution permit.
                 assertFalse(agent.messages.value.toString(),agent.messages.value.any { it.content.startsWith("Error:") })
                 assertEquals(2,fixture.requests.size)
                 assertTrue(fixture.requests.last().toString().contains("Cancelled before execution"))

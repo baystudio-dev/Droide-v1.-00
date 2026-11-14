@@ -3,6 +3,8 @@ package com.baystudio.droide
 import android.app.Application
 import java.lang.ref.WeakReference
 import com.baystudio.droide.core.ApplicationExitSequence
+import com.baystudio.droide.core.ApplicationExitDeadline
+import com.baystudio.droide.core.requestAndroidApplicationClose
 import com.baystudio.droide.core.ExitOwnerBarrier
 import com.baystudio.droide.core.ApplicationWorkAdmission
 import com.baystudio.droide.core.ChatMediaCleanup
@@ -31,6 +33,7 @@ class DroideApplication : Application() {
     private var currentInterface = WeakReference<Any>(null)
     internal val startupFailure = MutableStateFlow<String?>(null)
     private var sequence: ApplicationExitSequence? = null
+    private var exitDeadline: ApplicationExitDeadline? = null
     private var originalExitActivity: Any? = null
     internal fun mayPresentWorkspace(activity: Any): Boolean = sequence == null || originalExitActivity === activity
     internal fun shouldCloseUserInterface(activity: Any): Boolean = closeWorkspaceUi.value && originalExitActivity === activity
@@ -44,7 +47,7 @@ class DroideApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
+        // Isolated PDF workers have no workspace/files/network authority or normal app startup.
         if (Application.getProcessName().contains(":document_preview")) return
         try { ApplicationWorkAdmission.initialize(this) }
         catch (_: Exception) { startupFailure.value = "Saved work state could not be read. Droide remains stopped." }
@@ -62,6 +65,8 @@ class DroideApplication : Application() {
     internal fun openFromUser() {
         check(sequence == null || mutableExit.value.completed) { "The previous Exit is not complete. Retry it before opening a new session." }
         check(retainedHost == null) { "Previous workspace ownership has not been released" }
+        exitDeadline?.cancel()
+        exitDeadline = null
         ApplicationWorkAdmission.reopenFromUser()
         sequence = null
         originalExitActivity = null
@@ -90,6 +95,12 @@ class DroideApplication : Application() {
         }
         check(ApplicationWorkAdmission.isCurrentOpen(expectedEpoch)) { "This Exit action belongs to an expired Droide session" }
         originalExitActivity = activity
+        val deadline = ApplicationExitDeadline(
+            prepareClose = { requestAndroidApplicationClose(this) },
+            terminate = { android.os.Process.killProcess(android.os.Process.myPid()) },
+        )
+        exitDeadline = deadline
+        deadline.start()
         val owner = retainedHost
         val backgroundStops = ExitOwnerBarrier(exitScope, listOf(
             ApplicationExitSequence.Step("Project exports") { ExportController.shutdownForExit(this) },
@@ -129,12 +140,11 @@ class DroideApplication : Application() {
                 DevelopmentForegroundService.updateExitStatus(it)
                 it.completed
             }
-            // Finish Android's queued Activity work, then end only this process.
-
+            // Successful cleanup exits immediately; the independent deadline also covers a stuck Main.
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 if (sequence === created && created.state.value.completed &&
                     !ApplicationWorkAdmission.isOpen && ApplicationWorkAdmission.currentEpoch == expectedEpoch) {
-                    android.os.Process.killProcess(android.os.Process.myPid())
+                    deadline.complete()
                 }
             }
         }

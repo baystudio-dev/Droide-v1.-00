@@ -55,6 +55,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+
+
+
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProviderConnectionSheet(
@@ -164,8 +169,8 @@ fun ConnectSheet(
     val selectedMethod = authMethods.firstOrNull { it.id == selectedMethodId }
     LaunchedEffect(credentialFocused, detailViewportHeight, selectedProviderId, selectedMethod?.id) {
         if (credentialFocused && selectedMethod?.storesSecret == true && detailViewportHeight > 0) {
-            // The scroll viewport is measured after insets are consumed. This also covers IME animations and
-            // rotation without guessing keyboard height.
+            // The scroll viewport is measured after insets are consumed. This also
+            // covers IME animations and rotation without guessing keyboard height.
             withFrameNanos { }
             credentialVisibility.bringIntoView()
         }

@@ -26,6 +26,7 @@ import org.robolectric.shadows.ShadowContentResolver
 import java.io.File
 import java.nio.file.Files
 
+/** Real ContentResolver/DocumentsContract boundary against a fault-injecting local provider. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], manifest = Config.NONE)
 class ExportSafDestinationTest {
@@ -42,7 +43,8 @@ class ExportSafDestinationTest {
             authority = "export.test"; exported = true; grantUriPermissions = true
             readPermission = "android.permission.MANAGE_DOCUMENTS"; writePermission = "android.permission.MANAGE_DOCUMENTS"
         })
-
+        // Match Android's legacy-query-to-Bundle transport adaptation. Robolectric 4.14.1
+        // otherwise invokes DocumentsProvider's intentionally unsupported legacy entry point.
         val bridge = LegacyResolverBridge(provider).apply {
             attachInfo(context, ProviderInfo().apply { authority = "export.test" })
         }

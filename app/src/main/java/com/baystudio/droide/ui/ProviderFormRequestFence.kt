@@ -2,6 +2,7 @@ package com.baystudio.droide.ui
 
 import java.util.concurrent.CancellationException
 
+/** Transient form results belong to one request and provider/authentication selection. */
 internal class ProviderFormRequestFence {
     internal class Ticket(val providerId: String, val authMethodId: String?)
 

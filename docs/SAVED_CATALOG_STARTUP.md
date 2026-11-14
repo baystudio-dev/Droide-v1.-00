@@ -1,0 +1,15 @@
+# Reopen a saved journaled catalog selection
+
+Normal application startup now restores an already persisted valid update selection at the fixed catalog-startup location. It does not create a selection, enroll or migrate authority/schema, enable retention, replace policy, acknowledge a command, retry recovery or change ordinary fresh/legacy startup. Partial/corrupt/foreign evidence blocks instead of falling back.
+
+ProjectManager remains the same object owned by WorkspaceCoordinator. Only application-created managers initially defer their backend. Existing IO startup under the registry lease validates fixed-path bounded canonical choice, authority/membership and persisted retention policy, then publishes one immutable store/startup route. Injected constructors retain their original fixed backend semantics. All route-dependent accessors use that same owner. Before resolution, recovery support is false and backend reads refuse without starting disk work on Main. After resolution, retries never replace the route; original guards reject changed binding or newly conflicting evidence.
+
+The saved maxBytes retains its existing positive and overflow-safe bound; policy is read from the actual journal, not a new default. Policy and selection are revalidated after final resolution callbacks. Cancellation before assignment leaves no half-route. Assignment itself does not publish projects/active/recents or clear uncertainty.
+
+A selected pending journal can therefore be owned before normal init refuses readiness. The existing MainActivity startup-failure recovery entry and ProjectDrawer entry can inspect that owner's retained history; no visual UI change was added. Missing completed payload can still expose metadata review while ready startup refuses. Malformed membership, unexplained custody or invalid policy remain conservative blockers. The recovery entry remains read-only and does not automatically invoke completion/recovery/acknowledgement.
+
+Canonical capacity stays finite, at the persisted policy limit up to128 completed entries. Envelope expiry/compaction does not free canonical slots/bytes or filesystem space. This route restoration is not a migration of initial-registration installations; conflicting registration artifacts remain rejected under existing admission rules.
+
+Validation uses actual temporary journal/store/manager fixtures, unchanged legacy startup tests, and a host Compose fixture through an actual coordinator's default manager plus existing recovery entry. Transport/provider startup is injected out; full live coordinator/native initialization, APK/device operation and global writer exclusion are not certified by that fixture. Fresh whole-source host compilation and separate Java17/Java21 runtime evidence accompany acceptance.
+
+The UI fixture calls the coordinator-owned manager.init directly and renders the shared recovery entry. It does not call coordinator.initialize or render MainActivity/ProjectDrawer containers themselves. Their unchanged integration callsites are source-reviewed, not claimed as executed navigation.

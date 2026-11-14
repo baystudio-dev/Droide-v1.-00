@@ -21,6 +21,7 @@ data class HookHandlerConfig(
     val sourceLabel: String = "workspace",
 )
 
+// Legacy beforetool/aftertool remain accepted while typed lifecycle events become authoritative.
 @Serializable
 data class HooksConfig(
     val enabled: Boolean = false,
@@ -47,6 +48,7 @@ data class HookDispatchResult(
     val additionalContext: String = "",
     val log: String = "",
 )
+
 
 internal class SourceBackedHookTransportUnavailableException(
     message: String = "Source-backed tool lifecycle hooks require immutable event transport",
@@ -75,7 +77,7 @@ class HookManager(
         provenance: AgentRequestProvenance? = null, permissionScope: String? = null,
         isStillCurrent: (() -> Boolean)? = null,
         ownerAdmission: ApprovalOwnerAdmission? = null): HookDispatchResult {
-
+        // Capture once before config/approval/handler suspension; suppliers may change later.
         val capturedProvenance = provenance ?: provenanceProvider()
         val capturedScope = permissionScope ?: permissionScopeProvider()
         suspend fun checkDispatchCurrent() {
@@ -104,8 +106,8 @@ class HookManager(
             val ownedImmutable = java.util.concurrent.atomic.AtomicReference<ImmutableHookEvent?>()
             var primaryFailure: Throwable? = null
             try {
-                // Capture cleanup ownership before IO can create a file. withContext has prompt cancellation on
-                // return, so a returned File alone cannot carry cleanup authority.
+                // Capture cleanup ownership before IO can create a file. withContext has prompt
+                // cancellation on return, so a returned File alone cannot carry cleanup authority.
                 val immutable = if (context.streamedToolInput != null) withContext(Dispatchers.IO) {
                     val task = kotlinx.coroutines.currentCoroutineContext()
                     immutableEventFactory.create(
@@ -131,7 +133,8 @@ class HookManager(
                     continue
                 }
                 val timeout = HookLifecycleProtocol.timeoutMs(handler.timeoutMs)
-
+                // A browser policy may be revoked while this hook's ASK is pending.
+                // Check again before handing its event-file payload to a process.
                 checkDispatchCurrent()
                 val processCommand = invocation?.command(command) ?: command
                 val executed = runSuspendCatching { hookTerminal.execOnce(processCommand, timeoutMs = timeout) }
@@ -172,6 +175,7 @@ class HookManager(
         )
     }
 
+     
     fun hasToolLifecycleHandlers(toolName: String): Boolean {
         val cfg = load()
         return listOf(
@@ -214,7 +218,7 @@ class HookManager(
         (root["events"] as? JsonObject)?.entries?.firstOrNull { it.key.equals(eventKey, true) }?.value?.let(candidates::add)
         (root["hooks"] as? JsonObject)?.entries?.firstOrNull { it.key.equals(eventKey, true) }?.value?.let(candidates::add)
         root.entries.firstOrNull { it.key.equals(eventKey, true) }?.value?.let(candidates::add)
-
+        
         root.values.filterIsInstance<JsonObject>().forEach { group ->
             group.entries.firstOrNull { it.key.equals(eventKey, true) }?.value?.let(candidates::add)
         }

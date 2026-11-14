@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.net.URI
 
+ 
 object GitClonePolicy {
     fun suggestProjectName(rawUrl: String): String {
         val value = rawUrl.trim().trimEnd('/')

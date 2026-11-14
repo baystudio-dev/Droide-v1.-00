@@ -10,8 +10,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 import java.util.UUID
 
-/** Trusted host paths only. */
-
+/** Trusted host paths only. No permission is conveyed by an Observation. Native no-replace
+ * rename on the same filesystem is required; same-UID adversarial directory races are outside this contract.
+ * Private READY inode/hash records retain attribution after native rename removes the stage. */
 internal class SourceArtifactPublisher(
     workDir: File,
     private val privateRoot: Path,
@@ -93,8 +94,8 @@ internal class SourceArtifactPublisher(
         }
     }
 
-    /** One registration spans every project stage write and publication. Callback is not needed for
-     * read-only reconciliation of a prior publication; it MUST run before any fresh stage. */
+    /** One registration spans every project stage write and publication. Callback is not needed
+     * for read-only reconciliation of a prior publication; it MUST run before any fresh stage. */
     fun publish(observation: Observation, beforePublication: () -> Unit,
         checkCurrent: () -> Unit = {}): Receipt {
             val op = privateRoot.resolve(observation.operationId)
@@ -161,6 +162,8 @@ internal class SourceArtifactPublisher(
             }
         }
 
+    /** Read-only recovery never publishes bytes. Prepared means retained staged bytes, not permission.
+     * Tampered/lost stage or target causes failure, never a claim that nothing was published. */
     fun inspect(operationId: String, owner: OwnedResponseContentStore.Owner, argumentsSha256: String,
         checkCurrent: () -> Unit = {}): Recovery {
         roots(); validId(operationId); digest(argumentsSha256)
@@ -197,8 +200,8 @@ internal class SourceArtifactPublisher(
         val durable = Files.exists(committed, NOFOLLOW_LINKS) && readRecord(committed) == committedBinding(o)
         return Receipt(o, durable, true)
     }
-    /** Historical settlement proof is separate from a claim about currently visible bytes. COMMITTED
-     * binds private reservation + READY inode + destination directory identity. */
+    /** Historical settlement proof is separate from a claim about currently visible bytes.
+     * COMMITTED binds private reservation + READY inode + destination directory identity. */
     fun verify(receipt: Receipt, checkCurrent: () -> Unit = {}): Receipt =
         withLock(privateRoot.resolve(receipt.observation.operationId)) { settlementReceipt(receipt.observation, checkCurrent) }
 

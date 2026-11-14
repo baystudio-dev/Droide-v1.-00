@@ -125,6 +125,7 @@ class ExplorerSavedWorkContinuationTest {
         assertEquals("B", root.resolve("src/b.kt").readText())
     }
 
+
     @Test fun documentReplacementDuringNotificationRejectsContinuation() = workspace { root, _ ->
         root.resolve("a.kt").writeText("A")
         val files = FileRepository(root); val state = EditorWorkspaceState()

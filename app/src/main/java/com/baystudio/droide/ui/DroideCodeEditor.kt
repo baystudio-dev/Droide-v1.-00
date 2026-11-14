@@ -34,6 +34,7 @@ import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+
 internal class DroideCodeEditor(
     context: Context,
     private val languageId: String,
@@ -96,8 +97,8 @@ internal class DroideCodeEditor(
         val anchor = EditorZoomAnchor(line, column,
             (snapshot.offsetY - (offsets[0] - rowHeight)) / rowHeight,
             (snapshot.offsetX - offsets[1]) / textSizePx)
-        // Fence deferred caret reveal before changing metrics. A tab switch during reflow captures this
-        // anchor too, so it cannot restore old pixels at the new font size.
+        // Fence deferred caret reveal before changing metrics. A tab switch during reflow
+        // captures this anchor too, so it cannot restore old pixels at the new font size.
         restoreViewport(snapshot.copy(textSizeSp = DefaultEditorTextSizeSp, zoomAnchor = anchor))
         setTextSize(DefaultEditorTextSizeSp)
         applyPendingViewport()
@@ -143,6 +144,7 @@ internal class DroideCodeEditor(
     internal val acceptsFeatureUpdates: Boolean get() = acceptsMutations
     internal val retainsNativeHandoff: Boolean get() = nativeHandoff != null
 
+    /** Settle the existing delegate; creating another connection would reset IME state. */
     internal fun settleWorkspaceMutation() {
         check(Looper.myLooper() == Looper.getMainLooper()) { "Workspace mutation requires Main" }
         check(acceptsMutations) { "Native editor is unavailable for workspace mutation" }
@@ -261,8 +263,8 @@ internal class DroideCodeEditor(
             try { onReleased?.invoke(nativeHandoffFailure) }
             catch (failure: Throwable) { recordHandoffFailure(failure) }
             finally {
-                // releaseStarted remains the permanent gate. A held view/IC need not keep the old
-                // coordinator/model alive through this completed callback lease.
+                // releaseStarted remains the permanent gate. A held view/IC need not keep
+                // the old coordinator/model alive through this completed callback lease.
                 capture = null
                 onReleased = null
                 if (nativeHandoff === this) nativeHandoff = null
@@ -279,7 +281,8 @@ internal class DroideCodeEditor(
             runUiCatching(onError = ::reportSurfaceFailure) { action.run() }
         }
     }
-
+    // Superclass initialization may call the overridden posting methods. A lateinit backing
+    // field has no initializer that could overwrite a queue created during super construction.
     @Volatile private lateinit var callbackQueue: EditorCallbackQueue
     @Synchronized private fun callbacks(): EditorCallbackQueue {
         if (!::callbackQueue.isInitialized) callbackQueue = EditorCallbackQueue()
@@ -295,7 +298,7 @@ internal class DroideCodeEditor(
         pendingImeFromUserTap = false
         parent?.requestDisallowInterceptTouchEvent(false)
         val callback = onEditorFailure ?: throw failure
-
+        // Report outside drawing/touch dispatch so Compose can remove this surface safely.
         callbacks().post(Runnable { if (!isReleased) callback(failure) }) { it.run() }
     }
 
@@ -320,7 +323,9 @@ internal class DroideCodeEditor(
         runUiCatching(onError = ::reportSurfaceFailure) { applyPendingViewport() }
         val checkpoint = canvas.save()
         try {
-
+            // Sora's sticky lines can draw cached long lines outside the view's bounds.
+            // Android supplies a canvas in scrolled content coordinates; Sora translates
+            // it back to viewport coordinates inside its renderer.
             canvas.clipRect(scrollX, scrollY, scrollX + width, scrollY + height)
             runUiCatching(onError = ::reportSurfaceFailure) { super.onDraw(canvas) }
         } finally {
@@ -352,7 +357,7 @@ internal class DroideCodeEditor(
         captureFinal()
         try { super.release() }
         catch (failure: Throwable) { recordHandoffFailure(failure) }
-
+        // EditorReleaseEvent runs inside super.release and may still touch raw Content.
         captureFinal()
         try { nativeContentSubscription?.unsubscribe() }
         catch (failure: Throwable) { recordHandoffFailure(failure) }
@@ -383,10 +388,12 @@ internal class DroideCodeEditor(
     }
 
     init {
-
+        // Sora defaults to Typeface.DEFAULT. Use the cached platform monospace family once per view;
+        // Android retains its Unicode fallback. Keep the user's size, spacing and wrapping settings.
         setTypefaceText(Typeface.MONOSPACE)
         setTypefaceLineNumber(Typeface.MONOSPACE)
         setTextSize(DefaultEditorTextSizeSp)
+        
 
         isFocusable = true
         isFocusableInTouchMode = true
@@ -394,17 +401,21 @@ internal class DroideCodeEditor(
         setEditable(true)
         setSoftKeyboardEnabled(true)
 
+
         setDisableSoftKbdIfHardKbdAvailable(false)
 
+        
         inputType = InputType.TYPE_CLASS_TEXT or
             InputType.TYPE_TEXT_VARIATION_NORMAL or
             InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
             InputType.TYPE_TEXT_FLAG_MULTI_LINE
 
+
         props.disallowSuggestions = false
         props.adjustToSelectionOnResize = false
         props.useICULibToSelectWords = true
         setTabWidth(codeStyle.tabWidth)
+
 
         setBlockLineEnabled(true)
         setBlockLineWidth(0.75f)
@@ -418,7 +429,7 @@ internal class DroideCodeEditor(
         val connection = runUiCatching(onError = ::reportSurfaceFailure) {
             super.onCreateInputConnection(outAttrs)
         } ?: return null
-
+        // Keep the real delegate for composition; Sora also retains its concrete field.
         retainedInputConnection = connection
         val external = editorHandoffInputConnection(this, connection)
         codingKeyboard.configure(external, outAttrs, multiline = true)
@@ -445,11 +456,13 @@ internal class DroideCodeEditor(
         }
     }
 
+
     fun restoreInputFocus(showKeyboard: Boolean = true) {
         if (isReleased || surfaceFailed || !isEnabled || !isEditable) return
         acquireInputFocus()
         if (showKeyboard) requestImeAfterUserInteraction()
     }
+
 
     internal fun revealSelectionForActiveIme() {
         if (pendingViewport != null || isReleased || surfaceFailed || !isAttachedToWindow || !isFocused || !isEnabled || !isEditable) return
@@ -485,6 +498,8 @@ internal class DroideCodeEditor(
         if (acceptsFeatureUpdates) runUiCatching(onError = ::reportSurfaceFailure) { super.computeScroll() }
     }
 
+    // Android/Compose query these outside onDraw (scroll arbitration and accessibility).
+    // A failed surface may remain attached until the next composition removes it.
     override fun computeVerticalScrollRange(): Int =
         if (acceptsFeatureUpdates) runUiCatching(onError = ::reportSurfaceFailure) {
             super.computeVerticalScrollRange()
@@ -538,6 +553,7 @@ internal class DroideCodeEditor(
                 return@post
             }
             if (!acquireInputFocus()) return@post
+            
 
             if (!hasWindowFocus()) return@post
             pendingImeFromUserTap = false
@@ -582,8 +598,8 @@ internal class DroideCodeEditor(
     override fun performClick(): Boolean {
         if (!canActivateEditor()) return false
         super.performClick()
-        // Sora 0.24.6 already calls performClick from its tap handler, before placing the caret. Leave
-        // that handler and our existing tap-only IME retry in charge of touch.
+        // Sora 0.24.6 already calls performClick from its tap handler, before placing the
+        // caret. Leave that handler and our existing tap-only IME retry in charge of touch.
         if (!dispatchingEditorTouch && canActivateEditor()) {
             if (isEditable) restoreInputFocus() else requestFocus()
         }
@@ -635,6 +651,7 @@ internal class DroideCodeEditor(
                 touchMoved = false
                 touchUsedMultiplePointers = false
 
+
                 parent?.requestDisallowInterceptTouchEvent(true)
                 acquireInputFocus()
             }
@@ -652,6 +669,7 @@ internal class DroideCodeEditor(
             }
         }
 
+
         val previouslyDispatching = dispatchingEditorTouch
         dispatchingEditorTouch = true
         val handled = try {
@@ -663,6 +681,7 @@ internal class DroideCodeEditor(
         when (event.actionMasked) {
             MotionEvent.ACTION_UP -> {
                 parent?.requestDisallowInterceptTouchEvent(false)
+
 
                 if (EditorInputInteractionPolicy.shouldRetryImeAfterTouch(
                         handledByEditor = handled,
@@ -691,11 +710,13 @@ internal class DroideCodeEditor(
 
     override fun commitText(text: CharSequence, applyAutoIndent: Boolean) {
         if (!isEditable) return
+        
 
         if (text.isEmpty()) {
             super.commitText(text, applyAutoIndent)
             return
         }
+
 
         val accessory = accessoryModifiers
         if (text.length == 1 && accessory?.hasCtrlOrAlt() == true) {
@@ -730,6 +751,7 @@ internal class DroideCodeEditor(
                 return
             }
         }
+
 
         val allowSymbolCompletion = if (text.length == 1 && text[0] in charArrayOf('"', '\'', '`')) {
             val line = this.text.getLine(cursor.leftLine)
@@ -776,8 +798,8 @@ internal class DroideCodeEditor(
 
     override fun setText(text: CharSequence?, reuseContent: Boolean, extraArguments: Bundle?) {
         if (!acceptsMutations) return
-        // Includes restored unsaved buffers, which do not pass through FileRepository. Reject before
-        // Sora replaces its Content; never sanitize or overwrite the draft.
+        // Includes restored unsaved buffers, which do not pass through FileRepository.
+        // Reject before Sora replaces its Content; never sanitize or overwrite the draft.
         EditorTextAdmission.requireNoNul(text)
         super.setText(text, reuseContent, extraArguments)
     }

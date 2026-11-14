@@ -34,8 +34,8 @@ object GuestDocumentFormatter {
         require(target.isFile) { "Formatter source is missing: $relativePath" }
         val bytes = content.toByteArray(Charsets.UTF_8)
         require(bytes.size <= MAX_BYTES) { "Formatter skipped: file exceeds 2 MB safety limit" }
-        // Snapshot unsaved content without overwriting the saved file. Prettier receives the original
-        // filename separately so filename-specific config remains applicable.
+        // Snapshot unsaved content without overwriting the saved file. Prettier receives
+        // the original filename separately so filename-specific config remains applicable.
         val snapshot = File.createTempFile(".droide-format-", ".${target.extension.lowercase()}", target.parentFile)
         var formatted = snapshot
         try {
@@ -52,8 +52,8 @@ object GuestDocumentFormatter {
                 }
                 "shfmt" -> argv.addAll(1, listOf("-i", if (codeStyle?.useTabs == true) "0" else (codeStyle?.indentSize ?: 4).coerceIn(1, 8).toString()))
             }
-            // Fixed adapter only; file paths and formatter arguments are positional data. Separate output
-            // prevents truncating the input snapshot before it is read.
+            // Fixed adapter only; file paths and formatter arguments are positional data.
+            // Separate output prevents truncating the input snapshot before it is read.
             val invocation = if (formatted === snapshot) argv else listOf(
                 "sh", "-c",
                 """input=${'$'}1; output=${'$'}2; shift 2; exec "${'$'}@" < "${'$'}input" > "${'$'}output";""",

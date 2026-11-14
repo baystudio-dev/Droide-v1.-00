@@ -34,8 +34,9 @@ class AgentPromptInboxCommitCancellationTest {
                     inbox.routeSubmission(session.id, "durably admitted", AgentPromptDelivery.STEER, http.config)
                     returnedNormally = true
                 }
-                dispatcher.next().run()
-
+                dispatcher.next().run() // Enter the real SessionManager IO write.
+                // withContext(IO) may otherwise finish before deciding to suspend and
+                // return inline. This held real transaction guarantees a return handoff.
                 releaseWrite.complete(Unit); holdingWrite.await()
                 val ioReturn = dispatcher.next(admission) // IO completed; caller has not resumed.
                 val committed = manager.getForUpdate(session.id)!!.pendingInputs.single()
@@ -48,7 +49,7 @@ class AgentPromptInboxCommitCancellationTest {
                 assertFalse(returnedNormally)
                 checkpoint(manager, inbox, session.id)
                 assertEquals(listOf(committed), SessionManager(root).getForUpdate(session.id)!!.pendingInputs)
-
+                // The committed runtime config remains available, even when active selection differs.
                 val promoted = inbox.takeSteers(lease, http.config.copy(model = "another-model"))
                 assertEquals(committed.id, promoted.single().input.id)
                 assertEquals(http.config, promoted.single().runtimeConfig)
@@ -112,7 +113,8 @@ class AgentPromptInboxCommitCancellationTest {
         override fun dispatch(context: CoroutineContext, block: Runnable) { tasks.add(block) }
         fun next(operation: Deferred<*>? = null): Runnable {
             tasks.poll(5, TimeUnit.SECONDS)?.let { return it }
-
+            // An early production rejection should report its original failure rather
+            // than being hidden by the dispatcher fixture's missing-continuation error.
             if (operation?.isCompleted == true) runBlocking { operation.await() }
             error("Expected a suspended IO-return continuation")
         }

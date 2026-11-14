@@ -47,6 +47,13 @@ import java.util.concurrent.TimeoutException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
+
+
+
+
+
+
+
 /** Captured UI binding; validate only on Main without recapturing a replacement view. */
 internal class NativeCompletionEditorCapture(val owner: CodeEditor, val isCurrent: () -> Boolean)
 
@@ -72,6 +79,7 @@ internal fun <T> completionUiRead(timeoutMillis: Long = 500L, read: () -> T): T?
     }
 }
 
+/** View access and binding callbacks share Main; the full document is copied by the worker. */
 internal fun captureCurrentNativeCompletionEditor(
     expectedContent: Content,
     capture: (() -> NativeCompletionEditorCapture?)?,
@@ -143,8 +151,8 @@ internal class DroideCompletionLanguage(
         }
         if (local.isNotEmpty()) publisher.updateList(true)
 
-        // A non-null support seam identifies the built-in route, not a custom Prisma server. Sora
-        // supplies no manual/automatic distinction here: every actual Prisma callback may query.
+        // A non-null support seam identifies the built-in route, not a custom Prisma server.
+        // Sora supplies no manual/automatic distinction here: every actual Prisma callback may query.
         val policy = lsp.completionPolicy(path)
         val powershell = policy == LspCompletionPolicy.POWERSHELL_NATIVE
         val cmake = policy == LspCompletionPolicy.CMAKE_NATIVE
@@ -155,8 +163,8 @@ internal class DroideCompletionLanguage(
         val elp = policy == LspCompletionPolicy.ELP_NATIVE
         val nativeCaret = powershell || cmake || vue || csharp || toml || graphql || elp
         val prisma = !nativeCaret && lsp.documentSupportStatus(path) != null
-        // Only actual provider callbacks query. No synthetic whitespace event or incomplete-list cache;
-        // the cold policy does not grant runspace authority.
+        // Only actual provider callbacks query. No synthetic whitespace event or
+        // incomplete-list cache; the cold policy does not grant runspace authority.
         if (!nativeCaret && !prisma && !ProfessionalCompletion.shouldQueryLsp(languageId, prefix, triggerCharacter)) return
         publisher.checkCancelled()
         try {
@@ -168,6 +176,8 @@ internal class DroideCompletionLanguage(
         }
         publisher.checkCancelled()
 
+        
+
         val capturedVersion = content.getDocumentVersion()
         val currentText = content.reference.toString()
         if (content.getDocumentVersion() != capturedVersion) return
@@ -177,7 +187,8 @@ internal class DroideCompletionLanguage(
             onCompletionRejected(support.message)
             return
         }
-
+        // Native profiles capture source and the actual current UTF-16 caret AFTER
+        // debounce. The original callback position can have moved meanwhile.
         val capturedCaret = if (nativeCaret) completionUiRead {
             val source = content.reference
             val cursor = source.cursor
@@ -256,8 +267,8 @@ internal class DroideCompletionLanguage(
         if (!nativeCaptureCurrent()) return
         if (serverItems.isEmpty()) return
 
-        // CMake owns its Unicode prefix and native order. Generic filtering must not hide a
-        // documentation-bearing native item such as project.
+        // CMake owns its Unicode prefix and native order. Generic filtering
+        // must not hide a documentation-bearing native item such as project.
         val displayed = if (elp) serverItems.filter { item ->
             item.nativeOrigin == "elp" && item.nativeBatch != null && item.nativeItemIdentity != null &&
                 item.applicationGuard?.accepts(currentText, LspCompletionCaret(queryLine, queryColumn), false) == true
@@ -326,6 +337,7 @@ internal class DroideCompletionLanguage(
     }
 }
 
+/** Local simple/snippet items also use raw Content when accepted directly. */
 internal class DroideGuardedCompletionItem(private val delegate: CompletionItem) :
     CompletionItem(delegate.label, delegate.desc, delegate.icon) {
     init {
@@ -396,7 +408,7 @@ private class DroideLspCompletionItem(
         }
 
         val edits = (item.additionalTextEdits + primary).take(33)
-
+        
         runCatching { TextEditApplier.apply(original, edits) }.getOrElse {
             applySingle(text, primary)
             return
@@ -404,6 +416,7 @@ private class DroideLspCompletionItem(
         edits.sortedWith(editOrder).forEach { applySingle(text, it) }
     }
 
+    /** Manager-authored guarded responses. The default-null path preserves other profiles. */
     private fun applyGuardedCompletion(editor: CodeEditor, text: Content) {
         val guard = item.applicationGuard ?: return
         fun current(): Boolean = editor.isEditable &&
@@ -413,15 +426,15 @@ private class DroideLspCompletionItem(
                 editor.cursor.leftColumn + 1), editor.cursor.isSelected)
         fun reject() = onCompletionRejected("Completion expired or could not be applied safely. Request fresh completion.")
         if (!current()) { reject(); return }
-        // Clojure and PSES need a native range. Prisma missing-range responses already carry the
-        // manager's bounded captured range; never infer from this popup cursor.
+        // Clojure and PSES need a native range. Prisma missing-range responses already
+        // carry the manager's bounded captured range; never infer from this popup cursor.
         val primary = explicitPrimaryEdit() ?: run { reject(); return }
         val original = guard.capturedText
         val edits = item.additionalTextEdits + primary
         if (item.additionalTextEdits.size > 32 ||
             item.additionalTextEdits.sumOf { it.newText.length.toLong() } > 200_000L ||
             edits.map { it.startLine to it.startColumn }.distinct().size != edits.size) { reject(); return }
-
+        // Prepare every edit, snippet parse and adjusted range before the first mutation.
         val applyPrepared = runCatching<() -> Unit> {
             TextEditApplier.apply(original, edits)
             if (item.isSnippet) {
@@ -491,6 +504,8 @@ private class DroideLspCompletionItem(
             return
         }
 
+        
+
         item.additionalTextEdits.sortedWith(editOrder).forEach { applySingle(text, it) }
         val selectedText = text.subSequence(plan.adjustedStart, plan.adjustedEnd).toString()
         text.delete(plan.adjustedStart, plan.adjustedEnd)
@@ -550,6 +565,7 @@ private fun mapKind(kind: Int?): CompletionItemKind = when (kind) {
     else -> CompletionItemKind.Identifier
 }
 
+/** The Vue trigger belongs to the same post-debounce text/caret as its native request. */
 internal fun vueCapturedTrigger(languageId: String, text: String, line: Int, column: Int): String? {
     if (line < 1 || column < 1) return null
     val lineText = text.lineSequence().elementAtOrNull(line - 1)?.removeSuffix("\r") ?: return null

@@ -89,7 +89,7 @@ class AgentPaneLifetimeTest {
     }
 
     private fun connectLoopbackFixture(fixture: ProviderStreamFixture) {
-
+        // Loopback UI fixture uses a no-auth provider; Robolectric has no AndroidKeyStore.
         val method = host.coordinator.providerConnections.authMethods(fixture.provider.id).first { !it.storesSecret }
         assertTrue(ProviderConnectionStateStore(app).put(ProviderConnectionRecord(fixture.provider.id, method.id, 1L, 1,
             ProviderConnectionIdentity.fingerprint(fixture.provider))))
@@ -222,8 +222,7 @@ class AgentPaneLifetimeTest {
         closePanel()
         assertTrue(ui.externalController.busy)
         compose.runOnIdle { visible = true }
-        // No availability host is supplied: the selected backend must stay external while detection is
-        // absent.
+        // No availability host is supplied: the selected backend must stay external while detection is absent.
         assertSinglePrimary("Send instruction")
         compose.onNodeWithContentDescription("Send instruction").assertIsNotEnabled()
         stopFromRunMenu()
@@ -235,7 +234,7 @@ class AgentPaneLifetimeTest {
     }
 
     @Test fun closingTheActualPaneKeepsTheRunAndStopAfterReopeningCancelsIt() {
-
+        // Install the loopback provider after bootstrap finishes replacing the catalog.
         awaitWorkspaceInitialization()
         val entered = CountDownLatch(1)
         val finish = CountDownLatch(1)
@@ -479,8 +478,8 @@ class AgentPaneLifetimeTest {
             assertTrue(cli.process.isAlive)
             assertFalse(agent.busy.value)
 
-            // ACP steering waits for a safe output boundary, acknowledges the interrupted turn, then submits
-            // the correction to the same native session. It is not the UI Stop path.
+            // ACP steering waits for a safe output boundary, acknowledges the interrupted turn,
+            // then submits the correction to the same native session. It is not the UI Stop path.
             cli.text("Working on the current task")
             compose.waitUntil(5_000) { compose.waitForIdle(); cli.cancellations.size == 1 }
             cli.finish(cli.prompts[0], "cancelled")

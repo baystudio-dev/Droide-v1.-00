@@ -22,7 +22,7 @@ class FileRepositoryCommittedWriteTest {
             assertEquals("main.kt", target.name)
             assertEquals(template, staged.readText())
             publications++
-            Files.move(staged.toPath(), target.toPath())
+            Files.move(staged.toPath(), target.toPath()) // Host fixture; real JNI is tested by its native harness.
             0
         })
         runBlocking {

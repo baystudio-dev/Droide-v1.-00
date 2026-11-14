@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Pure policy/string tests: no JNI, PTY, shell, procfs, sleeps, or native library loading. */
 class NativePtyCleanupReceiptTest {
     @Test fun relayFailureCombinesWithoutErasingNativeFailureOrObservedExit() {
         val clean = NativePtyCleanupReceipt(0, 0, 0)

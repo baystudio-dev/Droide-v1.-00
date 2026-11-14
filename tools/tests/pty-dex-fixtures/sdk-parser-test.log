@@ -1,0 +1,34 @@
+test_access_flags_and_static_constants_bound (__main__.ParserTests.test_access_flags_and_static_constants_bound) ... ok
+test_annotations_bound_and_resolved (__main__.ParserTests.test_annotations_bound_and_resolved) ... ok
+test_archive_ambiguity_and_hidden_dex_paths (__main__.ParserTests.test_archive_ambiguity_and_hidden_dex_paths) ... /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/zipfile/__init__.py:1625: UserWarning: Duplicate name: 'classes.dex'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+ok
+test_bad_checksums_headers_and_all_truncations (__main__.ParserTests.test_bad_checksums_headers_and_all_truncations) ... ok
+test_branch_targets_and_encoding_bound (__main__.ParserTests.test_branch_targets_and_encoding_bound) ... ok
+test_catch_target_and_nonboundary_handler_rejected (__main__.ParserTests.test_catch_target_and_nonboundary_handler_rejected) ... ok
+test_class_uniqueness_within_and_across_dex (__main__.ParserTests.test_class_uniqueness_within_and_across_dex) ... ok
+test_debug_layout_is_ignored (__main__.ParserTests.test_debug_layout_is_ignored) ... ok
+test_dual_method_prototype_operand_is_resolved (__main__.ParserTests.test_dual_method_prototype_operand_is_resolved) ... ok
+test_duplicate_type_ids_rejected (__main__.ParserTests.test_duplicate_type_ids_rejected) ... ok
+test_full_class_equal_despite_pool_and_file_relocation (__main__.ParserTests.test_full_class_equal_despite_pool_and_file_relocation) ... ok
+test_malformed_debug_not_silently_ignored (__main__.ParserTests.test_malformed_debug_not_silently_ignored) ... ok
+test_no_receipt_or_supplied_reference_api (__main__.ParserTests.test_no_receipt_or_supplied_reference_api) ... ok
+test_reference_string_type_field_method_changes_rejected (__main__.ParserTests.test_reference_string_type_field_method_changes_rejected) ... ok
+test_stale_body_and_literal_register_mutations_rejected (__main__.ParserTests.test_stale_body_and_literal_register_mutations_rejected) ... ok
+test_switch_payloads_and_array_payloads_bound (__main__.ParserTests.test_switch_payloads_and_array_payloads_bound) ... ok
+test_typed_and_catchall_handler_content_bound (__main__.ParserTests.test_typed_and_catchall_handler_content_bound) ... ok
+test_unadmitted_candidate_fails_before_compiler (__main__.ParserTests.test_unadmitted_candidate_fails_before_compiler) ... ok
+test_unsorted_id_tables_rejected (__main__.ParserTests.test_unsorted_id_tables_rejected) ... ok
+test_unsupported_opcodes_and_truncation_reject (__main__.ParserTests.test_unsupported_opcodes_and_truncation_reject) ... ok
+test_wrong_r8_rejects_even_when_caller_claims_success (__main__.ParserTests.test_wrong_r8_rejects_even_when_caller_claims_success) ... ok
+setUpClass (__main__.RealD8Tests) ... skipped 'Real pinned D8 integration not run; required local inputs: R46_TEST_R8_JAR'
+test_actual_admitted_aar_classes_jar_binding (__main__.SDKFixtureD8Tests.test_actual_admitted_aar_classes_jar_binding) ... ok
+test_actual_candidate_stale_baseline_rejected (__main__.SDKFixtureD8Tests.test_actual_candidate_stale_baseline_rejected) ... ok
+test_actual_duplicate_class_and_truncation (__main__.SDKFixtureD8Tests.test_actual_duplicate_class_and_truncation) ... ok
+test_actual_method_reference_and_catch_mutations (__main__.SDKFixtureD8Tests.test_actual_method_reference_and_catch_mutations) ... ok
+test_actual_unrelated_pool_context_relocation (__main__.SDKFixtureD8Tests.test_actual_unrelated_pool_context_relocation) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 7.893s
+
+OK (skipped=1)

@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Fake stdio peers exercise exact client source; no Marksman executable runs here. */
 class LspMarksmanIntegrationTest {
     private val spec = LanguageServerRegistry.builtIns.single { it.id == "marksman" }
     @Test fun onlySupportedMarkdownExtensionsRouteToBuiltInMarksman() {

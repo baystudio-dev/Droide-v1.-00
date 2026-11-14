@@ -9,8 +9,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
-/** Optional guest name records, never Android permissions or group membership. */
-
+/** Optional guest name records, never Android permissions or group membership.
+ * Call only while holding FoundryUbuntuGuestMutationGate. This cache is deliberately separate
+ * from runtime/package admission: APT may legitimately change /etc/group during an attach.
+ */
 internal class UbuntuGuestGroupNames(private val nanoTime: () -> Long = System::nanoTime) {
     private var lastStamp: String? = null
     private var lastAttemptAt = 0L
@@ -46,8 +48,8 @@ internal class UbuntuGuestGroupNames(private val nanoTime: () -> Long = System::
         checkCancelled()
         lastAttemptAt = nanoTime()
         lastSucceeded = result.exitCode == 0 && !result.timedOut && !result.outputIncomplete
-        // groupadd can publish one database before another fails. Keep all effects/evidence; never undo
-        // records, delete locks, or claim an atomic multi-database transaction.
+        // groupadd can publish one database before another fails. Keep all effects/evidence;
+        // never undo records, delete locks, or claim an atomic multi-database transaction.
         lastStamp = try { snapshot(rootfs) } catch (_: Exception) { null }
         if (!lastSucceeded || lastStamp == null) {
             diagnostic("Optional group naming incomplete (exit=${result.exitCode}, timeout=${result.timedOut}, " +
@@ -63,13 +65,17 @@ internal class UbuntuGuestGroupNames(private val nanoTime: () -> Long = System::
         const val FAILURE_CACHE_NANOS = 30_000_000_000L
         private const val MAX_DIAGNOSTIC_CHARS = 4_096
 
+        /** One non-login guest invocation; independent of interactive, pipe and STDIO argv. */
         internal fun command(): List<String> = listOf(
             "/bin/sh", "-c", SCRIPT, "droide-group-names", "/etc",
             "/usr/bin/id", "/usr/bin/getent", "/usr/sbin/groupadd",
         )
 
-        /** Bounded metadata only, no tree scan or persistent marker. */
-
+        /** Bounded metadata only, no tree scan or persistent marker. Also the mutation preflight.
+         * Stock shadow has weaker opens for backup/temp/lock paths than its primary database.
+         * These checks reject existing unsafe paths; concurrent hostile replacement remains a
+         * limitation of stock shadow/PRoot and is NOT made race-free by this preflight/cache.
+         */
         private fun snapshot(rootfs: File): String = buildString {
             require(rootfs.absoluteFile.normalize() == rootfs.canonicalFile) { "Guest parent path is symlinked" }
             fun inspect(file: File, directory: Boolean = false, writable: Boolean = false, optional: Boolean = false) {

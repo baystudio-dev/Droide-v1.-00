@@ -1,0 +1,70 @@
+// Applied only by the CLI-only false-default private property in app/build.gradle.kts.
+// No task is disabled. Unknown roots and dependency tasks fail before execution.
+if (gradle.startParameter.projectProperties['DROIDE_PRIVATE_DEBUG_DEVICE_UNVALIDATED'] != 'true') {
+    throw new GradleException('Private debug requires explicit -PDROIDE_PRIVATE_DEBUG_DEVICE_UNVALIDATED=true')
+}
+if (providers.gradleProperty('DROIDE_HOST_JVM_TESTS_ONLY').orNull == 'true') {
+    throw new GradleException('Private debug cannot be combined with host JVM mode')
+}
+def privateRoot = ':app:assemblePrivateDebugDeviceUnvalidated'
+if (gradle.startParameter.taskNames != [privateRoot]) {
+    throw new GradleException('Private debug requires only the exact task path ' + privateRoot)
+}
+if (!gradle.startParameter.excludedTaskNames.empty) {
+    throw new GradleException('Private debug forbids task exclusions')
+}
+if (gradle.startParameter.configurationCacheRequested) {
+    throw new GradleException('Private debug requires --no-configuration-cache')
+}
+if (gradle.startParameter.buildCacheEnabled) {
+    throw new GradleException('Private debug requires --no-build-cache')
+}
+if (gradle.startParameter.projectProperties['android.builder.sdkDownload'] != 'false') {
+    throw new GradleException('Private debug requires -Pandroid.builder.sdkDownload=false')
+}
+if (gradle.startParameter.dependencyVerificationMode.name() != 'STRICT') {
+    throw new GradleException('Private debug requires strict dependency verification')
+}
+if (!gradle.startParameter.writeDependencyVerifications.empty || gradle.startParameter.writeDependencyLocks ||
+        !gradle.startParameter.lockedDependenciesToUpdate.empty) {
+    throw new GradleException('Private debug cannot rewrite dependency verification metadata or locks')
+}
+def allowedNames = [
+    'assemblePrivateDebugDeviceUnvalidated', 'preparePrivateDebugDeviceUnvalidated', 'assembleDebug', 'preBuild', 'preDebugBuild',
+    'verifyTermuxOverlay', 'verifyJGitAndroidCompat', 'checkKotlinGradlePluginConfigurationErrors',
+    'generateDebugBuildConfig', 'checkDebugAarMetadata', 'processDebugNavigationResources',
+    'compileDebugNavigationResources', 'generateDebugResValues', 'mapDebugSourceSetPaths',
+    'generateDebugResources', 'mergeDebugResources', 'packageDebugResources', 'parseDebugLocalResources',
+    'createDebugCompatibleScreenManifests', 'extractDeepLinksDebug', 'processDebugMainManifest',
+    'processDebugManifest', 'processDebugManifestForPackage', 'processDebugResources',
+    'compileDebugKotlin', 'javaPreCompileDebug', 'compileDebugJavaWithJavac',
+    'mergeDebugShaders', 'compileDebugShaders', 'generateDebugAssets', 'mergeDebugAssets',
+    'compressDebugAssets', 'processDebugJavaRes', 'mergeDebugJavaResource',
+    'checkDebugDuplicateClasses', 'desugarDebugFileDependencies', 'mergeExtDexDebug',
+    'mergeLibDexDebug', 'dexBuilderDebug', 'mergeProjectDexDebug',
+    'mergeDebugJniLibFolders', 'mergeDebugNativeLibs', 'stripDebugDebugSymbols',
+    'validateSigningDebug', 'writeDebugAppMetadata', 'writeDebugSigningConfigVersions',
+    'packageDebug', 'createDebugApkListingFileRedirect',
+    'mergeDebugNativeDebugMetadata', 'mergeDebugGlobalSynthetics',
+    'generateDebugLintReportModel', 'preDebugUnitTestBuild',
+    'lintDebug', 'lintReportDebug', 'lintAnalyzeDebug', 'lintAnalyzeDebugUnitTest',
+    'lintAnalyzeDebugAndroidTest', 'generateDebugLintModel', 'generateDebugUnitTestLintModel',
+    'generateDebugAndroidTestLintModel', 'extractProguardFiles', 'bundleDebugClassesToCompileJar'
+] as Set
+def mandatoryNames = [
+    'assemblePrivateDebugDeviceUnvalidated', 'preparePrivateDebugDeviceUnvalidated', 'assembleDebug', 'verifyTermuxOverlay',
+    'verifyJGitAndroidCompat', 'mergeDebugNativeLibs', 'stripDebugDebugSymbols', 'packageDebug', 'lintDebug'
+] as Set
+gradle.taskGraph.whenReady { graph ->
+    def unexpected = graph.allTasks.findAll { it.project.path != ':app' || !allowedNames.contains(it.name) }
+    if (!unexpected.empty) {
+        throw new GradleException('Forbidden or unreviewed private debug tasks: ' + unexpected*.path.join(', '))
+    }
+    if (!graph.allTasks*.name.containsAll(mandatoryNames)) {
+        throw new GradleException('Private debug graph is missing mandatory provenance or APK verification work')
+    }
+    if (graph.allTasks.any { !it.enabled }) {
+        throw new GradleException('Private debug graph contains disabled work')
+    }
+    logger.lifecycle('Reviewed PRIVATE DEVICE-UNVALIDATED debug graph: ' + graph.allTasks*.path.join(', '))
+}

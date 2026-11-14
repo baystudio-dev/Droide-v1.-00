@@ -200,7 +200,7 @@ class LocalUbuntuClojurePolicyTest {
     @Test fun additiveElfGateRejectsInvalidEntryLoadBoundsAlignmentAndDynamicTable() = root { root ->
         val entry = File(root, p.COMMAND)
         entry.writeBytes(elf()); p.requireElfStructure(entry)
-        entry.writeBytes(elf().apply { put16(this, 16, 3) }); p.requireElfStructure(entry)
+        entry.writeBytes(elf().apply { put16(this, 16, 3) }); p.requireElfStructure(entry) // PIE is allowed.
         for (mutation in listOf<(ByteArray) -> Unit>(
             { it[4] = 1 }, { it[5] = 2 }, { put16(it, 18, 62) }, { put32(it, 20, 0) },
             { put64(it, 24, 0) }, { put64(it, 24, 0x9000) }, { put64(it, 32, Long.MAX_VALUE) },
@@ -244,7 +244,7 @@ class LocalUbuntuClojurePolicyTest {
         put32(this, 120, 3); put64(this, 128, 256); put64(this, 152, interpreter.size.toLong()); put64(this, 160, interpreter.size.toLong())
         interpreter.copyInto(this, 256)
         put32(this, 176, 2); put64(this, 184, 320); put64(this, 208, 32); put64(this, 216, 32)
-
+        // Deterministic incompressible-ish body keeps fixture safely within the expansion-ratio bound.
         for (i in 512 until size) this[i] = (i * 31 + i / 7).toByte()
     }
 

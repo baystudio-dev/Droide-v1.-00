@@ -15,8 +15,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-// Reuse only the verified owned-root chmod/lstat boundary. No descriptor reflection or
-// additional JVM module openings are needed by this archive fixture.
+// Reuse only the verified owned-root chmod/lstat boundary. No descriptor reflection
+// or additional JVM module openings are needed by this archive fixture.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [CMakeHostOs::class])
 class GraphqlArchiveTest {
@@ -33,8 +33,8 @@ class GraphqlArchiveTest {
 
     private fun extractionRoot(prefix: String): File = track(CMakeHostOs.temporaryRoot(prefix))
 
-    // Deliberately not registered with the Os shadow: archive operations get no authority to chmod
-    // or inspect the outside sentinel through this fixture.
+    // Deliberately not registered with the Os shadow: archive operations get no
+    // authority to chmod or inspect the outside sentinel through this fixture.
     private fun outsideRoot(prefix: String): File = track(Files.createTempDirectory(prefix).toFile())
 
     @After fun releaseOwnedFixtures() {
@@ -46,8 +46,8 @@ class GraphqlArchiveTest {
                     check(current.isDirectory && !current.isSymbolicLink && current.fileKey() == owned.fileKey) {
                         "Owned archive fixture root was replaced; refusing cleanup"
                     }
-                    // Files.walk does not follow links without FOLLOW_LINKS. Sorting materializes paths before
-                    // deletion and never traverses Node aliases.
+                    // Files.walk does not follow links without FOLLOW_LINKS. Sorting
+                    // materializes paths before deletion and never traverses Node aliases.
                     Files.walk(owned.path).use { paths ->
                         paths.sorted(Comparator.reverseOrder()).forEach { Files.delete(it) }
                     }

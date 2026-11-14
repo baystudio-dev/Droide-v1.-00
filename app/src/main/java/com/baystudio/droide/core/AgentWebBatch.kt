@@ -8,6 +8,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
 
+/** A fixed worker pool bounds queued work as well as active transfers. */
 internal object AgentWebBatch {
     const val MAX_SOURCES = 8
     private const val WORKERS = 3
@@ -35,7 +36,8 @@ internal object AgentWebBatch {
                 }
             }
         }
-
+        // coroutineScope waits for workers before the result is read below.
+        // Build the envelope outside this scope so no incomplete slot is observable.
         BatchWork(kind, field, inputs, positions, firstIndices, completed)
     }.let { work ->
         val results = work.inputs.mapIndexed { index, input ->
@@ -104,7 +106,7 @@ internal object AgentWebBatch {
             fun retain(count: Int) {
                 out["lines"] = JsonArray(originalLines.take(count))
                 out["end_line"] = JsonPrimitive(start + count)
-
+                // Including zero lines is safe: the same offset can be read in a single open.
                 if (count < originalLines.size) out["next_start_line"] = JsonPrimitive(start + count)
             }
             var low = 0; var high = originalLines.size
@@ -117,7 +119,7 @@ internal object AgentWebBatch {
         }
         val hits = out["results"] as? JsonArray
         if (hits != null && size() > budget) {
-
+            // Preserve returned search identities first; snippets remain discovery context.
             out["results"] = JsonArray(hits.map { JsonObject(it.jsonObject - "snippet" - "title") })
             out["snippets_omitted"] = JsonPrimitive(true)
             if (size() > budget) {

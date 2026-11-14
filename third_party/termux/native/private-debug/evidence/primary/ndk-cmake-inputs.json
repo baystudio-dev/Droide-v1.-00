@@ -1,0 +1,81 @@
+{
+  "build/cmake/abis.cmake": {
+    "sha256": "cbe9b985319b6ef27a2618b6f379e8ac5e9fff3d4813e66d9a1bdf42b96e8956",
+    "sizeBytes": 1723
+  },
+  "build/cmake/adjust_api_level.cmake": {
+    "sha256": "c92d4fcc28223c5e1684c0b878fd9173d4d6cbaef5018b81486a1213961ff935",
+    "sizeBytes": 2404
+  },
+  "build/cmake/android-legacy.toolchain.cmake": {
+    "sha256": "a225790c91d565ee556731748d3ce1f54f9162432820067a05d2d86259c2a9a7",
+    "sizeBytes": 30375
+  },
+  "build/cmake/android.toolchain.cmake": {
+    "sha256": "dbad92d9dcfea0d32b7c5e5f82f5072d878ded5d46a5d3f1f581ea108ca7fe89",
+    "sizeBytes": 10344
+  },
+  "build/cmake/compiler_id.cmake": {
+    "sha256": "faf70f402f0a4d0b7f898e430dde5cb943f53aa8525e89282cf84163febaad8e",
+    "sizeBytes": 176
+  },
+  "build/cmake/exports.cmake": {
+    "sha256": "507011718b06a0c798c0259b0bdadbf1ec4eececd35552972f8b2def111e803a",
+    "sizeBytes": 3097
+  },
+  "build/cmake/flags.cmake": {
+    "sha256": "efbd7098eb9850910094a2b372560705518d6c3203471074cddd4195068299e0",
+    "sizeBytes": 4720
+  },
+  "build/cmake/hooks/post/Android-Clang.cmake": {
+    "sha256": "cb7638e373e4e47666935a666aaa19ebd1908ae0560afe0fa42f53e096c68ee3",
+    "sizeBytes": 708
+  },
+  "build/cmake/hooks/post/Android-Determine.cmake": {
+    "sha256": "36687672d108ded2847d9934666a9aadcecc5898a15ea4304ed0b27f320e6976",
+    "sizeBytes": 960
+  },
+  "build/cmake/hooks/post/Android-Initialize.cmake": {
+    "sha256": "b306686cf26e052d9ef57a982589c4568a7bb9122ece2341565140e3a363ccb4",
+    "sizeBytes": 713
+  },
+  "build/cmake/hooks/post/Android.cmake": {
+    "sha256": "9939f35dff1891488f08967a120f4bff4c76197fd87d7be2d50ddb0efbc96b8d",
+    "sizeBytes": 702
+  },
+  "build/cmake/hooks/post/Determine-Compiler.cmake": {
+    "sha256": "a0aa6aabd25906f97e63c6749b325d9eaf66f8d37ddab5b230e5ca09632f9c5d",
+    "sizeBytes": 721
+  },
+  "build/cmake/hooks/pre/Android-Clang.cmake": {
+    "sha256": "5c8d0e12e5c1084b4686fec21989a6bd81aedf070b0988920581bae8600d87c8",
+    "sizeBytes": 714
+  },
+  "build/cmake/hooks/pre/Android-Determine.cmake": {
+    "sha256": "d1d6c7c89852bb63f03c801556a4ee223391c0b01eb42ab30fd3377e01a08ce5",
+    "sizeBytes": 718
+  },
+  "build/cmake/hooks/pre/Android-Initialize.cmake": {
+    "sha256": "073b31601cb1cd42b9d7191d4fb4bf2b3b6c5ff9013fe303812c9bbb1bad53a1",
+    "sizeBytes": 719
+  },
+  "build/cmake/hooks/pre/Android.cmake": {
+    "sha256": "3591c5126ceeb7cd8f6cb7365332f67461d7d83fe5a60cc21175107deead125b",
+    "sizeBytes": 708
+  },
+  "build/cmake/hooks/pre/Determine-Compiler.cmake": {
+    "sha256": "ab45930e84d9b6f79e16d0fc5fa321fee8107f3fc357ed9da259f087b1c6c7b6",
+    "sizeBytes": 1883
+  },
+  "build/cmake/platforms.cmake": {
+    "sha256": "e64b224db7f9844a4083dfa0ff3f03c40dbbba0a51de13e20c1382f3d00ba39b",
+    "sizeBytes": 942
+  },
+  "build/cmake/system_libs.cmake": {
+    "sha256": "1402be1f03c166a460d506dd7cf74864d1632ca28979cfe850343eb6a8307419",
+    "sizeBytes": 360
+  },
+  "source.properties": {
+    "sha256": "c00aa236fdb205e9be9edd9e2169763e48aca52735efff4e16f34205d49783b5"
+  }
+}

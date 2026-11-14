@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Offline models.dev snapshot parsing and production request-policy matrix."""
+"""Offline models.dev snapshot parsing and production request-policy matrix.
+
+Supply an immutable official repository archive and JVM jars explicitly. No API
+credentials, network inference, Android runtime, or provider availability claims.
+The only Android host stub supplies Context.filesDir; catalog refresh is not run.
+"""
 import argparse
 import copy
 import hashlib
@@ -111,7 +116,7 @@ def flatten_archive(archive):
                 apply_omit(model, omit)
                 model['canonical_model_id'] = base_id
                 inheritance_count += 1
-
+            # Match Zod's two documented defaults/preprocessors in generated metadata.
             for option in model.get('reasoning_options', []):
                 if option.get('type') == 'effort':
                     option['values'] = [None if value == 'null' else value for value in option['values']]

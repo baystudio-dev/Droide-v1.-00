@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Exact captured text, UTF-16 editor coordinates and Unicode-scalar wire coordinates. */
 internal object LspCMakePositionCodec {
     const val POLICY_ID = "cmake-utf32-scalar-v1"
     const val MAX_TEXT_CHARS = 2_000_000

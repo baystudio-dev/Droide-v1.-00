@@ -8,8 +8,10 @@ import java.security.MessageDigest
 import java.util.Locale
 import java.util.UUID
 
-/** A different boot on the same Android device cannot contain an earlier boot's processes or
- * descriptors. */
+/** A different boot on the same Android device cannot contain an earlier boot's
+ * processes or descriptors. A different device is NOT that proof (shared/copied data).
+ * Missing/restricted platform identity remains unknown; no clock/PID/cwd fallback.
+ */
 internal object WorkspaceProcessBootIdentity {
     data class Identity(val device: String, val boot: String) {
         init {
@@ -26,8 +28,8 @@ internal object WorkspaceProcessBootIdentity {
 
     internal fun fromSources(context: Context, working: File, boot: () -> String?, bootCount: () -> Int?,
     ): Identity? = try {
-        // Production mirrors belong to app-private storage, not a shared filesystem on another machine.
-        // Device identity must also match before records can retire.
+        // Production mirrors belong to app-private storage, not a shared filesystem on
+        // another machine. Device identity must also match before records can retire.
         if (!working.canonicalFile.toPath().startsWith(context.filesDir.canonicalFile.toPath())) null
         else {
             val device = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
@@ -40,8 +42,10 @@ internal object WorkspaceProcessBootIdentity {
                 }
                 if (currentBoot != null) Identity(hash("droide-process-device-v1\n${context.packageName}\n$device"), currentBoot)
                 else runCatching { bootCount() }.getOrNull()?.takeIf { it >= 0 }?.let { count ->
-                    // BOOT_COUNT is a system-owned boot generation (API 24+), not uptime or a PID.
-
+                    // Android restricts boot_id on many devices. BOOT_COUNT is a
+                    // system-owned boot generation (API 24+), not uptime or a PID.
+                    // Separate identity domains prevent a change of proof source
+                    // within one boot from being mistaken for a device restart.
                     Identity(hash("droide-process-device-boot-count-v1\n${context.packageName}\n$device"),
                         UUID.nameUUIDFromBytes("droide-android-boot-count-v1\n$count".toByteArray(Charsets.UTF_8)).toString())
                 }

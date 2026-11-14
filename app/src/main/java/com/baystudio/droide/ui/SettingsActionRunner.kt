@@ -21,8 +21,8 @@ internal class SettingsActionRunner(
     fun launch(key: String, failureLabel: String, action: suspend () -> String?): Job? {
         if (!scope.isActive || !pending.add(key)) return null
         pendingChanged(pending.toSet())
-        // Begin finally ownership before returning to the caller; a rapid dismissal cannot strand a
-        // queued action's pending flag. DataStore remains responsible for atomicity.
+        // Begin finally ownership before returning to the caller; a rapid dismissal cannot
+        // strand a queued action's pending flag. DataStore remains responsible for atomicity.
         return scope.launch(start = CoroutineStart.UNDISPATCHED) {
             var failure: Throwable? = null
             var result: String? = null

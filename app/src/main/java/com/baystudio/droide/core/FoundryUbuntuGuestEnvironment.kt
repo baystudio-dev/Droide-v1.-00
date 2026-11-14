@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.baystudio.droide.BuildConfig
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -14,6 +15,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
 
 object FoundryUbuntuGuestEnvironmentSpec {
     const val ID = "ubuntu-base-24.04.5-arm64"
@@ -29,13 +31,15 @@ object FoundryUbuntuGuestEnvironmentSpec {
     const val LAYER_METADATA_PACKAGES = "droide.runtime.packages"
     const val LAYER_KIND = "ubuntu-apt-layer"
 
-    // Nim private-helper recipes request their own exact package layer; baseline Node/Nim selections
-    // are unchanged.
+
+    // Nim private-helper recipes request their own exact package layer; baseline Node/Nim selections are unchanged.
     val baselinePackages = listOf(
         "ca-certificates",
     )
 
+     
     val canonicalBasePackages = FoundryUbuntuBaseManifest.packages
+
 
     val legacyBroadRootPackages = listOf(
         "ca-certificates", "binutils", "curl", "git", "gnupg2", "libc6-dev",
@@ -44,6 +48,7 @@ object FoundryUbuntuGuestEnvironmentSpec {
         "libz3-dev", "pkg-config", "python3", "tzdata", "unzip", "zip", "zlib1g-dev",
         "libicu74", "libssl3", "libssl3t64", "libunwind8", "libkrb5-3",
     )
+
 
     const val MAX_LAYER_PACKAGES = 48
     const val LAYER_TRANSACTION_OVERHEAD_BYTES = 64L * 1024L * 1024L
@@ -65,6 +70,7 @@ object FoundryUbuntuGuestEnvironmentSpec {
     )
 }
 
+ 
 interface ReviewedGuestExecutionEnvironment {
     val backendId: PackageBackendId
     val environmentId: String
@@ -75,9 +81,10 @@ interface ReviewedGuestExecutionEnvironment {
     suspend fun execute(argv: List<String>, maxOutputBytes: Int = 1_500_000): ExecResult
 }
 
+ 
 class AlpineReviewedGuestEnvironment(
     context: Context,
-
+    
     private val delegate: WorkstationGuestEnvironmentManager = WorkstationGuestEnvironmentManager(context.applicationContext),
 ) : ReviewedGuestExecutionEnvironment {
     override val backendId: PackageBackendId get() = delegate.backendId
@@ -98,7 +105,8 @@ internal object FoundryUbuntuGuestCommand {
     const val MAX_ARGUMENTS = 128
     const val MAX_ARGUMENT_BYTES = 32_768
     const val MAX_COMMAND_BYTES = 32_768
-
+    // shellBounded quotes this command twice for its process lease. Leave headroom below
+    // Linux's 128 KiB single-argument limit for the lease envelope and application paths.
     const val MAX_LEASE_QUOTED_BYTES = 98_304
 
     fun downloadedArchiveSizesCommand(cacheDir: String): List<String> = listOf(
@@ -119,8 +127,8 @@ internal object FoundryUbuntuGuestCommand {
         val command = buildString {
             append("/system/bin/sh ").append(LocalExecutionSubstrate.shellQuote(launcher))
             argv.forEach { arg ->
-                // LF/CR, spaces and shell metacharacters are legitimate argv data. Single-quote each argument so
-                // only the explicitly selected guest shell can interpret scripts.
+                // LF/CR, spaces and shell metacharacters are legitimate argv data. Single-quote
+                // each argument so only the explicitly selected guest shell can interpret scripts.
                 require('\u0000' !in arg && arg.length <= MAX_ARGUMENT_BYTES &&
                     arg.toByteArray(Charsets.UTF_8).size <= MAX_ARGUMENT_BYTES) { "Unsafe Ubuntu guest argument" }
                 append(' ').append(LocalExecutionSubstrate.shellQuote(arg))
@@ -128,7 +136,7 @@ internal object FoundryUbuntuGuestCommand {
             }
         }
         require(command.toByteArray(Charsets.UTF_8).size <= MAX_COMMAND_BYTES) { "Ubuntu guest command is too large" }
-
+        // Match the always-quoted process lease rather than the shellQuote safe-token shortcut.
         fun leaseQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"
         require(leaseQuote(leaseQuote(command)).toByteArray(Charsets.UTF_8).size <= MAX_LEASE_QUOTED_BYTES) {
             "Ubuntu guest command exceeds the process-lease argument limit"
@@ -137,11 +145,12 @@ internal object FoundryUbuntuGuestCommand {
     }
 }
 
+
 class FoundryUbuntuGuestEnvironmentManager(
     context: Context,
 ) : ReviewedGuestExecutionEnvironment {
     companion object {
-
+        // Access is exclusively inside FoundryUbuntuGuestMutationGate.mutex.
         private val readinessCache = UbuntuGuestReadinessCache()
         private val packageAttachAdmission = UbuntuPackageAttachAdmission()
         private val guestGroupNames = UbuntuGuestGroupNames()
@@ -160,7 +169,7 @@ class FoundryUbuntuGuestEnvironmentManager(
 
     override suspend fun isHealthy(): Boolean = withContext(Dispatchers.IO) {
         LocalExecutionSubstrate.requireContextRoot(root)
-
+        
         val profileLock = "$finalRoot/BOOTSTRAP_LOCK.txt"
         val probe = LocalExecutionSubstrate.shellBounded(
             "test -f ${q(launcher)} && test -f ${q(profileLock)} && " +
@@ -173,31 +182,46 @@ class FoundryUbuntuGuestEnvironmentManager(
 
     override suspend fun ensureInstalled(): String = ensureInstalledWithAdmission(null, {})
 
+    internal suspend fun installFromUser(progress: (EnvironmentSetupProgress) -> Unit): String {
+        check(BuildConfig.FDROID_DISTRIBUTION) { "Interactive environment setup is unavailable for this distribution" }
+        UbuntuEnvironmentSetup.requireConsent(appContext)
+        return ensureInstalledWithAdmission(null, {}, progress)
+    }
+
     internal suspend fun ensureInstalled(attempt: PackagedNativeAdmissionAttempt, checkCancelled: () -> Unit): String =
         ensureInstalledWithAdmission(attempt, checkCancelled)
 
-    private suspend fun ensureInstalledWithAdmission(attempt: PackagedNativeAdmissionAttempt?, checkCancelled: () -> Unit): String = withContext(Dispatchers.IO) {
+    private suspend fun ensureInstalledWithAdmission(
+        attempt: PackagedNativeAdmissionAttempt?, checkCancelled: () -> Unit,
+        setupProgress: ((EnvironmentSetupProgress) -> Unit)? = null,
+    ): String = withContext(Dispatchers.IO) {
         checkCancelled()
         LocalExecutionSubstrate.requireContextRoot(root)
         requireArm64()
-
+        // A scoped terminal/STDIO preparation needs all four even on the guest attach fast path.
         attempt?.require(checkCancelled)
-        // Package downloads do not replace the guest.
-
+        // Package downloads do not replace the guest. New terminals/STDIO peers may attach
+        // to its admitted identity while that package-only owner holds the mutation gate.
+        // Bootstrap, repair and legacy compaction never publish this admission.
         if (packageAttachAdmission.mayAttach()) return@withContext finalRoot
         FoundryUbuntuGuestMutationGate.mutex.withLock {
-            val installed = ensureInstalledUnlocked(attempt, checkCancelled)
+            val installed = ensureInstalledUnlocked(attempt, checkCancelled, setupProgress)
             UbuntuAptCacheDefaults.install(File("$finalRoot/rootfs"))
+            UbuntuSshClientDefaults.install(File("$finalRoot/rootfs"))
             PackagedWorkstationRootfs.evict(appContext, FoundryUbuntuGuestEnvironmentSpec.rootfsArtifact.fileName, FoundryUbuntuGuestEnvironmentSpec.rootfsArtifact.sha256)
             installed
         }
     }
 
-    private suspend fun ensureInstalledUnlocked(attempt: PackagedNativeAdmissionAttempt? = null, checkCancelled: () -> Unit = {}): String {
+    private suspend fun ensureInstalledUnlocked(
+        attempt: PackagedNativeAdmissionAttempt? = null, checkCancelled: () -> Unit = {},
+        setupProgress: ((EnvironmentSetupProgress) -> Unit)? = null,
+    ): String {
         checkCancelled()
         LocalExecutionSubstrate.requireContextRoot(root)
         requireArm64()
         attempt?.require(checkCancelled)?.launcher ?: PackagedLinuxEngine.requireReady(appContext)
+        // Every Terminal/Extensions/STDIO caller shares this gate and process-local cache.
         // A warm attach still builds its PATH/binds afresh; this only avoids repeated PRoot
         // recovery/health probes while the admitted guest identity is unchanged.
         if (readinessCache.mayReuse(readinessSeal(attempt = attempt, checkCancelled = checkCancelled))) return finalRoot
@@ -226,8 +250,13 @@ class FoundryUbuntuGuestEnvironmentManager(
             )
         }
 
-        DeviceWorkstationStorageGuard.requireHeadroom(
+        if (BuildConfig.FDROID_DISTRIBUTION) {
+            if (setupProgress == null) UbuntuEnvironmentSetup.requireUserSetup()
+            UbuntuEnvironmentSetup.requireConsent(appContext)
+        }
 
+        DeviceWorkstationStorageGuard.requireHeadroom(
+            
             additionalBytes = maxOf(
                 384L * 1024L * 1024L,
                 requireNotNull(FoundryUbuntuGuestEnvironmentSpec.rootfsArtifact.expectedBytes) * 10L,
@@ -244,7 +273,20 @@ class FoundryUbuntuGuestEnvironmentManager(
         check(prep.exitCode == 0) { "Could not prepare Ubuntu guest environment: ${prep.output}" }
 
         try {
-            BundledRootfsExtractor.extract(appContext, BundledRootfsExtractor.ubuntu, File("$stage/rootfs"))
+            if (BuildConfig.FDROID_DISTRIBUTION) {
+                TrustedArtifactDownloader(appContext).withArtifact(FoundryUbuntuGuestEnvironmentSpec.rootfsArtifact,
+                    onProgress = { download -> setupProgress?.invoke(EnvironmentSetupProgress(
+                        if (download.phase == TrustedArtifactDownloadPhase.VERIFYING || download.fromCache)
+                            EnvironmentSetupPhase.VERIFYING else EnvironmentSetupPhase.DOWNLOADING,
+                        download.bytesDownloaded, download.totalBytes,
+                    )) },
+                ) { archive ->
+                    BundledRootfsExtractor.extractDownloadedUbuntu(archive, File("$stage/rootfs")) { phase ->
+                        setupProgress?.invoke(EnvironmentSetupProgress(phase))
+                    }
+                }
+            } else BundledRootfsExtractor.extract(appContext, BundledRootfsExtractor.ubuntu, File("$stage/rootfs"))
+            setupProgress?.invoke(EnvironmentSetupProgress(EnvironmentSetupPhase.CONFIGURING))
             val loopbackContext = currentCoroutineContext()
             val loopback = UbuntuGuestLoopbackHosts.repair(File("$stage/rootfs")) {
                 loopbackContext.ensureActive()
@@ -268,8 +310,8 @@ class FoundryUbuntuGuestEnvironmentManager(
             check(stageHealth.exitCode == 0) { "Rootless Ubuntu bootstrap health check failed: ${stageHealth.output}" }
 
             val move = LocalExecutionSubstrate.shell(
-                // Bootstrap is creation-only. An existing guest, healthy or not, is never replaced by an
-                // automatic health path. Re-check at commit time to close the race window.
+                // Bootstrap is creation-only. An existing guest, healthy or not, is never replaced
+                // by an automatic health path. Re-check at commit time to close the race window.
                 "set -eu; if [ -e ${q(finalRoot)} ] || [ -L ${q(finalRoot)} ]; then exit 73; fi; mv ${q(stage)} ${q(finalRoot)}",
             )
             check(move.exitCode == 0) { "Could not activate Ubuntu guest environment: ${move.output}" }
@@ -277,8 +319,8 @@ class FoundryUbuntuGuestEnvironmentManager(
             repairGuestLoopbackHostsUnlocked(checkCancelled)
             repairGuestGroupNamesUnlocked(checkCancelled)
             readinessCache.admit(readinessSeal(attempt = attempt, checkCancelled = checkCancelled))
-            // A legacy `.previous` recovery anchor is intentionally retained. Fresh creation does not create
-            // one, and automatic cleanup never deletes a user-recoverable guest tree.
+            // A legacy `.previous` recovery anchor is intentionally retained. Fresh creation does
+            // not create one, and automatic cleanup never deletes a user-recoverable guest tree.
             withContext(NonCancellable) { LocalExecutionSubstrate.shell("rm -rf ${q(stage)}") }
             return finalRoot
         } catch (failure: Throwable) {
@@ -320,8 +362,8 @@ class FoundryUbuntuGuestEnvironmentManager(
         ),
         retainedPrevious = File("$guestBase/.previous/${FoundryUbuntuGuestEnvironmentSpec.ROOT_DIR}"),
     )?.let { runtime ->
-        // Both warm and package-operation fast attaches must observe the admitted name files. A
-        // changed/missing/unsafe file declines reuse; only the gate-owned path may repair it.
+        // Both warm and package-operation fast attaches must observe the admitted name files.
+        // A changed/missing/unsafe file declines reuse; only the gate-owned path may repair it.
         UbuntuGuestLoopbackHosts.fingerprint(File("$finalRoot/rootfs"))?.let { "$runtime:$it" }
     }
 
@@ -357,8 +399,11 @@ class FoundryUbuntuGuestEnvironmentManager(
         }
     }
 
-    /** True only for an r1 guest that has been migrated in place but whose historical package
-     * consumers have not yet been rebound to explicit r2 capability-layer ownership. */
+    /**
+     * True only for an r1 guest that has been migrated in place but whose historical package
+     * consumers have not yet been rebound to explicit r2 capability-layer ownership. Calling this
+     * also performs the non-destructive r1 -> r2 profile migration when needed.
+     */
     suspend fun needsLegacyOwnershipAdoption(): Boolean = withContext(Dispatchers.IO) {
         FoundryUbuntuGuestMutationGate.mutex.withLock {
             ensureInstalledUnlocked()
@@ -366,8 +411,11 @@ class FoundryUbuntuGuestEnvironmentManager(
         }
     }
 
-    /** Persist the point at which every registry-visible legacy glibc consumer has an explicit
-     * capability-layer dependency. */
+    /**
+     * Persist the point at which every registry-visible legacy glibc consumer has an explicit
+     * capability-layer dependency. This does not delete one byte of the r1 broad base; destructive
+     * compaction is a separate transaction so a failed ownership pass can never strand a tool.
+     */
     suspend fun markLegacyOwnershipComplete() = withContext(Dispatchers.IO) {
         FoundryUbuntuGuestMutationGate.mutex.withLock {
             ensureInstalledUnlocked()
@@ -468,6 +516,7 @@ class FoundryUbuntuGuestEnvironmentManager(
         )
     }
 
+    /** Reuse real dpkg package state across Extensions, Agent and terminal installations. */
     suspend fun ensurePackages(packages: List<String>, progress: (String) -> Unit = {}, allowSharedRepair: Boolean = true): ManagedPackageRecord? = withContext(Dispatchers.IO) {
         val normalized = FoundryUbuntuGuestEnvironmentSpec.normalizeLayerPackages(packages)
         if (normalized.isEmpty()) return@withContext null
@@ -478,9 +527,10 @@ class FoundryUbuntuGuestEnvironmentManager(
                 aptDependencies.requireNoPendingConfiguration()
             } else ensureInstalledUnlocked()
             UbuntuAptCacheDefaults.install(File("$finalRoot/rootfs"))
+            UbuntuSshClientDefaults.install(File("$finalRoot/rootfs"))
             val layerId = layerId(normalized)
-            // Pin the admitted packaged-engine path once. Attach probes stat that file; they must not rehash
-            // all APK-native binaries during a long download.
+            // Pin the admitted packaged-engine path once. Attach probes stat that file;
+            // they must not rehash all APK-native binaries during a long download.
             val admittedEngine = PackagedLinuxEngine.requireReady(appContext)
             packageAttachAdmission.duringPackageOperation({ readinessSeal(admittedEngine) }) {
                 aptStorage.operation(progress) {
@@ -530,6 +580,7 @@ class FoundryUbuntuGuestEnvironmentManager(
         return LocalExecutionSubstrate.shellBounded(command, maxOutputBytes, timeoutMs = timeoutMs, onOutput = onOutput, keepTail = true)
     }
 
+
     private suspend fun isLegacyHealthyUnlocked(): Boolean {
         val profileLock = "$finalRoot/BOOTSTRAP_LOCK.txt"
         val probe = LocalExecutionSubstrate.shellBounded(
@@ -542,8 +593,9 @@ class FoundryUbuntuGuestEnvironmentManager(
     }
 
     private suspend fun migrateLegacyProfileInPlaceUnlocked() {
-        // New and repaired artifacts gain explicit r2 layer ownership, while legacy artifacts continue
-        // to run until a later ownership-complete compaction can prove every dependency is covered.
+        // Safety-first migration: keep the already-working broad r1 package set intact. New and
+        // repaired artifacts gain explicit r2 layer ownership, while legacy artifacts continue to
+        // run until a later ownership-complete compaction can prove every dependency is covered.
         ensureAptHealthyUnlocked()
         val migratedLock = bootstrapLock() + FoundryUbuntuGuestEnvironmentSpec.LEGACY_BROAD_BASE_MARKER + "\n"
         pushText("$finalRoot/BOOTSTRAP_LOCK.txt", migratedLock, 420)
@@ -674,8 +726,7 @@ class FoundryUbuntuGuestEnvironmentManager(
         val stageExists = state.stageExists
         val finalExists = state.finalExists
 
-        // Its presence must never authorize deletion/rollback of a current guest that may contain newer
-        // user data.
+        // Its presence must never authorize deletion/rollback of a current guest that may contain newer user data.
 
         if (finalExists) {
             if (stageExists) withContext(NonCancellable) { LocalExecutionSubstrate.shell("rm -rf ${q(stage)}") }
@@ -699,6 +750,7 @@ class FoundryUbuntuGuestEnvironmentManager(
 
         return guest.exists() || PathSecurity.isSymbolicLink(guest)
     }
+
 
     private suspend fun verifyRemoteArtifact(path: String, spec: TrustedArtifactSpec) {
         LocalExecutionSubstrate.requireSafeLocalPath(path)
@@ -739,6 +791,7 @@ PROOT_L2S_DIR="${'$'}ROOTFS/.l2s"
 export PROOT_NO_SECCOMP PROOT_LOADER PROOT_LOADER_32 PROOT_TMP_DIR PROOT_L2S_DIR
 exec /system/bin/linker64 ${q(engine.absolutePath)} -0 --link2symlink --kill-on-exit -r "${'$'}ROOTFS" \
   -b /dev -b /proc -b /sys -b "${'$'}DROIDE_ROOT:${'$'}DROIDE_ROOT" \
+  ${UbuntuRuntimeFilesystem.bindings(File(root)).joinToString(" ", transform = ::q)} \
   -b "${'$'}DROIDE_ROOT/packages:/opt/droide/packages" -b "${'$'}DROIDE_ROOT/managed/ubuntu-bin:/opt/droide/bin" -w "${'$'}WORK" \
   /usr/bin/env -i HOME=/root USER=root LOGNAME=root \
   DROIDE_PROCESS_LEASE="${'$'}{DROIDE_PROCESS_LEASE:-}" \

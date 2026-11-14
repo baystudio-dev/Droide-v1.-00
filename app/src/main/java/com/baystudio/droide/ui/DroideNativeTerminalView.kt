@@ -20,6 +20,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 
+
 // The upstream TerminalView is final; this container owns IME metadata and delegates PTY input.
 internal class DroideNativeTerminalView(context: Context) : FrameLayout(context) {
     val terminalView = TerminalView(context, null)
@@ -62,8 +63,8 @@ internal class DroideNativeTerminalView(context: Context) : FrameLayout(context)
     init {
         isFocusable = true
         isFocusableInTouchMode = true
-        // Preserve child focus: upstream text selection requires requestFocus(). This app-side adapter
-        // guards the container-served IME route only.
+        // Preserve child focus: upstream text selection requires requestFocus().
+        // This app-side adapter guards the container-served IME route only.
         descendantFocusability = FOCUS_BEFORE_DESCENDANTS
         terminalView.isFocusable = true
         terminalView.isFocusableInTouchMode = true
@@ -199,7 +200,7 @@ internal class DroideNativeTerminalView(context: Context) : FrameLayout(context)
                 size.expectedRows == receipt.requestedRows
         }) {
             val size = viewport() ?: return@offer
-
+            // Explicitly reapply the same desired size: TerminalView skips it after emulator resize.
             session.updateSize(size.expectedColumns, size.expectedRows)
             reportViewport()
         }
@@ -281,6 +282,8 @@ internal class DroideNativeTerminalView(context: Context) : FrameLayout(context)
                 }
             },
             stopSelection = { terminalView.stopTextSelectionMode() },
+            selectedLink = { com.termux.view.DroideSelectionText.getSelectedLink(terminalView) },
+            openLink = { TerminalLinkOpener.open(context, it) },
         )
         return super.startActionModeForChild(originalView, wrapped, type)
     }

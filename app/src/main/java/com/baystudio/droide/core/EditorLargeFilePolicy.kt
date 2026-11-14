@@ -1,5 +1,13 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
+
 enum class EditorFilePerformanceMode { FULL_INTELLIGENCE, LARGE_FILE_OPTIMIZED, PREVIEW_ONLY }
 
 data class EditorFileProfile(
@@ -12,11 +20,13 @@ data class EditorFileProfile(
 }
 
 object EditorLargeFilePolicy {
-
+     
     const val FULL_INTELLIGENCE_MAX_BYTES: Long = 2_500L * 1024L
 
+     
     const val MAX_EDITABLE_BYTES: Long = 20L * 1024L * 1024L
 
+     
     const val FULL_INTELLIGENCE_MAX_LINES: Int = 300_000
 
     const val PREVIEW_LINES: Int = 500
@@ -33,6 +43,7 @@ object EditorLargeFilePolicy {
         return EditorFileProfile(mode, bytes, lineCount)
     }
 
+     
     fun lineCount(text: CharSequence, stopAfter: Int = Int.MAX_VALUE): Int {
         if (text.isEmpty()) return 1
         val cap = stopAfter.coerceAtLeast(1)
@@ -43,6 +54,7 @@ object EditorLargeFilePolicy {
         return lines
     }
 
+     
     fun utf8Bytes(text: CharSequence): Long {
         var bytes = 0L
         var i = 0

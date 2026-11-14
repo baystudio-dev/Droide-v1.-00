@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 
+
 class BackgroundCommandManager private constructor(
     private val terminal: ITerminalSession,
     private val heartbeatIntervalMs: Long,
@@ -80,12 +81,12 @@ class BackgroundCommandManager private constructor(
         command: String,
         timeoutMs: Long? = null,
         launchDiskState: AgentDiskExecutionState = AgentDiskExecutionState.CLEAN,
-        keepStdinOpen: Boolean = false,
+        keepStdinOpen: Boolean? = null,
         stopWithAgent: Boolean = false,
         requiresTty: Boolean = false,
     ): Snapshot {
         val (entry, launched) = prepareLaunch(command, timeoutMs, launchDiskState,
-            keepStdinOpen, stopWithAgent, requiresTty)
+            AgentTtyPolicy.keepStdinOpen(requiresTty, keepStdinOpen), stopWithAgent, requiresTty)
         launched.start()
         return snapshot(entry.id) ?: error("Background job disappeared during launch")
     }
@@ -136,15 +137,21 @@ class BackgroundCommandManager private constructor(
         receipt.intent
     }
 
-    /** Caller has already completed permission and exact-input review. */
-
+    /**
+     * Caller has already completed permission and exact-input review. Persistence runs outside
+     * the manager monitor, before this invocation's private LAZY job can ever be activated.
+     * ACTIVATED means Job.start accepted, not that an OS child exists or completed successfully.
+     * Terminal failures/cancellation after activation remain custody-uncertain; never retry from
+     * a FAILED snapshot or an error string. No-command-activation says nothing about prior
+     * workspace preparation effects. This API deliberately has no managerless fallback.
+     */
     internal fun startSource(
         command: String,
         sourceOwner: OwnedResponseContentStore.Owner,
         argumentsSha256: String,
         timeoutMs: Long? = null,
         launchDiskState: AgentDiskExecutionState = AgentDiskExecutionState.CLEAN,
-        keepStdinOpen: Boolean = false,
+        keepStdinOpen: Boolean? = null,
         stopWithAgent: Boolean = false,
         requiresTty: Boolean = false,
         requireCurrent: () -> Unit,
@@ -152,12 +159,13 @@ class BackgroundCommandManager private constructor(
     ): SourceLaunchReceipt {
         require(argumentsSha256.matches(Regex("[0-9a-f]{64}")))
         requireCurrent()
+        val inputOpen = AgentTtyPolicy.keepStdinOpen(requiresTty, keepStdinOpen)
         val (entry, launched) = prepareLaunch(command, timeoutMs, launchDiskState,
-            keepStdinOpen, stopWithAgent, requiresTty, preserveHistory = true)
+            inputOpen, stopWithAgent, requiresTty, preserveHistory = true)
         val intent = SourceLaunchIntent(entry.id, sourceOwner, argumentsSha256,
             java.security.MessageDigest.getInstance("SHA-256").digest(command.toByteArray(Charsets.UTF_8))
                 .joinToString("") { "%02x".format(it) },
-            timeoutMs, keepStdinOpen, stopWithAgent, requiresTty)
+            timeoutMs, inputOpen, stopWithAgent, requiresTty)
         fun receipt(state: SourceActivation) = SourceLaunchReceipt(intent, state).also {
             synchronized(lock) { sourceLaunchReceipts[it] = SourceLaunchRecord(intent, entry) }
         }
@@ -173,8 +181,8 @@ class BackgroundCommandManager private constructor(
                 check(!closed && entries[entry.id] === entry && entry.state == State.RUNNING) {
                     "Source command reservation is no longer current"
                 }
-                // Job is private to this invocation: only kill/close can have cancelled it. No public method can
-                // start it; false therefore proves no activation here.
+                // Job is private to this invocation: only kill/close can have cancelled it.
+                // No public method can start it; false therefore proves no activation here.
                 activationAttempted = true
                 if (!launched.start()) {
                     activationAttempted = false
@@ -183,14 +191,14 @@ class BackgroundCommandManager private constructor(
                     return inactive
                 }
                 entry.inertReservation = false
-                // Admission is now accepted. Retention policy may finally retire old completed entries; inert
-                // failed reservations never consume prior history.
+                // Admission is now accepted. Retention policy may finally retire old completed
+                // entries; inert failed reservations never consume prior history.
                 pruneSourceAfterActivationLocked(entry)
                 return active
             }
         } catch (failure: Throwable) {
-            // Unexpected failure from Job.start is not proof that its body never began. Retain the
-            // entry/custody in that case; never remove an ambiguous active job.
+            // Unexpected failure from Job.start is not proof that its body never began.
+            // Retain the entry/custody in that case; never remove an ambiguous active job.
             launched.cancel()
             if (activationAttempted) synchronized(lock) { entry.inertReservation = false }
             if (!activationAttempted) synchronized(lock) {
@@ -211,8 +219,8 @@ class BackgroundCommandManager private constructor(
         require(command.isNotBlank()) { "Background command cannot be blank" }
         require(command.length <= MAX_COMMAND_CHARS) { "Background command is too long" }
         require(timeoutMs == null || timeoutMs in MIN_TIMEOUT_MS..MAX_TIMEOUT_MS) { "Invalid background timeout" }
-        // Bind before the lazy launch: switching user tabs must never redirect an existing Agent job
-        // into a different environment or PTY.
+        // Bind before the lazy launch: switching user tabs must never redirect
+        // an existing Agent job into a different environment or PTY.
         val executionSession = (terminal as? ExecutionTerminalRouter)?.bindCommandSession() ?: terminal
         AgentTtyPolicy.unsupportedReason(requiresTty, (executionSession as? InteractivePtyCommandSession)?.supportsInteractivePty == true)?.let {
             throw IllegalArgumentException(it)
@@ -238,8 +246,10 @@ class BackgroundCommandManager private constructor(
         synchronized(lock) {
             ApplicationWorkAdmission.requireOpen()
             check(!closed) { "Background command manager is closed" }
-            // A source reservation has not durably admitted execution yet.
-
+            // A source reservation has not durably admitted execution yet. Never evict
+            // unrelated output if persistence or ownership validation subsequently fails.
+            // Source may transiently exceed history capacity by bounded live reservations.
+            // Prune only after accepted activation; legacy ordering remains unchanged.
             if (!preserveHistory) pruneLocked()
             check(entries.values.count { it.state == State.RUNNING } < MAX_RUNNING_JOBS) {
                 "Too many concurrent background jobs (max $MAX_RUNNING_JOBS)"
@@ -320,14 +330,16 @@ class BackgroundCommandManager private constructor(
                     }
                 }
             } finally {
-                // The process/PTY has already exited or was cancelled.
-
+                // The process/PTY has already exited or was cancelled. A graceful EOF
+                // here targets a closed relay and may throw outside the job's catch
+                // block (or send input to a shell that has regained the terminal).
+                // Explicit close_stdin remains the only graceful-EOF operation.
                 entry.input?.abort()
             }
         }
         synchronized(lock) {
             entry.job = launched
-
+            // list()/kill()/close() may observe the entry before its lazy job is attached.
             if (closed || entry.state != State.RUNNING) launched.cancel()
         }
         return entry to launched
@@ -370,8 +382,10 @@ class BackgroundCommandManager private constructor(
     // A constructed lookalike token is not registered and cannot authorize a manager operation.
     private val sourceStdinBindings = java.util.WeakHashMap<SourceStdinBinding, StdinAdmission>()
 
-    /** Historical evidence remains readable after cancellation, completion and manager close. */
-
+    /** Historical evidence remains readable after cancellation, completion and manager close.
+     * No generation callback or lifecycle check: neither can undo already admitted input.
+     * Registry identity still rejects constructed, foreign and restarted-manager tokens.
+     */
     internal fun inspectSourceStdin(binding: SourceStdinBinding): SourceStdinEvidence = synchronized(lock) {
         val a = sourceStdinBindings[binding] ?: error("Foreign or expired stdin binding")
         SourceStdinEvidence(binding.sessionId, binding.sourceOwner, binding.argumentsSha256,
@@ -420,15 +434,15 @@ class BackgroundCommandManager private constructor(
         check(entry.state == State.RUNNING) { "Command session has already finished: $id" }
         val input = entry.input ?: error("This command session has no open stdin")
         admission.consumed = true
-
+        // No callback, IO or suspension between effect and in-memory evidence.
         if (text.isNotEmpty()) admission.offerAttempted = true
         val offer = input.offerWithEvidence(text)
         if (text.isNotEmpty() && offer is ProcessInputBuffer.OfferAdmission.Rejected) admission.offerRejection = offer.reason
-        offer.requireAccepted()
+        offer.requireAccepted() // known rejection still preserves the legacy returned error
         if (text.isNotEmpty()) admission.offerAccepted = true
         if (closeInput) {
             admission.eofAttempted = true
-            input.close()
+            if (entry.requiresTty) input.signalTerminalEof() else input.close()
             admission.eofAccepted = true
         }
     }
@@ -457,7 +471,9 @@ class BackgroundCommandManager private constructor(
         check(entry.state == State.RUNNING) { "Command session has already finished: $id" }
         val input = entry.input ?: error("This command session has no open stdin")
         input.offer(text)
-        if (closeInput) input.close()
+        if (closeInput) {
+            if (entry.requiresTty) input.signalTerminalEof() else input.close()
+        }
     }
 
     suspend fun awaitOutput(id: String, cursor: Long, yieldMs: Long): Snapshot {
@@ -470,8 +486,9 @@ class BackgroundCommandManager private constructor(
         }
         val initial = current()
         if (ready(initial) || yieldMs == 0L) return initial
-        // Output or exit between the snapshot above and subscription cannot be missed.
-
+        // StateFlow rechecks its current value on subscription. Output or exit
+        // between the snapshot above and subscription cannot be missed. Quiet
+        // builds need only their caller deadline, never a 40 Hz polling loop.
         withTimeoutOrNull(yieldMs) { entry.changes.first { ready(current()) } }
         return current()
     }
@@ -574,8 +591,8 @@ class BackgroundCommandManager private constructor(
         val clean = Ansi.strip(chunk)
         synchronized(lock) {
             entries[id]?.let { entry ->
-                // A late callback from a cancelled backend must not mutate a terminal state or revive its output
-                // cursor after Kill/Close.
+                // A late callback from a cancelled backend must not mutate a
+                // terminal state or revive its output cursor after Kill/Close.
                 if (entry.state != State.RUNNING) return@let
                 entry.output = boundedOutput(entry.output + clean)
                 entry.outputEndCursor += clean.length
@@ -604,8 +621,8 @@ class BackgroundCommandManager private constructor(
 
     private fun boundedOutput(text: String): String {
         val tail = text.takeLast(MAX_LIVE_OUTPUT_CHARS)
-        // Cursors count UTF-16 code units. Trimming must discard a whole emoji, rather than leaving its
-        // low surrogate at the start of retained output.
+        // Cursors count UTF-16 code units. Trimming must discard a whole emoji,
+        // rather than leaving its low surrogate at the start of retained output.
         return if (tail.firstOrNull()?.isLowSurrogate() == true) tail.drop(1) else tail
     }
 

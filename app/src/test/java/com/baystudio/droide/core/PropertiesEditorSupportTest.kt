@@ -55,7 +55,7 @@ class PropertiesEditorSupportTest {
         assertEquals("value", load(source).getProperty("key"))
         covered(source, 1, 2, 3, DroideHighlightKind.OPERATOR)
         covered(source, 1, 4, 9, DroideHighlightKind.STRING)
-
+        // Once the explicit separator has been consumed, that colon is literal value.
         val explicit = "key=\\\n  : value"
         assertEquals(": value", load(explicit).getProperty("key"))
         covered(explicit, 1, 2, 9, DroideHighlightKind.STRING)

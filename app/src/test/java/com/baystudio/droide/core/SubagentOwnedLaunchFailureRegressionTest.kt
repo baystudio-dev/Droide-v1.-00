@@ -29,8 +29,8 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class SubagentOwnedLaunchFailureRegressionTest {
     @org.junit.Before fun openAuthoredUserLaunch() {
-        // These workflow cases represent an explicitly opened app, not startup recovery. Establish a
-        // fresh epoch per method before constructing owners.
+        // These workflow cases represent an explicitly opened app, not startup
+        // recovery. Establish a fresh epoch per method before constructing owners.
         ApplicationWorkAdmission.initialize(org.robolectric.RuntimeEnvironment.getApplication())
         ApplicationWorkAdmission.reopenFromUser()
     }
@@ -442,7 +442,7 @@ class SubagentOwnedLaunchFailureRegressionTest {
             withTimeout(5_000L) {
                 while (!job.isCompleted) {
                     fixture.dispatcher.drain()
-                    delay(1L)
+                    delay(1L) // Session lookup switches to IO; wait for that real continuation.
                 }
             }
 

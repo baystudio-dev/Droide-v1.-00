@@ -45,11 +45,11 @@ internal object ProviderToolSchema {
             ?: throw IllegalArgumentException("Tool '$toolName' schema at parameters: parameters must describe an object")
         require(normalized.toString().length <= MAX_SCHEMA_CHARS) { "Tool '$toolName' expanded schema is too large" }
         val type = normalized["type"]
-        // A singleton type union is identical to the scalar object type. The final rewrite below
-        // canonicalizes it without weakening wider unions.
+        // A singleton type union is identical to the scalar object type.
+        // The final rewrite below canonicalizes it without weakening wider unions.
         require(type == null || type == JsonPrimitive("object") ||
             type == JsonArray(listOf(JsonPrimitive("object")))) { "Tool '$toolName' parameters must describe an object" }
-
+        // Function parameters are objects even when an MCP schema omits its type.
         return Walker(normalized, toolName).node(JsonObject(normalized + ("type" to JsonPrimitive("object"))), "parameters", 0, emptySet()) as JsonObject
     }
 
@@ -144,8 +144,8 @@ internal object ProviderToolSchema {
                 result["required"] = list
                 val properties = result["properties"] as? JsonObject ?: JsonObject(emptyMap())
                 val missing = list.map { it.jsonPrimitive.content }.filter { it !in properties }
-                // A schema-valued map, pattern or composition may legitimately supply required keys. Adding
-                // unconstrained properties would bypass an additionalProperties assertion.
+                // A schema-valued map, pattern or composition may legitimately supply required keys.
+                // Adding unconstrained properties would bypass an additionalProperties assertion.
                 if (missing.isNotEmpty() && type == JsonPrimitive("object") && result["additionalProperties"] == JsonPrimitive(false) &&
                     (result["patternProperties"] as? JsonObject).isNullOrEmpty()) {
                     fail("$path.required", "required property cannot exist in this closed object")
@@ -198,7 +198,8 @@ internal object ProviderToolSchema {
                 val boolean = (value as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
                 if (legacyExclusiveBounds && boolean != null) {
                     val bound = schema[inclusive] ?: fail("$path.$exclusive", "draft-04 boolean bound requires $inclusive")
-
+                    // Draft-04 used a boolean modifier. Convert to the equivalent modern
+                    // numeric assertion before removing the dialect marker from the wire schema.
                     if (boolean) { schema[exclusive] = bound; schema.remove(inclusive) }
                     else schema.remove(exclusive)
                 } else if ((value as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toBigDecimalOrNull() == null) {
@@ -207,6 +208,8 @@ internal object ProviderToolSchema {
             }
         }
 
+        // URI fragments are percent-decoded before JSON Pointer token unescaping.
+        // Unlike form decoding, a literal '+' remains a plus.
         private fun decodeFragment(fragment: String, path: String): String = buildString {
             var offset = 0
             while (offset < fragment.length) {

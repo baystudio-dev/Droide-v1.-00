@@ -223,6 +223,26 @@ class DeviceTerminalLinkInteractionTest {
         assertTrue(session.input.isEmpty())
     }
 
+    @Test fun osc8AuthenticationLabelOpensWithoutWritingToTerminal() = withTerminal { _, view, session, ime ->
+        val url = "https://accounts.example.test/auth?state=original%2Bstate%3D"
+        session.terminalEmulator.appendFromWorker("\u001b]8;;$url\u0007Click here to authenticate\u001b]8;;\u0007")
+        tapUrl(view, session)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(url, shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity.dataString)
+        assertFalse(shadowOf(ime).isSoftInputVisible)
+        assertTrue(session.input.isEmpty())
+    }
+
+    @Test fun selectedLoginFragmentResolvesToWholeUrlWithoutChangingTextSelection() = withTerminal { _, _, session, _ ->
+        val url = "https://accounts.example.test/auth?state=" + "a%2Bb%3D".repeat(25)
+        val model = session.terminalEmulator
+        model.appendFromWorker("\u001b[4;34m" + url.chunked(model.columns()).joinToString("\r\n") + "\u001b[0m")
+        val selection = DeviceTerminalEmulator.Selection(2, 1, 8, 1)
+        assertEquals(url, model.selectedLink(selection))
+        assertEquals(7, model.selectedText(selection).length)
+        assertTrue(session.input.isEmpty())
+    }
+
     @Test fun hiddenDetachedDisabledAndReleasedTerminalsRejectActivation() = withTerminal { container, view, session, ime ->
         session.terminalEmulator.appendFromWorker("https://example.test/\u001b[?1000h")
         val clicks = ClickProbe(view)

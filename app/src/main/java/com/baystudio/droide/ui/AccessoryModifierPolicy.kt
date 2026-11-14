@@ -21,8 +21,13 @@ internal data class AccessoryModifierSnapshot(
     }
 }
 
-/** The first completed tap arms immediately; a second completed tap within the platform window
- * locks it. */
+/**
+ * Synchronous modifier latch. The first completed tap arms immediately; a second
+ * completed tap within the platform window locks it. No timer or delayed action
+ * can arm a modifier after the following character has already been delivered.
+ * Consuming a key or clearing focus also ends the double-tap sequence. Only the
+ * Compose controller publishes [snapshot]; this model has no platform dependencies.
+ */
 internal class AccessoryModifierPolicy {
     var snapshot = AccessoryModifierSnapshot()
         private set

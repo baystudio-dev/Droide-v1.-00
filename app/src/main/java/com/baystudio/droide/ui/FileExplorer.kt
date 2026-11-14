@@ -294,8 +294,8 @@ private fun WorkspaceFileExplorer(
         if (uri != null) runUiCatching(onError = { err = it.message ?: "Cannot start file import" }) {
             if (ticket == null || imports == null) err = "Import destination changed; select a project folder and import again"
             else {
-                // Capture the native editor now; the runtime's repository validates the actual destination when
-                // publication begins. No view callback travels with the copy.
+                // Capture the native editor now; the runtime's repository validates the actual
+                // destination when publication begins. No view callback travels with the copy.
                 onBeforeImport()
                 when (imports.submit(ticket, uri)) {
                     WorkspaceImportAdmission.ACCEPTED -> { err = null; mutationNotice = null; state.importNotice = null }
@@ -310,8 +310,8 @@ private fun WorkspaceFileExplorer(
         val result = importState.result ?: return@LaunchedEffect
         if (state.lastImportResult === result) return@LaunchedEffect
         state.lastImportResult = result
-        // Directory refresh owns its loading error only. The bounded import outcome must survive that
-        // refresh and a detached/recreated pane, including cleanup warnings.
+        // Directory refresh owns its loading error only. The bounded import outcome must
+        // survive that refresh and a detached/recreated pane, including cleanup warnings.
         state.importNotice = result.message
         if (result.status == WorkspaceImportResultStatus.SYNC_PENDING) {
             result.relativePath?.let { path -> state.selectEntry(FileEntry(path, false, result.bytes ?: 0L, 0L)) }
@@ -400,8 +400,7 @@ private fun WorkspaceFileExplorer(
         state.children.toMap(), state.moreAfter.toMap(), state.loadingPages.toMap(), state.refreshOutcome) {
         val target = state.pendingReveal ?: return@LaunchedEffect
         if (state.refreshOutcome == ExplorerRefreshOutcome.PENDING) return@LaunchedEffect
-        // Resolve each ancestor through the normal paged loader. Never invent entries or bypass
-        // stale-page guards.
+        // Resolve each ancestor through the normal paged loader. Never invent entries or bypass stale-page guards.
         var parent = ""
         for (segment in target.split('/')) {
             if (state.loadingPages[parent] == state.pageGeneration) return@LaunchedEffect
@@ -418,7 +417,7 @@ private fun WorkspaceFileExplorer(
         val rows = flattenExplorerRows(state.children, state.expandedPaths, state.moreAfter)
         val index = rows.indexOfFirst { it.entry?.path == target }
         if (index >= 0) {
-
+            // Like Explorer reveal, jump directly to the result, including across many directory pages.
             treeListState.scrollToItem(index)
             if (state.pendingReveal == target) state.pendingReveal = null
         }
@@ -575,6 +574,7 @@ private fun WorkspaceFileExplorer(
                     if (progress.phase == StreamWritePhase.COPYING && progress.fraction != null && progress.completedBytes > 0L) {
                         LinearProgressIndicator(progress = { progress.fraction!! }, modifier = Modifier.fillMaxWidth())
                     } else {
+
 
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }

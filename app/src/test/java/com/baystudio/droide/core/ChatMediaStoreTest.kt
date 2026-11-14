@@ -121,7 +121,7 @@ class ChatMediaStoreTest {
             assertFalse(ChatMediaStoragePaths.physicalPath(root, ref.path).exists())
             assertTrue(store.ownerRefs("s-session").isEmpty())
             assertNull(store.nextExpiry())
-            store.retain("s-session", listOf(ref))
+            store.retain("s-session", listOf(ref)) // Historical placeholder resaves are allowed.
             assertTrue(store.ownerRefs("s-session").isEmpty())
         } finally { cleanupFixture(root) }
     }

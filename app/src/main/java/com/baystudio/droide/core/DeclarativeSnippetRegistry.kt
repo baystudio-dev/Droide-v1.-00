@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+ 
 object DeclarativeSnippetRegistry {
     private const val MAX_SNIPPET_FILE_BYTES = 2 * 1024 * 1024
     private const val MAX_SNIPPETS_PER_FILE = 512

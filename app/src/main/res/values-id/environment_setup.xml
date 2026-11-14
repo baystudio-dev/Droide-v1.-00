@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="environment_setup_title">Mulai ruang kerjamu</string>
+    <string name="environment_setup_once">Cukup instal environment sekali. Droide menyimpannya untuk digunakan setiap kali aplikasi dibuka.</string>
+    <string name="environment_setup_capabilities">Lingkungan Linux untuk terminal, alat pengembangan, dan agent.</string>
+    <string name="environment_setup_size">Unduhan sekitar 30 MB · Memerlukan internet</string>
+    <string name="environment_setup_consent">Ubuntu diunduh dari Canonical. Berkas program ini berada di luar pemeriksaan F-Droid. Pilih Instal environment untuk mengizinkan unduhan ini.</string>
+    <string name="environment_setup_install">Instal environment</string>
+    <string name="environment_setup_retry">Lanjutkan setup</string>
+    <string name="environment_setup_later">Nanti</string>
+    <string name="environment_setup_pause">Jeda instalasi</string>
+    <string name="environment_setup_checking">Memeriksa environment tersimpan…</string>
+    <string name="environment_setup_preparing">Menyiapkan penyimpanan…</string>
+    <string name="environment_setup_downloading">Mengunduh Ubuntu…</string>
+    <string name="environment_setup_verifying">Memverifikasi unduhan…</string>
+    <string name="environment_setup_extracting">Memasang environment…</string>
+    <string name="environment_setup_configuring">Menyelesaikan setup…</string>
+    <string name="environment_setup_pausing">Menjeda instalasi…</string>
+    <string name="environment_setup_download_progress">%1$d MB dari %2$d MB</string>
+</resources>

@@ -41,8 +41,8 @@ internal class TerminalStartupCommandQueue {
             try {
                 write(command)
             } catch (failure: Throwable) {
-                // A PTY write can fail after partially accepting bytes. Never replay this command or later
-                // queued text into a restarted/unknown shell.
+                // A PTY write can fail after partially accepting bytes. Never replay
+                // this command or later queued text into a restarted/unknown shell.
                 close()
                 throw failure
             }

@@ -64,10 +64,12 @@ data class StreamWriteProgress(
             (completedBytes.toDouble() / total.toDouble()).coerceIn(0.0, 1.0).toFloat()
         }
 
+     
     val cancellable: Boolean
         get() = phase == StreamWritePhase.PREPARING || phase == StreamWritePhase.COPYING
 }
 
+ 
 class FileRepository internal constructor(
     val root: File,
     private val beforeMutation: (suspend (Mutation) -> Unit)? = null,
@@ -91,7 +93,7 @@ class FileRepository internal constructor(
         data class CreateDirectory(val path: String) : Mutation
         data class Delete(val path: String) : Mutation
         data class Move(val from: String, val to: String) : Mutation
-
+         
         data class Sync(val path: String) : Mutation
     }
 
@@ -115,6 +117,7 @@ class FileRepository internal constructor(
         var undo: MoveUndoToken? = null; internal set
     }
 
+    /** In-memory inverse edit, bound to this repository and the observed object/parent identities. */
     internal class MoveUndoToken internal constructor(
         internal val owner: FileRepository, val from: String, val to: String,
         internal val version: PathMutationVersion, internal val parents: List<Pair<File, String>>,
@@ -132,8 +135,8 @@ class FileRepository internal constructor(
             }
         }
 
-        // Hold inverse authority during the attempt. A thrown call releases it only when the repository
-        // proves the bounded unchanged pre-effect observation.
+        // Hold inverse authority during the attempt. A thrown call releases it only
+        // when the repository proves the bounded unchanged pre-effect observation.
         internal fun attempting() = synchronized(authority) {
             requireCurrent()
             authority.attempted = true
@@ -160,8 +163,8 @@ class FileRepository internal constructor(
                 val transition = published.parentTransitions.firstOrNull {
                     it.path == from && it.before.version == version
                 } ?: return@synchronized this
-                // No live-version refresh: this exact old version must be the before-side of a completed,
-                // verified immediate-parent rename receipt.
+                // No live-version refresh: this exact old version must be the before-side
+                // of a completed, verified immediate-parent rename receipt.
                 authority.generation++
                 MoveUndoToken(owner, from, to, transition.after.version, parents, inverseIdentity,
                     parentTransitions, authority, authority.generation)
@@ -301,6 +304,7 @@ class FileRepository internal constructor(
         return sorted
     }
 
+     
     suspend fun listFilesPage(
         rel: String = "",
         after: DirectoryPageCursor? = null,
@@ -366,6 +370,7 @@ class FileRepository internal constructor(
         readUtf8Bounded(f, maxBytes, rel, largeFileException = true)
     }
 
+     
     suspend fun readEditorText(rel: String, maxBytes: Long = EditorLargeFilePolicy.MAX_EDITABLE_BYTES): String = withContext(Dispatchers.IO) {
         val f = resolve(rel)
         require(f.isFile) { "Not a file: $rel" }
@@ -380,6 +385,7 @@ class FileRepository internal constructor(
         f.length()
     }
 
+     
     suspend fun readTextForEdit(rel: String, maxBytes: Long = 2_000_000): String = withContext(Dispatchers.IO) {
         val f = resolve(rel)
         require(f.isFile) { "Not a file: $rel" }
@@ -387,6 +393,7 @@ class FileRepository internal constructor(
         rejectBinary(f, rel)
         readUtf8Bounded(f, maxBytes, rel, largeFileException = false)
     }
+
 
     /** Bounded character paging also works for minified files larger than readText's limit. */
     internal suspend fun readTextPage(rel: String, offset: Int, maxChars: Int = 10_000): TextReadPage = withContext(Dispatchers.IO) {
@@ -407,7 +414,7 @@ class FileRepository internal constructor(
                     require(skipped > 0) { "offset is beyond end of file" }
                     remaining -= skipped
                 }
-
+                // One look-ahead character detects the next page and preserves UTF-16 pairs.
                 val buffer = CharArray(maxChars + 1)
                 var count = 0
                 while (count < buffer.size) {
@@ -450,8 +457,8 @@ class FileRepository internal constructor(
             if (lineNo in s..e) {
                 val bytes = lineBuffer.toByteArray()
                 val decoded = if (truncatedLine) {
-                    // The byte cap is a stream boundary, not EOF. Do not invent a replacement character for a valid
-                    // code point split by it.
+                    // The byte cap is a stream boundary, not EOF. Do not invent a
+                    // replacement character for a valid code point split by it.
                     val decoder = Charsets.UTF_8.newDecoder()
                         .onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE)
                     val chars = CharBuffer.allocate(bytes.size)
@@ -481,7 +488,7 @@ class FileRepository internal constructor(
                 sawAnyByte = true
                 for (i in 0 until n) {
                     val b = buf[i]
-
+                    // CRLF is one separator, even when split across input chunks.
                     if (afterCr) {
                         afterCr = false
                         if (b == '\n'.code.toByte()) continue
@@ -723,6 +730,7 @@ class FileRepository internal constructor(
         expected.matches(resolve(rel))
     }
 
+     
     suspend fun writeEditorText(rel: String, content: String) =
         writeTextBounded(rel, content, EditorLargeFilePolicy.MAX_EDITABLE_BYTES)
 
@@ -788,8 +796,9 @@ class FileRepository internal constructor(
                 try {
                     invocation.synchronize()
                 } catch (t: Throwable) {
+                    // The complete file is now canonical, including an explicit overwrite.
+                    // Synchronization may suspend while terminal/editor work changes this path.
                     // Never undo publication or remove newer work after that boundary.
-
                     invocation.reconcileBestEffort(Mutation.Sync(normalized))
                     throw synchronizationFailure(t, normalized, encodedBytes, f, published)
                 }
@@ -809,6 +818,8 @@ class FileRepository internal constructor(
         expectedVersion: StreamFileVersion? = null,
         executable: Boolean? = null,
     ): Long = withContext(Dispatchers.IO) {
+        // A picked DocumentsProvider stream may hold a Binder/pipe/file descriptor.
+
 
         val streamCaller = currentCoroutineContext()
         input.use { source ->
@@ -900,14 +911,14 @@ class FileRepository internal constructor(
                         relPath(stage.file), stage.identity, count, preparation.sha256, preparation)
                     invocation.prepare(local, stage)
                     reportStreamProgress(onProgress, StreamWriteProgress(StreamWritePhase.COMMITTING, count, expected))
-                    // Recheck editor/media admission after every potentially long preparation and UI callback,
-                    // immediately before the bounded publication block.
+                    // Recheck editor/media admission after every potentially long preparation
+                    // and UI callback, immediately before the bounded publication block.
                     beforePublication?.invoke()
                     (publicationObserver as? StreamPublicationAdmission)?.preparePublication(preparation)
                     currentCoroutineContext().ensureActive()
                     if (expectedVersion != null) {
-                        // Keep fallback hashing and editor re-admission cancellable. This is the same transaction, not
-                        // another journal begin or synchronization.
+                        // Keep fallback hashing and editor re-admission cancellable. This is
+                        // the same transaction, not another journal begin or synchronization.
                         invocation.beforeAttempt(local)
                         if (publicationObserver != null) stage.retainForRecovery()
                         publicationObserver?.beforePublish(preparation)
@@ -920,7 +931,7 @@ class FileRepository internal constructor(
                         requirePublicationParents(publicationParents)
                         stage.requireOwned()
                         check(publicationVersion(stage.file) == stagedVersion) { "Import stage changed during preparation" }
-
+                        // Mandatory journal admission is distinct from the best-effort progress callback.
                         if (expectedVersion == null) {
                             invocation.beforeAttempt(local)
                             if (publicationObserver != null) stage.retainForRecovery()
@@ -964,14 +975,14 @@ class FileRepository internal constructor(
                             published = stagedVersion
                             streamPublished = stagedVersion
                             check(publicationVersion(f) == stagedVersion) { "Published import identity changed" }
-                            // Also establish every ancestor entry, including newly created parents. Forcing only file data
-                            // or its immediate parent is insufficient.
+                            // Also establish every ancestor entry, including newly created parents.
+                            // Forcing only file data or its immediate parent is insufficient.
                             publicationParents.asReversed().forEach { (parent, _) -> streamDurability.forceDirectory(parent) }
                             requirePublicationParents(publicationParents)
                             check(publicationVersion(f) == stagedVersion) { "Published import changed during durability checks" }
                             receiptRecorded = true
-                            // Both mandatory observers receive the exact committed observation, even when the other observer
-                            // cannot persist its own receipt.
+                            // Both mandatory observers receive the exact committed observation,
+                            // even when the other observer cannot persist its own receipt.
                             var receiptFailure: Throwable? = null
                             try { invocation.returned(WorkspaceLocalReceipt(local, true, stage.identity, durable = true)) }
                             catch (failure: Throwable) { receiptFailure = failure }
@@ -989,16 +1000,17 @@ class FileRepository internal constructor(
                             }
                         } catch (failure: Throwable) {
                             if (!receiptRecorded) invocation.recordFailedReturn(local, publicationReturned, failure)
-                            // Invocation may change the canonical path before reporting an error (including an interrupted
-                            // native operation). A missing return is not proof that publication had no effect.
+                            // Invocation may change the canonical path before reporting an error
+                            // (including an interrupted native operation). A missing return is
+                            // not proof that publication had no effect.
                             if (failure is Exception && failure !is CancellationException) {
                                 throw StreamPublicationUncertainException(normalized, count, publicationReturned, failure)
                             }
                             throw failure
                         }
                     }
-                    // Provider work may copy/scan large trees: never inherit the short publication block's
-                    // NonCancellable job.
+                    // Provider work may copy/scan large trees: never inherit the short
+                    // publication block's NonCancellable job.
                     stage.retainForRecovery()
                     try {
                         currentCoroutineContext().ensureActive()
@@ -1107,7 +1119,8 @@ class FileRepository internal constructor(
             try {
                 invocation.synchronize()
             } catch (t: Throwable) {
-
+                // Another workspace actor may already have populated or replaced this path.
+                // Keep the directory on sync failure; recursive rollback could erase user data.
                 invocation.reconcileBestEffort(Mutation.Sync(normalized))
                 if (t is Exception && t !is CancellationException && published != null && pathMutationVersion(dir) == published) {
                     throw ProjectDirectorySyncException(normalized, t)
@@ -1193,8 +1206,8 @@ class FileRepository internal constructor(
                     directoryCustody.select(normalized)
                 } else null
                 invocation.admit()
-                // SAF owns its existing protected stage. Other local directory deletions, including calls
-                // without observers, retain the tree under durable root custody.
+                // SAF owns its existing protected stage. Other local directory deletions,
+                // including calls without observers, retain the tree under durable root custody.
                 val selectedStage = if (directorySelection != null) invocation.prepareDeleteStage(normalized) else null
                 if (directorySelection != null && selectedStage == null) {
                     check(expected == null && streamExpected == null && deleteObservation == null) {
@@ -1209,13 +1222,13 @@ class FileRepository internal constructor(
                     if (streamExpected != null) invocation.recheckAdmission()
                     beforeDelete?.invoke()
                     streamExpected?.requireMetadataMatches(root, normalized)
-                    // This branch was selected for a non-directory. Never recursively unlink a directory substituted
-                    // during admission or immediately before deletion.
+                    // This branch was selected for a non-directory. Never recursively unlink
+                    // a directory substituted during admission or immediately before deletion.
                     return@withMutation Files.deleteIfExists(f.toPath())
                 }
 
                 val staged = selectedStage ?: invocation.prepareDeleteStage(normalized) ?: tempSibling(f)
-
+                // A participant may suspend while binding its private destination.
                 expected?.let { requireVersion(f, rel, it) }
                 streamExpected?.requireMatches(root, normalized)
                 val original = pathMutationVersion(f)
@@ -1223,8 +1236,8 @@ class FileRepository internal constructor(
                     "Delete source became a directory during preparation; choose it again"
                 }
                 val retainedOriginal = if (original?.regularFile == true) f.inputStream() else null
-                // The original inode must stay pinned through participant.finish and final observation, not just
-                // through synchronization/cleanup.
+                // The original inode must stay pinned through participant.finish and
+                // final observation, not just through synchronization/cleanup.
                 val scopedOriginal = if (deleteObservation == null) retainedOriginal else {
                     deleteObservation.identityPin = retainedOriginal
                     null
@@ -1272,11 +1285,11 @@ class FileRepository internal constructor(
                             "Delete synchronization failed; newer workspace changes were preserved. " +
                                 "The original deletion was staged at ${relPath(staged)}; inspect that path and $normalized before recovery or retry.")
                     }
-                    // Custody rejection is outside the synchronization rollback path. An owned retained stage must
-                    // never be erased by the ordinary recursive cleanup.
+                    // Custody rejection is outside the synchronization rollback path. An owned
+                    // retained stage must never be erased by the ordinary recursive cleanup.
                     if (invocation.retainsDeleteStage(deleteReceipt)) return@withMutation true
-                    // Synchronizers can suspend while another actor replaces or edits a path. Delete only the stage
-                    // still attributable to this operation.
+                    // Synchronizers can suspend while another actor replaces or edits a path.
+                    // Delete only the stage still attributable to this operation.
                     check(original != null && pathMutationVersion(staged) == original) {
                         "Delete completed at $normalized, but staged data changed and was preserved at ${relPath(staged)}; inspect it before cleanup."
                     }
@@ -1287,8 +1300,8 @@ class FileRepository internal constructor(
                     check(original.regularFile) {
                         "Non-file deletion is retained at ${relPath(staged)}; its participant did not confirm custody"
                     }
-                    // Regular-file cleanup is never recursive, even if the slot is substituted after its final
-                    // observation. Directories require their custody authority.
+                    // Regular-file cleanup is never recursive, even if the slot is substituted
+                    // after its final observation. Directories require their custody authority.
                     check(Files.deleteIfExists(staged.toPath())) {
                         "Delete completed at $normalized; cleanup is pending at ${relPath(staged)}."
                     }
@@ -1313,8 +1326,8 @@ class FileRepository internal constructor(
                     operation.move()
                 })
                 val localReceipt = invocation.deleteStageReceipt(preparation)
-                // Durable local commitment precedes synchronization. Failure here is a pending notification, not
-                // permission to roll back, erase descendants, or replay Delete.
+                // Durable local commitment precedes synchronization. Failure here is a pending
+                // notification, not permission to roll back, erase descendants, or replay Delete.
                 var observerFailure: Throwable? = null
                 try {
                     operation.observerStarted()
@@ -1340,8 +1353,8 @@ class FileRepository internal constructor(
                 }
                 return true
             } catch (failure: Throwable) {
-                // Even cancellation/return loss leaves a discoverable typed receipt. Never replace the
-                // originating cancellation or fatal failure while reporting it.
+                // Even cancellation/return loss leaves a discoverable typed receipt. Never
+                // replace the originating cancellation or fatal failure while reporting it.
                 try { reportDirectoryDeletion(directoryCustody.inspect(operation.token.operation, operation.token)) }
                 catch (noticeFailure: Throwable) { if (noticeFailure !== failure) failure.addSuppressed(noticeFailure) }
                 throw failure
@@ -1372,8 +1385,9 @@ class FileRepository internal constructor(
                 requireExplorerSource(normalizedFrom)
                 requireExplorerDestination(normalizedTo, dst)
             }
-            // A strict Explorer move must still name the same source and parent directories afterwards.
-
+            // Admission can suspend while editors/providers settle. A strict Explorer
+            // move must still name the same source and parent directories afterwards.
+            // These checks detect observed replacement; they are not a filesystem CAS.
             val admittedSource = if (requireExistingParent) checkNotNull(pathMutationVersion(src)) {
                 "Move source identity is unavailable; refresh Explorer"
             } else null
@@ -1413,7 +1427,8 @@ class FileRepository internal constructor(
                     check(pathMutationVersion(src) == original) { "Move source changed during preparation" }
                     validateInverse()
                     val beforeParents = observation?.let { captureMoveParents(it) }.orEmpty()
-
+                    // Snapshot work is optional, but the existing source/parent checks
+                    // still guard the final attempt after that work.
                     validateAdmissionIdentity()
                     validateInverse()
                     observation?.inverse?.attempting()
@@ -1459,6 +1474,7 @@ class FileRepository internal constructor(
             if (replaceAll) count else 1
         }
 
+     
     suspend fun isSearchVisible(rel: String, includeDependencies: Boolean = false): Boolean = withContext(Dispatchers.IO) {
         val normalized = normalizeRel(rel)
         if (normalized.isBlank() || isInternalPath(normalized) || SensitivePathPolicy.isSensitive(normalized)) return@withContext false
@@ -1467,6 +1483,7 @@ class FileRepository internal constructor(
             !DependencyDiscoveryPolicy.isExcluded(normalized, isDirectory, includeDependencies)
     }
 
+     
     suspend fun search(
         query: String,
         maxResults: Int = 100,
@@ -1526,7 +1543,7 @@ class FileRepository internal constructor(
             val include = includePattern.takeIf { it.isNotEmpty() }?.let(::WorkspaceGlobMatcher)
             if (excludedPaths.size > limits.excludedPaths) work.stop(WorkspaceSearchStopReason.EXCLUSION_LIMIT)
             var exclusionChars = 0L
-
+            // Check the entire exclusion admission before normalizing any entry or consulting the editor.
             for (path in excludedPaths) {
                 work.checkpoint()
                 if (path.length > limits.pathChars || path.length.toLong() > limits.excludedPathChars - exclusionChars)
@@ -1597,6 +1614,7 @@ class FileRepository internal constructor(
             dirtyText.size, suppressed.size, captureComplete)
     }
 
+     
     suspend fun syncExisting(rel: String) = withContext(Dispatchers.IO) {
         val normalized = normalizeRel(rel)
         withMutation(Mutation.Write(normalized)) { invocation ->
@@ -1608,6 +1626,7 @@ class FileRepository internal constructor(
         }
     }
 
+    // Best-effort full reconciliation used after an external mutation rollback.
     suspend fun reconcileExternal(rel: String) = withContext(Dispatchers.IO) {
         val normalized = normalizeRel(rel)
         withMutation(Mutation.Sync(normalized)) { invocation ->
@@ -1690,6 +1709,7 @@ class FileRepository internal constructor(
         }
     }
 
+
     private suspend fun reportStreamProgress(
         callback: (suspend (StreamWriteProgress) -> Unit)?,
         progress: StreamWriteProgress,
@@ -1701,8 +1721,7 @@ class FileRepository internal constructor(
         } catch (cancelled: CancellationException) {
             if (propagateCancellation) throw cancelled
         } catch (_: Throwable) {
-            // A detached/recomposed UI must never turn a successful filesystem transaction into a failed
-            // import.
+            // A detached/recomposed UI must never turn a successful filesystem transaction into a failed import.
 
         }
     }
@@ -1772,8 +1791,8 @@ class FileRepository internal constructor(
                         }
                     }
                     if (moveObservation != null) completeMoveObservation(moveObservation, invocation, failure)
-                    // Do not reacquire this root in NonCancellable after IO-return cancellation. All verification
-                    // uses this invocation's still-held guard, after observers.
+                    // Do not reacquire this root in NonCancellable after IO-return cancellation.
+                    // All verification uses this invocation's still-held guard, after observers.
                     if (observation != null) {
                         try { completeTextWriteObservation(observation, guard, failure) }
                         catch (completionFailure: Throwable) {
@@ -1828,8 +1847,8 @@ class FileRepository internal constructor(
     ) {
         observation.failure = failure
         if (!observation.reached) {
-            // Failed-return observers and participant completion run after the local throw. They must not
-            // invalidate an already-released retry authority.
+            // Failed-return observers and participant completion run after the local
+            // throw. They must not invalidate an already-released retry authority.
             val before = observation.failedAttemptParents
             if (failure is Exception && before != null && !observation.finishFailed &&
                 invocation.evidenceComplete && unchangedMoveAttempt(observation, invocation.guard, before))
@@ -1848,8 +1867,8 @@ class FileRepository internal constructor(
                 !Files.exists(resolve(observation.from).toPath(), LinkOption.NOFOLLOW_LINKS)
         } catch (_: Exception) { false }
         if (committed()) {
-            // This is a notification of the original local move, never a second mirror mutation. The normal
-            // callback runs once; a failed mirror must not prevent editor path remapping.
+            // This is a notification of the original local move, never a second mirror mutation.
+            // The normal callback runs once; a failed mirror must not prevent editor path remapping.
             if (!invocation.observerAttempted) withContext(NonCancellable) {
                 try { kotlinx.coroutines.withTimeout(5_000) { invocation.notifyLocalObserver() } }
                 catch (error: Throwable) {
@@ -1870,7 +1889,7 @@ class FileRepository internal constructor(
                 }
             }
         }
-
+        // A verified rollback of an ordinary file leaves the original path intact.
         observation.uncertain = !observation.committed && runCatching {
             invocation.guard.requireRoot(root)
             requirePublicationParents(observation.parents)
@@ -1878,8 +1897,10 @@ class FileRepository internal constructor(
                 pathMutationVersion(resolve(observation.from)) == observation.original &&
                 !Files.exists(resolve(observation.to).toPath(), LinkOption.NOFOLLOW_LINKS)
         }.getOrDefault(false).not()
-        // Only an explicitly returned regular-file rollback can restore inverse retry authority.
-
+        // Only an explicitly returned regular-file rollback can restore inverse
+        // retry authority. Matching bytes or an unexplained restored pathname cannot.
+        // Parent metadata may legitimately differ after rename + rollback; this does
+        // not publish parent transitions or refresh any directory history.
         if (observation.rollbackCompleted && !observation.finishFailed && invocation.evidenceComplete &&
             observation.original?.regularFile == true && !observation.committed && !observation.uncertain &&
             unchangedMoveEndpoints(observation, invocation.guard)) observation.inverse?.unchangedAttempt()
@@ -1892,8 +1913,8 @@ class FileRepository internal constructor(
     ) {
         val disposition = if (failure != null && failure !is Exception) TextWriteDisposition.RECOVERY_REQUIRED else try {
             guard.requireRoot(root)
-            // resolve() canonicalizes: an observer may have moved our inode and left a leaf/ancestor symlink
-            // to it. Receipt identity alone cannot authorize that alias.
+            // resolve() canonicalizes: an observer may have moved our inode and left a
+            // leaf/ancestor symlink to it. Receipt identity alone cannot authorize that alias.
             check(ExplorerFilePolicy.requireUnaliasedProjectPath(root, observation.path) == observation.path)
             val target = resolve(observation.path)
             val before = publicationVersion(target)
@@ -1903,8 +1924,8 @@ class FileRepository internal constructor(
                 receipt.failure == null && receipt.destinationIdentity != null &&
                 receipt.destinationIdentity == receipt.preparation.sourceIdentity &&
                 before.key.toString() == receipt.destinationIdentity && before.bytes == receipt.preparation.bytes
-            // Real local IO, bounded by this writer mode's unchanged cap. This is a stable observation, not
-            // a cross-process compare-and-swap or a durable-publication claim.
+            // Real local IO, bounded by this writer mode's unchanged cap. This is a stable observation,
+            // not a cross-process compare-and-swap or a durable-publication claim.
             val result = when {
                 owned && observation.expectedAfter.bytes <= observation.verificationMaxBytes && observation.expectedAfter.matches(target) ->
                     TextWriteDisposition.OWNED_CURRENT
@@ -2004,8 +2025,8 @@ class FileRepository internal constructor(
             if (session?.externalEffectAttempted == true || localEvidenceFailed) return false
             val retainLocal = try { session?.retainLocalOnSyncFailure == true }
             catch (dispositionFailure: Throwable) {
-                // A broken disposition cannot authorize rollback or replace the original failure (especially
-                // cancellation). Keep both pieces of evidence.
+                // A broken disposition cannot authorize rollback or replace the original
+                // failure (especially cancellation). Keep both pieces of evidence.
                 if (dispositionFailure !== failure) failure.addSuppressed(dispositionFailure)
                 return false
             }
@@ -2169,8 +2190,8 @@ class FileRepository internal constructor(
         }
 
         suspend fun reconcileBestEffort(mutation: Mutation): Boolean {
-            // An owned invocation must never manufacture a second unjournaled operation. Keep the
-            // established non-participant recovery contract unchanged.
+            // An owned invocation must never manufacture a second unjournaled operation.
+            // Keep the established non-participant recovery contract unchanged.
             return participant != null || this@FileRepository.reconcileBestEffort(mutation)
         }
 
@@ -2199,6 +2220,7 @@ class FileRepository internal constructor(
         }
     }
 
+
     // Reconciliation must run even if the user cancelled the original mutation.
     private suspend fun reconcileBestEffort(mutation: Mutation): Boolean =
         withContext(NonCancellable) {
@@ -2206,8 +2228,8 @@ class FileRepository internal constructor(
                 onMutation?.invoke(mutation)
                 true
             } catch (_: Throwable) {
-                // The original mutation error remains authoritative. A failed callback must not silently restore
-                // authority for a rolled-back inverse.
+                // The original mutation error remains authoritative. A failed callback
+                // must not silently restore authority for a rolled-back inverse.
                 false
             }
         }
@@ -2250,8 +2272,9 @@ class FileRepository internal constructor(
     private fun synchronizationFailure(
         failure: Throwable, relativePath: String, bytes: Long, target: File, published: PublicationVersion?,
     ): Throwable {
-        // Never delete by pathname after a suspending callback: a terminal/editor may have replaced or
-        // edited it.
+        // Publication has committed. Never delete by pathname after a suspending callback:
+        // a terminal/editor may have replaced or edited it. Cancellation and VM errors retain
+        // their original meaning. Only an unchanged committed original earns a saved receipt.
         if (failure is CancellationException || failure !is Exception || published == null) return failure
         return if (publicationVersion(target) == published) ProjectFileSyncException(relativePath, bytes, failure) else failure
     }
@@ -2274,8 +2297,13 @@ class FileRepository internal constructor(
         }
     }.getOrNull()
 
-    /** Optional, bounded evidence for one direct parent, never a recursive tree scan or a writer
-     * barrier. */
+    /**
+     * Optional, bounded evidence for one direct parent, never a recursive tree scan or a
+     * writer barrier. Unverifiable/large/symlink-bearing parents simply earn no rebase.
+     * Each scan brackets at most 256 entry metadata reads with the same parent version
+     * and ancestry identities. Fully reverted events/metadata-preserving writes remain
+     * outside this observational contract, as with the existing move version checks.
+     */
     private fun captureMoveParent(path: String, parents: List<Pair<File, String>>): MoveParentSnapshot? = try {
         requirePublicationParents(parents)
         val directory = resolve(path)
@@ -2345,16 +2373,16 @@ class FileRepository internal constructor(
     }
 
     private fun rollbackMovedFile(from: String, to: String, src: File, dst: File, original: PathMutationVersion?): Boolean {
-        // A directory's metadata cannot prove that its descendants were not edited. Preserve that
-        // directory at its moved/staged path instead of scanning/hashing an entire tree.
+        // A directory's metadata cannot prove that its descendants were not edited. Preserve
+        // that directory at its moved/staged path instead of scanning/hashing an entire tree.
         if (original?.regularFile != true) return false
         return try {
             require(ExplorerFilePolicy.requireUnaliasedProjectPath(root, from) == from)
             require(ExplorerFilePolicy.requireUnaliasedProjectPath(root, to) == to)
             requireParentExists(src)
             if (src.exists() || PathSecurity.isSymbolicLink(src) || pathMutationVersion(dst) != original) return false
-            // The metadata check is not a filesystem CAS; the final no-replace publication nevertheless
-            // cannot overwrite a source recreated between this check and rename.
+            // The metadata check is not a filesystem CAS; the final no-replace publication
+            // nevertheless cannot overwrite a source recreated between this check and rename.
             pathMover.move(dst, src)
             true
         } catch (cancelled: CancellationException) {
@@ -2408,8 +2436,8 @@ class FileRepository internal constructor(
             beforeCommit()
             fun applyCurrentPermissions() {
                 if (!target.isFile || requireAbsent) return
-                // Rename replaces the inode. Preserve ordinary rwx bits, including executable scripts, and do
-                // not silently defeat a user's read-only file via its parent.
+                // Rename replaces the inode. Preserve ordinary rwx bits, including executable
+                // scripts, and do not silently defeat a user's read-only file via its parent.
                 val permissions = Files.getPosixFilePermissions(target.toPath(), LinkOption.NOFOLLOW_LINKS)
                 require(PosixFilePermission.OWNER_WRITE in permissions) {
                     "File is read-only: ${target.name}; change its permissions explicitly before saving"
@@ -2438,8 +2466,8 @@ class FileRepository internal constructor(
                 stage.requireOwned()
                 check(publicationVersion(tmp) == published) { "Text staging file changed during admission" }
                 var observed: PublicationVersion? = null
-                // Only the final rename and its receipt run on the editor owner. Encoding, hashing, staging and
-                // observer delivery stay outside this short barrier.
+                // Only the final rename and its receipt run on the editor owner. Encoding,
+                // hashing, staging and observer delivery stay outside this short barrier.
                 val publish = {
                     invocation.attemptingTextWrite(preparation)
                     try {
@@ -2459,8 +2487,8 @@ class FileRepository internal constructor(
                         throw ProjectFilePublicationUncertainException(preparation.relativePath, encodedBytes, failure)
                     }
                     try {
-                        // Existing editor text publication does not force data/parents. The receipt truthfully reports
-                        // local visibility only, not durability.
+                        // Existing editor text publication does not force data/parents. The
+                        // receipt truthfully reports local visibility only, not durability.
                         invocation.returned(WorkspaceLocalReceipt(preparation, true, receiptVersion.key.toString()))
                         invocation.guard.requireRoot(root)
                         requirePublicationParents(publicationParents)
@@ -2486,7 +2514,7 @@ class FileRepository internal constructor(
         if (publicationVersion(target) == published) {
             stage.publicationVerified()
         } else {
-
+            // A later editor observation classifies changes after a consumed stage; keep any remaining proposal.
             check(publicationVersion(stage.file)?.key != published.key) {
                 "Published file changed during synchronization; retained staging data requires recovery"
             }
@@ -2542,8 +2570,8 @@ class FileRepository internal constructor(
     private fun isInternalPath(rel: String): Boolean = rel == ".git" || rel.startsWith(".git/") ||
         rel == ".droide" || rel.startsWith(".droide/")
 
-    // Search already excludes these results; pruning prevents runtime caches and Git objects from
-    // using the bounded scan budget before project files can be visited.
+    // Search already excludes these results; pruning prevents runtime caches and Git objects
+    // from using the bounded scan budget before project files can be visited.
     private fun canSearchDescend(directory: File, ignore: RootIgnoreRules, includeDependencies: Boolean): Boolean {
         if (!PathSecurity.canDescend(root, directory)) return false
         val relative = relPath(directory)
@@ -2551,6 +2579,7 @@ class FileRepository internal constructor(
         return !isInternalPath(relative) && !SensitivePathPolicy.isSensitive(relative) &&
             !DependencyDiscoveryPolicy.isExcluded(relative, true, includeDependencies) && ignore.canDescend(relative)
     }
+
 
     private fun countOccurrences(text: String, needle: String): Int {
         var count = 0
@@ -2563,6 +2592,7 @@ class FileRepository internal constructor(
         }
     }
 
+
     companion object {
         internal fun forAdmittedStreamWrites(
             root: File,
@@ -2573,6 +2603,7 @@ class FileRepository internal constructor(
         private const val MAX_GLOB_RESULTS = 500
         private const val MAX_SEARCH_RESULTS = 500
         internal const val MAX_TEXT_WRITE_BYTES = 5L * 1024L * 1024L
+
 
         private const val IMPORT_COPY_BUFFER_BYTES = 256 * 1024
         private const val IMPORT_SPACE_CHECK_INTERVAL_BYTES = 16L * 1024 * 1024

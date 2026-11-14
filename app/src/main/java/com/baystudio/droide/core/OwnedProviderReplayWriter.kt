@@ -5,10 +5,15 @@ import java.io.InputStreamReader
 import java.io.OutputStream
 import java.nio.charset.CodingErrorAction
 
-/** Bounded serialization only, not a JSON extractor or request builder. */
-
+/** Bounded serialization only, not a JSON extractor or request builder.
+ * No method serializes references/handles. Capability tokens are consumed only by the local store.
+ * Call on an IO dispatcher: integrity/admission preflights can scan the entire stored content.
+ * Output failure/cancellation may leave a partial request; transport must cancel, not blindly retry.
+ */
 internal object OwnedProviderReplayWriter {
-
+    /** Writes one JSON string value. Quotes/control bytes are escaped without a full String copy.
+     * Complete UTF-8 admission runs before the opening quote; multibyte bytes are then copied exactly.
+     */
     fun writePublicText(
         session: OwnedResponseContentStore.Session,
         source: OwnedNormalizedResponse.PublicText,
@@ -45,8 +50,10 @@ internal object OwnedProviderReplayWriter {
         }
     }
 
-    /** Writes the EXACT previously admitted native object, including order/signature bytes. */
-
+    /** Writes the EXACT previously admitted native object, including order/signature bytes.
+     * This does not unwrap an output/content array or invent native message fields. The provider
+     * request builder remains responsible for placing the envelope in its valid protocol position.
+     */
     fun writePrivateObject(
         session: OwnedResponseContentStore.Session,
         source: OwnedNormalizedResponse.PrivateReplay,
@@ -74,6 +81,6 @@ internal object OwnedProviderReplayWriter {
         val chars = CharArray(4096)
         while (true) { checkCancelled(); val n = reader.read(chars); if (n < 0) break; check(n > 0) { "UTF-8 reader made no progress" } }
     }
-    private val ESCAPE_PREFIX = byteArrayOf(92, 117, 48, 48)
+    private val ESCAPE_PREFIX = byteArrayOf(92, 117, 48, 48) // \\u00
     private const val HEX = "0123456789abcdef"
 }

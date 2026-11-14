@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.io.File
@@ -12,7 +13,7 @@ import org.junit.Test
 class OwnedChatTransportTest {
     @Test fun multiMillionPrivateReasoningTinyToolProjectsPublicAndReplaysExactNative() = runBlocking {
         val root=Files.createTempDirectory("owned-private-large-").toFile()
-        val server=ProviderLoopbackServer.create(InetSocketAddress("127.0.0.1",0),0);val requests=AtomicInteger()
+        val server=HttpServer.create(InetSocketAddress("127.0.0.1",0),0);val requests=AtomicInteger()
         val chunk="private-".repeat(1024);val args="""{"path":"a.txt","note":"quote\" slash\\ newline\n 🌍"}"""
         var exactReplay=false
         server.createContext("/chat/completions") { e ->
@@ -54,7 +55,7 @@ class OwnedChatTransportTest {
     }
     @Test fun sameResponseBufferedSmallToolAndMislabeledSseRemainCompatible() = runBlocking {
         val root=Files.createTempDirectory("owned-compat-").toFile()
-        val server=ProviderLoopbackServer.create(InetSocketAddress("127.0.0.1",0),0);val calls=AtomicInteger()
+        val server=HttpServer.create(InetSocketAddress("127.0.0.1",0),0);val calls=AtomicInteger()
         val raw="""{"id":"buffered","choices":[{"message":{"role":"assistant","reasoning_content":"private","tool_calls":[{"id":"c","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.txt\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"completion_tokens":5}}"""
         server.createContext("/chat/completions") { e ->
             val n=calls.incrementAndGet();e.requestBody.use{it.readBytes()}
@@ -99,7 +100,7 @@ class OwnedChatTransportTest {
     }
     @Test fun realLlmClientLargeArgumentsAndReplayThroughSecuredConfiguredLoopback() = runBlocking {
         val root=Files.createTempDirectory("owned-transport-").toFile()
-        val server=ProviderLoopbackServer.create(InetSocketAddress("127.0.0.1",0),0)
+        val server=HttpServer.create(InetSocketAddress("127.0.0.1",0),0)
         val requests=AtomicInteger();var replayBytes=0L;var firstRequest=""
         val chunk="x".repeat(8192)
         server.createContext("/v1/chat/completions") { exchange ->
@@ -154,7 +155,7 @@ class OwnedChatTransportTest {
     }
     @Test fun cancellationDuringBlockedRealResponseCancelsCallAndNeverRetries() = runBlocking {
         val root=Files.createTempDirectory("owned-stop-").toFile()
-        val server=ProviderLoopbackServer.create(InetSocketAddress("127.0.0.1",0),0)
+        val server=HttpServer.create(InetSocketAddress("127.0.0.1",0),0)
         val started=java.util.concurrent.CountDownLatch(1);val release=java.util.concurrent.CountDownLatch(1)
         val count=AtomicInteger();val recoveries=AtomicInteger();val received=java.util.concurrent.CountDownLatch(1)
         server.createContext("/chat/completions") { e ->

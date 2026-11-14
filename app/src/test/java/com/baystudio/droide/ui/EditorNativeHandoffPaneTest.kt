@@ -28,6 +28,8 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Real EditorPane/ActiveEditorBridge/native view/store contract. No WorkspaceRuntime,
+ * application startup, terminal session, actual IME, device or process is launched. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -35,8 +37,8 @@ class EditorNativeHandoffPaneTest {
     @get:Rule val compose = createComposeRule()
     @get:Rule val temp = object : TemporaryFolder() {
         override fun after() {
-            // A timed-out cancellation remains a test failure. Keep its directory rather than deleting
-            // storage that an unfinished real-IO operation may still own.
+            // A timed-out cancellation remains a test failure. Keep its directory rather
+            // than deleting storage that an unfinished real-IO operation may still own.
             if (ownerJob.isCompleted) super.after()
         }
     }
@@ -58,16 +60,16 @@ class EditorNativeHandoffPaneTest {
         override fun decrypt(encrypted: ByteArray, aad: ByteArray) = encrypted.copyOf()
     }
     @After fun cleanUp() {
-        // The detach assertion belongs to the measured transition, not Activity-rule teardown after a
-        // failed setup. Stop that test-only listener before fallback manual release.
+        // The detach assertion belongs to the measured transition, not Activity-rule teardown
+        // after a failed setup. Stop that test-only listener before fallback manual release.
         detachReceipt?.unsubscribe()
         detachReceipt = null
         ownerJob.cancel()
         try {
             runBlocking {
                 withTimeout(5_000) {
-                    // A cancelled IO operation still resumes through Android Main. Drain and join it before
-                    // TemporaryFolder's rule removes its recovery directory.
+                    // A cancelled IO operation still resumes through Android Main. Drain and
+                    // join it before TemporaryFolder's rule removes its recovery directory.
                     while (!ownerJob.isCompleted) {
                         shadowOf(Looper.getMainLooper()).idle()
                         yield()

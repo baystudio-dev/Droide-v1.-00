@@ -85,7 +85,7 @@ class ProviderStreamCompletionTest {
     @Test(timeout = 30_000) fun commentAndMultilineSseRecordsStillRequireAndPreserveCompletion() {
         protocols.forEach { protocol ->
             withFixture(protocol) { fixture ->
-
+                // Each JSON data object spans two SSE data lines, with an initial heartbeat.
                 fixture.wire = ": heartbeat\n\n" + (toolPrefix(protocol) + terminal(protocol)).replace("data: {", "data: {\ndata: ")
                 assertEquals(1, message(fixture.send()).getValue("tool_calls").jsonArray.size)
                 fixture.wire = ": heartbeat\n\n" + toolPrefix(protocol).replace("data: {", "data: {\ndata: ")

@@ -61,8 +61,8 @@ class LocalManagedPackageAuthority(
     fun ownedReceipt(familyId: String, version: String): ManagedPackageRecord? =
         registry.find(familyId, version)?.let(::normalizeReceipt)?.takeIf(::owns)
 
-    // Installers hold the transaction mutex. Rejected durable claims are custody conflicts, never
-    // evidence that the requested transaction has no receipt.
+    // Installers hold the transaction mutex. Rejected durable claims are custody
+    // conflicts, never evidence that the requested transaction has no receipt.
     internal fun recoveryReceipt(familyId: String, version: String, kind: String): ManagedPackageRecord? {
         val destination = LocalPackageInstallJournal.paths(root, familyId, version, kind).final.absolutePath
         val durable = registry.list()
@@ -81,8 +81,8 @@ class LocalManagedPackageAuthority(
         return record
     }
 
-    // Legacy Alpine jq receipts predate typed Ubuntu receipts and carry neither kind nor profile
-    // metadata. A typed/foreign receipt must never fall back by family.
+    // Legacy Alpine jq receipts predate typed Ubuntu receipts and carry neither
+    // kind nor profile metadata. A typed/foreign receipt must never fall back by family.
     private fun isLegacyPilot(record: ManagedPackageRecord): Boolean =
         record.familyId == PILOT_FAMILY &&
             LocalManagedPackageMetadata.KIND_KEY !in record.metadata &&
@@ -92,8 +92,8 @@ class LocalManagedPackageAuthority(
     private fun legacyPilotRoot(): String =
         "$root/packages/$PILOT_FAMILY/${WorkstationGuestEnvironmentSpec.VERSION.replace(Regex("[^A-Za-z0-9._+-]"), "_")}/arm64-v8a"
 
-    // Recognition is for custody only. Unproven old-looking identities never gain execution or
-    // cleanup authority, even when an unsupported record happens to be inactive.
+    // Recognition is for custody only. Unproven old-looking identities never gain execution
+    // or cleanup authority, even when an unsupported record happens to be inactive.
     private fun namesLegacyPilotRoot(installRoot: String): Boolean =
         installRoot == legacyPilotRoot() || pathIdentity.canonicalPackagePath(installRoot) == legacyPilotRoot()
 
@@ -128,8 +128,8 @@ class LocalManagedPackageAuthority(
         }
     }
 
-    // Read only, from the filesystem root downward. Missing ancestors are permitted; an existing
-    // symlink or non-directory is a conflict, never a benign absence.
+    // Read only, from the filesystem root downward. Missing ancestors are permitted;
+    // an existing symlink or non-directory is a conflict, never a benign absence.
     private fun requireRetainedDirectory(directory: File): Boolean {
         LocalExecutionSubstrate.requireSafeLocalPath(directory.absolutePath)
         val path = directory.toPath().toAbsolutePath()
@@ -348,8 +348,8 @@ class LocalManagedPackageAuthority(
             if (isLegacyReceiptCandidate(selectedDurable)) LegacyAlpineRuntimeRetirement.reject()
             val retained = retainedLegacyReceipts(persisted)
             val before = normalizeCurrentReceipts(persisted)
-            // Keep dependency protection over the complete durable registry. Only fallback selection
-            // excludes validated retired receipts; their values remain unchanged.
+            // Keep dependency protection over the complete durable registry. Only fallback
+            // selection excludes validated retired receipts; their values remain unchanged.
             val key = "${selected.familyId}@${selected.version}"
             val dependents = before.filter { (it.familyId != selected.familyId || it.version != selected.version) && key in it.dependencies }
             check(dependents.isEmpty()) { "Package is required by: " + dependents.joinToString { "${it.familyId}@${it.version}" } }
@@ -456,8 +456,8 @@ class LocalManagedPackageAuthority(
                         legacyPending = true
                         return@forEach
                     }
-                    // Resolve the original durable identity before normalizing addresses. A rejected sealed alias
-                    // still retains custody of its removal evidence.
+                    // Resolve the original durable identity before normalizing addresses.
+                    // A rejected sealed alias still retains custody of its removal evidence.
                     val durableOwners = before.filter {
                         it.familyId == originalIntent.familyId && it.version == originalIntent.version
                     }
@@ -479,7 +479,8 @@ class LocalManagedPackageAuthority(
                     }
                 }
             }
-
+            // The registry is one serialized document. Retaining a historical row also
+            // defers optional automatic normalization writes for current rows.
             if (retained.isNotEmpty() || before == normalized) project(normalized)
             else PackageProjectionCommit.commit(before, normalized, ::project, registry::replaceAll)
             legacyPending
@@ -642,6 +643,7 @@ class LocalManagedPackageAuthority(
         return svelteProofOnly || verifyHealthChecks(record, record.healthChecks)
     }
 
+    /** Health-free managed CMake query; no interpreter, helper, shell or package probe is run. */
     internal suspend fun verifyCMakePackageWithoutHealth(record: ManagedPackageRecord): Boolean = runSuspendCatching {
         val context = currentCoroutineContext()
         require(owns(record) && ownedReceipt(record.familyId, record.version) == record)
@@ -964,8 +966,8 @@ class LocalManagedPackageAuthority(
             LocalUbuntuVendorPolicy.fromReceipt(record) ?: return@withContext false else null
         if (vendor != null) {
             if (!LocalUbuntuVendorPolicy.verifyIntegration(record, vendor, root)) return@withContext false
-            // Publisher libraries belong to an owned Ubuntu layer. Only the reviewed js-debug route may
-            // additionally own exact official Node.
+            // Publisher libraries belong to an owned Ubuntu layer. Only the
+            // reviewed js-debug route may additionally own exact official Node.
             val expectedRuntime = if (vendor.familyId == LocalUbuntuPowerShellEditorServicesPolicy.FAMILY) LocalUbuntuPowerShellEditorServicesPolicy.RUNTIME_KEY
                 else if (LocalUbuntuJsDebugPolicy.requiresLegacyNode(vendor)) LocalUbuntuJsDebugPolicy.NODE_KEY else null
             if (record.dependencies.size != (if (expectedRuntime == null) 1 else 2) ||

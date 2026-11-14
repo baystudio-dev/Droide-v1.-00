@@ -23,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 
+/** Same SAF provider surface as the existing collision tests; fault injection keeps stale bytes on w. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], manifest = Config.NONE)
 class ExportDestinationWorkflowTest {
@@ -69,7 +70,7 @@ class ExportDestinationWorkflowTest {
             override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
                 val result = provider.call(method, arg, extras)
                 if (method == "android:createDocument") {
-
+                    // DocumentsContract's provider wire key is hidden from the public SDK.
                     val uri = result!!.getParcelable<Uri>("uri")!!
                     created += Triple(DocumentsContract.getDocumentId(uri),
                         extras!!.getString(DocumentsContract.Document.COLUMN_DISPLAY_NAME)!!,

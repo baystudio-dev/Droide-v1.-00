@@ -31,6 +31,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 
+/** Scripted provider, controlled WebView callbacks and inert terminal; tests remain unexecuted. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -564,6 +565,8 @@ class AgentBrowserQueueWorkflowTest {
         assertEquals(SessionHistoryLedger.HOT_HISTORY_BYTES - 1, history.hotHistoryBytes)
         assertTrue(root.resolve(".droide/sessions/.history-pages").walkTopDown().filter { it.isFile }.none { it.readText().contains(secret) })
 
+        // This still has one unresolved tool. A poisoned storageFailure would try
+        // to checkpoint incomplete grammar here and incorrectly stop future work.
         history.ensureStorageAvailable()
         val safe = result("DENIED: browser output was withheld")
         history.append(safe)

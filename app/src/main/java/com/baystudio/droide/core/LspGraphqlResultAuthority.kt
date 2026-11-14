@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Queued publication carries its exact captured authority into the eventual parent sink. */
 internal class GraphqlDiagnosticPublication(
     val owner: Any,
     val serial: Long,

@@ -28,12 +28,14 @@ class ProcessInputBuffer {
         }
     }
 
+    /** Public legacy contract, including error classes/messages and Unit return, is unchanged. */
     @Synchronized fun offer(text: String) {
         offerWithEvidence(text).requireAccepted()
     }
 
-    /** Only internal preconditions/pipe queue rejection prove no admission for THIS offer. An
-     * arbitrary PTY callback false or throw is never converted to a known rejection. */
+    /** Only internal preconditions/pipe queue rejection prove no admission for THIS offer.
+     * An arbitrary PTY callback false or throw is never converted to a known rejection.
+     */
     @Synchronized internal fun offerWithEvidence(text: String): OfferAdmission {
         if (closed) return OfferAdmission.Rejected(OfferRejection.CLOSED)
         val bytes = text.toByteArray(Charsets.UTF_8)
@@ -50,12 +52,22 @@ class ProcessInputBuffer {
         return OfferAdmission.Accepted
     }
 
+    /** Ctrl+D is terminal input, not a permanent close of the PTY transport. */
+    @Synchronized internal fun signalTerminalEof() {
+        check(!closed) { "Command stdin is closed" }
+        val eof = directEof
+        if (eof != null) check(eof()) { "Interactive EOF was not sent; check the terminal before retrying" }
+        else offerWithEvidence("\u0004").requireAccepted()
+    }
+
+    /** Graceful pipe EOF: deliver already accepted chunks before closing the pipe. */
     @Synchronized fun close() {
         if (closed) return
         closed = true
         directEof?.let { eof -> check(eof()) { "Interactive EOF was not sent; check the terminal before retrying" } }
     }
 
+    /** One non-blocking PTY admission path shared with human input; no second ByteQueue writer. */
     @Synchronized internal fun bindPty(sink: (ByteArray) -> Boolean, eof: () -> Boolean) {
         check(!aborted && directSink == null) { "Command stdin cannot be bound" }
         directSink = sink
@@ -69,8 +81,10 @@ class ProcessInputBuffer {
         } catch (failure: Throwable) { abort(); throw failure }
     }
 
-    /** Forced cancellation: pending stdin may contain more commands. Discard it instead of feeding it
-     * to a process after the user pressed Stop. */
+    /**
+     * Forced cancellation: pending stdin may contain more commands. Discard it
+     * instead of feeding it to a process after the user pressed Stop.
+     */
     @Synchronized fun abort() {
         closed = true
         aborted = true
@@ -88,8 +102,8 @@ class ProcessInputBuffer {
                     output.write(bytes)
                     output.flush()
                 } catch (failure: Throwable) {
-                    // Bytes may already have reached the process. Never replay pending text after a failed or
-                    // partially successful write.
+                    // Bytes may already have reached the process. Never replay
+                    // pending text after a failed or partially successful write.
                     abort()
                     throw failure
                 }

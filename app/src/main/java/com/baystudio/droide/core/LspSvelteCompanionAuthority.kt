@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Separate native custom-document ledger. No standard TS/JS opens or invented wire versions. */
 internal class LspSvelteCompanionAuthority {
     data class Capture(val path: String, val uri: String, val text: String, val revision: Any)
     class Primer internal constructor(val capture: Capture, internal val owner: Any)

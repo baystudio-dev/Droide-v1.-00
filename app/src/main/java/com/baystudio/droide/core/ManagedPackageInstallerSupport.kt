@@ -4,6 +4,7 @@ import java.io.File
 import java.io.InputStream
 import java.security.MessageDigest
 
+ 
 internal object ManagedPackageInstallerSupport {
     fun validateManifestShape(manifest: ManagedPackageManifest) {
         require(manifest.schema in 1..2) { "Unsupported managed package manifest schema" }

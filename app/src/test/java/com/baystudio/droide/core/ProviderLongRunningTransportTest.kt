@@ -15,6 +15,7 @@ import okhttp3.Request
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual production transports on local sockets, including the former 10s/120s boundaries. */
 class ProviderLongRunningTransportTest {
     private val protocols = ProviderWireProtocol.entries.toList()
 

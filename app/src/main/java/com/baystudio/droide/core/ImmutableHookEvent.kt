@@ -4,6 +4,7 @@ import java.io.Closeable
 import java.io.OutputStream
 import java.util.UUID
 
+/** A sealed, seekable event. No workspace pathname is used as authority. */
 internal interface ImmutableHookEvent : Closeable {
     val parentDescriptorPath: String
     fun requireSealed()
@@ -13,8 +14,9 @@ internal fun interface ImmutableHookEventFactory {
     fun create(write: (OutputStream) -> Unit, takeOwnership: (ImmutableHookEvent) -> Unit, checkCurrent: () -> Unit): ImmutableHookEvent
 }
 
-/** FD9 is reserved only in this one supervised hook shell and its descendants. A late child uses
- * its own inherited descriptor, never a reused app-process descriptor. */
+/** FD9 is reserved only in this one supervised hook shell and its descendants.
+ * A late child uses its own inherited descriptor, never a reused app-process descriptor.
+ */
 internal class ImmutableHookInvocation(private val event: ImmutableHookEvent) {
     private val marker = "__DROIDE_SEALED_HOOK_${UUID.randomUUID().toString().replace("-", "")}:"
     val eventPath = "/proc/self/fd/9"

@@ -140,6 +140,7 @@ internal object ExportController {
         id
     }
 
+
     private fun requireSeparateDestination(context: Context, ticket: ExportSourceTicket, target: Uri, format: ExportFormat) {
         val linked = ticket.sourceTreeUri?.let(Uri::parse) ?: return
         val source = SafProjectIdentity.from(linked)

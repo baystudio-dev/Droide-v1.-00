@@ -205,8 +205,7 @@ internal class LocalGraphqlPreparedOwner private constructor(override val identi
     internal fun shellCommand(command:List<String>):String=GraphqlWire.shellCommand(localRoot,token,command)
     internal fun createProcess(factory:()->Process):LocalGraphqlHostedProcess {
         check(isCurrent&&process.get()==null);val raw=factory()
-        // Record returned handles before any cancellation/currentness check; even a late native result
-        // remains owned.
+        // Record returned handles before any cancellation/currentness check; even a late native result remains owned.
         val hosted=LocalGraphqlHostedProcess(raw,this,retained)
         check(process.compareAndSet(null,hosted));ExitHostedProcessRegistry.retain(hosted)
         if(!isCurrent){fence();hosted.retainLateFactoryKill()}
@@ -225,7 +224,7 @@ internal class LocalGraphqlPreparedOwner private constructor(override val identi
             val hp=GraphqlWire.proc(GraphqlWire.positiveInt(h["pid"]));val np=GraphqlWire.proc(GraphqlWire.positiveInt(n["pid"]));require(hp.start==h["start"]?.jsonPrimitive?.content&&hp.group==hp.pid&&hp.state!="Z");require(np.start==n["start"]?.jsonPrimitive?.content&&np.group==hp.group&&np.state!="Z");hostBirth=hp;nodeBirth=np;return};delay(10)}}
     override fun close(){val deadline=process.get()?.failureBudget()?:operationDeadline;fence();retained.launch{retire(deadline)}}
     override suspend fun retire(deadline:GraphqlDeadline):GraphqlTeardownReceipt=withContext(NonCancellable+Dispatchers.IO){
-        fence()
+        fence() // independent of every lifecycle, native factory, pipe and retirement monitor.
         while(!retirement.tryLock()){if(deadline.expired)return@withContext GraphqlTeardownReceipt.unknown("GraphQL retirement already in progress; exact custody retained");delay(10)}
         try{completeReceipt?.let{return@withContext it};val p=process.get()
             val stopped=if(p==null)GraphqlTeardownReceipt(false,true,true,!factoryClaimed.get(),factorySettled,true,true,true,false)
@@ -304,8 +303,8 @@ internal class LocalGraphqlHostedProcess(private val process:Process,override va
     override suspend fun awaitExit():Int {while(process.isAlive)delay(20);knownDead=true;check(owner.retire(failureBudget()).complete){"GraphQL cleanup UNKNOWN"};return process.exitValue()}
     internal suspend fun stopOwned(deadline:GraphqlDeadline,factorySettled:Boolean):GraphqlTeardownReceipt {
         owner.fence()
-        // A single exact, host-owned shutdown is optional and bounded by the same operation total. It
-        // cannot acquire the client writer monitor or delay independent signals beyond this grace.
+        // A single exact, host-owned shutdown is optional and bounded by the same operation total.
+        // It cannot acquire the client writer monitor or delay independent signals beyond this grace.
         if(!stopStarted.get()&&initialized&&fatalControl==null&&process.isAlive&&!deadline.expired){
             val grace=deadline.limited(GraphqlResourcePolicy.SHUTDOWN_GRACE_MS)
             runCatching{
@@ -317,7 +316,7 @@ internal class LocalGraphqlHostedProcess(private val process:Process,override va
             }
         }
         writer.fence();ledger.fence();envelopes.fence();synchronized(stderrLock){stderrEnded=true;stderrQueue.clear();stderrLock.notifyAll()}
-
+        // Closing blocked streams is independent of TERM/KILL/reaping, each retained exactly once.
         if(stopStarted.compareAndSet(false,true)){
             attempt("stdin-close"){process.outputStream.close()};attempt("reap"){process.waitFor()}
             val b=owner.hostBirth?:runCatching{val r=GraphqlWire.strict(GraphqlWire.readBytes(File(owner.localRoot,"host.json"),65536));require(r["token"]==JsonPrimitive(owner.token));GraphqlWire.recordedBirth(r)}.getOrNull()

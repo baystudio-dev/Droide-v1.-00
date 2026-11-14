@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Exact make-ls 0.1.25 client policy. No Make recipe or substitute parser is run. */
 internal object LspMakeProfile {
     val extensions = setOf("mk", "mak")
     val filenames = setOf("Makefile", "makefile", "GNUmakefile")
@@ -10,8 +11,8 @@ internal object LspMakeProfile {
         return leaf in filenames || leaf.substringAfterLast('.', "") in extensions
     }
 
-    // Merged include nodes lose ownership in hover/symbols; the released formatter can rewrite CRLF
-    // continuations and define bodies. Never apply guessed repairs.
+    // Merged include nodes lose ownership in hover/symbols; the released formatter
+    // can rewrite CRLF continuations and define bodies. Never apply guessed repairs.
     fun supportedCapabilities(native: LspNegotiatedCapabilities): LspNegotiatedCapabilities =
         native.copy(hover = false, documentSymbol = false, formatting = false)
 

@@ -16,7 +16,7 @@ object ChatMediaStoragePaths {
     fun baseDirectory(workDir: File): File {
         val workspace = canonicalWorkspace(workDir)
         val parent = requireNotNull(workspace.parentFile) { "Workspace has no private media storage parent" }
-
+        // Subagents live deeper under the project; always leave the outermost projects tree.
         var ancestor: File? = parent
         var projects: File? = null
         while (ancestor != null) {

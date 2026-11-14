@@ -170,7 +170,7 @@ class BackgroundSourceLaunchTest {
                 check(entered.await(3, java.util.concurrent.TimeUnit.SECONDS))
                 assertEquals(34, manager.list().size)
             }
-            assertEquals(33, manager.list().size)
+            assertEquals(33, manager.list().size) //32 retained +1 inert, not32 total
             release.countDown()
             assertTrue(pending!!.get(3, java.util.concurrent.TimeUnit.SECONDS) is BackgroundCommandManager.SourceLaunchFailure)
             assertEquals(32, manager.list().size)

@@ -168,8 +168,12 @@ class ChatMediaProcessingTest {
     }
 }
 
-/** Robolectric's native FileDescriptor source reports "Only supported on Android". */
-
+/**
+ * Robolectric's native FileDescriptor source reports "Only supported on Android".
+ * Replace only its host file-source adapter with fixture bytes; keep the real native
+ * image decoder, EXIF, resizing, pixel postprocessor and JPEG encoder under test.
+ * This does not verify Android's actual file-descriptor bridge or hardware codecs.
+ */
 @Implements(value = ImageDecoder::class, callNativeMethodsByDefault = true)
 class HostImageFileSourceShadow : ShadowNativeImageDecoder() {
     companion object {

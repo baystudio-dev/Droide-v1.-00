@@ -1,5 +1,12 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
 internal object AndroidBuildArtifactPolicy {
     enum class Kind(val extension: String, val outputDirectory: String) {
         APK("apk", "apk"),

@@ -7,6 +7,7 @@ data class ElpMetadataInspectionDisclosure(val pythonPath: String, val pythonFin
     val detail: String get() = "Selected Python: $pythonPath\nEntry fingerprint: $pythonFingerprint\nOrigin: preinstalled, unverified; version is not yet validated.\nConfiguration: $tomlPath\nSHA-256: $tomlDigest\n\nExecute this selected Python with the fixed read-only -I -S stdlib tomllib helper on the captured bytes only. CPython 3.12.x and its stdlib origins must pass validation. Interpreter limit: 5 seconds; complete one-attempt limit including cleanup: 20 seconds. No project imports, child launches or network. This executes selected Python only. It does not enable ELP, OTP, Rebar, project code, dependency/network work or installation. No process remains while waiting for separate project-analysis approval."
 }
 
+/** A one-time user action enables this analysis configuration for this workspace lifetime. */
 data class LspProjectAnalysisRequest(
     val serverId: String,
     val workspacePath: String,
@@ -14,7 +15,7 @@ data class LspProjectAnalysisRequest(
     val commands: List<List<String>>,
     val explanation: String,
     val installationDisclosure: String = "Enabling analysis does not install packages or authorize database migrations or deployment.",
-
+    /** Explicit reviewed profile wording; null preserves every existing caller. */
     val executionDisclosure: String? = null,
     val purpose: LspProjectAnalysisPurpose = LspProjectAnalysisPurpose.PROJECT_ANALYSIS,
     val metadataDisclosure: ElpMetadataInspectionDisclosure? = null,
@@ -29,6 +30,7 @@ data class LspProjectAnalysisRequest(
         installationDisclosure
 }
 
+/** Readiness is separate from the authority conferred by enabled. */
 enum class LspProjectAnalysisReadiness { ON_DEMAND, PREPARING, READY, FAILED }
 
 data class LspProjectAnalysisStatus(

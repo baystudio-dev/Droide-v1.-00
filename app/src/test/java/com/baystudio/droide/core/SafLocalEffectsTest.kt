@@ -13,6 +13,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Tiny real host trees + deterministic forces/reads. No provider, native, process or runtime wiring. */
 class SafLocalEffectsTest {
     private val roots = arrayListOf<File>()
     private val original = byteArrayOf(0, 1, -1, 127, 10, 42)
@@ -320,7 +321,7 @@ class SafLocalEffectsTest {
             val h = f.helper(guard); val p = f.movePreparation(); val e = h.prepare(p)
             assertEquals(original.size.toLong(), f.operation.payloadBytes)
             h.beforeAttempt(e); f.move(); h.returned(e, f.receipt(p)); h.verify(e)
-            assertTrue(f.target.exists())
+            assertTrue(f.target.exists()) // No cleanup facility exists here.
             val recovered = f.reopen().recover(f.operation.id)
             assertEquals(original.size.toLong(), recovered.payloadBytes)
             assertArrayEquals(original, f.target.resolve("node_modules/pkg/index.js").readBytes())
@@ -447,7 +448,7 @@ class SafLocalEffectsTest {
             assertTrue(f.evidence().keys.none { it.startsWith("payload-") })
             val retainedBytes = f.operation.payloadBytes
             h.beforeAttempt(e)
-            Files.move(source.toPath(), destination.toPath())
+            Files.move(source.toPath(), destination.toPath()) // The one original repository move.
             h.returned(e, WorkspaceLocalReceipt(p, true, f.storage.key(destination, true)))
             h.verify(e)
             assertEquals(sourceKey, f.storage.key(destination, true))

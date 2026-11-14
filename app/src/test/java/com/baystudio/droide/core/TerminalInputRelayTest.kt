@@ -48,7 +48,7 @@ class TerminalInputRelayTest {
         var writes = 0
         fixture = FinalizationFixture({ _, _ ->
             writes++
-
+            // Deterministic pause while write is admitted, before its return/decrement.
             receipt = NativePtyCleanupReceipt(0, 0, 0).withRelayInputFailure(fixture.relay.finishInput())
         })
         try {
@@ -135,8 +135,8 @@ class TerminalInputRelayTest {
         } finally { fixture.close() }
     }
 
-    // These focused methods are pure queued-dispatcher tests. Do not run this whole class in a
-    // mocked-only phase: the historical methods below start real shells.
+    // These focused methods are pure queued-dispatcher tests. Do not run this whole
+    // class in a mocked-only phase: the historical methods below start real shells.
     @Test fun asynchronousPtyFailureClosesAdmissionOnceBeforeObserverRetry() {
         val queued = mutableListOf<Runnable>()
         val dispatcher = object : CoroutineDispatcher() {
@@ -270,7 +270,7 @@ class TerminalInputRelayTest {
             assertTrue(relay.send(queued))
             queued.fill(0)
             assertTrue(relay.send("printf 'second\\n'; exit 0\n".toByteArray()))
-            delay(2_200)
+            delay(2_200) // The old ADB writer silently abandoned input after about two seconds.
             assertFalse(output.isCompleted)
             assertTrue(errors.isEmpty())
             ready.complete(process)

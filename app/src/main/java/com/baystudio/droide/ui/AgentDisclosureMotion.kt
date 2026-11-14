@@ -39,8 +39,8 @@ internal fun rememberAgentDisclosureMotion(contentKey: Any? = Unit): AgentDisclo
         onMotion(motion, motion.active)
         onDispose { onMotion(motion, false) }
     }
-    // Only the first content invalidation cancels the window. Later streamed snapshots must not
-    // launch another coroutine after decoration has stopped.
+    // Only the first content invalidation cancels the window. Later streamed
+    // snapshots must not launch another coroutine after decoration has stopped.
     val contentUnchanged = motion.active && motion.contentUnchanged()
     LaunchedEffect(motion.generation, enabled, contentUnchanged) {
         if (enabled && contentUnchanged) {

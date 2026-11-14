@@ -9,6 +9,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
+/** Shares guarded workspace writes with the editor; personal skills stay in private app storage. */
 class SkillManagement(
     private val files: FileRepository,
     private val plugins: AgentPluginSource = AgentPluginSource.EMPTY,
@@ -118,8 +119,8 @@ class SkillManagement(
         val (repository, prefix) = storage(scope)
         val target = "$prefix$name"
         require(!repository.exists(target)) { "A skill folder named $name already exists. Choose a different name or edit the existing skill." }
-        // The catalog never sees a half-imported directory. Normal workspace move admission publishes
-        // the complete bundle; cancelled staging remains outside discovery for recovery.
+        // The catalog never sees a half-imported directory. Normal workspace move admission
+        // publishes the complete bundle; cancelled staging remains outside discovery for recovery.
         val stage = if (scope == "workspace") ".droide/skill-imports/${UUID.randomUUID()}" else ".imports/${UUID.randomUUID()}"
         for ((relative, bytes) in bundle) {
             currentCoroutineContext().ensureActive()

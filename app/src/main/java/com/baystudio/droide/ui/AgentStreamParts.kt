@@ -43,6 +43,13 @@ import com.baystudio.droide.core.TokenUsage
 import com.baystudio.droide.core.UsageAuthority
 import kotlinx.coroutines.delay
 
+
+
+
+
+
+
+
 @Composable
 internal fun AgentStreamRunHeader(
     state: AgentStreamState,
@@ -138,6 +145,7 @@ internal fun AgentStreamPartItem(part: AgentStreamPart, showDetails: Boolean, mo
     }
 }
 
+
 @Composable
 private fun AgentLiveInputPart(part: AgentStreamPart) {
     if (part.text.isBlank()) return
@@ -150,7 +158,7 @@ private fun AgentLiveInputPart(part: AgentStreamPart) {
         ) {
             Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(part.title.ifBlank { "Instruction" }, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = DroideColors.Primary)
-                Text(part.text, style = MaterialTheme.typography.bodySmall, color = Color(0xFFD6DCE2))
+                Text(part.text, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFD6DCE2))
             }
         }
     }
@@ -217,8 +225,8 @@ private fun AgentLiveTextPart(part: AgentStreamPart, showDetails: Boolean) {
 
 @Composable
 private fun AgentLiveStepPart(part: AgentStreamPart, showDetails: Boolean) {
-    // Stream details exposes the step summary, not every provider statistic at once. Step IDs repeat
-    // between runs, so a new request must not inherit an open disclosure.
+    // Stream details exposes the step summary, not every provider statistic at once.
+    // Step IDs repeat between runs, so a new request must not inherit an open disclosure.
     var expanded by rememberSaveable(part.id, part.startedAtMs) { mutableStateOf(false) }
     val canExpand = showDetails && part.state == AgentStreamPartState.COMPLETED
     val disclosureMotion = rememberAgentDisclosureMotion(listOf(
@@ -379,16 +387,17 @@ private fun AgentLiveToolPart(part: AgentStreamPart, showDetails: Boolean, modif
     )
     val tool = part.toolName.ifBlank { part.title.replace(' ', '_') }
     val inputPreview = remember(part.input) { AgentToolInputPreview.parse(part.input) }
-    val activityPath = inputPreview.path()
-    val primary = streamPrimaryToolDetail(tool, part.input, activityPath, inputPreview)
+    val inputPath = inputPreview.path()
     val visibleOutput = AgentToolResultSemantics.stripAnnotation(part.output)
     val fileEdit = tool in setOf("edit_file", "edit", "write_file", "write", "apply_patch", "lsp_edit")
     val fileRead = tool in setOf("read_file", "read")
-    val changes = remember(part.fileChanges, visibleOutput, fileEdit, activityPath) {
+    val changes = remember(part.fileChanges, visibleOutput, fileEdit, inputPath) {
         part.fileChanges.ifEmpty {
-            if (fileEdit) listOfNotNull(legacyFileChange(visibleOutput, activityPath.orEmpty())) else emptyList()
+            if (fileEdit) listOfNotNull(legacyFileChange(visibleOutput, inputPath.orEmpty())) else emptyList()
         }
     }
+    val activityPath = inputPath ?: changes.singleOrNull()?.path?.takeIf { it.isNotBlank() && it.none(Char::isISOControl) }
+    val primary = streamPrimaryToolDetail(tool, part.input, activityPath, inputPreview)
     val uiState = toolUiState(part)
     val canExpand = part.input.isNotBlank() || visibleOutput.isNotBlank() || part.detail.isNotBlank() || changes.isNotEmpty()
     val resultSummary = streamResultSummary(part, visibleOutput, uiState)
@@ -665,6 +674,8 @@ private fun streamToolIcon(tool: String) = when (tool) {
     "mcp" -> Icons.Default.Hub
     else -> Icons.Default.Build
 }
+
+
 
 private fun formatStreamDuration(ms: Long): String = when {
     ms < 1_000L -> "${ms}ms"

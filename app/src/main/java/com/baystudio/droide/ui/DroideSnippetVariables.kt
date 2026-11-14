@@ -5,6 +5,7 @@ import io.github.rosemoe.sora.widget.snippet.variable.FileBasedSnippetVariableRe
 import io.github.rosemoe.sora.widget.snippet.variable.WorkspaceBasedSnippetVariableResolver
 import java.io.File
 
+ 
 internal fun configureDroideSnippetVariables(editor: CodeEditor, workspaceRoot: File, relativePath: String) {
     val file = runCatching { File(workspaceRoot, relativePath).canonicalFile }.getOrElse { File(workspaceRoot, relativePath).absoluteFile }
     val root = runCatching { workspaceRoot.canonicalFile }.getOrElse { workspaceRoot.absoluteFile }
@@ -18,6 +19,8 @@ internal fun configureDroideSnippetVariables(editor: CodeEditor, workspaceRoot: 
     }
 }
 
+
+// Both the standard TextMate name and Sora's legacy name resolve to the same path.
 internal class DroideFileSnippetVariableResolver(
     private val file: File,
     private val root: File,

@@ -2,8 +2,12 @@ package com.baystudio.droide.core
 
 internal data class PythonToolInstallRecipe(val command: String, val healthCheckCommand: String)
 
-/** The caller supplies the existing install lock. */
-
+/**
+ * Commands for mutable, per-tool user virtualenvs. The caller supplies the existing install lock.
+ * This is not a package transaction: a failing pip upgrade may have changed the existing env.
+ * User pip network/configuration settings remain in effect; exact-env health must still pass.
+ * An explicit version is checked against installed metadata. Latest health cannot prove freshness.
+ */
 internal object PythonToolInstallCommands {
     fun recipe(
         familyId: String,
@@ -58,14 +62,14 @@ internal object PythonToolInstallCommands {
         } else {
             "\"\$tool_env/bin/python\" -I -m ${q(module)}$arguments"
         }
-        // Keep the generated runtime wrapper's historical environment and argv semantics. Only
-        // installer/health Python invocations use isolated mode.
+        // Keep the generated runtime wrapper's historical environment and argv semantics.
+        // Only installer/health Python invocations use isolated mode.
         val wrapper = module?.let {
             "printf '%s\\n' '#!/bin/sh' " + q("exec \"\$HOME/.local/share/droide-tools/$familyId/bin/python\" -m $it \"\$@\"")
         }
         val collision = "tool_launcher_allowed() { " +
             "if [ -L \"\$tool_launcher\" ]; then " +
-
+            // A sentinel prevents shell command substitution from discarding target newlines.
             "tool_link=\$(readlink -n -- \"\$tool_launcher\" && printf '.') || return \$?; " +
             "[ \"\$tool_link\" = \"\$tool_env/bin/\"${q("$command.")} ] && return 0; " +
             "elif [ ! -e \"\$tool_launcher\" ]; then return 0; " +
@@ -73,7 +77,7 @@ internal object PythonToolInstallCommands {
             "fi; " +
             "printf 'Python tool launcher already exists and is not owned by Droide: %s; move it aside in Terminal before retrying.\\n' \"\$tool_launcher\" >&2; return 1; }; "
         val stage = if (wrapper == null) {
-
+            // -T replaces the reserved temporary file itself, including a symlink to a directory.
             "ln -sfT -- \"\$tool_env/bin/\"${q(command)} \"\$tool_launcher_tmp\""
         } else {
             "$wrapper > \"\$tool_launcher_tmp\" && chmod 755 \"\$tool_launcher_tmp\""

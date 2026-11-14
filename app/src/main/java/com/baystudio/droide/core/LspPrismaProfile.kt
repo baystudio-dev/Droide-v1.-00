@@ -22,6 +22,7 @@ internal object LspPrismaProfile {
     fun supportsPath(path: String): Boolean =
         path.replace('\\', '/').substringAfterLast('/').endsWith(".prisma")
 
+    // Mirrors ^\\s*// *use +prisma-(?:next|8) *(?!\\S), using ECMAScript whitespace.
     fun classify(text: String): Generation {
         var index = 0
         while (index < text.length && javascriptWhitespace(text[index])) index++
@@ -39,7 +40,8 @@ internal object LspPrismaProfile {
             text.getOrNull(index) == '8' -> 1
             else -> return Generation.LEGACY
         }
-
+        // The regex's final ASCII space* can backtrack. Any first whitespace
+        // after next/8 suffices even when non-whitespace words follow it.
         return if (index == text.length || javascriptWhitespace(text[index])) Generation.NEXT_OR_8
             else Generation.LEGACY
     }
@@ -54,8 +56,8 @@ internal object LspPrismaProfile {
     private enum class ConfigState { NONE, SUPPORTED, UNAVAILABLE }
     private data class ConfigBoundary(val state: ConfigState, val markers: Map<String, Kind>, val selected: String?)
     private val supportedSuffixes = listOf("js", "ts", "mjs", "cjs", "mts", "cts")
-    // c12's additional extension and bare/directory-index forms are barriers, not accepted Prisma
-    // configurations. This is a finite picker, not c12.
+    // c12's additional extension and bare/directory-index forms are barriers,
+    // not accepted Prisma configurations. This is a finite picker, not c12.
     private val unsupportedSuffixes = listOf("json", "jsonc", "json5", "yaml", "yml", "toml")
     private val vcs = listOf(".git", ".hg", ".svn", ".jj")
 

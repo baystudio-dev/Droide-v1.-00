@@ -19,7 +19,7 @@ internal object BrowserSessionApprovalScope {
                 if (scheme == "http") 80 else 443
             } else uri.port
             if (port !in 1..65535) return@runCatching null
-
+            // Keep literal hosts distinct: localhost, 127.0.0.1 and [::1] are separate grants.
             val authorityHost = if (host == "::1") "[::1]" else host
             "$scheme://$authorityHost:$port"
         }.getOrNull()

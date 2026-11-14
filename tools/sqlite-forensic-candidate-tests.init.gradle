@@ -1,0 +1,14 @@
+// Explicit data-only speculative candidate. No SQLite engine handles its journal.
+apply from: new File(gradle.startParameter.currentDir, 'tools/metadata-process-lock-tests.init.gradle')
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    app.tasks.named('compileDebugKotlin').configure {
+        source(app.fileTree('src/main/java/com/baystudio/droide/core') { include('MirrorSqliteForensicCandidate.kt') })
+    }
+    app.tasks.named('compileDebugUnitTestKotlin').configure {
+        source(app.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('MirrorSqliteForensicCandidateTest.kt', 'MirrorSqliteForensicAuthorityTest.kt')
+        })
+        source(app.fileTree('src/test/java/com/baystudio/droide/ui') { include('AgentSqliteForensicUiTest.kt') })
+    }
+}

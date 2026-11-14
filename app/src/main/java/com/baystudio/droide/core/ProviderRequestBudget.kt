@@ -37,6 +37,7 @@ internal object ProviderRequestBudget {
         return automaticOutputTokens(providerId, modelId, fallback)
     }
 
+    /** All accepted canonical aliases describe the same total output reservation. */
     fun explicitOutputTokens(root: JsonObject): Int? {
         val values = outputFields.mapNotNull { field ->
             root[field]?.let { raw ->
@@ -89,6 +90,7 @@ internal object ProviderRequestBudget {
         return JsonObject(root.filterKeys { it !in outputFields } + (field to JsonPrimitive(outputTokens(root, providerId, modelId, provider))))
     }
 
+    /** Called before native conversion/network use, including subagents and manual/automatic compaction. */
     fun prepare(root: JsonObject, providerId: String, modelId: String,
         provider: AiProvider? = ProviderRegistry.findById(providerId),
     ): JsonObject {

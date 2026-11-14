@@ -8,6 +8,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual host helper processes; no Android/PRoot descendant-cleanup certification. */
 class LocalLeaseCleanupTest {
     @Test fun successfulHelperCompletesAndIsReaped() {
         val helper = ProcessBuilder("/bin/sh", "-c", "exit 0").start()

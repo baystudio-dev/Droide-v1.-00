@@ -58,10 +58,12 @@ class ExplorerMutationContinuationUiTest {
 
     private fun await(condition: () -> Boolean) = compose.waitUntil(5_000) {
         compose.mainClock.advanceTimeByFrame()
-        // Import progress returns from real I/O through Android's Main handler, which is distinct from
-        // the Compose test clock even without a dialog.
+        // Import progress returns from real I/O through Android's Main handler,
+        // which is distinct from the Compose test clock even without a dialog.
         Shadows.shadowOf(Looper.getMainLooper()).idle()
-
+        // Repository completions can enable the field or insert an error after
+        // the button action has returned. Traverse that same native dialog
+        // before each normal semantics fetch, just as after focus/text changes.
         if (hasNativeDialogWindow()) traverseNativeDialogWindow()
         condition()
     }
@@ -82,8 +84,11 @@ class ExplorerMutationContinuationUiTest {
         return present
     }
 
-    // Same bounded SDK 35 window traversal used by BrowserHumanDialogTest.
-
+    // Same bounded SDK 35 window traversal used by BrowserHumanDialogTest. The
+    // default host traversal can strand the dialog text-selection layout, then
+    // accumulate ShadowTrace records while the normal idler repeatedly lays it
+    // out. Perform real owner work; do not clear requests, disable animation or
+    // enlarge memory/time budgets. A recurring layout still fails this check.
     private fun traverseNativeDialogWindow() {
         assertTrue("Automatic Compose idling stays enabled", compose.mainClock.autoAdvance)
         var idleAfterTraversal = false
@@ -118,6 +123,7 @@ class ExplorerMutationContinuationUiTest {
         input.assertIsFocused().performTextReplacement(text)
         traverseNativeDialogWindow()
     }
+
 
     @Test fun renamePreparesOnceAndChecksEligibilityAfterResume() {
         root.resolve("a.kt").writeText("A")

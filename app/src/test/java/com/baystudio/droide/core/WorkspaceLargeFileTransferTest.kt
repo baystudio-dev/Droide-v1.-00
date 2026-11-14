@@ -8,8 +8,10 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Real host >4 GiB reads/writes, not just sparse-file metadata admission. Requires room for two
- * 4 GiB stages plus headroom. No device/PRoot claim. */
+/**
+ * Real host >4 GiB reads/writes, not just sparse-file metadata admission.
+ * Requires room for two 4 GiB stages plus headroom. No device/PRoot claim.
+ */
 class WorkspaceLargeFileTransferTest {
     @Test(timeout = 600_000)
     fun cliAndCanonicalRepositoryTransferMoreThanFourGiBWithoutWholeFileAllocation() = runBlocking {

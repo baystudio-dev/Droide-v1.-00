@@ -28,6 +28,25 @@ import org.robolectric.annotation.Config
 class RetainedWorkspaceContentTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun outgoingPaneCanStillDrawButCannotReceivePointerClicks() {
+        var presented by mutableStateOf(true)
+        var clicks = 0
+        compose.setContent {
+            Box(Modifier.fillMaxSize().testTag("retained-shell")) {
+                RetainedWorkspaceContent(presented, drawWhileHidden = true) {
+                    Box(Modifier.fillMaxSize().testTag("action").clickable { clicks++ }) { Text("Action") }
+                }
+            }
+        }
+        compose.onNodeWithTag("action").performClick()
+        compose.runOnIdle { presented = false }
+        compose.onNodeWithTag("action").assertDoesNotExist()
+        compose.onNodeWithTag("retained-shell").performTouchInput { click() }
+        compose.runOnIdle { assertEquals(1, clicks); presented = true }
+        compose.onNodeWithTag("action").performClick()
+        compose.runOnIdle { assertEquals(2, clicks) }
+    }
+
     @Test fun hiddenWorkspaceKeepsCompositionButHasNoClickableSemantics() {
         var presented by mutableStateOf(true)
         var created = 0

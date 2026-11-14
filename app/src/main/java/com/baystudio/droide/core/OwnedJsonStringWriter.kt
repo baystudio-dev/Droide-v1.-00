@@ -3,8 +3,10 @@ package com.baystudio.droide.core
 import java.io.InputStream
 import java.io.OutputStream
 
-/** Encodes an already validated UTF-8 byte source as ONE JSON string without materializing it. */
-
+/** Encodes an already validated UTF-8 byte source as ONE JSON string without materializing it.
+ * Trusted callers must validate UTF-8 and source integrity before publishing or consuming the
+ * output. This is serialization, not argument/schema/permission admission. Never closes streams.
+ */
 internal object OwnedJsonStringWriter {
     fun writeValidatedUtf8(input: InputStream, output: OutputStream, checkCancelled: () -> Unit = {}) {
         checkCancelled()

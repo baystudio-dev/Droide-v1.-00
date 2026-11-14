@@ -6,6 +6,8 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Authored synthetic TAR data reaches the real finite decoder; authentication failure
+ * reaches the real archive admission. No original package bytes are fetched or executed. */
 class LocalUbuntuVueArchiveTest {
     private data class Entry(val name:String,val text:String="x",val kind:Char='0',val mode:Int=420)
     private fun tar(entries:List<Entry>):ByteArray {

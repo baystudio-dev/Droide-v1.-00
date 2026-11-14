@@ -21,7 +21,7 @@ class RootfsTarCompatibilityTest {
         assertEquals("00000003001", String(result, aliasOffset + 124, 11))
         assertEquals("0000755", String(result, aliasOffset + 100, 7))
         assertArrayEquals(payload, result.copyOfRange(aliasOffset + 512, aliasOffset + 512 + payload.size))
-        assertArrayEquals(result, convert(result))
+        assertArrayEquals(result, convert(result)) // New checksums, padding and entry sizes parse again.
     }
 
     @Test fun severalAliasesCanShareATargetWithoutSharingAnInode() {

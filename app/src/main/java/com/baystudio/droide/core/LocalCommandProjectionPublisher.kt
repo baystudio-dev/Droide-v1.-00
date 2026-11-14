@@ -7,6 +7,7 @@ import java.nio.file.LinkOption
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
 
+/** Stable directory; each changed name transitions atomically from its old shim to its new shim. */
 internal object LocalCommandProjectionPublisher {
     private data class OwnedFile(val file: File, val key: Any?, val size: Long, val modified: java.nio.file.attribute.FileTime)
     private data class StagedFile(val file: File, val key: Any?)
@@ -44,13 +45,13 @@ internal object LocalCommandProjectionPublisher {
                 }
             }
             staged.forEach { (name, temporary) ->
-                // No delete-before-move and no non-atomic fallback. Unsupported atomic rename fails while
-                // preserving the old command. Other command names stay available.
+                // No delete-before-move and no non-atomic fallback. Unsupported atomic rename
+                // fails while preserving the old command. Other command names stay available.
                 Files.move(temporary.file.toPath(), File(destination, name).toPath(),
                     StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
                 onPublished?.invoke(destination, name)
             }
-
+            // Publish all desired names before retiring recognized obsolete generated shims.
             destination.listFiles().orEmpty().filter { it.name !in scripts }.forEach { candidate ->
                 owned(candidate, isOwnedScript)?.let { snapshot ->
                     if (deleteUnchanged(snapshot)) onPublished?.invoke(destination, candidate.name)
@@ -59,11 +60,11 @@ internal object LocalCommandProjectionPublisher {
             cleanOwned(previous, isOwnedScript)
             cleanOwned(stage, isOwnedScript)
         } finally {
-            // Only operation-created leaves are eligible here. Unknown old stage/journal contents are
-            // retained; never recursively remove an entire projection tree.
+            // Only operation-created leaves are eligible here. Unknown old stage/journal
+            // contents are retained; never recursively remove an entire projection tree.
             staged.values.forEach { temporary ->
-                // Also reclaim an operation-owned partial write, while retaining a foreign replacement of its
-                // unique name. This is not a pathname CAS.
+                // Also reclaim an operation-owned partial write, while retaining a foreign
+                // replacement of its unique name. This is not a pathname CAS.
                 try {
                     val attrs = Files.readAttributes(temporary.file.toPath(), BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
                     if (temporary.key != null && attrs.fileKey() == temporary.key && attrs.isRegularFile && !attrs.isSymbolicLink)
@@ -127,8 +128,9 @@ internal object LocalCommandProjectionPublisher {
     } catch (_: java.io.IOException) { false }
       catch (_: SecurityException) { false }
 
-    // This identity check is conservative, but is not a filesystem compare-and-unlink against a
-    // different writer replacing the pathname after the check.
+    // This identity check is conservative, but is not a filesystem compare-and-unlink against
+    // a different writer replacing the pathname after the check. Shared namespace writes
+    // outside Droide's mutation gate remain outside the projection transaction contract.
     private fun deleteUnchanged(snapshot: OwnedFile): Boolean = unchanged(snapshot) && snapshot.file.delete()
     private fun exists(file: File) = Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)
     private fun requireDirectory(file: File) {

@@ -63,7 +63,7 @@ public class DroideIconResourcesTest {
                 assertEquals(255, Color.red(pixel));
                 assertEquals(255, Color.green(pixel));
                 assertEquals(255, Color.blue(pixel));
-
+                // Pixel coverage can extend half a pixel beyond the vector boundary.
                 assertTrue(Math.hypot((x + .5) / 4 - 54, (y + .5) / 4 - 54) < 33.3);
             }
         }

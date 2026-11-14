@@ -8,8 +8,10 @@ import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Host tests of the actual production coordinator method and both actual owners. */
-
+/** Host tests of the actual production coordinator method and both actual owners.
+ * Unsafe bypasses only its Android constructor/services, which are outside this host test.
+ * No shutdown implementation is copied or mocked. Empty fixture roots are retained.
+ */
 class BuildRunDebugExitOwnershipTest {
     private class Hold {
         val entered = CompletableDeferred<Unit>()
@@ -167,8 +169,8 @@ class BuildRunDebugExitOwnershipTest {
         }))
         val buildHold = Hold()
         val build = f.build(buildHold)
-        // Inject a throwing completion callback on the actual controller's real lifetime Job. No owner
-        // implementation is substituted and the test does not manufacture an Exit result.
+        // Inject a throwing completion callback on the actual controller's real lifetime Job.
+        // No owner implementation is substituted and the test does not manufacture an Exit result.
         val lifetime = WorkspaceTaskController::class.java.getDeclaredField("lifetime").apply { isAccessible = true }.get(f.controller) as Job
         lifetime.invokeOnCompletion { throw taskFailure }
         try {
@@ -233,8 +235,7 @@ class BuildRunDebugExitOwnershipTest {
         }
         private fun coordinator(gate: BuildRunDebugOperationGate<BuildRunDebugCoordinator.Operation>,
             tasks: WorkspaceTaskController, scope: CoroutineScope): BuildRunDebugCoordinator {
-            // Host JDK APIs are not part of Android's compile API; retain the same allocation via
-            // reflection.
+            // Host JDK APIs are not part of Android's compile API; retain the same allocation via reflection.
             val unsafeType = Class.forName("sun.misc.Unsafe")
             val unsafe = unsafeType.getDeclaredField("theUnsafe").apply { isAccessible = true }.get(null)
             val actual = unsafeType.getMethod("allocateInstance", Class::class.java).invoke(unsafe, BuildRunDebugCoordinator::class.java) as BuildRunDebugCoordinator

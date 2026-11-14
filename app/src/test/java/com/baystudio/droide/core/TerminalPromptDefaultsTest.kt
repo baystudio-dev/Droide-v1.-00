@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Actual generated rc + Bash, with unmodified rc fixtures from the packaged Ubuntu rootfs. */
 class TerminalPromptDefaultsTest {
     @Test fun packagedRootDefaultsBecomeLiteralDollarForEveryTerminalFlavor() {
         for (term in listOf("dumb", "xterm-256color", "xterm-color", "rxvt-unicode")) {

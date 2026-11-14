@@ -5,8 +5,8 @@ internal object TypedRestoreForkAnchors {
     fun validatedEnds(saved: List<AgentMessage>, original: TypedChatCheckpoint,
         reconciled: TypedChatCheckpoint): Set<Int> {
         require(original.target == reconciled.target)
-        // Compare each entry once. Never repeatedly copy/validate a prefix for every UI row. Equality
-        // here is metadata equality; actual forks still resolve private receipts.
+        // Compare each entry once. Never repeatedly copy/validate a prefix for every UI row.
+        // Equality here is metadata equality; actual forks still resolve private receipts.
         val common = ArrayList<TypedChatEntry>()
         val before = original.exact.iterator()
         val after = reconciled.exact.iterator()

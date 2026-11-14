@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Managed native-pipe byte relay and finite private health; original/target acceptance remains separate. */
 internal object LocalUbuntuPowerShellLspHealth {
     const val FILE_NAME = "powershell-supervisor.cjs"
     const val TIMEOUT_MS = 60_000L

@@ -35,8 +35,9 @@ def constant(text, name):
 
 
 def require_retired_assets_absent(root=ROOT):
-
-
+    # Current Gradle source sets use conventional app/src/<variant>/assets roots.
+    # Search every such assets directory, including nested paths/undeclared files.
+    # Historical payloads live in a separate source archive; their metadata is not an asset root.
     for assets in (root / "app/src").rglob("assets"):
         if assets.is_symlink():
             raise ValueError(f"Symlink Android asset root rejected: {assets.relative_to(root)}")

@@ -89,7 +89,7 @@ internal fun DroideWindowInsetsHost(
     val metricsKey = listOf(configuration.orientation, configuration.screenWidthDp, density.density, density.fontScale)
     val headerCutouts = remember(view, displayCutout, density, reclaimTopCutout, metricsKey) {
         HeaderCutoutSource {
-
+            // Reading Compose's inset value subscribes layout to native geometry changes.
             if (!reclaimTopCutout || Build.VERSION.SDK_INT < Build.VERSION_CODES.P || displayCutout.getTop(density) == 0) emptyList()
             else view.rootWindowInsets?.displayCutout?.boundingRects.orEmpty().map {
                 Rect(it.left.toFloat(), it.top.toFloat(), it.right.toFloat(), it.bottom.toFloat())
@@ -128,6 +128,7 @@ internal fun DroideWindowInsetsHost(
     )
 }
 
+/** Injectable native inset objects for measured-layout tests; no native listeners are replaced. */
 @Composable
 internal fun StatusBarInsetsHost(
     status: WindowInsets,

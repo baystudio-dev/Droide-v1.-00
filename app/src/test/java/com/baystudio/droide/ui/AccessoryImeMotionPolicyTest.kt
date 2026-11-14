@@ -106,7 +106,7 @@ class AccessoryImeMotionPolicyTest {
         // Even a lagging fallback cannot revive a keyboard that is now hidden.
         assertFraction(0f, motion.sample(0, 0, 0, 1f, rawImeVisible = false))
         assertFraction(0f, motion.sample(0, 0, 0, 0.7f, rawImeVisible = false))
-
+        // A fresh floating keyboard releases the native-dismissal guard.
         assertFraction(0.2f, motion.sample(0, 0, 0, 0.2f, rawImeVisible = true))
         assertFraction(0.1f, motion.sample(0, 0, 0, 0.1f, rawImeVisible = false))
     }
@@ -150,7 +150,7 @@ class AccessoryImeMotionPolicyTest {
         motion.sample(0, 300, 0, 1f, rawImeVisible = true)
         motion.observeRawVisibility(rawImeVisible = false)
         assertFalse(motion.permitsFallback(rawImeVisible = false))
-
+        // Composition can see the fresh show before SideEffect records it.
         assertTrue(motion.permitsFallback(rawImeVisible = true))
         assertTrue(motion.allowsInput(true, 0, 0, 0))
         // The above getters have not mutated the latch.

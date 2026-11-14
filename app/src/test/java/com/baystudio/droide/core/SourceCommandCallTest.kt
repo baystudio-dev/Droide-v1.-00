@@ -38,7 +38,13 @@ class SourceCommandCallTest {
         ApplicationWorkAdmission.initialize(org.robolectric.RuntimeEnvironment.getApplication());ApplicationWorkAdmission.reopenFromUser()
         val root=Files.createTempDirectory("source-command-call-").toFile();val workspace=root.resolve("project").apply{mkdir()}
         val starts=AtomicInteger()
-        val terminal=object:ITerminalSession by AgentWorkflowTerminal() {
+        val terminal=object:ITerminalSession by AgentWorkflowTerminal(),InteractivePtyCommandSession {
+            override val supportsInteractivePty=outcome=="pty"
+            override suspend fun execInteractivePty(command:String,timeoutMs:Long,input:ProcessInputBuffer?,onOutput:(String)->Unit):ExecResult {
+                check(supportsInteractivePty);starts.incrementAndGet()
+                requireNotNull(input).bindPty({onOutput(String(it));true},{onOutput("EOF");true})
+                onOutput("ready");awaitCancellation()
+            }
             override val supportsCommandInput=false
             override suspend fun execStreaming(cmd:String,timeoutMs:Long,onOutput:(String)->Unit):ExecResult {
                 starts.incrementAndGet();onOutput("ran once")
@@ -73,6 +79,18 @@ class SourceCommandCallTest {
             val record=e.root.resolve("journal/${call.pending.locator.id}.json").readText()
             assertTrue(record,record.contains("\"commandActivation\":\"ACTIVATED\""));assertTrue(record.contains("\"commandJob\":\"bg-"))
         };assertEquals(3,e.starts.get())}
+    }
+    @Test(timeout=60000) fun streamedTtyDefaultsAgreeWithJournalAndKeepInputAfterEof()=runBlocking {
+        for(name in listOf("exec_command","run_command"))fixture("pty"){e->
+            val call=e.call(name,yield=20,extra=",\"requires_tty\":true")
+            assertFalse(e.execute(call).rejected)
+            val job=e.manager.list().single();assertTrue(job.stdinAvailable)
+            e.manager.sendInput(job.id,"first",closeInput=true)
+            assertTrue(requireNotNull(e.manager.snapshot(job.id)).stdinAvailable)
+            e.manager.sendInput(job.id,"second")
+            assertTrue(requireNotNull(e.manager.snapshot(job.id)).output.contains("firstEOFsecond"))
+            assertEquals(1,e.starts.get())
+        }
     }
     @Test(timeout=60000) fun deniedPermissionHasNoActivationAndSettlesWithoutJob()=runBlocking {fixture(effect=PermEffect.DENY){e->
         val call=e.call();assertTrue(e.execute(call).rejected);assertEquals(0,e.starts.get())

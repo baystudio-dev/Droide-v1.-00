@@ -243,7 +243,7 @@ internal class ElpLspManager(scope: CoroutineScope, private val workspace: File,
                 listOf(listOf(native.launchExecutable)), LspElpProfile.APPROVAL_EXPLANATION,
                 LspElpProfile.INSTALLATION_DISCLOSURE, disclosure)) { synchronized(lock) { !closed && epoch == capturedEpoch && pending[absolute] === ticket && buffers[absolute] === initiating && consent.isCurrent(ticket) && routeCurrent() } }
             check(allowed) { "ELP project analysis was not approved" }
-
+            // No native process existed during either prompt. Approval starts the single total now.
             val deadline = ElpDeadline.start()
             val fresh = inspect(absolute, deadline.limited(20_000)); require(fresh.observationIdentity == raw.observationIdentity) { "ELP selection changed while approval was pending" }
             requireCleanConfig(observation)
@@ -318,8 +318,8 @@ internal class ElpLspManager(scope: CoroutineScope, private val workspace: File,
             synchronized(lock) { check(live(s)); s.startupFinished = true; updateReadiness(s) }
         } catch (failure: Throwable) {
             synchronized(lock) {
-                // A canceled preparation may settle after Retry has registered its successor. Only its exact
-                // generation may publish readiness or retire a published session.
+                // A canceled preparation may settle after Retry has registered its successor.
+                // Only its exact generation may publish readiness or retire a published session.
                 if (preparing(p, generation)) {
                     if (session != null && p.session === session) retireLocked(p, "ELP preparation failed: ${failure.message?.take(200)}", deadline)
                     else { p.phase = LspProjectAnalysisReadiness.FAILED; p.detail = if (cleanupUnknown || p.cleanupUnknown) "ELP cleanup unconfirmed; replacement remains blocked." else "ELP preparation unavailable: ${failure.message?.take(200)}"; changed() }
@@ -466,7 +466,7 @@ internal class ElpLspManager(scope: CoroutineScope, private val workspace: File,
                 items.forEach { diagnosticReceipts[it] = DiagnosticReceipt(c, serial) }
                 publishDiagnosticsLocked(c, LspElpProfile.uri(path), items, serial)
             }
-
+            // Telemetry and unknown notifications have no action or forwarding side effect.
         }
     }
     private fun observedSelectionChanged(s: Session, reason: String): Nothing {
@@ -693,13 +693,14 @@ internal class ElpLspManager(scope: CoroutineScope, private val workspace: File,
                 ?: p.preparationDeadline?.takeIf { startup != null }
                 ?: ElpDeadline.retirement()).limited(10_000)
             if (s != null) {
-
+                // Analysis retirement is immediate admission/feature fencing and exact forced
+                // settlement. Staged health, separately, can exchange shutdown/exit before fence.
                 s.active = false; s.ready = false; s.owner.fence(); s.requests.close(); s.observer?.cancel(); s.notifications?.cancel()
             }
             val previous = cleanupTail
             p.cleanup = retirementScope.launch {
-                // Never join a preparation from its own coroutine. This retained external task includes its
-                // eventual returned-owner cleanup before allowing any replacement.
+                // Never join a preparation from its own coroutine. This retained external task
+                // includes its eventual returned-owner cleanup before allowing any replacement.
                 val startupSettled = withTimeoutOrNull(limit.remainingMillis().coerceAtLeast(1)) {
                     previous?.join(); startup?.join(); true
                 } == true

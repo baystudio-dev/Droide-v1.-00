@@ -10,6 +10,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Inert ELF and authored receipts. No shell, installer health, native sqruff or project execution. */
 class SqruffManagedLaunchIdentityTest {
     private fun sha(bytes: ByteArray)=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it.toInt() and 255)}
     private data class Fixture(val app:File,val root:File,val record:ManagedPackageRecord,val guest:String) {
@@ -91,7 +92,7 @@ class SqruffManagedLaunchIdentityTest {
     @Test fun changedExecutableModesCannotKeepTheProjectionDigest()=runFixture { f ->
         for(relative in listOf("payload/tree/sqruff","payload/bin/sqruff","payload/host-bin/sqruff")) {
             val file=File(f.root,relative)
-            for(mode in listOf(420,511,2541)) {
+            for(mode in listOf(420,511,2541)) { // 0644, 0777 and 04755 are all outside the projected 0755.
                 Files.setAttribute(file.toPath(),"unix:mode",mode)
                 assertNull("mode $mode at $relative",f.inspect())
             }

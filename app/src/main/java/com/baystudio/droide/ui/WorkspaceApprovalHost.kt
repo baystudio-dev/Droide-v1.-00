@@ -22,6 +22,7 @@ import com.baystudio.droide.core.ApprovalManager
 import com.baystudio.droide.core.ApprovalRequest
 import com.baystudio.droide.core.ApprovalResolution
 
+/** User attention is distinct from a pane merely remaining visible in a split workspace. */
 internal enum class WorkspaceApprovalSurface { AGENT, BROWSER, OTHER }
 
 /** One workspace-owned responder survives chat/browser placement changes without owning the WebView. */
@@ -42,12 +43,13 @@ internal fun WorkspaceApprovalHost(
         var reviewRequested by remember { mutableStateOf(false) }
         var automaticDetailsDismissed by remember { mutableStateOf(false) }
         val activeBrowser = browserVisible && activeSurface == WorkspaceApprovalSurface.BROWSER
-
+        // The event is emitted by a user action (including Review from a website dialog).
+        // Its request id prevents a late/stale action from opening a different approval.
         LaunchedEffect(request.id, reviewRequest) {
             if (reviewRequest?.first == request.id) reviewRequested = true
         }
-        // A visible website prompt may own attention before a surface callback arrives. Its own Review
-        // action remains available without automatically layering modals.
+        // A visible website prompt may own attention before a surface callback arrives.
+        // Its own Review action remains available without automatically layering modals.
         val automaticallyShowDetails = !automaticDetailsDismissed &&
             activeSurface == WorkspaceApprovalSurface.AGENT && !(browserVisible && browserDialogPending)
         val resolve: (ApprovalResolution) -> Unit = { approvals.resolve(request.id, it) }
@@ -55,15 +57,16 @@ internal fun WorkspaceApprovalHost(
             if (approvals.pending.value?.id == request.id) reviewRequested = true
         }
         if (reviewRequested || automaticallyShowDetails) {
-            // Only an explicit review stays open after attention moves elsewhere. An automatically presented
-            // sheet collapses as soon as its context is left.
+            // Only an explicit review stays open after attention moves elsewhere. An
+            // automatically presented sheet collapses as soon as its context is left.
             AgentApprovalSheet(request, onDismiss = {
                 reviewRequested = false
                 automaticDetailsDismissed = true
             }, clearFocusAndHideKeyboard = false, onResolve = resolve)
         } else {
             BoxWithConstraints(modifier.widthIn(max = 600.dp).fillMaxWidth().imePadding().navigationBarsPadding()) {
-
+                // Keep meaningful content space below keyboard/landscape constraints.
+                // A cramped browser uses the same explicit-review status as other work.
                 val dockMinimum = 300.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
                 val dockHeight = minOf(maxHeight * .4f, 220.dp)
                 val dockHasRoom = maxHeight >= dockMinimum &&
@@ -86,8 +89,8 @@ private fun WorkspaceApprovalIndicator(onReview: () -> Unit, projectAnalysis: Bo
     val currentOnReview by rememberUpdatedState(onReview)
     val thresholdPx = with(LocalDensity.current) { 24.dp.toPx() }
     Surface(Modifier.fillMaxWidth().testTag("workspace-approval-indicator").pointerInput(thresholdPx) {
-        // Only gestures beginning on this footer participate; the workspace stays usable. Touch slop is
-        // handled by the detector. Reopen once on release, never on cancel.
+        // Only gestures beginning on this footer participate; the workspace stays usable.
+        // Touch slop is handled by the detector. Reopen once on release, never on cancel.
         var verticalTravel = 0f
         detectVerticalDragGestures(
             onDragStart = { verticalTravel = 0f },

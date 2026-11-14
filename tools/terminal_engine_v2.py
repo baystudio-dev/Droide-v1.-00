@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Current Java terminal overlay rebuild, never historical or APK admission."""
+"""Current Java terminal overlay rebuild, never historical or APK admission.
+
+Retains a pinned Java-only binary base. Executes two fresh 9-source then 3-source
+compilations. Only pure archive/classfile/full-JDK inspection helpers are reused;
+no historical admission function is called or treated as passed.
+"""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -10,12 +15,12 @@ import subprocess
 import sys
 import time
 
-import java_archive as inspect
+import verify_termux_pty_derivative as inspect
 import terminal_jdk_v2 as vendor_jdk
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = 'tools/terminal-engine-v2.json'
-CONTRACT_SHA = '4058f58f5709dfaed99e347ebeef79504fb6d4a68b2311986b5f589516cdce47'
+CONTRACT_SHA = 'ad3375b4ce2e2569175fb3e660ee3a788dcfe0cc580a72c6ed85d0eb4cced577'
 SCRIPT = 'tools/terminal_engine_v2.py'
 STATUS = 'BUILD_ONLY_DEVICE_UNVALIDATED'
 FLAGS = ['--release', '8', '-encoding', 'UTF-8', '-g:none', '-proc:none', '-implicit:none']
@@ -57,7 +62,7 @@ def files(root):
 
 def execution_identity(root):
     require(checked(__file__) == checked(root / SCRIPT), 'executing tool does not belong to selected source')
-    require(checked(inspect.__file__) == checked(root / 'tools/java_archive.py'),
+    require(checked(inspect.__file__) == checked(root / 'tools/verify_termux_pty_derivative.py'),
             'inspection helper does not belong to selected source')
 
 

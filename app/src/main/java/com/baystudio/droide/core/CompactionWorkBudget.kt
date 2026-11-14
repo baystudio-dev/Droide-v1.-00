@@ -1,5 +1,9 @@
 package com.baystudio.droide.core
 
+/** Aggregate accounting retained by one compaction transaction, shared across every branch.
+ * Request, depth, convergence and per-checkpoint bounds remain in CompactionRequestBudget
+ * and SessionManager; this restores the donor's independent retained-exchange ceiling.
+ */
 internal class CompactionWorkBudget {
     private var retainedChars = 0L
 

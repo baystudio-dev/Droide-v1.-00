@@ -1,0 +1,13 @@
+// Compile the focused CLI lifecycle tests against the unmodified production source graph.
+// Use with -PDROIDE_HOST_JVM_TESTS_ONLY=true and explicit fully qualified --tests selectors.
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    app.tasks.named('compileDebugUnitTestKotlin').configure {
+        setSource(app.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('WorkspaceAcpHostTurnBoundaryR30Test.kt', 'SessionHostedProcessOwnerTest.kt',
+                'AcpTerminalAuthorityR118Test.kt', 'LocalHostedProcessLifecycleTest.kt',
+                'LocalHostedProcessHandoffR40Test.kt', 'ProcessExitOwnershipR64Test.kt',
+                'OwnedResourceCleanupTest.kt', 'RemoteHostedProcessReceiptTest.kt')
+        })
+    }
+}

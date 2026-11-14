@@ -6,6 +6,9 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Invokes the actual manager parser, with a non-live generic state fixture.
+ * Constructor bypass deliberately avoids unrelated process/native-manager lifecycle.
+ */
 class LspCodeActionRoundTripTest {
     private fun allocate(type: Class<*>): Any {
         val unsafeType=Class.forName("sun.misc.Unsafe")
@@ -15,6 +18,7 @@ class LspCodeActionRoundTripTest {
     private fun field(target: Any, name: String, value: Any?) {
         target.javaClass.getDeclaredField(name).also { it.isAccessible=true }.set(target,value)
     }
+
 
     private fun check(data:String) {
         val root=createTempDirectory("droide-call-roundtrip").toFile()
@@ -31,7 +35,7 @@ class LspCodeActionRoundTripTest {
             val result=try {method.invoke(manager,input,state,emptyMap<String,String>(),emptyMap<String,Int?>(),null) as LspCodeAction}
                 catch(e:InvocationTargetException) {throw e.targetException}
             assertEquals("Refactor test",result.title);assertNull(result.edit)
-
+            // This is the same parsing operation used by resolveCodeAction before dispatch.
             val outgoing=Json.parseToJsonElement(requireNotNull(result.rawJson))
             assertEquals(input,outgoing)
         } finally {root.deleteRecursively()}

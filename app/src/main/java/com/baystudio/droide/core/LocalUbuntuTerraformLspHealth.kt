@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Exact-family derivative; previously sealed shared/Texlab helper bytes stay unchanged. */
 internal object LocalUbuntuTerraformLspHealth {
     const val FILE_NAME = "terraform-ls-health.cjs"
     val script: String = run {

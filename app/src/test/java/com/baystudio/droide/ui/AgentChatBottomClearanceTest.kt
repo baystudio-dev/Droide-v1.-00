@@ -35,8 +35,11 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Actual transcript/composer geometry; host pane resize exercises available keyboard-sized space. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = DroideApplication::class, qualifiers = "w360dp-h640dp")
+// Keep prefetch deadlines on Robolectric's virtual frame clock.
+@Config(sdk = [35], application = DroideApplication::class, qualifiers = "w360dp-h640dp",
+    instrumentedPackages = ["androidx.compose.foundation.lazy.layout"])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AgentChatBottomClearanceTest {
     @Before

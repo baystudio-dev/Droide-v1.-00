@@ -17,6 +17,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
+ 
 class GitHubAccountManager(context: Context) {
     enum class Status {
         UNAVAILABLE,
@@ -80,10 +81,11 @@ class GitHubAccountManager(context: Context) {
     private val configured = CLIENT_ID.matches(clientId) && isSecureExchangeUrl(exchangeUrl) &&
         authority.isCallbackRoute(redirectUri, redirectUri)
     private var disconnecting = false
-
+     
     private var knownRemoteRevoked = false
     private val _snapshot = MutableStateFlow(initialSnapshot())
     val snapshot: StateFlow<Snapshot> = _snapshot.asStateFlow()
+
 
     fun beginAuthorization(): Result<String> = synchronized(lifecycleLock) {
         if (!configured) {
@@ -116,6 +118,7 @@ class GitHubAccountManager(context: Context) {
         }
     }
 
+     
     fun browserLaunchFailed(reason: String) = synchronized(lifecycleLock) {
         authority.cancelCurrent()
         secrets.removeDurable(GitHubAccountSecretStore.SLOT_PENDING_OAUTH)
@@ -123,6 +126,7 @@ class GitHubAccountManager(context: Context) {
     }
 
     // Keep operation ownership explicit across lifecycle boundaries.
+
 
     suspend fun handleCallback(rawUri: String): Boolean {
         if (!authority.isCallbackRoute(rawUri, redirectUri)) return false
@@ -140,6 +144,7 @@ class GitHubAccountManager(context: Context) {
             restorePendingIfNeeded()
             when (val result = authority.claimCallback(rawUri)) {
                 is GitHubAccountOAuthAuthority.CallbackResult.Accepted -> {
+                    
 
                     secrets.removeDurable(GitHubAccountSecretStore.SLOT_PENDING_OAUTH)
                     val previous = durableSnapshot()
@@ -210,6 +215,7 @@ class GitHubAccountManager(context: Context) {
         return true
     }
 
+
     suspend fun disconnect(): Result<DisconnectOutcome> = credentialNetworkMutex.withLock {
         if (!configured) {
             return@withLock runCatching {
@@ -254,6 +260,7 @@ class GitHubAccountManager(context: Context) {
 
         var remoteRevoked = false
         try {
+            
 
             if (token != null) {
                 oauthClient.revokeAuthorization(exchangeUrl, clientId, token)
@@ -306,11 +313,13 @@ class GitHubAccountManager(context: Context) {
 
     fun isConfigured(): Boolean = configured
 
+     
     fun repositoryAccessUrl(): String? {
         val slug = BuildConfig.GITHUB_APP_SLUG.trim()
         return slug.takeIf { GITHUB_APP_SLUG.matches(it) }
             ?.let { "https://github.com/apps/$it/installations/new" }
     }
+
 
     internal suspend fun currentGitTransportCredential(): GitHubTransportCredential? = credentialNetworkMutex.withLock {
         try {
@@ -442,6 +451,7 @@ class GitHubAccountManager(context: Context) {
         }
 
         if (persistenceFailure != null) {
+            
 
             runCatching { oauthClient.revokeAuthorization(exchangeUrl, clientId, refreshed.accessToken) }
             synchronized(lifecycleLock) { runCatching { transaction.disconnectRevoked() } }

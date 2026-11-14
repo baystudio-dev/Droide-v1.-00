@@ -18,6 +18,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+
 /** Canonical document/revision contracts. Fake protocol peers never execute a language server. */
 class LspDocumentAuthorityTest {
     @Test(timeout=10000) fun allOpenDirtyDocumentsReachFirstServerBeforeIntelligence() = runBlocking {

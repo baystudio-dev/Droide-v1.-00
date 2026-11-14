@@ -1,0 +1,14 @@
+{
+  "ReaderHealthyOutputTiming.java": {
+    "sha256": "9ce8a622834b22864dc2723df75b7214a92d91a09f0d227d7f6f2bedff21d79d",
+    "source": "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/evidence/r44-baseline/evidence/pty-success-backoff/fixtures/ReaderHealthyOutputTiming.java"
+  },
+  "TerminalOwnedProcessTest.java": {
+    "sha256": "6169fa33f12fc537490ee08f1cf2302489622c79a8cb2f85c16aa0e3065df52c",
+    "source": "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/source-restored/app/src/test/java/com/termux/terminal/TerminalOwnedProcessTest.java"
+  },
+  "TerminalPtyReadProgressTest.java": {
+    "sha256": "c62c06cea093824dfd3977850350f6c2c56fa3452f5f255dbb91f8ec937be360",
+    "source": "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/evidence/r44-baseline/evidence/pty-success-backoff/fixtures/TerminalPtyReadProgressTest.java"
+  }
+}

@@ -33,10 +33,10 @@ class DocumentFileIconRegistryTest {
         assertEquals("zip", FileIconRegistry.iconNameFor("report.pdf.tar.gz"))
     }
 
-    @Test fun otherWordFormatsDoNotGainIconOrViewerSupport() {
+    @Test fun otherWordFormatsHaveIconsWithoutGainingViewerSupport() {
         listOf("doc", "docm", "dot", "dotx", "dotm").forEach {
             val path = "report.${it.uppercase()}"
-            assertEquals(path, "default_file", FileIconRegistry.iconNameFor(path))
+            assertEquals(path, "word", FileIconRegistry.iconNameFor(path))
             assertEquals(path, DocumentPreviewPolicy.Kind.LEGACY_WORD, DocumentPreviewPolicy.kind(path))
             assertFalse(path, FileIconRegistry.isTextFile(path))
         }

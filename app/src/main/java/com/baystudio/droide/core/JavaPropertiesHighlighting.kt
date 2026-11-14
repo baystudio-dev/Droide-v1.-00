@@ -1,7 +1,8 @@
 package com.baystudio.droide.core
 
-/** Lexical colors from the Java Properties.load(Reader) format, not schema validation. Works on
- * UTF-16 offsets in the current buffer; no loading, decoding or rewriting keys. */
+/** Lexical colors from the Java Properties.load(Reader) format, not schema validation.
+ * Works on UTF-16 offsets in the current buffer; no loading, decoding or rewriting keys.
+ */
 internal object JavaPropertiesHighlighting {
     private enum class Phase { KEY, SEPARATOR, VALUE }
     private fun whitespace(c: Char) = c == ' ' || c == '\t' || c == '\u000c'
@@ -30,8 +31,8 @@ internal object JavaPropertiesHighlighting {
                 var last = end - 1
                 while (last >= start && line[last] == '\\') { slashes++; last-- }
                 val continues = slashes % 2 == 1
-                // Join semantics precede key/value parsing: the final continuation slash is not a value or key
-                // character and cannot consume a separator.
+                // Join semantics precede key/value parsing: the final continuation
+                // slash is not a value or key character and cannot consume a separator.
                 val contentEnd = if (continues) end - 1 else end
                 if (phase == Phase.KEY) {
                     val keyStart = cursor
@@ -59,7 +60,8 @@ internal object JavaPropertiesHighlighting {
                 if (continues) add(contentEnd, end, DroideHighlightKind.OPERATOR)
                 continued = continues
             }
-
+            // Sora indexes lines by LF. CR and CRLF are also natural-line terminators
+            // for Properties; preserve their offsets in that same editor line.
             var start = 0
             do {
                 val cr = line.indexOf('\r', start)

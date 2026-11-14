@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 internal object LocalAndroidBuildCommand {
     fun create(
         task: String,
@@ -20,7 +21,7 @@ internal object LocalAndroidBuildCommand {
             append("set -eu; ")
             append("export JAVA_HOME=").append(q(snapshot.javaHome)).append("; ")
             append("export ANDROID_HOME=").append(q(snapshot.sdkRoot)).append("; ")
-
+            // Some older Android plugins still consult this deprecated variable; keep it identical.
             append("export ANDROID_SDK_ROOT=").append(q(snapshot.sdkRoot)).append("; ")
             append("export GRADLE_USER_HOME=/root/.gradle; export TMPDIR=/tmp; ")
             append("export PATH=").append(q(managedPathPrefix)).append(":\"\$PATH\"; ")

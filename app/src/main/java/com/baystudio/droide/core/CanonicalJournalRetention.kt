@@ -17,8 +17,7 @@ internal object CanonicalJournalRetention {
 
     enum class CapacityBlocker { ENTRY_LIMIT, RETAINED_BYTE_BUDGET, METADATA_BUDGET }
 
-    // An accounting observation, not a reservation, filesystem free-space estimate or release
-    // permission.
+    // An accounting observation, not a reservation, filesystem free-space estimate or release permission.
     data class Usage(val completedEntries: Int, val maxEntries: Int, val retainedBytes: Long,
                      val maxRetainedBytes: Long, val metadataBytes: Long,
                      val maxMetadataBytes: Long, val nextRecordReserveBytes: Long) {

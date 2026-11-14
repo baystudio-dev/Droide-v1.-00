@@ -38,8 +38,10 @@ class AgentServiceSourceArtifactTest {
         append(f.event("""{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}"""));append("data: [DONE]\n\n")
     }
     private fun done(f:ProviderStreamFixture)=f.event("""{"choices":[{"delta":{"content":"Completed once"},"finish_reason":"stop"}]}""")+"data: [DONE]\n\n"
+    // This suite exercises source publication with an explicit tool profile, without discovery steps.
     private fun agent(root:java.io.File,files:FileRepository=FileRepository(root),effect:PermEffect=PermEffect.ALLOW)=
-        AgentService(files,AgentWorkflowTerminal(),GitManager(root),perms=PermissionEngine(listOf(PermRule("*","*",effect))),
+        AgentService(files,AgentWorkflowTerminal(),GitManager(root),perms=PermissionEngine(listOf(PermRule("*","*",effect)),
+            toolRestrictions = listOf(setOf("artifact", "write_file", "read_file", "edit_file"))),
             documentAuthority=docs,maxSubagentDepth=0)
 
     private fun artifact(id:String,type:String,text:String)=Call(id,"artifact",buildJsonObject {put("type",type);put("content",text)})
@@ -84,7 +86,8 @@ class AgentServiceSourceArtifactTest {
         try {withProviderStreamFixture(ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS) {f->runBlocking {
             val type="  report  ";val text="x".repeat(170000)
             f.response={i,_,_->if(i==1)response(f,listOf(artifact("a",type,text))) else done(f)}
-            val perms=PermissionEngine(listOf(PermRule("*","*",PermEffect.ALLOW),PermRule("edit",type,PermEffect.DENY)))
+            val perms=PermissionEngine(listOf(PermRule("*","*",PermEffect.ALLOW),PermRule("edit",type,PermEffect.DENY)),
+                toolRestrictions = listOf(setOf("artifact", "write_file", "read_file", "edit_file")))
             val a=AgentService(FileRepository(root),AgentWorkflowTerminal(),GitManager(root),perms=perms,documentAuthority=docs,maxSubagentDepth=0)
             try {withTimeout(60000){a.chat("Create denied artifact",f.config,maxTurns=2)}
                 assertTrue(published(root).isEmpty())

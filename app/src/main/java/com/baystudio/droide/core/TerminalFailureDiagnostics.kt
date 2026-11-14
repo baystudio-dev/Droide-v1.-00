@@ -14,8 +14,8 @@ internal object TerminalFailureDiagnostics {
             return "A port is occupied. Use 'droide process port PORT' for an Android host loopback bind probe, then inspect 'droide process list'. Stop only a known owned session ID; a port number alone does not identify a safe process to stop."
         }
         if (exitCode == 126 || tail.contains("Permission denied", ignoreCase = true)) {
-            // Only a caller with the actual pinned launch cwd may inspect a relative command path. The
-            // workspace root may differ after `cd`; generic guidance is safer in that case.
+            // Only a caller with the actual pinned launch cwd may inspect a relative command path.
+            // The workspace root may differ after `cd`; generic guidance is safer in that case.
             if (projectRoot != null) {
                 val path = runCatching { DroideCli.parse(command).firstOrNull()?.takeIf { it.startsWith("./") } }.getOrNull()
                 val diagnostic = path?.let { runCatching { WorkspaceScriptPermissions.inspect(projectRoot, it) }.getOrNull() }

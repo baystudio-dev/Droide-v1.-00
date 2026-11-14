@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 
+ 
 @Serializable
 data class AgentImageRef(
     val path: String,
@@ -21,6 +22,7 @@ data class AgentImageRef(
     val expiresAt: Long? = null,
 )
 
+ 
 internal object VisionSupport {
     const val MAX_IMAGES = 4
     const val MAX_IMAGE_BYTES = 4L * 1024 * 1024

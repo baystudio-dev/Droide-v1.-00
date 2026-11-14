@@ -21,8 +21,8 @@ internal object ProviderConnectionIdentity {
     fun matches(record: ProviderConnectionRecord, provider: AiProvider): Boolean {
         if (!record.providerId.equals(provider.id, ignoreCase = true)) return false
         val stored = record.endpointFingerprint
-        // Bootstrap endpoints cannot be replaced by a project. Preserve their old receipts. Legacy
-        // configurable endpoints have no trustworthy previous destination to infer.
+        // Bootstrap endpoints cannot be replaced by a project. Preserve their old receipts.
+        // Legacy configurable endpoints have no trustworthy previous destination to infer.
         if (stored == null) return ProviderRegistry.isBootstrapProvider(provider.id)
         return runCatching { stored == fingerprint(provider) }.getOrDefault(false)
     }

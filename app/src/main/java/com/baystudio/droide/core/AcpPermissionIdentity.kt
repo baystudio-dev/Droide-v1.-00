@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal data class AcpPermissionIdentity(
     val kind: AcpPermissionKind,
     val operationFingerprint: String,
@@ -15,7 +16,7 @@ internal object AcpPermissionIdentities {
             operationFingerprint = AcpPermissionLedger.mutationFingerprint(canonicalRemotePath, content),
             action = "write_file",
             policyResource = policyPath.take(4_096),
-
+            
             sessionGrantResource = canonicalRemotePath.take(4_096),
         )
 
@@ -41,7 +42,7 @@ internal object AcpPermissionIdentities {
             operationFingerprint = fingerprint,
             action = "run_command",
             policyResource = display,
-
+            
             sessionGrantResource = fingerprint,
         )
     }

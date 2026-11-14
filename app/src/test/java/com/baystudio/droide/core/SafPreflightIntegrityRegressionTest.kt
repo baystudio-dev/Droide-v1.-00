@@ -34,6 +34,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 
+/** Real host directory barriers support journal admission; no native publication is exercised. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [SafPreservationDirectoryOs::class])
 class SafPreflightIntegrityRegressionTest {

@@ -1,14 +1,14 @@
 package com.baystudio.droide.ui
 
-/** Bounded, iterative preview of top-level string fields in streamed tool JSON. It does not
- * validate or alter the arguments passed to the tool. */
+/** Bounded, iterative preview of top-level string fields in streamed tool JSON.
+ * It does not validate or alter the arguments passed to the tool. */
 internal class AgentToolInputPreview private constructor(private val fields: Map<String, Field>) {
     private data class Field(val text: String, val complete: Boolean, val shortened: Boolean)
 
     fun text(name: String): String? = fields[name]?.text
         ?.replace('\n', ' ')?.replace('\r', ' ')?.replace('\t', ' ')
 
-    fun path(): String? = listOf("path", "file", "rel_path", "cwd").firstNotNullOfOrNull { name ->
+    fun path(): String? = pathFields.firstNotNullOfOrNull { name ->
         fields[name]?.takeIf { it.complete && !it.shortened }?.text
             ?.takeIf { it.isNotBlank() && it.none(Char::isISOControl) }
     }
@@ -17,7 +17,8 @@ internal class AgentToolInputPreview private constructor(private val fields: Map
         private const val MAX_SCAN_CHARS = 16_384
         private const val MAX_FIELD_CHARS = 512
         private const val MAX_NESTING = 32
-        private val names = setOf("path", "file", "rel_path", "cwd", "command", "cmd", "query", "pattern",
+        private val pathFields = listOf("path", "file_path", "filePath", "file", "rel_path", "relative_path", "relativePath")
+        private val names = pathFields.toSet() + setOf("cwd", "command", "cmd", "query", "pattern",
             "action", "job_id", "session_id", "operation", "title", "family", "version", "url", "target")
 
         fun parse(input: String): AgentToolInputPreview {

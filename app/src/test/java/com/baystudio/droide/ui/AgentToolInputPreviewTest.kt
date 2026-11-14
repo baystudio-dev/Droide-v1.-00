@@ -51,4 +51,27 @@ class AgentToolInputPreviewTest {
     @Test fun nonStringFieldsAreSkippedWithoutLosingLaterTypedPath() {
         assertEquals("src/Main.kt", AgentToolInputPreview.parse("""{"command":42,"metadata":[{"x":true},null],"path":"src/Main.kt"}""").path())
     }
+
+    @Test fun externalPathAliasesWaitForCompleteIdentityWhileArgumentsStream() {
+        for (field in listOf("file_path", "filePath", "relative_path", "relativePath")) {
+            val input = buildJsonObject { put(field, "src/中文 component.tsx"); put("content", "pending") }.toString()
+            assertEquals(field, "src/中文 component.tsx", AgentToolInputPreview.parse(input).path())
+            val partial = input.substringBefore(".tsx")
+            assertNull(field, AgentToolInputPreview.parse(partial).path())
+        }
+    }
+
+    @Test fun terminalWorkingDirectoryIsNotAFileIdentity() {
+        val preview = AgentToolInputPreview.parse("""{"cwd":"/tmp/project.py","command":"npm test"}""")
+        assertNull(preview.path())
+        assertEquals("npm test", preview.text("command"))
+        assertEquals("/tmp/project.py", preview.text("cwd"))
+    }
+
+    @Test fun unsafeExternalPathsCannotProduceAnIcon() {
+        for (path in listOf("bad\nname.py", "bad\u0000name.py", "x".repeat(600) + ".py")) {
+            val input = buildJsonObject { put("file_path", path) }.toString()
+            assertNull(AgentToolInputPreview.parse(input).path())
+        }
+    }
 }

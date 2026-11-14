@@ -1,5 +1,12 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
 internal object MobileBuildResourcePolicy {
     private const val GIB = 1024L * 1024L * 1024L
 
@@ -11,9 +18,9 @@ internal object MobileBuildResourcePolicy {
         val availableMemoryBytes: Long,
         val lowMemory: Boolean,
         val powerSaveMode: Boolean,
-
+         
         val thermalStatus: Int,
-
+         
         val thermalHeadroom: Float?,
     )
 
@@ -22,7 +29,7 @@ internal object MobileBuildResourcePolicy {
         val maxWorkers: Int,
         val daemonIdleMillis: Long,
         val useBuildCache: Boolean,
-
+         
         val forceConfigurationCache: Boolean = false,
     ) {
         init {

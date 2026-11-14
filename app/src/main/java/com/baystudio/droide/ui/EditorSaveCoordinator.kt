@@ -46,8 +46,8 @@ internal class EditorSaveCoordinator(
     suspend fun saveAll(): EditorSaveReport = mutex.withLock {
         val captureFailure = captureFailure("")
         if (captureFailure != null) return@withLock EditorSaveReport(issues = listOf(captureFailure))
-        // A bounded pass: errors in one file do not strand unrelated dirty buffers. New typing is
-        // reported at the end; it never causes an unbounded auto-retry loop.
+        // A bounded pass: errors in one file do not strand unrelated dirty buffers.
+        // New typing is reported at the end; it never causes an unbounded auto-retry loop.
         save(state.allDocuments().filter { it.needsSave }.sortedBy { it.path }, allDocuments = true)
     }
 
@@ -63,8 +63,11 @@ internal class EditorSaveCoordinator(
         })).distinctBy { it.path to it.kind })
     }
 
-    /** Finish only work from an already persisted Save before a path mutation. */
-
+    /** Finish only work from an already persisted Save before a path mutation.
+     * Never save a dirty/new buffer as a side effect of Move/Rename/Delete. One bounded
+     * attempt per document, followed by a fresh scope check; the repository still owns
+     * the atomic mutation guard after this preparation returns.
+     */
     suspend fun finishSavedPathWork(paths: Collection<String>): EditorSaveReport = mutex.withLock {
         fun scoped() = state.allDocuments().filter { document ->
             paths.any { path -> exportPathInScope(document.path, path) }
@@ -114,6 +117,7 @@ internal class EditorSaveCoordinator(
         return EditorSaveReport(issues = outstanding(state.allDocuments()))
     }
 
+    /** No suspension between the final capture/check and a close or project handoff. */
     fun continueIfReady(document: EditorDocument, expectedPath: String = document.path, action: () -> Unit): EditorSaveReport {
         val captureFailure = captureFailure(document.path)
         val issues = captureFailure?.let(::listOf) ?: if (document.path != expectedPath) listOf(changed(document))
@@ -158,8 +162,8 @@ internal class EditorSaveCoordinator(
                 check(request.agentEdit?.before?.dirty != true || !checkNotNull(document).persistenceRequired) {
                     "Existing user draft was preserved; automatic Save skipped. Explicitly review and save this version."
                 }
-                // A clean buffer can still have a stale disk baseline (external edit/delete). A no-op Save must
-                // verify it before claiming this exact version is persisted.
+                // A clean buffer can still have a stale disk baseline (external edit/delete).
+                // A no-op Save must verify it before claiming this exact version is persisted.
                 if (!checkNotNull(document).persistenceRequired) {
                     val disk = checkNotNull(document.savedDiskVersion) { "Saved disk version is unknown" }
                     check(files.matchesVersion(request.path, disk)) {
@@ -187,8 +191,7 @@ internal class EditorSaveCoordinator(
                     failure.message ?: failure.javaClass.simpleName)
             }
         }
-        // Later saves can suspend and allow typing into an earlier file. Never save that new text
-        // implicitly.
+        // Later saves can suspend and allow typing into an earlier file. Never save that new text implicitly.
         for (request in requests) {
             val document = state.peek(request.path)
             if (request.path in saved && issues.none { it.path == request.path } && (document == null || document.documentId != request.expected.documentId ||
@@ -220,8 +223,8 @@ internal class EditorSaveCoordinator(
             val disk = document.savedDiskVersion ?: continue
             val revision = document.revision
             val version = document.changeVersion
-            // Manual Save/reload can resolve pending work. Being clean alone cannot: an external disk
-            // conflict can leave a clean but stale editor snapshot behind.
+            // Manual Save/reload can resolve pending work. Being clean alone cannot: an
+            // external disk conflict can leave a clean but stale editor snapshot behind.
             val matches = com.baystudio.droide.core.runSuspendCatching { files.matchesVersion(path, disk) }.getOrDefault(false)
             state.requireMutableOwner()
             if (matches && state.peek(path) === document && document.documentId == identity &&

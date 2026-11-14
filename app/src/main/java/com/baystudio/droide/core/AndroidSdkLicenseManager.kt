@@ -26,10 +26,11 @@ data class AndroidSdkLicense(
     val text: String,
     val sha256: String,
 ) {
-    // Android's repository hashes the original XML value, including its trailing newline. The
-    // displayed/consent identity remains the existing trimmed text SHA-256.
+    // Android's repository hashes the original XML value, including its trailing newline.
+    // The displayed/consent identity remains the existing trimmed text SHA-256.
     internal var repositoryText: String = text
 }
+
 
 class AndroidSdkLicenseManager(context: Context) {
     private val appContext = context.applicationContext

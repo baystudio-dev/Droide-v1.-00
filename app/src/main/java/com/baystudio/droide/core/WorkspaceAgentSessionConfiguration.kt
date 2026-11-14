@@ -121,7 +121,7 @@ internal object WorkspaceAgentSessionConfigurations {
     fun update(update: JsonObject, previous: WorkspaceAgentSessionConfiguration): WorkspaceAgentSessionConfiguration =
         when (update.string("sessionUpdate")) {
             "available_commands_update" -> previous.copy(availableCommands = AcpSessionCommands.parseSnapshot(update).orEmpty())
-
+            // This notification is a complete snapshot, unlike an ordinary empty response.
             "config_option_update" -> merge(if ("configOptions" in update) update else
                 JsonObject(update + ("configOptions" to JsonNull)), previous)
             "current_model_update" -> previous.copy(currentModelId = update.string("currentModelId") ?: previous.currentModelId)
@@ -158,8 +158,9 @@ internal object WorkspaceAgentSessionConfigurations {
             "CLI did not return its updated mode configuration. No prompt was sent."
         }
         val reported = merge(result, previous)
-        // Modern set_config_option must instead confirm the returned currentValue.
-
+        // A legacy set_mode success is the protocol's acknowledgement of that exact ID.
+        // Modern set_config_option must instead confirm the returned currentValue. Never
+        // overwrite a contradictory replacement snapshot with the requested value.
         val confirmed = if (!collaborationMode && !usesConfigOption && "modes" !in result && "configOptions" !in result)
             reported.copy(currentModeId = modeId) else reported
         check(if (collaborationMode) confirmed.currentCollaborationModeId == modeId && modeId in confirmed.collaborationModes &&

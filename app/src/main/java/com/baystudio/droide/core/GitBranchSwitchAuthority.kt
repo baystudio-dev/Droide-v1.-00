@@ -1,5 +1,12 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
 object GitBranchSwitchAuthority {
     data class Inventory(
         val localBranches: Set<String>,

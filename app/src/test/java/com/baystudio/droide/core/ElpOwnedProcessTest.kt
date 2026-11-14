@@ -28,7 +28,7 @@ class ElpOwnedProcessTest {
         val receipt = owner.retire(ElpDeadline.after(50))
         assertFalse(receipt.complete); assertFalse(receipt.factorySettled); assertTrue(owner.localRoot.isDirectory)
         release.complete(Unit); delay(50)
-        assertFalse(owner.retire(ElpDeadline.after(500)).complete)
+        assertFalse(owner.retire(ElpDeadline.after(500)).complete) // A claimed but unobserved native birth remains conservative UNKNOWN.
     }
     @Test fun privateTreeNeverTraversesSymlinks() {
         val parent = Files.createTempDirectory("elp-authored-private").toFile()

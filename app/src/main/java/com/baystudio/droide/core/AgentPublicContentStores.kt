@@ -32,7 +32,7 @@ internal object AgentPublicContentStores {
         Files.createDirectories(root.toPath())
         require(Files.isDirectory(root.toPath(), LinkOption.NOFOLLOW_LINKS)) { "Response storage is not a directory" }
         val admission = admissions.computeIfAbsent(parent.canonicalPath) {
-
+            // Shared across workspace writers. Actual filesystem free space is checked for every reservation.
             OwnedResponseContentStore.HeadroomAdmission({ parent.usableSpace }, SYSTEM_HEADROOM_BYTES)
         }
         return OwnedResponseContentStore(root.toPath(), admission, cancelled = cancelled)

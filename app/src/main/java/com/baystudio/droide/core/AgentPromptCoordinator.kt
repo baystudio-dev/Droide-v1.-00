@@ -7,6 +7,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 
+ 
 class AgentPromptCoordinator(
     sessions: SessionManager,
     private val maxUserMessageChars: Int,
@@ -52,8 +53,8 @@ class AgentPromptCoordinator(
         reportError: (String?) -> Unit,
         onAccepted: suspend () -> Unit = {},
         media: List<ChatMediaRef> = emptyList(),
-        // Capture before async attachment preparation, startup waits or inbox persistence. Explicit null
-        // remains unknown; never replace it with the eventual run-start time.
+        // Capture before async attachment preparation, startup waits or inbox persistence.
+        // Explicit null remains unknown; never replace it with the eventual run-start time.
         requestAdmittedAtNanos: Long? = if (origin == AgentInputOrigin.USER) admissionClockNanos() else null,
         sourceDelivery: SubagentDeliveryReceipt? = null,
     ): kotlinx.coroutines.Job? {
@@ -113,6 +114,7 @@ class AgentPromptCoordinator(
     suspend fun markRunInactive(lease: Long): Boolean = inbox.markIdle(lease)
     suspend fun remove(sessionId: String, id: String, sessionIsCurrent: () -> Boolean = { true }): Boolean = inbox.remove(sessionId, id, sessionIsCurrent)
 
+     
     suspend fun promoteAtBoundary(
         runLease: Long,
         allowQueue: Boolean,

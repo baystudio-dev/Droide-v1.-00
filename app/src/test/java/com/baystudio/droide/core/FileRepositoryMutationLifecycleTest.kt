@@ -124,7 +124,7 @@ class FileRepositoryMutationLifecycleTest {
         assertSame(before, after)
         assertEquals(1, session.outcomes.size)
         assertTrue(session.outcomes.single().localAttempted)
-        assertFalse(session.receipts.single().durable)
+        assertFalse(session.receipts.single().durable) // Text publication has no data/parent force contract.
     }
 
     @Test fun beginRejectionPrecedesImplicitParentCreationForEveryCreatingPath() = runBlocking {
@@ -374,7 +374,7 @@ class FileRepositoryMutationLifecycleTest {
             FileRepository(absent, newFilePublisher = NewProjectFilePublisher.platform, participant = Probe())
         }
         assertFalse(absent.exists())
-        FileRepository(absent)
+        FileRepository(absent) // Existing default constructor behavior remains available.
         assertTrue(absent.isDirectory)
     }
 

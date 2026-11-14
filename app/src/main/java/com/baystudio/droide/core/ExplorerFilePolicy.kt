@@ -5,6 +5,7 @@ import java.util.Locale
 
 enum class ExplorerSortOrder { NAME_ASC, NAME_DESC, TYPE, MODIFIED_DESC }
 
+/** Explicit view policy: Agent and runtime callers retain unrestricted repository listings. */
 data class DirectoryListingOptions(
     val sortOrder: ExplorerSortOrder = ExplorerSortOrder.NAME_ASC,
     val hideDroideInternal: Boolean = false,
@@ -30,8 +31,8 @@ object ExplorerFilePolicy {
     /** Recoverable user files may be read/moved from internal paths, but never through aliases. */
     fun requireUnaliasedProjectPath(root: File, relative: String): String {
         val path = normalizeProjectPath(root, relative)
-        // A canonical in-workspace result alone would accept links to another user folder. User
-        // mutations keep their chosen tree position and never traverse such aliases.
+        // A canonical in-workspace result alone would accept links to another user folder.
+        // User mutations keep their chosen tree position and never traverse such aliases.
         var component = root.canonicalFile
         relative.replace('\\', '/').split('/').forEach { segment ->
             component = when (segment) {

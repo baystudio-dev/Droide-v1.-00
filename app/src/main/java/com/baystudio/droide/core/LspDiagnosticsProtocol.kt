@@ -7,6 +7,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.JsonPrimitive
 
+ 
 internal object LspDiagnosticsProtocol {
     sealed interface PullReport {
         val resultId: String?

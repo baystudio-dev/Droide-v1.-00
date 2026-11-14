@@ -122,8 +122,8 @@ class EditorRecoveryDiscardControllerTest {
         val cipher = HostCipher()
         val syncedDirectories = CopyOnWriteArrayList<File>()
         var beforeSync: ((File) -> Unit)? = null
-        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host filesystem sync
-        // here; the public production constructor still uses Android Os.
+        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host
+        // filesystem sync here; the public production constructor still uses Android Os.
         val directorySync: (File) -> Unit = { directory ->
             check(Files.isDirectory(directory.toPath(), LinkOption.NOFOLLOW_LINKS))
             FileChannel.open(directory.toPath(), StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).use { it.force(true) }

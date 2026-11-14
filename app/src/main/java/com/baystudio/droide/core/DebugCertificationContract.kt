@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object DebugCertificationContract {
     fun normalizeSourcePath(path: String): String = path
         .replace('\\', '/')

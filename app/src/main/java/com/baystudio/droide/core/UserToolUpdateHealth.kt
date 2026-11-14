@@ -15,8 +15,8 @@ data class UserToolCommandCheck(
 internal object UserToolUpdateHealth {
     data class Result(val summary: String, val identityVerified: Boolean)
 
-    // Explicit non-interactive contracts. Unknown tools, including stdio servers, remain usable
-    // through their providers without a guessed universal --version.
+    // Explicit non-interactive contracts. Unknown tools, including stdio servers,
+    // remain usable through their providers without a guessed universal --version.
     private val knownArguments = mapOf(
         "node" to listOf("--version"), "npm" to listOf("--version"),
         "python" to listOf("--version"), "python3" to listOf("--version"),
@@ -50,6 +50,7 @@ internal object UserToolUpdateHealth {
         }
     }
 
+    /** execute uses the rebuilt workspace launch projection after the provider completes. */
     suspend fun verify(recipe: UserToolUpdateRecipe, execute: suspend (String) -> ExecResult): Result {
         val evidence = mutableListOf<String>()
         val pending = mutableListOf<String>()
@@ -86,8 +87,8 @@ internal object UserToolUpdateHealth {
             }
             var actual = selectedCanonical
             if (expected != null && actual != expected && check.miseRequest != null) {
-                // Only the configured shim location can delegate lookup to mise. A random shadow wrapper with
-                // the same name/version is not the installed executable.
+                // Only the configured shim location can delegate lookup to mise. A random
+                // shadow wrapper with the same name/version is not the installed executable.
                 val shim = path("printf '%s\\n' \"\${MISE_DATA_DIR:-\${XDG_DATA_HOME:-\$HOME/.local/share}/mise}/shims/${check.command}\"")
                 if (selected == shim) actual = canonical(path("mise which ${q(check.command)}"))
             }

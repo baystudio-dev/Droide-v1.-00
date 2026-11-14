@@ -1,5 +1,8 @@
 package com.baystudio.droide.core
 
+// Preserve ordering across mutation and approval boundaries.
+
+
 internal object AgentToolScheduler {
     enum class Lane { PARALLEL_READ, SERIAL }
 
@@ -23,6 +26,7 @@ internal object AgentToolScheduler {
         val parallel: Boolean get() = lane == Lane.PARALLEL_READ && indices.size > 1
     }
 
+     
     fun batches(facts: List<Facts>): List<Batch> {
         if (facts.isEmpty()) return emptyList()
         val out = mutableListOf<Batch>()

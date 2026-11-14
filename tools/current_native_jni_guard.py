@@ -2,27 +2,13 @@
 import struct
 import re
 from pathlib import Path
-import os
-
-ABIS = {'arm64-v8a': (2, 183), 'armeabi-v7a': (1, 40), 'x86': (1, 3), 'x86_64': (2, 62)}
-PREFIX = 'Java_com_baystudio_droide_core_NativeFilePublication_'
-
-
-def require(condition, message):
-    if not condition:
-        raise ValueError(message)
-
-
-def no_links(path):
-    path = Path(os.path.abspath(path))
-    require(not any(p.is_symlink() for p in (path, *path.parents)), 'symlinked path: ' + str(path))
-    return path
+from filesystem_native_v1 import ABIS, PREFIX, no_links, require
 
 REQUIRED = PREFIX + 'exportDescriptorLock'
 KOTLIN = 'app/src/main/java/com/baystudio/droide/core/ProjectFilePublication.kt'
 
 def required_methods(text):
-
+    # JNI symbol admission is separate from descriptor/API/NDK certification.
     declarations = re.findall(r'@JvmStatic\s+external fun ([A-Za-z][A-Za-z0-9]*)\(', text)
     require(declarations and len(declarations) == len(set(declarations)), 'Missing/duplicate JNI declarations')
     require(len(declarations) == len(re.findall(r'\bexternal\s+fun\b', text)), 'Unsupported JNI declaration naming')

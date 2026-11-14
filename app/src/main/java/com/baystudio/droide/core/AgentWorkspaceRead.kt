@@ -2,6 +2,13 @@ package com.baystudio.droide.core
 
 import java.io.File
 
+
+
+
+
+
+
+
 class AgentWorkspaceReader(
     private val files: FileRepository,
     private val documents: WorkspaceDocumentAuthority? = null,
@@ -57,12 +64,14 @@ class AgentWorkspaceReader(
         }
     }
 
+     
     private fun canonicalRelativePath(path: String): String {
         val root = files.root.canonicalFile
         val target = PathSecurity.resolveWithin(root, path).canonicalFile
         return root.toPath().relativize(target.toPath()).toString().replace(File.separatorChar, '/')
     }
 
+     
     private fun renderFull(content: String): String {
         if (content.length <= MAX_FULL_READ_CHARS) return content
         val part = content.substring(0, pageEnd(content, 0))

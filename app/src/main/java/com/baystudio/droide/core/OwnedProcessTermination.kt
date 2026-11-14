@@ -6,8 +6,10 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-/** Strict direct-child/pipe teardown only, never a descendant-quiescence receipt. */
-
+/** Strict direct-child/pipe teardown only, never a descendant-quiescence receipt.
+ * A blocking Process method or pipe close runs in a retained worker. Observation
+ * timeout/interruption never abandons or duplicates that exact handle's attempt.
+ */
 internal object OwnedProcessTermination {
     internal const val OBSERVATION_MS = 2_000L
     private val collected = ReferenceQueue<Process>()
@@ -39,8 +41,9 @@ internal object OwnedProcessTermination {
             }
         }
         launch?.start(process)
-        // Keep successful completion for this exact live handle, so late observers never close its pipes
-        // twice.
+        // Keep successful completion for this exact live handle, so late observers
+        // never close its pipes twice. Weak keys release successful handles when
+        // their owners disappear; failed attempts explicitly retain their handle.
         return attempt
     }
 
@@ -98,8 +101,8 @@ internal object OwnedProcessTermination {
             check(!process.isAlive) { "Exact process still reports live after wait" }
             reaped = true
         }
-        // Never touch potentially blocked pipes before exact child exit is known. A blocked close keeps
-        // this worker retained; the observer stays bounded.
+        // Never touch potentially blocked pipes before exact child exit is known.
+        // A blocked close keeps this worker retained; the observer stays bounded.
         if (reaped) {
             attempt { process.outputStream.close() }
             attempt { process.inputStream.close() }

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 object ManagedPackageDependencyResolver {
     fun resolve(
         document: ManagedPackageCatalogDocument,

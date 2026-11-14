@@ -1,5 +1,12 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
 enum class LanguageServerRuntimeKind {
     ANDROID_NATIVE,
     LINUX_ARM64_PROOT,
@@ -37,6 +44,10 @@ data class ManagedLanguageServerPlanEntry(
 
 object ManagedLanguageServerPlan {
     val priority = listOf(
+        ManagedLanguageServerPlanEntry("mdx-language-server", "lsp.mdx-language-server", "0.6.4",
+            "mdx-language-server", LanguageServerRuntimeKind.NODE, requiredCommands = setOf("node"),
+            runtimeRequirements = listOf(ManagedRuntimeRequirement("node", listOf("--version"), 22)),
+            notes = "Official @mdx-js/language-server through the on-demand Ubuntu npm installer. Publisher integrity and dependency lock are checked; startup negotiates capabilities. Compiler/runtime binaries are not bundled."),
         ManagedLanguageServerPlanEntry("elp",LocalUbuntuElpPolicy.FAMILY,LocalUbuntuElpPolicy.VERSION,LocalUbuntuElpPolicy.COMMAND,LanguageServerRuntimeKind.LINUX_ARM64_PROOT,
             notes="One exact original ELP server. Selected preinstalled OTP/escript and optional Rebar/CPython retain unverified provenance and are not servers. Explicit one-attempt installer health approval; separate informed project execution grant. Full byte proof, compatible runtime pair and complete cleanup gate activation. Native transport health does not certify embedded service/project/eqWAlizer or target acceptance."),
         ManagedLanguageServerPlanEntry(languageServerId="graphql-local-schema",packageFamilyId=LocalUbuntuGraphqlPolicy.FAMILY,pinnedVersion=LocalUbuntuGraphqlPolicy.VERSION,

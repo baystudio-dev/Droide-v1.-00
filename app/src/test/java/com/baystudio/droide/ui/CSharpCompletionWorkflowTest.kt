@@ -5,6 +5,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Pure insertion contract; real provider and application methods are separately extracted in host controls. */
 class CSharpCompletionWorkflowTest {
     @Test fun nativeVerbatimUnicodeInsertionKeepsCapturedRangeAndAdditionalEdit() {
         val text = "// 😀\r\nobj.@na"

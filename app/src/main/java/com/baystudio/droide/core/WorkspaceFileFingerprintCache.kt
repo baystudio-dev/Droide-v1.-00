@@ -10,8 +10,15 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.ensureActive
 
-/** In-memory inventory acceleration, never a persisted merge/approval authority. */
-
+/**
+ * In-memory inventory acceleration, never a persisted merge/approval authority.
+ *
+ * Confined to the owning mirror's mutex. An entry is reusable only if its identity,
+ * size, mtime, ctime and executable state still match. Recent timestamps are deliberately
+ * not admitted: like Git's racy-stat guard, aging later cannot make an unverified
+ * observation trustworthy. No sleeps, watcher dependency, background polling or file bytes
+ * retained in memory. Providers without ctime fall back to cancellable streaming hashes.
+ */
 internal class WorkspaceFileFingerprintCache(
     private val maxEntries: Int = 40_000,
     private val nowMillis: () -> Long = System::currentTimeMillis,
@@ -68,8 +75,8 @@ internal class WorkspaceFileFingerprintCache(
             context.ensureActive()
             return Fingerprint(cached.sha256, before.attributes, before.stamp.executable)
         }
-        // Invalidate before I/O. Cancellation, an I/O error or a racing writer cannot leave an old
-        // observation eligible after this attempted verification.
+        // Invalidate before I/O. Cancellation, an I/O error or a racing writer cannot leave
+        // an old observation eligible after this attempted verification.
         entries.remove(key)
         val digest = MessageDigest.getInstance("SHA-256")
         var total = 0L
@@ -92,8 +99,8 @@ internal class WorkspaceFileFingerprintCache(
             "Workspace file changed during inspection; pending changes were preserved"
         }
         val hash = digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
-        // The decision uses the time BEFORE hashing, not the finish time. In particular, a long hash
-        // must not turn a same-timestamp concurrent edit into a cache hit.
+        // The decision uses the time BEFORE hashing, not the finish time. In particular,
+        // a long hash must not turn a same-timestamp concurrent edit into a cache hit.
         if (maxEntries > 0 && mature(before.stamp, started)) {
             entries[key] = Cached(before.stamp, hash, started)
         }
@@ -111,8 +118,8 @@ internal class WorkspaceFileFingerprintCache(
     private fun mature(stamp: Stamp, checkedAtMillis: Long): Boolean {
         val changed = stamp.changed ?: return false
         if (stamp.identity == null) return false
-        // Internal Linux storage supports ctime. A conservative two-second margin also avoids trusting
-        // recent whole-second timestamps, without delaying any operation.
+        // Internal Linux storage supports ctime. A conservative two-second margin also
+        // avoids trusting recent whole-second timestamps, without delaying any operation.
         val cutoffSeconds = Math.floorDiv(checkedAtMillis, 1000L) - 2L
         return changed.to(TimeUnit.SECONDS) < cutoffSeconds &&
             stamp.modified.to(TimeUnit.SECONDS) < cutoffSeconds

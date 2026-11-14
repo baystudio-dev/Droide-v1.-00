@@ -4,6 +4,7 @@ import com.baystudio.droide.core.TerminalTranscriptPublisher
 import java.security.MessageDigest
 import kotlin.system.measureNanoTime
 
+/** Uses the preserved upstream TerminalBuffer on a JVM, with a deterministic event clock. */
 object TerminalTranscriptHostBenchmark {
     private const val COLUMNS = 80
     private const val SCREEN_ROWS = 24
@@ -62,7 +63,7 @@ object TerminalTranscriptHostBenchmark {
     }
 
     @JvmStatic fun main(args: Array<String>) {
-
+        // A small warmup includes both implementations, then alternates order across three runs.
         val warmBaseline = run(false)
         val warmCoalesced = run(true)
         check(warmBaseline.digest == warmCoalesced.digest)

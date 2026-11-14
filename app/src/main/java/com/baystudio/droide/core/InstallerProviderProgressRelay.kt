@@ -30,7 +30,7 @@ internal suspend fun <T> withInstallerProgressReporting(
     operation: suspend () -> T,
 ): T = kotlinx.coroutines.coroutineScope {
     val relay = InstallerProviderProgressRelay(report)
-
+    // Start before installer admission, so initial provider state is discarded while unowned.
     val provider = fractions?.let { values ->
         launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             values.collect { relay.provider(it) }

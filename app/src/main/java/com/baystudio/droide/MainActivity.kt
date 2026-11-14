@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
             terminalHistoryPickers.remove(requestId)?.unregister()
             completeTerminalHistoryPicker(requestId, uri)
         }
-
+        // A restored pending result may be delivered synchronously by register().
         if (terminalHistoryExport.pickerOutstanding == requestId) terminalHistoryPickers[requestId] = launcher
         else launcher.unregister()
         return launcher
@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     }
                     Toast.makeText(this@MainActivity, "Retained terminal snapshot exported", Toast.LENGTH_LONG).show()
                 } catch (cancelled: CancellationException) {
-
+                    // No success publication; a provider may already contain a partial file.
                     if (!isFinishing) Toast.makeText(this@MainActivity,
                         "Terminal export interrupted. The chosen file may be incomplete.", Toast.LENGTH_LONG).show()
                     throw cancelled
@@ -169,6 +169,7 @@ class MainActivity : ComponentActivity() {
                         onProgress = { progress -> folderImportProgress.value = progress },
                     )
                 } catch (_: CancellationException) {
+                    
 
                 } catch (failure: Throwable) {
                     Toast.makeText(this@MainActivity, "Cannot open project: ${failure.message}", Toast.LENGTH_LONG).show()
@@ -187,11 +188,12 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState?.getBoolean("terminal-history-write-active") == true) {
             Toast.makeText(this, "Previous terminal export result is unavailable. Check the chosen file before retrying.", Toast.LENGTH_LONG).show()
         }
-        // Stable for the Activity lifetime. Compose owns main-window safe space on every supported API,
-        // rather than changing decor fitting when the editor hides a bar.
+        // Stable for the Activity lifetime. Compose owns main-window safe space on every
+        // supported API, rather than changing decor fitting when the editor hides a bar.
         WindowCompat.setDecorFitsSystemWindows(window, false)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-
+            // DEFAULT changes legacy window bounds when a status-bar cutout enters immersive
+            // mode. Keep those bounds stable; the root still pads every physical cutout edge.
             window.attributes = window.attributes.apply {
                 layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
@@ -224,12 +226,12 @@ class MainActivity : ComponentActivity() {
                             canOpen = (!exit.started || exit.completed) && !(exit.completed && finishWhenExitCompletes),
                             failure = startFailure,
                             onOpen = open@{
-                                // The retiring Activity owns a cancelled lifecycle scope; only a fresh stopped Activity may
-                                // reopen after this one finishes.
+                                // The retiring Activity owns a cancelled lifecycle scope; only a
+                                // fresh stopped Activity may reopen after this one finishes.
                                 if (exit.completed && finishWhenExitCompletes) return@open
                                 try {
                                     appOwner.openFromUser()
-
+                                    // Rearm synchronously: a fast later Exit may conflate its running state.
                                     finishWhenExitCompletes = true
                                     appOwner.attachUserInterface(this@MainActivity)
                                     lifecycleScope.coroutineContext[Job]?.let { appOwner.uiWorkOwner?.register(it) }
@@ -262,6 +264,8 @@ class MainActivity : ComponentActivity() {
                             (orientation == Configuration.ORIENTATION_PORTRAIT && hidePortraitEditorStatusBar),
                         reclaimTopCutout = orientation == Configuration.ORIENTATION_PORTRAIT && hidePortraitEditorStatusBar,
                     ) {
+                    com.baystudio.droide.ui.EnvironmentSetupHost(workspaceModel.environmentSetup,
+                        allowed = !exit.started && !releaseUi && appOwner.mayPresentWorkspace(this@MainActivity)) {
                     val rt = runtime
                     if (releaseUi || !appOwner.mayPresentWorkspace(this@MainActivity)) {
                         ExitStatusContent(exit, appOwner::retryExit, onReviewDrafts = { if (appOwner.exitDraftUi != null) reviewExitDrafts = true })
@@ -269,8 +273,8 @@ class MainActivity : ComponentActivity() {
                         Column(Modifier.fillMaxSize()) {
                         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                             if (error == null) {
-                                // Subscribe only while no runtime exists. A ready/warm workspace skips welcome entirely;
-                                // readiness never waits for UI animation.
+                                // Subscribe only while no runtime exists. A ready/warm workspace
+                                // skips welcome entirely; readiness never waits for UI animation.
                                 val startup by workspaceModel.coordinator.startup.collectAsState()
                                 WorkspaceLoadingScreen(startup.phase)
                             } else Column(
@@ -297,8 +301,9 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             Box(Modifier.weight(1f)) {
-                        // Do not auto-remount a saved native editor/Web panel from the preceding process.
-
+                        // Every new abnormal exit gets a different key, including consecutive
+                        // crash restarts. Do not auto-remount a saved native editor/Web panel
+                        // from the preceding process. Rotation retains the process decision.
                         key(rt.project.id, rt.files.root.canonicalPath, workspaceModel.startupRecovery.deferEditorReopen,
                             workspaceModel.startupRecovery.recoveryGeneration) {
                             CompositionLocalProvider(com.baystudio.droide.ui.LocalExitUiWorkOwner provides appOwner.uiWorkOwner) {
@@ -373,6 +378,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     }
+                    }
                     if (reviewExitDrafts) appOwner.exitDraftUi?.let { draftState ->
                         com.baystudio.droide.ui.RecoveredExitDraftsDialog(draftState) { reviewExitDrafts = false }
                     }
@@ -381,6 +387,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -420,8 +427,8 @@ class MainActivity : ComponentActivity() {
         if (intent?.action != com.baystudio.droide.core.ExportForegroundService.ACTION_SHOW) return
         val id = intent.getStringExtra(com.baystudio.droide.core.ExportForegroundService.EXTRA_ID).orEmpty()
         val epoch = intent.getStringExtra(com.baystudio.droide.core.ExportForegroundService.EXTRA_EPOCH).orEmpty()
-        // Consume one-shot navigation only. A stale notification never reopens work admission or
-        // retargets an export to the currently selected project.
+        // Consume one-shot navigation only. A stale notification never reopens work
+        // admission or retargets an export to the currently selected project.
         intent.action = null
         if (id.isNotEmpty() && ApplicationWorkAdmission.isCurrentOpen(epoch)) {
             com.baystudio.droide.core.ExportController.requestOpen(id, epoch)
@@ -432,8 +439,7 @@ class MainActivity : ComponentActivity() {
         if (intent?.action != GitHubOAuthCallbackActivity.ACTION_GITHUB_OAUTH_CALLBACK) return
         if (!ApplicationWorkAdmission.isOpen) { intent.action = null; intent.data = null; return }
         val callback = intent.data?.toString() ?: return
-        // Activity recreation must not replay a one-shot authorization code after GitHubAccountManager
-        // has already claimed it.
+        // Activity recreation must not replay a one-shot authorization code after GitHubAccountManager has already claimed it.
 
         intent.action = null
         intent.data = null
@@ -443,12 +449,14 @@ class MainActivity : ComponentActivity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
+            
 
             applyDroideOrientationStatusBar(window, resources.configuration.orientation, hidePortraitEditorStatusBar)
         }
     }
 
     override fun onStop() {
+        
 
         try {
             if (ApplicationWorkAdmission.isOpen && ::workspaceModel.isInitialized) {
@@ -546,10 +554,12 @@ private fun ExitStatusContent(state: ApplicationExitSequence.State, retry: () ->
     Column(Modifier.padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
         Text(state.stage.ifBlank { "Preserving drafts and stopping work" }, style = MaterialTheme.typography.titleMedium)
         if (state.running) LinearProgressIndicator(Modifier.fillMaxWidth())
-        Text(state.failure ?: "Saving drafts. Droide will close automatically.")
+        Text("Saving drafts and stopping work. Droide will close within 15 seconds.")
+        state.failure?.let { Text(it) }
         if (!state.running && !state.completed) {
             Button(onClick = retry) { Text("Retry Exit") }
             TextButton(onClick = onReviewDrafts) { Text("Review saved chat drafts") }
         }
     }
 }
+

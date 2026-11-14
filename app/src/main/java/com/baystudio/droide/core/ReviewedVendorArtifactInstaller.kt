@@ -13,6 +13,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+
+
+
+
+
+
+
 data class VendorArtifactInstallRecipe(
     val familyId: String,
     val version: String,

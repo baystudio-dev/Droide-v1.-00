@@ -7,7 +7,7 @@ import org.junit.Test
 class AgentComposerShortcutsTest {
     @Test fun slashOffersLocalFeaturesWithoutBackendConfiguration() {
         val query = requireNotNull(AgentComposerShortcuts.query("/", 1))
-        assertEquals(listOf("/skills", "/mcp", "/plugins", "/compact"),
+        assertEquals(listOf("/skills", "/mcp", "/plugins", "/compact", "/results", "/workflows", "/resume"),
             AgentComposerShortcuts.choices(query, AgentComposerCommand.entries, emptyList()).map { it.token })
         assertEquals(AgentComposerCommand.MCP, AgentComposerShortcuts.command(" /mcp ", false))
     }
@@ -18,6 +18,18 @@ class AgentComposerShortcutsTest {
         }
         assertNull(AgentComposerShortcuts.command("/mcp", true))
         assertNull(AgentComposerShortcuts.command("/unknown", false))
+    }
+
+    @Test fun onlyCommandsOfferedByThePanelCanConsumeTheDraft() {
+        val available = listOf(AgentComposerCommand.WORKFLOWS)
+        val query = requireNotNull(AgentComposerShortcuts.query("/", 1))
+        assertEquals(listOf("/workflows"), AgentComposerShortcuts.choices(query, available, emptyList()).map { it.token })
+        assertEquals(AgentComposerCommand.WORKFLOWS, AgentComposerShortcuts.command("/workflows", false, available))
+        for (token in listOf("/resume", "/results", "/compact", "/mcp")) {
+            assertNull(token, AgentComposerShortcuts.command(token, false, available))
+        }
+        assertNull(AgentComposerShortcuts.command("/workflows", true, available))
+        assertNull(AgentComposerShortcuts.command("/resume", false, emptyList()))
     }
 
     @Test fun ignoresEmailsPathsAndCode() {

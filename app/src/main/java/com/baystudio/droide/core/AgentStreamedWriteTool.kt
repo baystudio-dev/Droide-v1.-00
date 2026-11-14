@@ -5,8 +5,9 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-/** One supported vertical route; not a replacement for the general54-tool executor. Caller
- * durably records the completed call before invocation. No streamed deltas execute here. */
+/** One supported vertical route; not a replacement for the general54-tool executor.
+ * Caller durably records the completed call before invocation. No streamed deltas execute here.
+ */
 internal object AgentStreamedWriteTool {
     sealed interface Result {
         val output: String

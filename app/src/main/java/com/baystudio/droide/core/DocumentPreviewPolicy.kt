@@ -30,6 +30,7 @@ internal object DocumentPreviewPolicy {
         return (width * scale).toInt().coerceAtLeast(1) to (height * scale).toInt().coerceAtLeast(1)
     }
 
+    /** First preview after process startup retires abandoned copies from a previous process. */
     @Synchronized private fun prepareCache(cache: File, checkCancelled: () -> Unit) {
         val key = cache.absolutePath
         if (key in preparedCaches) return

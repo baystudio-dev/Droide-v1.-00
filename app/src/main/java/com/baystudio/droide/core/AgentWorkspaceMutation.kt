@@ -7,6 +7,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
+ 
 class AgentWorkspaceMutation(
     private val files: FileRepository,
     private val documents: WorkspaceDocumentAuthority? = null,

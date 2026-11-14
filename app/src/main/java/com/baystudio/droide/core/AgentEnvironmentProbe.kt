@@ -16,8 +16,8 @@ internal object AgentEnvironmentProbe {
         val includePath = args["include_path"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() == true
         val resource = (requestedTools + requestedCommands).joinToString(",").take(500).ifBlank { "summary" }
         AgentTools.permissionGateForProbe("read", "environment:$resource", c)?.let { return it }
-        // Pin once after admission, before any suspension. All capabilities and PATH belong to this
-        // selected tab even if the user switches terminals during the query.
+        // Pin once after admission, before any suspension. All capabilities and PATH belong
+        // to this selected tab even if the user switches terminals during the query.
         val terminal = (c.terminal as? ExecutionTerminalRouter)?.bindCommandSession() ?: c.terminal
         val profile = (terminal as? TerminalEnvironmentIdentitySession)?.environmentProfile
         val validCommands = requestedCommands.filter(TerminalCapabilityProbe::validName)

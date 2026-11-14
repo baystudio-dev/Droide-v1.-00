@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
+
 data class McpAgentTool(
     val functionName: String,
     val serverName: String,
@@ -30,6 +31,7 @@ class McpToolRegistry(
             if (out.size >= MAX_AGENT_TOOLS) break
             val selection = manager.select(server)
             val identity = selection.runtimeIdentity
+            
 
             if (permissions.decide("mcp", identity, permissionScope) != PermEffect.ALLOW) {
                 val permission = permissions.decide("mcp", identity, permissionScope)
@@ -111,6 +113,7 @@ class McpToolRegistry(
 
         fun isFirstClassName(name: String): Boolean = McpToolIdentity.isFirstClassName(name)
 
+         
         fun invalidate(workDir: File, serverName: String? = null) = synchronized(CACHE) {
             val workspace = runCatching { workDir.canonicalPath }.getOrElse { workDir.absolutePath } + "\u0000"
             CACHE.keys.filter { key ->

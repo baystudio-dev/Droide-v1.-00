@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Selected only by the explicit CLI-only private build branch. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application android:label="Droide Debug (Unvalidated)" tools:replace="android:label">
+        <meta-data android:name="com.baystudio.droide.PRIVATE_BUILD_STATUS"
+            android:value="BUILT_DEVICE_UNVALIDATED" />
+    </application>
+</manifest>

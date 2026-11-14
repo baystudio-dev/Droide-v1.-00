@@ -47,6 +47,7 @@ import okio.Buffer
 import okio.ForwardingSource
 import okio.source
 
+
 class DeviceBridgeManager internal constructor(
     context: Context,
     private val scope: kotlinx.coroutines.CoroutineScope,
@@ -112,8 +113,7 @@ class DeviceBridgeManager internal constructor(
     private val shellExecutor = Executors.newCachedThreadPool { task ->
         Thread(task, "Droide-AdbShell").apply { isDaemon = true }
     }
-    // A platform resolver may ignore cancellation. Bound stranded connection workers and queued
-    // work.
+    // A platform resolver may ignore cancellation. Bound stranded connection workers and queued work.
     private val connectionExecutor = java.util.concurrent.ThreadPoolExecutor(
         2, 2, 30L, java.util.concurrent.TimeUnit.SECONDS,
         java.util.concurrent.ArrayBlockingQueue<Runnable>(2),
@@ -365,24 +365,29 @@ class DeviceBridgeManager internal constructor(
 
     // Keep untrusted input and output bounded.
 
+
     suspend fun shell(command: String): BridgeShellResult {
         val result = shellBounded(command, DEFAULT_CONTROL_SHELL_OUTPUT_BYTES)
         check(!result.truncated) { "Device shell command exceeded the control-plane output limit" }
         return result
     }
 
+    // Opens raw shell-v2 stdio for trusted IDE protocol hosts such as LSP/DAP.
     fun openRawShell(command: String): AdbShellStream {
         require(command.isNotBlank() && command.length <= 128_000 && '\u0000' !in command) { "Invalid raw shell command" }
         return requireClient().openShell(command)
     }
 
+     
     fun openJdwp(pid: Int): AdbStream {
         require(pid > 0) { "Invalid JDWP pid" }
         return requireClient().open("jdwp:$pid")
     }
 
+     
     fun openJdwpTracker(): AdbStream = requireClient().open("track-jdwp")
 
+     
     suspend fun jdwpPids(timeoutMs: Long = 3_000): List<Int> = withTimeout(timeoutMs.coerceIn(500, 15_000)) {
         suspendCancellableCoroutine { continuation ->
             val streamRef = AtomicReference<AdbStream?>(null)
@@ -425,6 +430,7 @@ class DeviceBridgeManager internal constructor(
     }
 
     // The callback is observational only: callback failures are ignored and never corrupt the build.
+
 
     suspend fun shellStreaming(
         command: String,
@@ -484,6 +490,7 @@ class DeviceBridgeManager internal constructor(
         }
     }
 
+
     suspend fun shellBounded(command: String, maxOutputBytes: Int = 1_500_000): BridgeShellResult =
         shellStreaming(command, maxOutputBytes) { _, _ -> }
 
@@ -497,6 +504,7 @@ class DeviceBridgeManager internal constructor(
             requireClient().push(source, remotePath, mode = mode, lastModifiedMs = attrs.lastModifiedTime().toMillis())
         }
     }
+
 
     suspend fun pushCancellable(
         local: File,
@@ -576,6 +584,7 @@ class DeviceBridgeManager internal constructor(
         }
         return shell(command)
     }
+
 
     suspend fun launchDebuggable(packageName: String, suspendAtStart: Boolean = true): BridgeShellResult {
         requirePackageName(packageName)
@@ -660,8 +669,8 @@ class DeviceBridgeManager internal constructor(
         close()
         val resources = synchronized(retirementLock) { retiringResources.toList() }
         val result = OwnedResourceCleanup.run(*resources.map { resource -> { resource.close() } }.toTypedArray())
-        // The host's observation budget reports a pending Exit without cancelling these workers. Keep
-        // the same shutdown executors until every exact local worker has actually retired.
+        // The host's observation budget reports a pending Exit without cancelling these workers.
+        // Keep the same shutdown executors until every exact local worker has actually retired.
         while (!connectionExecutor.isTerminated || !shellExecutor.isTerminated) {
             currentCoroutineContext().ensureActive()
             connectionExecutor.awaitTermination(100, java.util.concurrent.TimeUnit.MILLISECONDS)

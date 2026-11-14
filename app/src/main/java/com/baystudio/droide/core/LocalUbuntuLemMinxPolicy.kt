@@ -39,6 +39,7 @@ internal object LocalUbuntuLemMinxPolicy {
         }
     }
 
+    /** The exact publisher asset endpoint includes Maven coordinates, original URL, numeric size and digest. */
     fun publisherRecipe(definition: LocalUbuntuVendorDefinition, text: String): LocalUbuntuVendorRecipe {
         require(text.toByteArray(Charsets.UTF_8).size <= 1_000_000) { "LemMinX publisher metadata exceeds its bound" }
         val asset = Json.parseToJsonElement(text) as? JsonObject ?: error("LemMinX publisher asset is not an object")

@@ -131,7 +131,7 @@ class FileProjectStoreOptimisticTest {
             override fun forceFile(channel: FileChannel) = StreamPublicationDurability.platform.forceFile(channel)
             override fun forceDirectory(directory: File) {
                 StreamPublicationDurability.platform.forceDirectory(directory)
-                if (++calls == 2) action()
+                if (++calls == 2) action() // Staged bytes forced, before final revision observation.
             }
         }
 
@@ -155,7 +155,7 @@ class FileProjectStoreOptimisticTest {
         val baseline = FileProjectStore(temp.root).loadCatalog()
         val external = catalog.readText().replace("Before", "External")
         val store = FileProjectStore(temp.root) { from, to, options ->
-
+            // Simulates a writer AFTER the last observation. No CAS guarantee is claimed.
             Files.write(to, external.toByteArray())
             Files.move(from, to, *options)
         }

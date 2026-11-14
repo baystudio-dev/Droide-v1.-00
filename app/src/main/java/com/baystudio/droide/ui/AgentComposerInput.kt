@@ -56,6 +56,7 @@ internal fun AgentComposerInput(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             BasicTextField(
+                enabled = LocalWorkspacePresented.current,
                 value = field,
                 onValueChange = { candidate ->
                     if (onValueChange(candidate.text)) { savedValue = candidate; dismissed = null }
@@ -64,11 +65,11 @@ internal fun AgentComposerInput(
                 modifier = Modifier.weight(1f).heightIn(min = if (dense) 24.dp else 27.dp, max = maxHeight)
                     .clipToBounds().onFocusChanged { focused = it.isFocused; onFocusChanged(it.isFocused) }
                     .padding(horizontal = 2.dp, vertical = 4.dp),
-                textStyle = MaterialTheme.typography.bodySmall.copy(color = DroideColors.Text),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = DroideColors.Text),
                 cursorBrush = SolidColor(DroideColors.Text),
                 decorationBox = { inner ->
                     Box(Modifier.fillMaxWidth()) {
-                        if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodySmall, color = DroideColors.Muted)
+                        if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = DroideColors.Muted)
                         inner()
                     }
                 },

@@ -62,6 +62,7 @@ internal class AcpSessionCommands {
             value.length <= MAX_COMMAND_NAME_CHARS && !value.startsWith('/') &&
             value.none { it.isWhitespace() || Character.isISOControl(it) }
 
+        /** null means unrelated update. Malformed or oversized command snapshots fail closed. */
         fun parseSnapshot(update: JsonObject): List<String>? {
             if ((update["sessionUpdate"] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull != "available_commands_update") return null
             val entries = update["availableCommands"] as? JsonArray ?: return emptyList()
@@ -76,6 +77,7 @@ internal class AcpSessionCommands {
             return Collections.unmodifiableList(ArrayList(names))
         }
 
+        /** null keeps ordinary scope-wrapped text, including unknown slash tokens and paths. */
         fun nativePrompt(prompt: String, hasMedia: Boolean, availableCommands: List<String>): JsonArray? {
             if (!prompt.startsWith('/')) return null
             val end = prompt.indexOfFirst { it.isWhitespace() }.let { if (it < 0) prompt.length else it }

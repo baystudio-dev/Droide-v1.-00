@@ -33,6 +33,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 
+/** Actual Mirror/repository/provider routing. No device, native, process, or power-loss claims. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, shadows = [SafPreservationDirectoryOs::class])
 class SafRefreshTypeReplacementRegressionTest {

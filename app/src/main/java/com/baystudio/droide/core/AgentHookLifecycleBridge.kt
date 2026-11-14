@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.coroutines.CancellationException
 
+ 
 class AgentHookLifecycleBridge(
     private val hooks: HookManager,
     private val sessionId: () -> String,
@@ -15,7 +16,7 @@ class AgentHookLifecycleBridge(
     private suspend fun checkCurrent(owner: HookInvocationAuthority?, beforeDispatch: (suspend () -> Unit)?) {
         owner?.requireCurrent()
         beforeDispatch?.invoke()
-        owner?.requireCurrent()
+        owner?.requireCurrent() // The composed browser check may itself suspend.
     }
 
     private suspend fun dispatch(event: HookLifecycleEvent, context: HookLifecycleContext,
@@ -109,8 +110,8 @@ class AgentHookLifecycleBridge(
             return AgentCommandSessions.appendHookContext(result, combinedContext)
         }
         val context = HookLifecycleProtocol.boundedText(combinedContext, HookLifecycleProtocol.MAX_CONTEXT_CHARS)
-        // Result budgets belong to the producer. A lifecycle decorator must not silently cut its payload
-        // (or JSON envelope) a second time.
+        // Result budgets belong to the producer. A lifecycle decorator must not
+        // silently cut its payload (or JSON envelope) a second time.
         if (context.isBlank()) return result
         return buildString {
             append(result)
@@ -121,6 +122,7 @@ class AgentHookLifecycleBridge(
 
 data class HookedCompaction(val changed: Boolean, val blockedReason: String = "")
 
+/** Immutable authority for one lifecycle invocation; no storage or process-start guarantee. */
 class HookInvocationAuthority(
     val mode: AgentMode,
     val provenance: AgentRequestProvenance,

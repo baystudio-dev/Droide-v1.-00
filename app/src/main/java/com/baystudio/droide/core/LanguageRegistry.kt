@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 data class RunPlan(
     val steps: List<List<String>>,
     val display: String,
@@ -43,6 +44,7 @@ object LanguageRegistry {
         LanguageDef("typescript", "TypeScript", listOf("ts", "mts", "cts"), SourceRunPreparation::typeScriptPlan, "console.log('Hello from Droide');\n"),
         LanguageDef("react", "React / TSX", listOf("jsx", "tsx"), null, "export default () => <div>Hello</div>\n"),
         LanguageDef("go", "Go", listOf("go"), one("go run {FILE}", "go", "run", "{FILE}"), "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Hello\") }\n"),
+        LanguageDef("goose", "Goose", listOf("goose"), GooseLanguage::runPlan, GooseLanguage.TEMPLATE),
         LanguageDef("rust", "Rust", listOf("rs"), { path -> RunPlan(listOf(listOf("rustc", path, "-o", ".droide/run/rust"), listOf("./.droide/run/rust")), "rustc $path -o .droide/run/rust && ./.droide/run/rust") }, "fn main(){ println!(\"Hello\"); }\n"),
         LanguageDef("java", "Java", listOf("java"), one("java {FILE}", "java", "{FILE}"), "public class Main { public static void main(String[] a){ System.out.println(\"Hello\"); } }\n"),
         LanguageDef("kotlin", "Kotlin", listOf("kt", "kts"), { path ->

@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import kotlinx.coroutines.*
 
+ 
 data class ProcessRunResult(
     val exitCode: Int,
     val output: String,
@@ -43,7 +44,7 @@ object ProcessRunner {
                     writer.flush()
                 }
             } else {
-
+                
                 runCatching { p.outputStream.close() }
             }
 

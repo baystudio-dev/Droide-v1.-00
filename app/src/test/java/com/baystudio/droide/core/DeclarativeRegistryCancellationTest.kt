@@ -41,7 +41,7 @@ class DeclarativeRegistryCancellationTest {
             assertEquals(previous, DeclarativeExtensionRuntime.records())
             assertEquals("b1cancel", LanguageRegistry.forExtension("b1cancel")?.id)
             assertTrue(store.installRoot(record).isDirectory)
-
+            // The last callback is reloadLocked's check immediately before any unregister.
             val publicationCancellation = CancellationException("cancel at final publication boundary")
             var publicationChecks = 0
             val publicationFailure = runCatching {

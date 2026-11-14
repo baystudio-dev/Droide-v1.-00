@@ -155,8 +155,8 @@ internal class LspSvelteWatchAuthority(
                     current = null
                     removedCoverage = registrations.values.fold(0) { mask, item -> mask or item.mask } != 7
                     if (removedCoverage) {
-                        // Reserve invalidation atomically with removal. A concurrent register cannot restore an owner's
-                        // lost coverage before the out-of-lock callback runs.
+                        // Reserve invalidation atomically with removal. A concurrent register cannot
+                        // restore an owner's lost coverage before the out-of-lock callback runs.
                         invalidated = true
                         drainAllowed = false
                         currentDrain = null
@@ -306,13 +306,13 @@ internal class LspSvelteWatchAuthority(
                 }
                 val observation = synchronized(lock) {
                     checkAvailable()
-                    // Every registration has exactly the same root/glob. A complete no-change pass can establish the
-                    // latest subscription epoch without weakening its filesystem coverage.
+                    // Every registration has exactly the same root/glob. A complete no-change pass
+                    // can establish the latest subscription epoch without weakening its filesystem coverage.
                     baseline = completed
                     Observation(ownerKey, registrationEpoch, ++generation, completed).also { current = it }
                 }
-                // Never call the owner while holding the observer lock. A completed pass replaces freshness, but
-                // must not retag an older diagnostic report.
+                // Never call the owner while holding the observer lock. A completed
+                // pass replaces freshness, but must not retag an older diagnostic report.
                 onObservation(observation)
                 observation
             } catch (failure: CancellationException) {
@@ -353,7 +353,7 @@ internal class LspSvelteWatchAuthority(
             }
         }
         // Never call the manager under lock: its lifetime lock may call our cheap token checks.
-
+        // Close can race a callback already entering; the callback's exact owner must also be checked by the manager.
         if (notification != null && synchronized(lock) { active && lifetime.isActive && notification.epoch == invalidationEpoch }) {
             onInvalidated(notification)
             if (!allowDrain) firstRegistration.completeExceptionally(UnavailableException(reason))

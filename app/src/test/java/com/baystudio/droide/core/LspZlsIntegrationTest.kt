@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** ZLS regression fixtures: production manager/transport, no executable server. */
 class LspZlsIntegrationTest {
     @Test(timeout=10000) fun passiveEditingNeverPromptsDiscoversOrUsesCliFallback() = runBlocking<Unit> {
         Fixture().use { f ->
@@ -176,7 +177,7 @@ class LspZlsIntegrationTest {
         Fixture().use {f ->
             f.file("a.zig");f.manager.didOpen("a.zig","saved old");f.manager.enableProjectAnalysis("a.zig")
             f.manager.completionItems("a.zig",1,1);val old=f.host.peers.single()
-
+            // Exact callback ordering: disk publication signals mutation before didSaveSnapshot.
             f.manager.workspaceFilesChanged();assertFalse(old.isAlive)
             f.manager.didSaveSnapshot("a.zig","saved old","new typing 😀")
             assertEquals(2,f.host.peers.size);assertEquals(1,f.approvalCalls)

@@ -53,6 +53,9 @@ internal fun TerminalSessionHeader(
             while (true) { nowMs = System.nanoTime() / 1_000_000L; delay(1_000L) }
         }
     }
+    var showDetails by remember(session) { mutableStateOf(false) }
+    (session as? NativePtySessionHandle)?.displayedPtySession?.collectAsState()?.value
+    val controlAction = TerminalControlAction.forSession(session)
     var showHistory by remember(session) { mutableStateOf(false) }
     var showGuide by remember(session) { mutableStateOf(false) }
     var actionError by remember(session) { mutableStateOf<String?>(null) }
@@ -80,7 +83,8 @@ internal fun TerminalSessionHeader(
     )
     val header: @Composable () -> Unit = {
         Column(Modifier.fillMaxWidth().testTag("terminal-session-header").padding(horizontal = 8.dp, vertical = 2.dp)) {
-
+            // Actions and session context share one row. Details remain available in Commands,
+            // rather than permanently taking several lines from the terminal's screen.
             Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     SelectionContainer {
@@ -103,7 +107,7 @@ internal fun TerminalSessionHeader(
                 TextButton(onClick = { showGuide = true }, modifier = Modifier.heightIn(min = 48.dp),
                     contentPadding = PaddingValues(horizontal = 8.dp)) { Text("Commands", maxLines = 1) }
                 IconButton(onClick = { runAction { session.interrupt() } }, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.Stop, "Send Ctrl+C / interrupt shell")
+                    Icon(Icons.Default.Stop, controlAction.label)
                 }
                 accessoryHandle?.invoke()
             }
@@ -111,11 +115,12 @@ internal fun TerminalSessionHeader(
         }
     }
     if (typingFocusMode) {
-        // The landscape panel can be very short while another pane owns the IME. Leave a touchable
-        // terminal viewport; controls return as soon as it expands.
+        // The landscape panel can be very short while another pane owns the IME.
+        // Leave a touchable terminal viewport; controls return as soon as it expands.
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxHeight >= 96.dp) {
-
+                // Companion panes can leave a narrow center column on phones. Preserve
+                // full action targets and let the toolbar scroll instead of overflowing.
                 val toolbarWidth = maxOf(maxWidth, 320.dp)
                 Box(Modifier.horizontalScroll(rememberScrollState())) {
                     Box(Modifier.width(toolbarWidth)) { header() }
@@ -124,6 +129,7 @@ internal fun TerminalSessionHeader(
         }
     } else header()
     if (showHistory) TerminalHistoryDialog(session) { showHistory = false }
+    if (showDetails && session is TerminalDiagnosticsSession) TerminalExecutionDetails(session) { showDetails = false }
     if (showGuide) {
         AlertDialog(
             onDismissRequest = { showGuide = false },
@@ -131,6 +137,8 @@ internal fun TerminalSessionHeader(
             text = {
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(guide.summary)
+                    if (session is TerminalDiagnosticsSession) TextButton(onClick = { showGuide = false; showDetails = true }) { Text("Execution details / Record output") }
+                    Text("Ctrl+C interrupts the foreground terminal program. Stop agent command cancels the displayed agent job. Command mode restarts its shell. Closing a tab stops that session; hiding the panel keeps it running. Detached jobs may outlive a shell. Exit saves drafts and waits for owned work to stop; it cannot confirm untracked detached processes.", style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = { showGuide = false; showHistory = true }) { Text("Find / Export retained history") }
                     Text("Search or save retained terminal output. Agent logs and discarded output are not included.", style = MaterialTheme.typography.bodySmall)
                     if (session is TerminalCpuProtectionSession) {

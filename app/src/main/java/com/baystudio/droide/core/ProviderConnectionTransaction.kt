@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal data class ProviderConnectionRecord(
     val providerId: String,
     val authMethodId: String,

@@ -75,7 +75,7 @@ class DeviceBridgeConnectionAttemptsTest {
             }
         }
         assertTrue(attempts.commit(token) {})
-
+        // Precisely the interval after session publication and before continuation.resume.
         assertFalse(attempts.requestCancel(token) { fail("cancel must not publish after commit") })
         assertEquals(0, callerCancellations)
         result.resume("connected")

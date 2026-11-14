@@ -6,8 +6,10 @@ import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.UUID
 
-/** Metadata only. */
-
+/** Metadata only. MirrorMetadataAuthority owns the binding, schema upgrade, transaction
+ * and durability. These rows are unresolved ownership, not a process inventory or proof
+ * that legacy/untracked writers have stopped. No PID/cwd inference can remove a row.
+ */
 internal object MirrorProcessCustodyLedger {
     const val MAX_OWNERS = 256
     const val BOOT_SCHEMA = 5
@@ -67,8 +69,9 @@ internal object MirrorProcessCustodyLedger {
         check(read(db, binding).isEmpty()) {
             "Legacy process custody is unresolved; finish exact cleanup before upgrading launch permission metadata"
         }
-        // No default: an old runtime that validated v5 before this transaction cannot INSERT a
-        // phase-less owner after the upgrade.
+        // No default: an old runtime that validated v5 before this transaction
+        // cannot INSERT a phase-less owner after the upgrade. Existing nonempty
+        // legacy ledgers are never relabelled PREPARED or made unreadable to v5.
         db.execSQL("CREATE TABLE process_owners_launch(id TEXT PRIMARY KEY NOT NULL,runtime_id TEXT NOT NULL,device_identity TEXT,boot_id TEXT,launch_state TEXT NOT NULL CHECK(launch_state IN ('UNKNOWN','PREPARED','FACTORY_ENTERED','CANCELLED_NO_START')))")
         db.execSQL("DROP TABLE process_owners")
         db.execSQL("ALTER TABLE process_owners_launch RENAME TO process_owners")
@@ -174,8 +177,8 @@ internal object MirrorProcessCustodyLedger {
 
     fun confirm(db: SQLiteDatabase, binding: String, owners: List<Owner>, owner: Owner) {
         check(db.inTransaction())
-        // Retrying after a committed confirmation lost its response is safe. The caller still holds the
-        // original exact-process receipt, and IDs are never reused.
+        // Retrying after a committed confirmation lost its response is safe. The caller
+        // still holds the original exact-process receipt, and IDs are never reused.
         val existing = owners.find { it.id == owner.id } ?: return
         check(existing == owner) { "Process cleanup belongs to a different owner" }
         db.execSQL("DELETE FROM process_owners WHERE id=? AND runtime_id=?", arrayOf(owner.id, owner.runtimeId))
@@ -190,7 +193,8 @@ internal object MirrorProcessCustodyLedger {
     private fun digest(binding: String, owners: List<Owner>, withBoot: Boolean, states: Map<String, LaunchState>? = null): String {
         val hash = MessageDigest.getInstance("SHA-256")
         fun part(value: String) { val bytes = value.toByteArray(Charsets.UTF_8); hash.update(ByteBuffer.allocate(4).putInt(bytes.size).array()); hash.update(bytes) }
-
+        // A distinct domain even for the empty set prevents old v5 readers that
+        // passed a pre-transaction schema check from treating v6 as valid v5.
         if (states != null) part("DROIDE-PROCESS-LAUNCH-CUSTODY-6")
         part(binding); owners.forEach {
             part(it.id); part(it.runtimeId)

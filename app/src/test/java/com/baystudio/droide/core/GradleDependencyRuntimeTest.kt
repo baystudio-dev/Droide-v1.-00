@@ -60,6 +60,7 @@ class GradleDependencyRuntimeTest {
         } finally { root.deleteRecursively() }
     }
 
+
     @Test fun projectConfigurationFingerprintTracksCustomCatalogAndIncludedBuildLogic() {
         val root = Files.createTempDirectory("droide-gradle-config").toFile()
         try {

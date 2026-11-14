@@ -44,8 +44,14 @@ class BrowserHumanDialogTest {
         return ReflectionHelpers.callInstanceMethod(registry, "getRegisteredComposeRoots")
     }
 
-    // A bounded twenty-frame diagnostic confirmed one actual owner pass drains that work
-    // permanently.
+    // Robolectric's SDK 35 dialog root can leave a placed text-selection node's
+    // relayout request unvisited after the first window traversal. A bounded
+    // twenty-frame diagnostic confirmed one actual owner pass drains that work
+    // permanently. The normal idler first pumps finite focus animations, which
+    // can enqueue a later owner pass. Preserve that automatic clock/idler pump
+    // before and after actual native layout, rather than guessing animation
+    // durations or clearing requests. Normal assertions/actions remain intact;
+    // a genuinely recurring layout request fails the bounded fixture check.
     private fun traverseNativeDialogWindow() {
         assertTrue("Dialog traversal keeps automatic Compose idling enabled", compose.mainClock.autoAdvance)
         var idleAfterTraversal = false
@@ -157,7 +163,8 @@ class BrowserHumanDialogTest {
         compose.onNodeWithText("Website prompt").assertExists()
         compose.onNodeWithText("Response").assertIsDisplayed()
         val response = compose.onNode(hasSetTextAction() and hasText("Response"))
-
+        // performTextReplacement requests focus then synchronizes before SetText.
+        // Deliver the missing dialog traversal between those two native phases.
         response.performSemanticsAction(SemanticsActions.RequestFocus)
         traverseNativeDialogWindow()
         response.assertIsFocused().performTextReplacement("Human draft title")

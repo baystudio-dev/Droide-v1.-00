@@ -112,6 +112,7 @@ internal fun projectAgentNativeLiveMedia(messages: List<AgentMessage>, busy: Boo
     return AgentNativeLiveMedia(latest, total)
 }
 
+/** Explicit category selection before launching an Android picker. */
 @Composable
 internal fun AgentAttachmentMenu(enabled: Boolean, onVisual: () -> Unit, onFile: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }

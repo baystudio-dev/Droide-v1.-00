@@ -35,7 +35,8 @@ internal class OpenAiChatStreamAccumulator(private val json: Json) {
         val reportedUsage = canonicalUsage
             ?: (root["x_groq"] as? JsonObject)?.get("usage")?.takeUnless { it == JsonNull }
         // Prefer canonical usage; duplicate wrappers/snapshots are never additive.
-
+        // A malformed new report invalidates older, potentially partial telemetry.
+        // Absent/null fields carry no new report and leave the latest snapshot alone.
         if (reportedUsage != null) {
             capacity.replace("usage", ProviderPayloadLimits.retainedJsonUnits(reportedUsage))
             usage = reportedUsage as? JsonObject
@@ -49,8 +50,8 @@ internal class OpenAiChatStreamAccumulator(private val json: Json) {
             capacity.replace("finish", it.content.length.toLong())
             finishReason = it
         }
-        // Compatible providers may expose their original reason publicly. It remains ordinary metadata,
-        // never an adapter-authored private admission signal.
+        // Compatible providers may expose their original reason publicly. It remains
+        // ordinary metadata, never an adapter-authored private admission signal.
         (choice["native_finish_reason"] as? JsonPrimitive)?.takeIf { it.isString }?.let { capacity.replace("nativeFinish", it.content.length.toLong()); nativeFinishReason = it }
         val rawDelta = choice["delta"]
         check(rawDelta == null || rawDelta == JsonNull || rawDelta is JsonObject) { "Provider returned malformed delta" }
@@ -84,8 +85,8 @@ internal class OpenAiChatStreamAccumulator(private val json: Json) {
             events += LlmStreamEvent.TextDelta(textDelta)
         }
         if (refusalDelta.isNotEmpty()) {
-            // Refusal is public output too. Match emitted text order exactly so a durable partial cannot
-            // lose it when ordinary content is also present.
+            // Refusal is public output too. Match emitted text order exactly so a
+            // durable partial cannot lose it when ordinary content is also present.
             capacity.append(content, refusalDelta)
             capacity.append(refusal, refusalDelta)
             events += LlmStreamEvent.TextDelta(refusalDelta)
@@ -108,7 +109,7 @@ internal class OpenAiChatStreamAccumulator(private val json: Json) {
                     part.name.isBlank() -> nameFragment
                     nameFragment == part.name -> part.name
                     else -> {
-
+                        // Reserve before concatenating potentially fragmented tool names.
                         capacity.replace("tool:$index:name", part.name.length.toLong() + nameFragment.length)
                         part.name + nameFragment
                     }

@@ -27,8 +27,8 @@ internal class TerminalUiUpdateDispatcher(
                         true
                     } else false
                 }
-                // Emulator callbacks may request a frame while holding their own lock. Never hold this
-                // dispatcher lock while acquiring the emulator lock.
+                // Emulator callbacks may request a frame while holding their own lock.
+                // Never hold this dispatcher lock while acquiring the emulator lock.
                 if (accepted) update()
             }
         } catch (error: Exception) {

@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** The identical cases are run against production baseline and patched supervisor. */
 class LocalProcessStartRecoveryTest {
     private fun fixture(block: suspend CoroutineScope.(File) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("local-start-recovery-").toFile()
@@ -38,8 +39,8 @@ class LocalProcessStartRecoveryTest {
         assertTrue(failure.toString(), failure is IOException); available(root)
     }
     @Test fun platformFailureAfterPreflightStillKeepsUnknownCustody() = fixture { root ->
-        // Preflight passes. The platform throws only after native creation entry; this layer must not
-        // infer cleanup from a generic IOException.
+        // Preflight passes. The platform throws only after native creation entry;
+        // this layer must not infer cleanup from a generic IOException.
         val path = root.resolve("bad-interpreter").apply {
             writeText("#!/definitely/no/such/interpreter\n")
             setExecutable(true)

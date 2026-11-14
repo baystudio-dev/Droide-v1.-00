@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.baystudio.droide.MainActivity
 import kotlinx.coroutines.*
 
+/** Direct user-started local export host, separate from package downloads and development sessions. */
 class ExportForegroundService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var jobId: String? = null

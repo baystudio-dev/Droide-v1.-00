@@ -18,8 +18,8 @@ internal object TerminalCapabilityProbe {
         require(names.size <= 32 && names.distinct().size == names.size && names.all(::validName))
         if (names.isEmpty() && !includePath) return TerminalCapabilityResult(null, true, emptyMap(), null)
         val marker = "DROIDE_PROBE_" + UUID.randomUUID().toString().replace("-", "")
-        // NUL framing handles spaces/newlines in executable paths without evaluating rc files. Names
-        // cannot start with '-' (command -v options) and are individually shell-quoted.
+        // NUL framing handles spaces/newlines in executable paths without evaluating rc files.
+        // Names cannot start with '-' (command -v options) and are individually shell-quoted.
         val script = buildString {
             append("printf '%s\\0' '").append(marker).append("'; ")
             names.forEachIndexed { index, name ->

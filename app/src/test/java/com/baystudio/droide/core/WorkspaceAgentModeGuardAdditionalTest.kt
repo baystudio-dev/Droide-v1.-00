@@ -4,6 +4,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Additional unit regressions authored for this run. Real production classes, no stubs. */
 class WorkspaceAgentModeGuardAdditionalTest {
     private fun state() = WorkspaceAgentModeSelection(listOf("plan"), listOf("default"))
     private fun config(current: String?, vararg ids: String) =

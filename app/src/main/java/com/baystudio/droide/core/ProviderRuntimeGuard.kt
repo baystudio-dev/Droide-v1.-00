@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.net.URI
 
+ 
 internal object ProviderRuntimeGuard {
     fun requireBoundProvider(
         providerId: String,

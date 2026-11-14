@@ -24,7 +24,7 @@ internal data class ExplorerEntryStyle(
     val minimumHeight: Dp, val iconSize: Dp, val chevronSize: Dp,
     val actionSize: Dp, val actionIconSize: Dp, val label: TextStyle,
 ) {
-
+    // Keep 88 dp for the label, 8 dp of row padding and the 6 dp icon/label gap.
     val reservedWidth: Dp get() = chevronSize + iconSize + actionSize + 88.dp + 8.dp + 6.dp
 }
 

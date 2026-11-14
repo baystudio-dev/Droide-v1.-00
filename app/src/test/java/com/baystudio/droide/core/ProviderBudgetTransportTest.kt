@@ -5,6 +5,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Local HTTP fixtures exercise the production buffered and streaming request entrances. */
 class ProviderBudgetTransportTest {
     private fun install(http: ProviderStreamFixture, context: Int = 4096, output: Int = 512) {
         ModelCapabilityRegistry.installRuntime(ModelCapabilities(http.provider.id, http.model, http.model,

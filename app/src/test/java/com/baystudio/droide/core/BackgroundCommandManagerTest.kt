@@ -89,7 +89,7 @@ class BackgroundCommandManagerTest {
         val manager = BackgroundCommandManager(terminal)
         val dir = java.nio.file.Files.createTempDirectory("droide-background-race-").toFile()
         try {
-
+            // A real process writes its pid before sleeping; every observed RUNNING entry is killed.
             repeat(100) { iteration ->
                 val pid = File(dir, "$iteration.pid")
                 val command = "echo \$\$ > " + quote(pid.absolutePath) + "; exec sleep 30"
@@ -143,11 +143,11 @@ class BackgroundCommandManagerTest {
     private fun quote(text: String) = "'" + text.replace("'", "'\\''") + "'"
 
     private fun isRunning(pid: String): Boolean {
-        // A process killed between redirection and echo leaves an empty PID file. Never interpret that
-        // as /proc/stat (which exists and describes the whole kernel).
+        // A process killed between redirection and echo leaves an empty PID file. Never
+        // interpret that as /proc/stat (which exists and describes the whole kernel).
         if (!pid.matches(Regex("[1-9][0-9]*"))) return false
-        // Some container init processes leave killed orphans as zombies. A zombie cannot execute; live
-        // children still fail this bounded check.
+        // Some container init processes leave killed orphans as zombies. A
+        // zombie cannot execute; live children still fail this bounded check.
         val stat = File("/proc/$pid/stat")
         return runCatching { stat.readText().substringAfterLast(") ").first() != 'Z' }.getOrDefault(false)
     }

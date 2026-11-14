@@ -43,7 +43,7 @@ internal object LspNimLaunchPolicy {
     }
     fun refusalEntry(guestRoot: String): String {
         require(safeManagedPath(guestRoot))
-
+        // All user argv are discarded. The admitted authored helper atomically records refusal; no compiler is delegated.
         val helperScript="/opt/droide/packages/lsp.nimlangserver/1.16.0/arm64-v8a/$HELPER_HEALTH"
         return "#!/bin/sh\nexec '$HELPER' '$helperScript' --refuse '$guestRoot'\n"
     }

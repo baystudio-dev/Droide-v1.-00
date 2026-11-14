@@ -15,6 +15,7 @@ class DirectoryScanLimitException(
         "Open a known subdirectory or try refreshing later.",
 )
 
+ 
 data class FileQueryPage(
     val paths: List<String>,
     val scannedEntries: Int,

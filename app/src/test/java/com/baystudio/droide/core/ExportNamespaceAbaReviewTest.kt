@@ -15,8 +15,8 @@ class ExportNamespaceAbaReviewTest {
             val saved = File(root,"saved")
             val source = File(selected,"same.apk").apply { writeText("identical payload") }
             val replacement = File(other,"same.apk").apply { writeText("identical payload") }
-            Files.setAttribute(source.toPath(), "unix:mode", 0b110100100)
-            Files.setAttribute(replacement.toPath(), "unix:mode", 0b111000000)
+            Files.setAttribute(source.toPath(), "unix:mode", 0b110100100) // 0644
+            Files.setAttribute(replacement.toPath(), "unix:mode", 0b111000000) // 0700
             val initial = ExportFileStamp.read(source.toPath())
             var validations = 0
             var swapped = false

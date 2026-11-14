@@ -10,8 +10,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 
-/** Only retries an explicit non-2xx HTTP response before streaming emits anything. Never retries
- * network ambiguity, partially streamed output or Agent tool execution. */
+/**
+ * Only retries an explicit non-2xx HTTP response before streaming emits anything.
+ * Never retries network ambiguity, partially streamed output or Agent tool execution.
+ */
 internal object ProviderRetryPolicy {
     const val MAX_RETRIES = 2
     const val MAX_TOTAL_WAIT_MS = 8_000L
@@ -65,7 +67,7 @@ internal object ProviderRetryPolicy {
         if (!Regex("[0-9]+(?:\\.[0-9]+)?").matches(value)) return null
         val ms = value.toBigDecimal().multiply(multiplier)
         if (ms > BigDecimal(MAX_TOTAL_WAIT_MS)) return BEYOND_WAIT_BUDGET_MS
-
+        // Fractional milliseconds round up so the advertised minimum is respected.
         return ms.setScale(0, RoundingMode.CEILING).toLong()
     }
 

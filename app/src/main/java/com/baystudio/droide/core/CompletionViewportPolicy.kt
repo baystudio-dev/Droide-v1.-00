@@ -6,6 +6,7 @@ import kotlin.math.floor
 internal data class CompletionViewport(val left: Int, val top: Int, val right: Int, val bottom: Int)
 internal data class CompletionPopupPlacement(val left: Int, val top: Int, val width: Int, val height: Int, val above: Boolean)
 
+/** Place the whole suggestion list inside the visible editor, rather than cutting off its right edge. */
 internal object CompletionViewportPolicy {
     fun place(
         viewport: CompletionViewport,

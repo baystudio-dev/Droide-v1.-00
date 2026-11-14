@@ -70,7 +70,7 @@ class StartupRecoveryPolicyTest {
     @Test fun sameProcessDecisionKeepsItsGenerationAndConsumedOrNormalHistoryHasNone() {
         val exit = PreviousProcessExit(1_000, 101, ApplicationExitInfo.REASON_CRASH_NATIVE)
         val processDecision = StartupRecoveryPolicy.decide(exit, null)
-
+        // forProcess caches this immutable decision for Activity recreation/workspace changes.
         assertEquals(processDecision.recoveryGeneration, StartupRecoveryPolicy.decide(exit, null).recoveryGeneration)
         assertNull(StartupRecoveryPolicy.decide(exit, exit.identity).recoveryGeneration)
         assertNull(StartupRecoveryPolicy.decide(null, null).recoveryGeneration)

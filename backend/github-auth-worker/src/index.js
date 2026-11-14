@@ -205,7 +205,7 @@ async function revoke(form, env) {
   if (upstream.status === 204) {
     return new Response(null, { status: 204, headers: { "cache-control": "no-store, max-age=0" } });
   }
-
+  
 
   if (upstream.status === 404) {
     return new Response(null, { status: 204, headers: { "cache-control": "no-store, max-age=0" } });

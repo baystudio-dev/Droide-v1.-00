@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import com.baystudio.droide.core.WorkspaceAgentAvailability
 import com.baystudio.droide.core.runSuspendCatching
 
+/** Re-probe the active environment whenever the picker opens, including terminal installs. */
 @Composable
 internal fun rememberWorkspaceAgentAvailability(
     hostIdentity: Any?,

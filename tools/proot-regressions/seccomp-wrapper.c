@@ -10,7 +10,8 @@
 #include <sys/prctl.h>
 #include <sys/resource.h>
 
-/* Trap only PRoot's deliberately invalid avoider syscall with an outer policy.
+/* Add an outer seccomp policy like the Android app sandbox: only the
+ * deliberately invalid syscall PRoot uses as its avoider is trapped.
  * This adds restrictions to a child process; it never removes a filter. */
 int main(int argc, char **argv) {
     if (argc < 4) return 64;

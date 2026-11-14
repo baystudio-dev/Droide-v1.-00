@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+ 
 data class RubyGemsInstallRecipe(
     val familyId: String,
     val version: String,
@@ -55,6 +56,7 @@ private data class ReviewedRubyGemsRecipeLock(
     val provenanceUrl: String,
     val installedAtEpochMs: Long,
 )
+
 
 class ReviewedRubyGemsRecipeInstaller(
     context: Context,
@@ -206,7 +208,7 @@ class ReviewedRubyGemsRecipeInstaller(
             ByteArrayInputStream(json.encodeToString(recipeLock).toByteArray(Charsets.UTF_8)).use {
                 bridge.pushStream(it, "$stage/RECIPE_LOCK.json", mode = 420)
             }
-
+            
             val trim = bridge.shell("rm -rf ${q("$stage/vendor")} ${q("$stage/.bundle")}")
             check(trim.exitCode == 0) { "Could not clean RubyGems transaction cache" }
 

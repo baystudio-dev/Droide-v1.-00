@@ -2,7 +2,7 @@ package com.baystudio.droide.core
 
 /** Stale/manual plans must not silently prepare a second workstation. */
 internal object UbuntuExtensionPlanPolicy {
-
+    // Exact Nim uses the existing LocalVendor plan with three explicit prerequisites, no separate server count.
     fun requireSupported(plan: ExtensionInstallPlan, localReviewedArtifact: Boolean) {
         if(plan.familyId==LocalUbuntuElpPolicy.FAMILY || plan is ExtensionInstallPlan.LocalVendor && plan.recipe.familyId==LocalUbuntuElpPolicy.FAMILY) {
             require(plan is ExtensionInstallPlan.LocalVendor&&plan.familyId==LocalUbuntuElpPolicy.FAMILY&&plan.requestedVersion==LocalUbuntuElpPolicy.VERSION&&

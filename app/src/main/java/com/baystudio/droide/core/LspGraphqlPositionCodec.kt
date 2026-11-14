@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Positions in exact source text. No newline normalization, clamping, or token inference. */
 internal object LspGraphqlPositionCodec {
     data class Position(val line: Int, val character: Int)
     fun validText(text: String): Boolean {

@@ -110,8 +110,8 @@ class WorkspaceSearchSnapshotCaptureTest {
             val native = state.document("native.kt")
             native.restoreUnsaved("needle cached")
             native.acceptPersistedText("needle cached", "fixture baseline")
+            // Tiny fixture selects the existing optimized profile; real captureInsert/capture/authority code follows.
             // This does not test the size threshold and avoids allocating a multi-megabyte stress buffer.
-
             @Suppress("UNCHECKED_CAST")
             val mode = EditorDocument::class.java.getDeclaredField("performanceMode\$delegate")
                 .apply { isAccessible = true }.get(native) as MutableState<EditorFilePerformanceMode>

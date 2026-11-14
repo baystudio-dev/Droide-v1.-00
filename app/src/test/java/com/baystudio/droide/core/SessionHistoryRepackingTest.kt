@@ -71,7 +71,7 @@ class SessionHistoryRepackingTest {
         val page = ledger.writePage(listOf(entry("old")))
         val other = ledger.writePage(listOf(entry("other")))
         val old = ledger.snapshot(listOf(page) + List(4095) { other }, listOf(entry("tail")))
-        old[0]
+        old[0] // A stale cached first page would otherwise evade the entire pass.
         val file = File(root, ".droide/sessions/.history-pages/${page.sha256}.json")
         val damaged = file.readBytes().also { it[it.lastIndex - 3] = 'z'.code.toByte() }
         file.writeBytes(damaged)
@@ -112,7 +112,8 @@ class SessionHistoryRepackingTest {
         manager.save(session.copy(forkHistory = original, forkHistoryVersion = SessionForkHistory.SCHEMA_VERSION))
         val manifest = File(root, ".droide/sessions/${session.id}.json")
         val manifestBefore = manifest.readBytes().toList()
-
+        // Another valid immutable page supplies the exact expected packed name.
+        // Damage it to exercise writePage's refusal to replace existing evidence.
         val packed = manager.historyLedger.writePage(List(4096) { item })
         val target = File(root, ".droide/sessions/.history-pages/${packed.sha256}.json")
         target.writeText("damaged existing evidence")
@@ -132,8 +133,8 @@ class SessionHistoryRepackingTest {
         val ledger = SessionHistoryLedger(root)
         val page = ledger.writePage(listOf(entry("old")))
         val before = files(root)
-        // Declared aggregate capacity is checked without trusting or decoding oversized metadata. No
-        // fake page is treated as verified content.
+        // Declared aggregate capacity is checked without trusting or decoding
+        // oversized metadata. No fake page is treated as verified content.
         val byteFull = ledger.snapshot(List(4096) { page.copy(bytes = SessionHistoryLedger.MAX_HISTORY_BYTES / 4096) }, listOf(entry("tail")))
         assertTrue(runCatching { ledger.persist(byteFull) }.exceptionOrNull() is IllegalArgumentException)
         val oversizedEntries = object : AbstractList<JsonObject>() {

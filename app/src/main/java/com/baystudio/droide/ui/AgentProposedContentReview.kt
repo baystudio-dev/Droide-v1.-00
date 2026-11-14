@@ -31,7 +31,7 @@ internal fun AgentProposedContentReview(content: ProposedFileContent) {
                 withContext(Dispatchers.IO) {
                     val task = currentCoroutineContext()
                     task.ensureActive()
-                    captured.verify { task.ensureActive() }
+                    captured.verify { task.ensureActive() } // Before destination can be truncated.
                     context.contentResolver.openOutputStream(uri, "wt")?.use { captured.export(it) { task.ensureActive() } }
                         ?: error("Destination unavailable")
                 }

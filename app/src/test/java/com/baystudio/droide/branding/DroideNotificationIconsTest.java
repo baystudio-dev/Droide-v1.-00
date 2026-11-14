@@ -20,8 +20,9 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import static org.junit.Assert.*;
 
-/** Verify the payload sent to Android, including parcel/resource loading across the process
- * boundary. SystemUI placement and OEM app-icon caches still require device acceptance. */
+/** Verify the payload sent to Android, including parcel/resource loading across the process boundary.
+ * SystemUI placement and OEM app-icon caches still require device acceptance.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {29, 35}, application = Application.class, qualifiers = "mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

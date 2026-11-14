@@ -6,6 +6,9 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Invokes the actual manager parser, with a non-live generic state fixture.
+ * Constructor bypass deliberately avoids unrelated process/native-manager lifecycle.
+ */
 class LspCodeActionMetadataTest {
     private fun allocate(type: Class<*>): Any {
         val unsafeType=Class.forName("sun.misc.Unsafe")
@@ -15,6 +18,7 @@ class LspCodeActionMetadataTest {
     private fun field(target: Any, name: String, value: Any?) {
         target.javaClass.getDeclaredField(name).also { it.isAccessible=true }.set(target,value)
     }
+
 
     private fun parse(items:List<JsonObject>):List<LspCodeAction> {
         val root=createTempDirectory("droide-action-identity").toFile()

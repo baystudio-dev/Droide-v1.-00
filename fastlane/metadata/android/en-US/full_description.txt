@@ -1,0 +1,10 @@
+<p>Droide brings a code editor and development workspace to Android phones and tablets.</p>
+<ul>
+<li>Edit projects with syntax highlighting, multiple tabs, search, language servers and recovery drafts.</li>
+<li>Use an interactive Ubuntu terminal, Git, SSH, run/build tools and an integrated browser.</li>
+<li>Choose optional AI providers or external coding agents, review their actions, and extend workflows with MCP servers and skills.</li>
+<li>Install and update development tools on demand. Import and export your projects through Android’s file picker.</li>
+<li>Work in portrait or use the adaptive landscape workspace with side panels.</li>
+</ul>
+<p>The local Ubuntu environment requires a supported ARM64 device. On first use, choose Install environment to download approximately 30 MB from Canonical. Installation is performed once and the environment is reused. You can postpone setup and edit files without it.</p>
+<p>Optional AI services may require an account, API key, internet access or payment. Ubuntu and optional tools are obtained from external publishers after approval; these executable downloads are outside F-Droid’s review.</p>

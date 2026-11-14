@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal object BoundedJsonc {
     fun stripComments(input: String): String {
         val out = StringBuilder(input.length)

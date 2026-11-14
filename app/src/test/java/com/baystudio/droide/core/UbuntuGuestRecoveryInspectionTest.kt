@@ -71,4 +71,51 @@ class UbuntuGuestRecoveryInspectionTest {
         } catch (expected: CancellationException) { assertEquals("stop recovery", expected.message) }
         assertTrue(transaction.isDirectory)
     } }
+
+    @Test fun symlinkedBootstrapParentsCannotRedirectCleanupIntoWorkspaceData() = fixture { base ->
+        for (redirect in listOf("guest", "guest/.staging", "guest/.previous")) {
+            val home = base.resolve(redirect.replace('/', '-')).apply { mkdirs() }
+            val saved = home.resolve("projects").apply { mkdirs() }
+            val userFile = saved.resolve("ubuntu/work.txt").apply { parentFile!!.mkdirs(); writeText("keep") }
+            val link = home.resolve(redirect).apply { parentFile!!.mkdirs() }
+            Files.createSymbolicLink(link.toPath(), saved.toPath())
+            assertThrows(IllegalStateException::class.java) {
+                UbuntuGuestRecoveryInspection.bootstrap(home.resolve("guest/.previous/ubuntu"),
+                    home.resolve("guest/.staging/ubuntu"), home.resolve("guest/ubuntu"))
+            }
+            assertEquals("keep", userFile.readText())
+            assertTrue(Files.isSymbolicLink(link.toPath()))
+        }
+    }
+
+    @Test fun unexpectedBootstrapLeavesArePreservedAndRejectedBeforeAnyMutation() = fixture { base ->
+        for (relative in listOf("guest/ubuntu", "guest/.staging/ubuntu", "guest/.previous/ubuntu")) {
+            val home = base.resolve(relative.replace('/', '-')).apply { mkdirs() }
+            val entry = home.resolve(relative).apply { parentFile!!.mkdirs(); writeText("keep") }
+            fun inspect() = UbuntuGuestRecoveryInspection.bootstrap(home.resolve("guest/.previous/ubuntu"),
+                home.resolve("guest/.staging/ubuntu"), home.resolve("guest/ubuntu"))
+            assertThrows(IllegalStateException::class.java) { inspect() }
+            assertEquals("keep", entry.readText())
+            entry.delete()
+            val retained = home.resolve("saved").apply { mkdirs() }
+            Files.createSymbolicLink(entry.toPath(), retained.toPath())
+            assertThrows(IllegalStateException::class.java) { inspect() }
+            assertTrue(Files.isSymbolicLink(entry.toPath()))
+            assertTrue(retained.isDirectory)
+        }
+    }
+
+    @Test fun unusedBackupNeverReplacesOrBlocksAnExistingGuest() = fixture { base ->
+        val current = base.resolve("guest/ubuntu").apply { mkdirs() }
+        val previous = base.resolve("guest/.previous/ubuntu").apply { parentFile!!.mkdirs() }
+        val stage = base.resolve("guest/.staging/ubuntu")
+        val saved = base.resolve("saved").apply { mkdirs() }
+        Files.createSymbolicLink(previous.toPath(), saved.toPath())
+        val state = UbuntuGuestRecoveryInspection.bootstrap(previous, stage, current)
+        assertTrue(state.finalExists)
+        assertTrue(state.previousExists)
+        assertFalse(state.stageExists)
+        assertTrue(Files.isSymbolicLink(previous.toPath()))
+        assertTrue(saved.isDirectory)
+    }
 }

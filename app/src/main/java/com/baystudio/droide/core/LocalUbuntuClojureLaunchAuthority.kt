@@ -13,6 +13,8 @@ import java.security.MessageDigest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** Created only from the verified publisher projection, then covered by the existing installer seal.
+ * This is owned-package consistency, not a signature, manager attestation or same-UID sandbox. */
 internal object LocalUbuntuClojureLaunchAuthority {
     const val FILE_NAME = "CLOJURE_LAUNCH_AUTHORITY.json"
 

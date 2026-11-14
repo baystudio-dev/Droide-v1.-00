@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+ 
 internal object GoogleGenerateContentAdapter {
     internal const val PRIVATE_CONTENT_FIELD = "_droide_google_private_parts"
     internal const val NATIVE_FINISH_REASON_FIELD = "_droide_google_finish_reason"
@@ -72,6 +73,7 @@ internal object GoogleGenerateContentAdapter {
         }.toString()
     }
 
+
     internal fun thinkingBudget(providerId: String, model: String, effort: String): Int? =
         (googleThinkingConfig(providerId, model, effort)["thinkingBudget"] as? JsonPrimitive)?.intOrNull
 
@@ -89,7 +91,8 @@ internal object GoogleGenerateContentAdapter {
                 val maximumForOutput = ceiling?.let {
                     require(it > 0) { "Gemini model '$model' output limit must be positive" }
                     // These are derived effort presets, not explicit reasoning-token contracts.
-
+                    // Leave room for an answer/tool call rather than assigning all but one
+                    // output token to thinking. Small output limits share the room equally.
                     val answerReserve = minOf(NUMERIC_THINKING_ANSWER_RESERVE, (it / 2).coerceAtLeast(1))
                     it - answerReserve
                 } ?: Int.MAX_VALUE
@@ -171,8 +174,9 @@ internal object GoogleGenerateContentAdapter {
             return events
         }
 
-        // Only adjacent plain text fragments with identical thought flags can be combined.
-
+        // Preserve signed/opaque provider blocks exactly. Only adjacent plain text
+        // fragments with identical thought flags can be combined. This avoids retaining
+        // a JSON object per token while preserving provider continuation order.
         private fun appendContinuation(part: JsonObject) {
             val fragment = (part["text"] as? JsonPrimitive)?.takeIf { it.isString }?.content
             val thought = part["thought"]
@@ -423,7 +427,8 @@ internal object GoogleGenerateContentAdapter {
     }
 
     internal fun normalizeUsage(usage: JsonObject): JsonObject = buildJsonObject {
-
+        // Gemini reports thinking separately from candidate output, and tool-use
+        // prompt separately from the main prompt. Canonical counts include both.
         val prompt = usageCount(usage, "promptTokenCount")
         val toolPrompt = usageCount(usage, "toolUsePromptTokenCount", optional = true)
         val candidates = usageCount(usage, "candidatesTokenCount")
@@ -434,8 +439,8 @@ internal object GoogleGenerateContentAdapter {
         if (candidates != null && thoughts != null) {
             checkedUsageSum(candidates, thoughts)?.let { put("completion_tokens", it) }
         }
-        // Keep the provider total even when the breakdown is partial or disagrees; the tracker
-        // independently validates its value and breakdown completeness.
+        // Keep the provider total even when the breakdown is partial or disagrees;
+        // the tracker independently validates its value and breakdown completeness.
         usage["totalTokenCount"]?.let { put("total_tokens", it) }
         val promptDetails = buildJsonObject {
             // Cached content is already part of promptTokenCount. Never add it again.

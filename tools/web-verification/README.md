@@ -17,8 +17,8 @@ python tools/verify_agent_web_browser.py \
   --output /path/to/browser-dom-proof.json
 ```
 
-The runner accepts multiple `--jars` directories. Use compiler/runtime JARs
-matching the Kotlin version declared by the application build.
+The runner also accepts multiple `--jars` directories. For this checkpoint the
+provisioned Gradle 8.13 `lib` directory supplies the compiler/runtime JARs.
 Receipts identify the jsdom version and hash every production input and runner.
 
 Coverage includes paged lines/find/links and stable targets, initial textarea and

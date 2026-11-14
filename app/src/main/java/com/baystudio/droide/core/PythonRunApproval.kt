@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** An approval binds a literal built-in Python plan, including the absence of a selection. */
 internal class PythonRunApproval private constructor(val plan: RunPlan) {
     fun matches(current: RunPlan): Boolean = current == plan
 

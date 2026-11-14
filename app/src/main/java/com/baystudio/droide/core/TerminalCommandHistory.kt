@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** UI draft coordinates are UTF-16 offsets, matching Android text selection. */
 internal data class TerminalCommandDraft(val text: String, val selectionStart: Int, val selectionEnd: Int) {
     companion object {
         fun atEnd(text: String) = TerminalCommandDraft(text, text.length, text.length)

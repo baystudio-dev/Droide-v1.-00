@@ -22,6 +22,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.ensureActive
 
+
+
+
+
+
+
+
 internal class EditorWorkspaceDocumentAuthority(
     private val editorState: EditorWorkspaceState,
     private val editorDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
@@ -42,8 +49,8 @@ internal class EditorWorkspaceDocumentAuthority(
         reportPreservationFailure: (WorkspaceFailureReason, Throwable, () -> Boolean) -> Unit = { _, _, _ -> },
     ) : this(editorState, editorDispatcher, files, lsp, recoveryStore, preservationScope, reportPreservationFailure)
 
-    /** Only the repository's final checks + native rename belong in action. Stream copies, hashing,
-     * fsync, journaling and reconciliation must finish outside this Main-owned turn. */
+    /** Only the repository's final checks + native rename belong in action. Stream copies,
+     * hashing, fsync, journaling and reconciliation must finish outside this Main-owned turn. */
     override suspend fun commitDiskOnly(path: String, action: () -> Unit) = withContext(editorDispatcher) {
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
         editorState.commitDiskOnlyChecked(path,
@@ -154,6 +161,7 @@ internal class EditorWorkspaceDocumentAuthority(
     override suspend fun captureSearchSnapshots(request: WorkspaceSearchCaptureRequest): WorkspaceSearchCapture =
         withContext(editorDispatcher) { editorState.captureSearchSnapshots(request) }
 
+
     override suspend fun replaceText(
         path: String,
         expected: WorkspaceDocumentVersion,
@@ -175,8 +183,8 @@ internal class EditorWorkspaceDocumentAuthority(
         }
         if (!initial.editable) return WorkspaceDocumentMutationResult.ReadOnly(initial)
         val native = document.nativeMutationBinding
-        // Settle/capture the actual editor before validating the reviewed version. The rest of this
-        // Main-owner transaction never suspends.
+        // Settle/capture the actual editor before validating the reviewed version.
+        // The rest of this Main-owner transaction never suspends.
         native?.prepare()
         check(editorState.peek(path) === document && document.nativeMutationBinding === native) {
             "Editor ownership changed before workspace mutation"
@@ -186,8 +194,8 @@ internal class EditorWorkspaceDocumentAuthority(
             return WorkspaceDocumentMutationResult.NotLive
         }
         if (!before.editable) return WorkspaceDocumentMutationResult.ReadOnly(before)
-        // Full owner identity plus counters is checked here, after native settlement and before the
-        // non-suspending apply. Missing identity is never a wildcard.
+        // Full owner identity plus counters is checked here, after native settlement and
+        // before the non-suspending apply. Missing identity is never a wildcard.
         if (before.version != expected) return WorkspaceDocumentMutationResult.Conflict(before)
         requireAdmission()
         var result: WorkspaceDocumentMutationResult.Applied? = null
@@ -269,8 +277,8 @@ internal class EditorWorkspaceDocumentAuthority(
                 if (document.requiresBufferCapture || (document.dirty || document.isSaveInProgress) && document.content != text) {
                     return@withContext WorkspacePersistedReconciliation(conflicts = listOf(path))
                 }
-                // Save owns its final acknowledgement. The callback runs before its publication receipt is
-                // verified; matching text alone cannot clear intent.
+                // Save owns its final acknowledgement. The callback runs before its
+                // publication receipt is verified; matching text alone cannot clear intent.
                 if (document.isSaveInProgress) return@withContext WorkspacePersistedReconciliation()
                 if (document.content == text) {
                     val baselineChanged = document.dirty
@@ -407,7 +415,7 @@ internal class EditorWorkspaceDocumentAuthority(
             for (baseline in baselines) {
                 if (baseline.path in conflicts || baseline.pendingPathWork) continue
                 val current = editorState.peek(baseline.path) ?: continue
-
+                // A previous preview reload may have suspended after the first pass.
                 if (current !== baseline.document || current.toAuthoritySnapshot().version != baseline.version ||
                     current.savedDiskVersion != baseline.diskVersion || current.isSaveInProgress != baseline.saveInProgress ||
                     current.blocksPersistedPathMutation != baseline.pendingPathWork) {
@@ -416,8 +424,8 @@ internal class EditorWorkspaceDocumentAuthority(
                 }
                 when (val persisted = disk.getValue(baseline.path)) {
                     DiskState.Missing -> {
-                        // Removing an ancestor also removes live descendants. A clean ancestor must not erase a
-                        // descendant's pending work.
+                        // Removing an ancestor also removes live descendants. A clean
+                        // ancestor must not erase a descendant's pending work.
                         val blocked = editorState.documentsAtOrUnder(baseline.path)
                             .filter { it.blocksPersistedPathMutation }.map { it.path }
                         if (blocked.isNotEmpty()) {
@@ -438,8 +446,8 @@ internal class EditorWorkspaceDocumentAuthority(
                                 refreshed += current.path
                             } else if (current.savedDiskVersion?.existed == false &&
                                 persisted.version.existed && persisted.content.isEmpty()) {
-                                // Clean text stayed empty, but the observed file now exists. Adopt only this known-absence
-                                // transition, without an LSP text change.
+                                // Clean text stayed empty, but the observed file now exists.
+                                // Adopt only this known-absence transition, without an LSP text change.
                                 current.acceptPersistedBaseline(persisted.content, "Reloaded after external workspace change", persisted.version)
                                 refreshed += current.path
                             }

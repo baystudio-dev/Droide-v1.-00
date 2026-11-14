@@ -66,8 +66,9 @@ internal class InstallerOperationCoordinator {
                     try { onFinish(failure) } catch (publicationFailure: Throwable) {
                         val original = failure
                         if (original != null) {
-                            // Coroutine debug recovery unwraps exception copies at a later dispatcher boundary. Retain the
-                            // publication error on both the copy and its matching original.
+                            // Coroutine debug recovery unwraps exception copies at
+                            // a later dispatcher boundary. Retain the publication
+                            // error on both the copy and its matching original.
                             val seen = mutableSetOf<Throwable>()
                             var retained: Throwable? = original
                             while (retained != null && seen.size < 16 && seen.add(retained) &&
@@ -97,7 +98,7 @@ internal class InstallerOperationCoordinator {
 
     suspend fun closeAndJoin() {
         close()
-
+        // The operation lane covers transaction commit/rollback and terminal-state publication.
         mutex.withLock { }
     }
 

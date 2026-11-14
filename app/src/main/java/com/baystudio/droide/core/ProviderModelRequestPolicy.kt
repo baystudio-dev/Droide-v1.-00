@@ -1,7 +1,6 @@
 package com.baystudio.droide.core
 
-// Protocols are selected by provider authority and explicit metadata, never a routed model name
-// alone.
+// Protocols are selected by provider authority and explicit metadata, never a routed model name alone.
 internal object ProviderModelRequestPolicy {
     fun protocol(provider: AiProvider, modelId: String?): ProviderWireProtocol {
         if (provider.wireProtocol != ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS || modelId == null) return provider.wireProtocol
@@ -13,8 +12,8 @@ internal object ProviderModelRequestPolicy {
     }
 
     fun isConversational(provider: AiProvider, modelId: String): Boolean {
-        // Google lists speech models under generateContent too. That action alone does not establish
-        // text chat or function-calling support, even when discovery omits modalities.
+        // Google lists speech models under generateContent too. That action alone does not
+        // establish text chat or function-calling support, even when discovery omits modalities.
         if (isGoogleSpeechModel(modelId)) return false
         val capability = ModelCapabilityRegistry.resolve(provider.id, modelId)
         if (capability?.transportCompatible == false) return false

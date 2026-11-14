@@ -2,7 +2,7 @@
   "androidJarSha256": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a",
   "baseAar": "app/libs/terminal-emulator-v0.118.0-java.aar",
   "binaryBaseRetained": true,
-  "expectedOutputIdentityBasis": "Exact existing selected-source compiler-output identities are fixed expectations, not inherited gate success; every new build must actually reproduce them.",
+  "expectedOutputIdentityBasis": "Reviewed bounded OSC 8 cell metadata, additive hyperlink lookup and existing raw-output observer; independently rebuilt Java 8 classes",
   "fullSourceRebuild": false,
   "jdkManifest": "tools/terminal-engine-v2-jdk.json",
   "jniReplacement": {
@@ -65,11 +65,17 @@
   "sourceSha256": {
     "app/libs/terminal-emulator-v0.118.0-java.aar": "4852749bb1de1d64630ee82000ce728a842521e391c55c2392d4a1b84ae74b61",
     "third_party/termux/UPSTREAM_PROVENANCE.json": "30164128e8e76b20fbac29cab4f09ec3b719136718d18d63f27e9fd9137c61db",
-    "third_party/termux/derivatives/pty-io/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
-    "third_party/termux/derivatives/pty-io/src/com/termux/terminal/TerminalPtyIo.java": "01c470e72e74106426d494849f61d42d9fdb456546b506b393895316148f48c4",
-    "third_party/termux/derivatives/resize/src/com/termux/terminal/TerminalResizeState.java": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3",
-    "third_party/termux/derivatives/resize/src/com/termux/terminal/TerminalSession.java": "c969987f8dd20c974a9017e4c9a9e0a005cbc84dce6eb7df56be8b8813f7c998",
-    "third_party/termux/derivatives/resize/src/com/termux/terminal/TerminalSessionClient.java": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2",
+    "third_party/termux/derivatives/r46/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
+    "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java": "01c470e72e74106426d494849f61d42d9fdb456546b506b393895316148f48c4",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSession.java": "c969987f8dd20c974a9017e4c9a9e0a005cbc84dce6eb7df56be8b8813f7c998",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2",
+    "third_party/termux/links/TerminalBuffer.patch": "16a72d841458269c8083e00997cc306d704744732ae948aafbac830d5cce5b13",
+    "third_party/termux/links/TerminalEmulator.patch": "4ecaa67b03ee37e9926c34c00e98865a0fbcde70ad17c7dc94fa9e0b2ccb64ec",
+    "third_party/termux/links/TerminalRow.patch": "9cf992799608bf9e7ef99b951152d56fb8cdb08b84ee4c6cda173eafec981a55",
+    "third_party/termux/links/src/com/termux/terminal/TerminalBuffer.java": "5746cdd795c11beb65f6e04ed1798c38d385fc93d6c367af8c84b4476a3fafa9",
+    "third_party/termux/links/src/com/termux/terminal/TerminalEmulator.java": "9588f1eeab1ddada6b41fdc44354457c325158c619d79e82dc980c5631fbf5b5",
+    "third_party/termux/links/src/com/termux/terminal/TerminalRow.java": "746f83433bcb7381cc869b492795fc93c7d67796aa2fa95168262cce6035c02b",
     "third_party/termux/native/OWNED_PROCESS_ABI.json": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
     "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3",
     "third_party/termux/patches/src/com/termux/terminal/JNI.java": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
@@ -79,9 +85,11 @@
     "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f",
     "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java": "6131e5639ad689e51a817a640076ca69ec6995a7cf911eee7250e086b7e2145b",
     "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae",
-    "tools/java_archive.py": "1cc3a37ac36efb6f196d6a091cb9f2b0a62071ebf1e453a9493fb760980c0ccb",
+    "third_party/termux/recording/owned/com/termux/terminal/TerminalSession.java": "5af7768fb4c28374e519b614e7c3c68c89e51be89ab43584e2c1d43a3eeac351",
+    "third_party/termux/recording/resize/com/termux/terminal/TerminalSession.java": "f1b5ae92ead85655db8d9d8b6e0eb0b5d9356fd0b0f646fe2a98612babc59910",
     "tools/terminal-engine-v2-jdk.json": "8438db3e628cf0860d2f5e0db29a3216bba0b4d3d1ce6d1a6e8d9cf17f29f2e5",
-    "tools/terminal_jdk_v2.py": "0583a3dfeb92088eca19554abd4928d93c14e1f6bf7a02abc529fb663f2f2ddd"
+    "tools/terminal_jdk_v2.py": "0583a3dfeb92088eca19554abd4928d93c14e1f6bf7a02abc529fb663f2f2ddd",
+    "tools/verify_termux_pty_derivative.py": "223d0f62da43fae3490819864dbfdc213934baae2fb6dc941805c77f9506b0e7"
   },
   "stages": [
     {
@@ -117,9 +125,9 @@
         "com/termux/terminal/ByteQueue$StopCondition.class": "7b46fbed43f5ece6a1f9ba4608eb5f36f8dc4b781b03c8f328812d6a1dfb10d9",
         "com/termux/terminal/ByteQueue.class": "c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33",
         "com/termux/terminal/JNI.class": "0f46033d6a7753e9bf7fa4784811c430a04b897462759b7df281553a6608782a",
-        "com/termux/terminal/TerminalBuffer.class": "c2fd2cb6b8196ad6ea51b03922c82fb9e594c53b0efd2cb01acda76525424551",
-        "com/termux/terminal/TerminalEmulator$SavedScreenState.class": "e975b317d7e8f41bb20e4da0bfc221db8bf4bc35144bcced159e59f90289ae08",
-        "com/termux/terminal/TerminalEmulator.class": "b5a0526374a8d6f222b7ee0c4c7ea7f0757ff14518f610e72e3091db234341ef",
+        "com/termux/terminal/TerminalBuffer.class": "494d4b81578c4b14770386005e149f706127aa933d11c1752b4535cd7fec4441",
+        "com/termux/terminal/TerminalEmulator$SavedScreenState.class": "d9ea0f46050ed7ec28e2b079cf0544edbd36e944bf233ecad3d5634cc0628a87",
+        "com/termux/terminal/TerminalEmulator.class": "6a1325f3502dc329af6e0010517d33fc32a9850d3d9a6a8055c8612d4df635eb",
         "com/termux/terminal/TerminalMemoryBudget.class": "e04b6f26ea547f34d926ed52b5dfc3e14681198acc83e3c027b0f1918b835745",
         "com/termux/terminal/TerminalProcessOwner$Backend.class": "45ff98a0ca290dfe672845634995dc4490ba6ebef6df6c05d89b1779ce5fb291",
         "com/termux/terminal/TerminalProcessOwner$Worker.class": "3d9e5efdd6e268a33eab94879aec92f1134663997de6e6f51798f9fbb89d5737",
@@ -129,29 +137,29 @@
         "com/termux/terminal/TerminalPtyIo$ReaderBackend.class": "ef0e38ba8dcca01bc4787c280b8c244d5350814b2bf895f9e12f23441e884580",
         "com/termux/terminal/TerminalPtyIo$WriteReceipt.class": "95a65337e5b757e79eb04c45064d7728b819d78c336121a890044909b9ea905e",
         "com/termux/terminal/TerminalPtyIo.class": "a862712e743f276925bfdc480e00dabd9e31a4cc54c68aae0af38eb0e84a3e1f",
-        "com/termux/terminal/TerminalRow.class": "39996b9f40c07f43b8fc752742267fbacca90f2b6395749cfa9341601cf5d134",
+        "com/termux/terminal/TerminalRow.class": "51941f026cfecb4b5dcd79c473a28685f5c7995264c3a453ede14fdba8a6637b",
         "com/termux/terminal/TerminalSession$1.class": "3c00016a943245c133c94fc2fad615b895fb31eb6a59006c18a515c4b1c8655b",
         "com/termux/terminal/TerminalSession$2.class": "9869e07bb695b78842fb2833cb2f4f87fe4924ac892835fe054143d14980e043",
         "com/termux/terminal/TerminalSession$3.class": "c7bc2dec3736a97958f0a24b85d0550905faf697e136345522e2ea6fc4e4984b",
         "com/termux/terminal/TerminalSession$InputHandler.class": "2dda6dce690ea99ac9285342c6ce07a968fc925b2db507230b9fe39c19de2f64",
-        "com/termux/terminal/TerminalSession$MainThreadHandler.class": "f6cf415b4a9472ebf53f1be0bcab8d897c7a105be148f2ae9e45fb2c57ab974b",
+        "com/termux/terminal/TerminalSession$MainThreadHandler.class": "9fdbec0b7330887e8f5103044f2a4d1b44bbb884881baa1226d25816c4f509e4",
         "com/termux/terminal/TerminalSession$NativeBackend.class": "2c406e760667d44c67fd7762a025578b2af3f3f1d22f9fccbb97df2d0dedf49f",
         "com/termux/terminal/TerminalSession$ReaderBackend.class": "02b9c5b42d5b78b0ff6a4774d4083356cfd498dfae1617d010315b03a8453451",
         "com/termux/terminal/TerminalSession$ReaderStopCondition.class": "ea32e0d6a223b5c3b1910d08f7c91915bc7750780fbf496e1f29e0b5d3ebcdcd",
         "com/termux/terminal/TerminalSession$WriterBackend.class": "22863256b177a21e892347f6ac5f5dea8e26bee238f24a5b80fd814857629f0d",
-        "com/termux/terminal/TerminalSession.class": "365f515dc00b5c62c19fbff53928515deedd01ffa3f08eb2daf43120286d7ca5"
+        "com/termux/terminal/TerminalSession.class": "fc5398651b1750cda6722f15ca4ac1e104f0c7d664f4897806553d4b682d7d8c"
       },
       "name": "owned-pty",
       "sources": {
         "ByteQueue": "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java",
         "JNI": "third_party/termux/patches/src/com/termux/terminal/JNI.java",
-        "TerminalBuffer": "third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java",
-        "TerminalEmulator": "third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java",
+        "TerminalBuffer": "third_party/termux/links/src/com/termux/terminal/TerminalBuffer.java",
+        "TerminalEmulator": "third_party/termux/links/src/com/termux/terminal/TerminalEmulator.java",
         "TerminalMemoryBudget": "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java",
         "TerminalProcessOwner": "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java",
-        "TerminalPtyIo": "third_party/termux/derivatives/pty-io/src/com/termux/terminal/TerminalPtyIo.java",
-        "TerminalRow": "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java",
-        "TerminalSession": "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java"
+        "TerminalPtyIo": "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java",
+        "TerminalRow": "third_party/termux/links/src/com/termux/terminal/TerminalRow.java",
+        "TerminalSession": "third_party/termux/recording/owned/com/termux/terminal/TerminalSession.java"
       }
     },
     {
@@ -183,21 +191,21 @@
         "com/termux/terminal/TerminalSession$2.class": "cdde8a2ecc189c27d0eb5597e7b70aa364b0305b2560ff141ec2b417953bd621",
         "com/termux/terminal/TerminalSession$3.class": "cacfa390e843d365acd174df9b0ee5376f4254cae3947c759baddb37cad5050a",
         "com/termux/terminal/TerminalSession$InputHandler.class": "2dda6dce690ea99ac9285342c6ce07a968fc925b2db507230b9fe39c19de2f64",
-        "com/termux/terminal/TerminalSession$MainThreadHandler.class": "8bf50811be48bff779a610e8d632ac78c5f947710587ac983f9b13f4833b6aa6",
+        "com/termux/terminal/TerminalSession$MainThreadHandler.class": "7cf83393bf7f098c49f81ef0a6a6c7583cf0295b57fd2556cb1e3ba318ee652b",
         "com/termux/terminal/TerminalSession$NativeBackend.class": "6cf16f6df31863459943cd97d5b8c48393359be3896f5ee9e26c75b241d307e9",
         "com/termux/terminal/TerminalSession$ReaderBackend.class": "02b9c5b42d5b78b0ff6a4774d4083356cfd498dfae1617d010315b03a8453451",
         "com/termux/terminal/TerminalSession$ReaderStopCondition.class": "57a9eb13cf2f6c761c6d965d913694ed0047d9ae46344fb373b3c8fea807a19a",
         "com/termux/terminal/TerminalSession$ResizeBackend.class": "16e53d2b6b17992c26a223bc99977c90a28d2fa3a8889c3588320a49ccbff7b5",
         "com/termux/terminal/TerminalSession$ResizeListener.class": "95ba2d411d62ab68c02c03798d36aa363f3ed611e071b4ad2b7162757be715c2",
         "com/termux/terminal/TerminalSession$WriterBackend.class": "1f14c8982f681d5d8f900047eba22ecaefee428e20f031db00330d2595ef9810",
-        "com/termux/terminal/TerminalSession.class": "8069fe95029cf693a1749f36e8e81f4247ca46afc4dd9250cff88880ed755da9",
+        "com/termux/terminal/TerminalSession.class": "7d1c286d01ae9b194592849af217dea75957eeb7e463be3153819a032b6577af",
         "com/termux/terminal/TerminalSessionClient.class": "f7a887b02643f0d69ed649620634b9b131a9fa82f949bcd9923a31b9e5be7f91"
       },
       "name": "resize",
       "sources": {
-        "TerminalResizeState": "third_party/termux/derivatives/resize/src/com/termux/terminal/TerminalResizeState.java",
-        "TerminalSession": "third_party/termux/derivatives/resize/src/com/termux/terminal/TerminalSession.java",
-        "TerminalSessionClient": "third_party/termux/derivatives/resize/src/com/termux/terminal/TerminalSessionClient.java"
+        "TerminalResizeState": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java",
+        "TerminalSession": "third_party/termux/recording/resize/com/termux/terminal/TerminalSession.java",
+        "TerminalSessionClient": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java"
       }
     }
   ]

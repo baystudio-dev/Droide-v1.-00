@@ -8,7 +8,8 @@ import kotlinx.serialization.json.JsonPrimitive
 internal object NativeContextProjection {
     fun forAccounting(message: JsonObject, transport: ProviderTransportSpec?): JsonObject {
         if (message["role"] != JsonPrimitive("assistant") || transport == null) return message
-
+        // No provider-name or model-name inference. Native signatures stay in the
+        // selected private field, and unrelated fields are conservatively counted.
         val native = try {
             when (transport.protocol) {
                 ProviderWireProtocol.ANTHROPIC_MESSAGES -> AnthropicMessagesAdapter.validatedNativeContent(message, Json)
@@ -17,8 +18,8 @@ internal object NativeContextProjection {
                 ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS -> null
             }
         } catch (_: IllegalArgumentException) {
-            // Invalid native data cannot earn a lower estimate. Real encoding still rejects it according to
-            // its own adapter contract; no repair is applied.
+            // Invalid native data cannot earn a lower estimate. Real encoding still
+            // rejects it according to its own adapter contract; no repair is applied.
             return message
         } catch (_: IllegalStateException) {
             return message

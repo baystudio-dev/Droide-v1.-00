@@ -35,7 +35,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** source-only coverage, authored but not runtime-verified in this checkpoint. */
+/** R48 source-only coverage, authored but not runtime-verified in this checkpoint. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -69,6 +69,25 @@ class WorkspaceNativePresentationTest {
         if (view is ViewGroup) assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS, view.descendantFocusability)
     }
 
+    @Test fun animatedExitKeepsPixelsButBlocksNativeInputAndRestoresExactPresentation() {
+        val holder = FrameLayout(context)
+        val editor = EditText(context).apply { setText("unsaved draft"); setSelection(4) }
+        holder.addView(editor)
+        val original = presentation(holder)
+        val gate = WorkspaceNativePresentationGate()
+        gate.update(holder, presented = false, drawWhileHidden = true)
+        assertEquals(View.VISIBLE, holder.visibility)
+        assertFalse(holder.isFocusable)
+        assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS, holder.descendantFocusability)
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, holder.importantForAccessibility)
+        gate.update(holder, presented = false, drawWhileHidden = false)
+        assertHidden(holder)
+        gate.update(holder, presented = true)
+        assertEquals(original, presentation(holder))
+        assertEquals("unsaved draft", editor.text.toString())
+        assertEquals(4, editor.selectionStart)
+    }
+
     @Test fun restoresExactOriginalValuesIncludingAutoFocusabilityAndNonvisibleViews() {
         for (view in listOf(View(context), FrameLayout(context))) {
             for (visibility in listOf(View.VISIBLE, View.INVISIBLE, View.GONE)) {
@@ -99,8 +118,8 @@ class WorkspaceNativePresentationTest {
             gate.update(view, presented = false)
             assertHidden(view)
         }
-        // A later owner update must neither reopen the hidden surface nor replace the snapshot with
-        // gated values on the next AndroidView update.
+        // A later owner update must neither reopen the hidden surface nor replace
+        // the snapshot with gated values on the next AndroidView update.
         view.visibility = View.VISIBLE
         view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
         view.isFocusableInTouchMode = true
@@ -234,7 +253,9 @@ class WorkspaceNativePresentationTest {
             compose.runOnIdle { updateTick++ }
             compose.runOnIdle {
                 assertHidden(holder)
-
+                // Observe the settled presentation after Compose applies its local.
+                // A live outer-state read inside AndroidView.update can run before
+                // the CompositionLocal's next value has reached that callback.
                 assertFalse(original.requestFocus())
                 assertFalse(original.isReleased)
                 assertTrue(original.isAttachedToWindow)

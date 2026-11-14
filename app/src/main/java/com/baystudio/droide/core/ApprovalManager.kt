@@ -6,18 +6,19 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+ 
 data class ApprovalRequest(
     val id: Long,
-    val kind: String,
+    val kind: String, 
     val summary: String,
-    val detail: String,
+    val detail: String, 
     val action: String = "",
     val resource: String = "",
     val permissionScope: String = "",
     val provenance: AgentRequestProvenance = AgentRequestProvenance.primary(),
-
+     
     val approvalSessionId: String = "",
-
+     
     val sessionGrantAction: String = "",
     val sessionGrantResource: String = "",
     val browserContext: BrowserApprovalContext? = null,
@@ -33,11 +34,13 @@ data class ApprovalRequest(
 sealed interface ApprovalDecision { data object Approved : ApprovalDecision; data object Denied : ApprovalDecision }
 enum class ApprovalResolution { DENY, ALLOW_ONCE, ALLOW_SESSION }
 
+
 class ApprovalManager {
     private class BrowserValidity(val check: () -> Boolean, val admit: (suspend () -> Boolean)?) : kotlin.coroutines.AbstractCoroutineContextElement(Key) {
         companion object Key : kotlin.coroutines.CoroutineContext.Key<BrowserValidity>
     }
 
+    /** Restricts approval admission/resolution for this browser call, including doom/hooks. */
     internal suspend fun <T> withBrowserValidity(check: () -> Boolean, admission: (suspend () -> Boolean)? = null,
         block: suspend () -> T): T = kotlinx.coroutines.withContext(BrowserValidity(check, admission)) { block() }
 
@@ -132,8 +135,8 @@ class ApprovalManager {
         val capturedOwnerAdmission = ownerAdmission ?: kotlinx.coroutines.currentCoroutineContext()[OwnerAdmission]
             ?.takeIf { it.manager === this }?.owner
         val browserContextValidity = kotlinx.coroutines.currentCoroutineContext()[BrowserValidity]
-        // Admission may have waited behind an unrelated prompt. Sample again now, outside stateLock,
-        // before making a browser-owned prompt visible.
+        // Admission may have waited behind an unrelated prompt. Sample again now,
+        // outside stateLock, before making a browser-owned prompt visible.
         if (browserContextValidity?.admit?.invoke() == false) return@withLock ApprovalDecision.Denied
         val browserValidity = browserContextValidity?.check
         val validity: (() -> Boolean)? = if (browserValidity == null && inputReview == null) isStillCurrent else {
@@ -214,8 +217,8 @@ class ApprovalManager {
     fun resolve(resolution: ApprovalResolution) {
         val (requestId, compatibleResolution) = synchronized(stateLock) {
             val req = _pending.value ?: return
-            // Preserve historical compatibility for old callers, but project-analysis consent has exactly
-            // one explicit action and must never widen a session choice.
+            // Preserve historical compatibility for old callers, but project-analysis
+            // consent has exactly one explicit action and must never widen a session choice.
             req.id to if (resolution == ApprovalResolution.ALLOW_SESSION && !req.canAllowForSession &&
                 req.kind !in setOf("lsp_project_analysis", ToolchainInstallConsent.KIND)) {
                 ApprovalResolution.ALLOW_ONCE
@@ -227,8 +230,8 @@ class ApprovalManager {
     /** Returns false for stale, cancelled, already answered, or unavailable session choices. */
     @OptIn(InternalCoroutinesApi::class)
     fun resolve(requestId: Long, resolution: ApprovalResolution): Boolean {
-        // Read callbacks under stateLock, then release it before invoking any owner or browser check.
-        // Publication lock order is owner monitor -> stateLock only.
+        // Read callbacks under stateLock, then release it before invoking any owner or
+        // browser check. Publication lock order is owner monitor -> stateLock only.
         val (validity, ownerAdmission) = synchronized(stateLock) {
             if (_pending.value?.id != requestId) return false
             validityChecks[requestId] to ownerAdmissions[requestId]
@@ -246,8 +249,8 @@ class ApprovalManager {
                     SessionGrant(req.approvalSessionId, req.permissionScope, req.sessionGrantAction, req.sessionGrantResource)
                 } else null
 
-                // Reserve continuation delivery before creating authority. Cancellation revokes this exact grant
-                // object, never a newer equivalent session grant.
+                // Reserve continuation delivery before creating authority. Cancellation
+                // revokes this exact grant object, never a newer equivalent session grant.
                 val resumeToken = cont.tryResume(decision, null) { _, _, _ ->
                     if (grant != null) synchronized(stateLock) {
                         sessionGrants.removeAll { it === grant }
@@ -279,6 +282,7 @@ class ApprovalManager {
         return synchronized(stateLock) { !retired && SessionGrant(sid, scope, grantAction, grantResource) in sessionGrants }
     }
 
+     
     fun clearSessionApprovals(sessionId: String, permissionScope: String? = null) {
         val sid = normalizeApprovalSessionId(sessionId)
         if (sid.isBlank()) return
@@ -288,6 +292,7 @@ class ApprovalManager {
         }
     }
 
+     
     fun clearAllSessionApprovals() = synchronized(stateLock) { sessionGrants.clear() }
 
     /** Capture this grant instance, so revocation followed by reapproval cannot revive old work. */
@@ -333,7 +338,8 @@ class ApprovalManager {
 }
 
 /** Finite owner transaction; the internal check must be pure, non-suspending and perform no IO.
- * The final method invokes publication exactly once, after checking the owner under its monitor. */
+ * The final method invokes publication exactly once, after checking the owner under its monitor.
+ */
 class ApprovalOwnerAdmission internal constructor(
     private val monitor: Any,
     private val isCurrent: () -> Boolean,

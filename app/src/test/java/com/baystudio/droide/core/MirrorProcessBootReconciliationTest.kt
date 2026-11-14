@@ -44,8 +44,8 @@ class MirrorProcessBootReconciliationTest {
             base.walkTopDown().filter { it.isFile }.map { it.relativeTo(root).path to it.readBytes().toList() }.toList()
         }.toMap()
 
-        // Frozen on-disk format, including its length-framed checksum. This is a valid old database,
-        // unlike changing only user_version on a schema-5 database.
+        // Frozen F113 on-disk format, including its length-framed checksum. This is a
+        // valid old database, unlike changing only user_version on a schema-5 database.
         fun makeLegacySchema4() = db().use { db ->
             db.beginTransaction()
             try {

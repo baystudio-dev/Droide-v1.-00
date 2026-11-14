@@ -10,6 +10,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 // A mobile IDE must never leave the user behind an unbounded setup spinner.
 
+
 enum class WorkspaceStartupPhase {
     IDLE,
     RUNTIME_REGISTRIES,
@@ -46,6 +47,7 @@ class WorkspaceStartupTimeoutException(
 private data class StartupResult<T>(val value: T)
 
 object WorkspaceStartupPolicy {
+    
 
     const val RUNTIME_REGISTRIES_TIMEOUT_MS = 5_000L
     const val PROJECT_CATALOG_TIMEOUT_MS = 5_000L
@@ -64,8 +66,8 @@ object WorkspaceStartupPolicy {
         block: suspend () -> T,
     ): T {
         require(timeoutMs in 1_000L..60_000L) { "Invalid workspace startup timeout: $timeoutMs" }
-        // A caller's timeout must remain cancellation; only this stage's own deadline is a recoverable
-        // startup failure. Box nullable results.
+        // A caller's timeout must remain cancellation; only this stage's own
+        // deadline is a recoverable startup failure. Box nullable results.
         val result = withTimeoutOrNull(timeoutMs) { StartupResult(block()) }
             ?: throw WorkspaceStartupTimeoutException(phase, timeoutMs, projectId)
         return result.value

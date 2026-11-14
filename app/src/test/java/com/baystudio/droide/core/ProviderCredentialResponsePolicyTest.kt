@@ -15,6 +15,7 @@ import okhttp3.Request
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Credential responses through the production token client on real local sockets. */
 class ProviderCredentialResponsePolicyTest {
     @Test(timeout = 15_000) fun malformedHttp200NeverExposesAClippedTokenPrefixOrRetries() {
         val messages = listOf(SECRET, "second-credential-prefix-fixture-" + "z".repeat(710)).map { token ->
@@ -100,8 +101,8 @@ class ProviderCredentialResponsePolicyTest {
     }
 
     private fun assertCredentialSafeFailure(failure: Throwable) {
-        // Coroutine recovery may attach the original safe exception as a cause. Assert the complete
-        // diagnostic boundary rather than requiring no cause.
+        // Coroutine recovery may attach the original safe exception as a cause.
+        // Assert the complete diagnostic boundary rather than requiring no cause.
         val seen = mutableSetOf<Throwable>()
         var current: Throwable? = failure
         while (current != null && seen.add(current)) {

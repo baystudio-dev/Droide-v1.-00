@@ -150,7 +150,7 @@ class ChatMediaAccessAndCleanupTest {
         assertNotNull(store.file(ref))
         scheduler.cancelAll()
         assertNotNull(store.file(ref))
-        assertNotNull(ChatMediaCleanup.resume(app))
+        assertNotNull(ChatMediaCleanup.resume(app)) // Robolectric's rejection remains active until reset.
     }
 
     @Test fun startupResumeRestoresOneShotJobFromRegistryWithoutScanningProjects() = runBlocking {

@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
+
 @Composable
 internal fun BindDroideSoraFeatures(
     editor: DroideCodeEditor?,
@@ -70,8 +71,8 @@ internal fun BindDroideSoraFeatures(
         val version = document.changeVersion
         delay(400)
         val hints = runSuspendCatching { lsp.inlayHints(path, document.content) }.getOrDefault(emptyList())
-        // A provider may complete a suspended request after cancellation or after rotation switched
-        // native views. Results belong to their original buffer.
+        // A provider may complete a suspended request after cancellation or after
+        // rotation switched native views. Results belong to their original buffer.
         currentCoroutineContext().ensureActive()
         if (currentEditor !== target || !target.acceptsFeatureUpdates || document.revision != revision ||
             document.changeVersion != version || !document.fullIntelligence) return@LaunchedEffect
@@ -80,6 +81,7 @@ internal fun BindDroideSoraFeatures(
     }
 }
 
+ 
 internal fun CodeEditor.configureDroideProfessionalEditorFeatures(largeFileOptimized: Boolean) {
     props.stickyScroll = !largeFileOptimized
     props.stickyScrollMaxLines = 3
@@ -87,6 +89,7 @@ internal fun CodeEditor.configureDroideProfessionalEditorFeatures(largeFileOptim
     props.stickyScrollAutoCollapse = true
 }
 
+ 
 internal fun CodeEditor.applyDroideDiagnostics(items: List<LspDiagnostic>) {
     if (isReleased || (this is DroideCodeEditor && !acceptsFeatureUpdates)) return
     if (items.isEmpty()) {
@@ -135,6 +138,8 @@ internal fun CodeEditor.applyDroideDiagnostics(items: List<LspDiagnostic>) {
     else setDiagnostics(DiagnosticsContainer(true).apply { addDiagnostics(regions) })
 }
 
+
+ 
 internal fun CodeEditor.applyDroideInlayHints(items: List<LspInlayHint>) {
     if (isReleased || (this is DroideCodeEditor && !acceptsFeatureUpdates)) return
     if (items.isEmpty()) {

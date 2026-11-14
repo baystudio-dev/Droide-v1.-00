@@ -53,12 +53,11 @@ internal class AgentWebSearch(private val transport: AgentWebTransport, private 
             progress("Searching the web · $engine · ${url.toHttpUrl().host}")
             try {
                 val response = withAgentWebDeadline(attemptTimeoutMs, nanoTime) { attemptDeadline -> transport.getText(url) { target ->
-                    // Search permission authorizes only these engine domains; unrelated redirects need fetch
-                    // permission.
+                    // Search permission authorizes only these engine domains; unrelated redirects need fetch permission.
                     val host = target.toHttpUrl().host
                     if (!searchHost(engine, host)) {
-                        // Transport pauses its own budget around this callback. Pause both search budgets too, including
-                        // time spent waiting for another request's serialized permission prompt.
+                        // Transport pauses its own budget around this callback. Pause both search budgets too,
+                        // including time spent waiting for another request's serialized permission prompt.
                         totalDeadline.withoutTime { attemptDeadline.withoutTime { authorizeRedirect(target) } }
                     }
                 } }

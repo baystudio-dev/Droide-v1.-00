@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.security.MessageDigest
 import kotlinx.serialization.Serializable
 
+
 @Serializable
 data class AndroidDeviceIdentitySnapshot(
     val manufacturer: String,
@@ -57,6 +58,7 @@ data class AndroidDeviceIdentitySnapshot(
             bridgeEndpoint == other.bridgeEndpoint &&
             api == other.api &&
             abis == other.abis
+
 
     fun samePhysicalIdentity(other: AndroidDeviceIdentitySnapshot): Boolean =
         fingerprint == other.fingerprint &&

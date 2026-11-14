@@ -1,0 +1,42 @@
+[
+  {
+    "coordinate": "androidx.annotation:annotation-jvm:1.10.0",
+    "artifact": "annotation-jvm-1.10.0.jar",
+    "artifactSha256": "ddd072ddbb553178e205517ce777b2f05aa9e412982d9ecb4eedc74f1212f697",
+    "entry": "META-INF/androidx/annotation/annotation/LICENSE.txt",
+    "asset": "app/src/main/assets/legal/licenses/AndroidX-Upstream-LICENSE.txt",
+    "sha256": "809fa1ed21450f59827d1e9aec720bbc4b687434fa22283c6cb5dd82a47ab9c0"
+  },
+  {
+    "coordinate": "com.baystudio.compat:jgit-android-compat:6.10.1.202505221210-r-droide-reconstruction1",
+    "artifact": "jgit-android-compat-6.10.1.202505221210-r-droide-reconstruction1.jar",
+    "artifactSha256": "34ddf32173ff109392e7b123aae599426cd846aee02bb28d6fff550bd141ed3b",
+    "entry": "META-INF/droide-jgit/NOTICE.md",
+    "asset": "app/src/main/assets/legal/licenses/JGit-Android-Derivative-NOTICE.txt",
+    "sha256": "db0a9448e80fa029ad1534f609e1b8a2db09bd0fa4cc2a8f3e9425bb7297a530"
+  },
+  {
+    "coordinate": "com.baystudio.compat:spake2-boringssl-compat:1.0.0",
+    "artifact": "spake2-boringssl-compat-1.0.0.jar",
+    "artifactSha256": "e274cd0b690a7ac831a064024335f585e492a945eec1c52fb4c0a6963e366463",
+    "entry": "META-INF/NOTICE",
+    "asset": "app/src/main/assets/legal/licenses/SPAKE2-Compatibility-NOTICE.txt",
+    "sha256": "6bf0a9b69aea97c808e798da241044133697217e44b01dbcc86345565274f3bc"
+  },
+  {
+    "coordinate": "com.squareup.okhttp3:okhttp:4.12.0",
+    "artifact": "okhttp-4.12.0.jar",
+    "artifactSha256": "b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0",
+    "entry": "okhttp3/internal/publicsuffix/NOTICE",
+    "asset": "app/src/main/assets/legal/licenses/OkHttp-Public-Suffix-NOTICE.txt",
+    "sha256": "8a9c58fbded5ea3474315e4a9824ca8b1486098a1a03e897e0b19419d5e1876a"
+  },
+  {
+    "coordinate": "org.jsoup:jsoup:1.18.1",
+    "artifact": "jsoup-1.18.1.jar",
+    "artifactSha256": "3bb5b0ec02998abe45a51f37d7ce67c3068b4ccd4ab63c965929ec5074d64e91",
+    "entry": "META-INF/LICENSE",
+    "asset": "app/src/main/assets/legal/licenses/jsoup-MIT.txt",
+    "sha256": "7b175df01644812d2163a51c0cf1a2d1b93433585dabd2a4a80494f84cba085a"
+  }
+]

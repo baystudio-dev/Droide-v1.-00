@@ -206,7 +206,7 @@ class FileRepositoryBoundedUtf8Test {
             mutations += mutation
             if (mutation is FileRepository.Mutation.Write) throw failure
         })
-
+        // Editor-save's canonical publication contract supersedes the donor's overwrite rollback.
         val actual = assertThrows(ProjectFileSyncException::class.java) {
             runBlocking { repository.writeTextIfUnchanged("text.txt", "replacement", DiskFileVersion.fromText("original")) }
         }
@@ -227,7 +227,7 @@ class FileRepositoryBoundedUtf8Test {
             mutations += mutation
             if (mutation is FileRepository.Mutation.Write) throw cause
         })
-
+        // Keep the editor-save receipt type and its byte count, including surrogate replacement.
         val failure = assertThrows(ProjectFileSyncException::class.java) {
             runBlocking { repository.writeTextIfUnchanged("text.txt", text, DiskFileVersion.fromText(null)) }
         }
@@ -277,7 +277,8 @@ class FileRepositoryBoundedUtf8Test {
     }
 
     // Coroutine debug stack recovery may copy ordinary exceptions across withContext.
-
+    // This identity-bearing fixture deliberately cannot be copied; assertSame still proves
+    // the repository propagated the exact failure and did not relabel a foreign mutation.
     private class IdentityFailure(message: String) : IllegalStateException(message) {
         val identityMarker = Any()
     }

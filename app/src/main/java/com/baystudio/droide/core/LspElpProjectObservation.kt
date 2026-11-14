@@ -99,7 +99,7 @@ internal object LspElpProjectObservation {
             } else {
                 val rebar = present(a, "rebar.config.script") ?: present(a, "rebar.config")
                 kind = if (rebar != null) ElpProjectObservation.Kind.REBAR else ElpProjectObservation.Kind.NO_MANIFEST
-
+                // Exact release quirk: static/no-manifest in-place receives the TOML file itself.
                 descriptor = rebar?.guestPath ?: "$parent/.static"
             }
         } else {
@@ -124,7 +124,7 @@ internal object LspElpProjectObservation {
                     val app = if (entry is JsonPrimitive && entry.isString && isTomlBuild) {
                         val literal = entry.content; require(literal.none { it in "*?[]" }) { "Native Rust glob membership is unavailable: $literal" }
                         val dir = path(root, literal); inspect(listOf(dir)); val seen = requireNotNull(observed[dir])
-                        if (seen.kind == "absent") continue
+                        if (seen.kind == "absent") continue // Native literal glob has no matches.
                         require(seen.kind == "directory") { "Static app literal is not a directory: $dir" }
                         buildJsonObject { put("name", dir.substringAfterLast('/')); put("dir", dir); put("src_dirs", JsonArray(listOf(JsonPrimitive("src")))); put("extra_src_dirs", JsonArray(listOf(JsonPrimitive("test")))); put("include_dirs", JsonArray(listOf("include", "src", ".").map(::JsonPrimitive))) }
                     } else entry as? JsonObject ?: error("Malformed native static app")
@@ -144,8 +144,8 @@ internal object LspElpProjectObservation {
         }
         require(observed.values.sumOf { it.bytes?.size?.toLong() ?: 0L } <= 8_388_608)
         val selectionAncestors = raw.ancestors.filter { it.guestPath == root || root.startsWith(it.guestPath.trimEnd('/') + "/") }
-        // Descendant negative marker paths depend on the initiating tab, not the selected project. They
-        // are re-observed per feature and must not split one native root into two owners.
+        // Descendant negative marker paths depend on the initiating tab, not the selected project.
+        // They are re-observed per feature and must not split one native root into two owners.
         val selectedMarkerPaths = selectionAncestors.flatMap { it.markers.values }.mapTo(hashSetOf()) { it.guestPath }
         val selectionFiles = observed.filterKeys { it == descriptor || it in selectedMarkerPaths || it in explicitPaths }
         val identity = sha((raw.workspaceRoot + raw.guestWorkspaceRoot + raw.tools?.consentIdentity + selectionAncestors.map { a -> a.guestPath + a.directoryIdentity + a.markers.values.map { "${it.guestPath}:${it.kind}:${it.identity}:${it.directoryIdentity}" } } + "\n$root\n$descriptor\n$kind\n$profile\n$static\n" +

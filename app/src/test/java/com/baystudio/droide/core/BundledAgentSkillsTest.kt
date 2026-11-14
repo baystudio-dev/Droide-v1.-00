@@ -12,7 +12,8 @@ class BundledAgentSkillsTest {
         val root = Files.createTempDirectory("builtin-skills-").toFile()
         try {
             val management = SkillManagement(FileRepository(root))
-            assertEquals(setOf("documents", "audio", "image-generation"), management.catalog().map { it.name }.toSet())
+            assertEquals(setOf("documents", "audio", "image-generation") + AgentWorkflowTemplates.entries.map { it.skill },
+                management.catalog().map { it.name }.toSet())
             assertTrue(root.listFiles().orEmpty().isEmpty())
             assertTrue(management.catalog().all { it.sourceLabel == "builtin" && it.description.length < 150 })
             for (entry in management.catalog()) {

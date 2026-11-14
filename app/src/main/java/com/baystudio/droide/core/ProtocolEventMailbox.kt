@@ -50,8 +50,8 @@ internal class ProtocolEventMailbox<T>(
     internal val terminalBytes: Long get() = synchronized(lock) { terminal?.wireBytes ?: 0L }
 
     val events: Flow<T> = flow {
-        // Register before entering the finally: an unadmitted second collector must never detach or
-        // release the actual owner's in-flight event.
+        // Register before entering the finally: an unadmitted second collector
+        // must never detach or release the actual owner's in-flight event.
         val admitted = synchronized(lock) {
             check(owner == null) { "Protocol event mailbox supports one active collector" }
             Owner(replayFloor()).also { owner = it }
@@ -67,8 +67,8 @@ internal class ProtocolEventMailbox<T>(
                             delivered = true
                         } finally {
                             synchronized(lock) {
-                                // Cancellation (including first/take abort) does not prove the downstream finished delivery.
-
+                                // Cancellation (including first/take abort) does
+                                // not prove the downstream finished delivery.
                                 if (delivered) next.entry.deliveredSuccessfully = true
                                 if (owner === admitted && inFlight === next.entry) inFlight = null
                                 prune()
@@ -102,8 +102,8 @@ internal class ProtocolEventMailbox<T>(
                 owner == null && replay == 0 -> Admission.DISCARDED
                 nextSequence == Long.MAX_VALUE -> Admission.OVERFLOW
                 else -> {
-                    // Calculate the post-append replay eviction without mutating old entries: a rejected event must
-                    // not consume replay.
+                    // Calculate the post-append replay eviction without mutating
+                    // old entries: a rejected event must not consume replay.
                     val proposedNext = nextSequence + 1L
                     val proposedFloor = (proposedNext - replay.toLong()).coerceAtLeast(0L)
                     var count = 1L
@@ -118,8 +118,8 @@ internal class ProtocolEventMailbox<T>(
                     val pressureEvictions = ArrayList<Entry<T>>()
                     if (wireBytes > maxRetainedBytes - remainingBytes) {
                         for (entry in entries) {
-                            // Only already-delivered replay may yield to byte pressure. Pending or in-flight data is never
-                            // lost.
+                            // Only already-delivered replay may yield to byte
+                            // pressure. Pending or in-flight data is never lost.
                             val pending = owner?.let { entry.sequence >= it.cursor } == true
                             if (entry.sequence >= proposedFloor && !pending && entry !== inFlight &&
                                 entry.deliveredSuccessfully) {

@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
+
 class AuthenticatedReverseTcpProcessHost(
     private val delegate: StdioProcessHost,
     private val scope: CoroutineScope,
@@ -71,6 +72,7 @@ class AuthenticatedReverseTcpProcessHost(
             acceptJob = scope.async(Dispatchers.IO) { listener.accept() }
             process = delegate.start(launchArgv, environment, resourceLimits)
             // Drain process output early to prevent pipe deadlock.
+
 
             stdoutDrain = drainProcessStdout(process.stdout)
             socket = withTimeout(STARTUP_TIMEOUT_MS) { acceptJob.await() }
@@ -152,7 +154,7 @@ class AuthenticatedReverseTcpProcessHost(
                 if (input.read(buffer) < 0) break
             }
         } catch (_: Throwable) {
-
+            
         }
     }
 

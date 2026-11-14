@@ -21,8 +21,10 @@ internal fun interface WorkspaceDocumentWatchFactory {
     fun open(path: String, invalidate: (rebind: Boolean) -> Unit): AutoCloseable?
 }
 
-/** Main-owned lifecycle, bounded thread-safe event inbox. Idle waits are suspended receives, not
- * polling. Events are hints; focus/resume reconciliation remains the recovery fallback. */
+/**
+ * Main-owned lifecycle, bounded thread-safe event inbox. Idle waits are suspended receives,
+ * not polling. Events are hints; focus/resume reconciliation remains the recovery fallback.
+ */
 internal class VisibleDocumentChangeObserver(
     private val scope: CoroutineScope,
     private val factory: WorkspaceDocumentWatchFactory,
@@ -37,8 +39,8 @@ internal class VisibleDocumentChangeObserver(
     private val requests = MutableStateFlow<Request?>(null)
     init { require(coalesceMillis in 0..1_000) }
     private val job = scope.launch {
-        // collectLatest cancels AND joins the previous binding before starting another. This also holds
-        // when several path/hide/show changes arrive before dispatch.
+        // collectLatest cancels AND joins the previous binding before starting another.
+        // This also holds when several path/hide/show changes arrive before dispatch.
         requests.collectLatest { request ->
             if (request == null) return@collectLatest
             val next = request.path
@@ -52,7 +54,7 @@ internal class VisibleDocumentChangeObserver(
                 val old = handle
                 handle = null
                 if (old != null) withContext(NonCancellable + io) {
-                    try { old.close() } catch (_: Exception) {   }
+                    try { old.close() } catch (_: Exception) { /* Visibility fallback remains available. */ }
                 }
             }
             suspend fun bind() {
@@ -73,7 +75,7 @@ internal class VisibleDocumentChangeObserver(
             try {
                 bind()
                 currentCoroutineContext().ensureActive()
-
+                // Recheck the initial read/watch gap even when registration was unavailable.
                 if (request.reconcileAfterRegistration && !closed && generation == admitted && path == next) changed(next)
                 while (true) {
                     events.receive()

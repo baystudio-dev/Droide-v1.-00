@@ -166,6 +166,7 @@ class NativeBuildTaskRegressionTest {
         }
     }
 
+
     private fun compileUnusualNativeName(name: String) {
         org.junit.Assume.assumeTrue(File("/usr/bin/gcc").canExecute() && File("/usr/bin/g++").canExecute())
         config(name, "int main(void) { return 0; }")

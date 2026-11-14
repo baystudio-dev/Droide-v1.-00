@@ -30,7 +30,7 @@ class StartupRecoveryRestorationTest {
     @get:Rule val compose = createComposeRule()
 
     @Composable private fun WorkspaceRoot(policy: StartupRecoveryPolicy) {
-
+        // Match the root key in MainActivity, with tiny panel content to isolate restoration.
         key("default", "/project", policy.deferEditorReopen, policy.recoveryGeneration) {
             var panel by rememberSaveable { mutableStateOf("Files") }
             Column {
@@ -43,8 +43,8 @@ class StartupRecoveryRestorationTest {
     @Test fun consecutiveNativeCrashRecoveryDoesNotRestoreThePriorRecoveryWebPanel() {
         val firstExit = PreviousProcessExit(1_000, 101, ApplicationExitInfo.REASON_CRASH_NATIVE)
         val secondExit = PreviousProcessExit(2_000, 202, ApplicationExitInfo.REASON_CRASH_NATIVE)
-        // Not Compose state: change the process decision only when the registry is recreated, without
-        // disposing the old key before its saved instance state has been captured.
+        // Not Compose state: change the process decision only when the registry is recreated,
+        // without disposing the old key before its saved instance state has been captured.
         var processPolicy = StartupRecoveryPolicy.decide(firstExit, null)
         val restoration = StateRestorationTester(compose)
         restoration.setContent { DroideTheme { WorkspaceRoot(processPolicy) } }

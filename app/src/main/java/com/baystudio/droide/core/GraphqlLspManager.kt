@@ -34,8 +34,8 @@ internal class GraphqlLspManager(
     @Volatile private var clientFencedOwner: GraphqlPreparedOwner? = null
     private fun fenceForClientRetirement(owner: GraphqlPreparedOwner?) {
         if (owner == null) return
-        // Publish exact retirement intent before the independent fence, so observation cannot mistake an
-        // ordinary same-grant editor refresh for managed-owner loss.
+        // Publish exact retirement intent before the independent fence, so observation
+        // cannot mistake an ordinary same-grant editor refresh for managed-owner loss.
         clientFencedOwner = owner
         owner.fence()
     }
@@ -62,8 +62,8 @@ internal class GraphqlLspManager(
     override val diagnostics: StateFlow<Map<String, List<LspDiagnostic>>> = _diagnostics.asStateFlow()
     private val publications = Channel<GraphqlDiagnosticPublication>(Channel.CONFLATED)
     @Volatile private var invalidation: GraphqlDiagnosticPublication? = null
-    // Called only after releasing our monitor. Parent admits owner/serial atomically under its outer
-    // lifetime lock, so a delayed clear cannot erase a replacement publication.
+    // Called only after releasing our monitor. Parent admits owner/serial atomically under
+    // its outer lifetime lock, so a delayed clear cannot erase a replacement publication.
     private fun publishInvalidation() { if (!Thread.holdsLock(lock)) invalidation?.let(onDiagnostics) }
     private val held = hashMapOf<String, LspHeldResultGuard>()
     private val publicationOwner = Any()
@@ -186,8 +186,8 @@ internal class GraphqlLspManager(
         }
         publishInvalidation()
     }
-    /** A parent's pre-save snapshot can confirm an existing lifetime, never create or replace it. A
-     * delayed generic post-save publication is deliberately not an editor observation here. */
+    /** A parent's pre-save snapshot can confirm an existing lifetime, never create or replace it.
+     * A delayed generic post-save publication is deliberately not an editor observation here. */
     fun confirmEditorSave(path: String, currentLedgerText: String?) {
         val absolute = runCatching { full(path) }.getOrNull() ?: return
         synchronized(lock) {
@@ -205,8 +205,7 @@ internal class GraphqlLspManager(
     override suspend fun enableProjectAnalysis(path: String): String {
         val absolute = full(path)
         synchronized(lock) { check(!closed && routeLocked()); require(absolute in buffers); if (permit?.let(consent::isCurrent) == true) return detail }
-        // Metadata-only root/package identity precedes approval. No project-content read or capture
-        // here.
+        // Metadata-only root/package identity precedes approval. No project-content read or capture here.
         val admissionDeadline = GraphqlDeadline.after(60_000)
         val root = withContext(Dispatchers.IO) { LspGraphqlSnapshotAuthority.root(workspace) }
         val native = withContext(Dispatchers.IO) { requireNotNull(host?.reviewedGraphqlLaunchIdentity(LspGraphqlProfile.COMMAND, workspace.absolutePath, admissionDeadline)) { "Install the exact reviewed GraphQL and private Node prerequisites first" } }
@@ -222,7 +221,7 @@ internal class GraphqlLspManager(
             synchronized(lock) { !closed && pending === ticket && routeLocked() && consent.isCurrent(ticket) }
         }
         if (!allowed) { synchronized(lock) { if (pending === ticket) { pending = null; detail = "DISABLED: GraphQL approval declined."; changed() } }; return "GraphQL analysis remains disabled." }
-
+        // The startup total starts after approval, before first content capture or allocation.
         val deadline = GraphqlDeadline.after(60_000)
         val freshRoot = withContext(Dispatchers.IO) { LspGraphqlSnapshotAuthority.root(workspace) }
         val freshIdentity = withContext(Dispatchers.IO) { host?.reviewedGraphqlLaunchIdentity(LspGraphqlProfile.COMMAND, workspace.absolutePath, deadline) }
@@ -282,8 +281,8 @@ internal class GraphqlLspManager(
                     require(argv == listOf(native.launchExecutable) && environment.isEmpty() && resourceLimits == null)
                     return remote.startReviewedGraphql(s.owner, deadline) { create ->
                         synchronized(lock) { check(currentLocked(s)); workDeadline.check() }
-                        // Native factory never holds the client lifetime monitor. The host's independent owner fence is
-                        // rechecked at creation and retains any late handle for cleanup.
+                        // Native factory never holds the client lifetime monitor. The host's independent
+                        // owner fence is rechecked at creation and retains any late handle for cleanup.
                         create().also { process -> synchronized(lock) { s.process = process; check(currentLocked(s)) } }
                     }.also { process -> process.onControl {
                         if (process.fatalControl != null) {
@@ -355,8 +354,8 @@ internal class GraphqlLspManager(
             }
         }
     }
-    /** One granted background preparation owns its original 60-second total. Cold feature demand may
-     * expire at 15 seconds without resetting or abandoning that independent owner. */
+    /** One granted background preparation owns its original 60-second total. Cold feature
+     * demand may expire at 15 seconds without resetting or abandoning that independent owner. */
     private fun scheduleRefreshLocked() {
         if (!grantedLocked() || cleanupUnknown || refresh?.isActive == true) return
         phase = LspProjectAnalysisReadiness.PREPARING

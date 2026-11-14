@@ -1,0 +1,849 @@
+{
+  "additionalSha256": {
+    "tools/current-composite-native-v2.md": "ec2b7efc94c17be8ddf9e08b53110864a4cafcff9fa11279504b8f1a1e4c9d87",
+    "tools/current-composite-v2-baseline.json": "d2a43dab78afa529889d77a8bc57e795916ac72e3ead3e651372e929d64dd10e",
+    "tools/tests/test_current_composite_native_v2.py": "6d11088ec7aa4c2dccf30cf86485779b5f83f84ef4f7f65c123e703b7e221a2a"
+  },
+  "auxiliarySha256": {
+    "arm64-v8a/libdroide_cli.so": "913b313398b30115416acd20959b1c449eab0563c15c83230862b03e44e7cfee",
+    "arm64-v8a/libdroide_proot.so": "6a7babd8480adea03afba45a3cabd89a1387040a0cdc205a90f37185cb4f882b",
+    "arm64-v8a/libproot-loader.so": "44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04",
+    "arm64-v8a/libproot-loader32.so": "25f6bd90bc5a3d3088026289a0d3eaf3e502bd2b00e5cb74fadd9791132efa34"
+  },
+  "baselineSha256": "d2a43dab78afa529889d77a8bc57e795916ac72e3ead3e651372e929d64dd10e",
+  "compiledApplication": {
+    "acceptedHostReviewSha256": "9f9aa4a50ffd37a6551115efd0a17d5c43e2fc06faae45fb710513ea65eac36f",
+    "archiveMemberCount": 10364,
+    "bytes": 80198865,
+    "classes": {
+      "com/baystudio/droide/core/LocalExecutionSubstrate$ElpCapture.class": {
+        "sha256": "6ed54174e610d0da4431b7c5b08843aab0becf02808a9b10ba09e9f29bf57012",
+        "size": 4172
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpCapture$1.class": {
+        "sha256": "a4349d97ed835aa683cf7921b227764d2f904e39c5928d40bb79d79fc6a00113",
+        "size": 4059
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpCapture$4.class": {
+        "sha256": "7edca8007f132a4d60d673ed215a7c27ac5cbb3893e826b16b94339c6040f894",
+        "size": 7683
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpCapture$receipt$1.class": {
+        "sha256": "94c56890e301027619ff323d71a1cb25001182c0eb18956bd7caa276eec91ca0",
+        "size": 4002
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpLaunchSpec$2.class": {
+        "sha256": "d81ca958323b8a83ba02a52e305d6fbbb9b86853b806d6fcc100c155e9a35032",
+        "size": 15103
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpRuntimeProbes$1.class": {
+        "sha256": "c02fc18c00d08d5d443e52886073c3fc494d2edbd1314f5624ad01efda36bb21",
+        "size": 2856
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpRuntimeProbes$erl$2.class": {
+        "sha256": "460f8c86d85be885abd6158587ff34bc41de6a4d359d062d8823c6a1bdf861ff",
+        "size": 2304
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpRuntimeProbes$escript$2.class": {
+        "sha256": "92737cd6c6cf5da05bc0c3899ae61eccc75f81a772f7bd98754c5eb22c92b346",
+        "size": 2312
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$elpRuntimeProbes$rebar$result$2.class": {
+        "sha256": "5d0eb1cfd8159ac6cac7d4ce9ab09b5536d5af9eb5aed16748e3cdde1b72852e",
+        "size": 2322
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$ensureLinuxReady$2.class": {
+        "sha256": "f784eaf25efea556c4e3b1dd1a0e3e28459da6dfaddefa1e583985c42dab2113",
+        "size": 5708
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$ensureUbuntuInstalled$2.class": {
+        "sha256": "68a5557f375ff70c63b4bea29a0d430f1b2befe7ef75de2da6d26384a0ee3a28",
+        "size": 4301
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$ensureUbuntuInstalled$3.class": {
+        "sha256": "55b7fa37a2f362c7e2e67d0f2153067454cefbca698a56845ec697b14618fa66",
+        "size": 2222
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$inspectElpHealthSelection$2.class": {
+        "sha256": "c4f7e582ff2b00fe6b4ffc992edcb51abde198caf3fbbab2cedefa258d40e81f",
+        "size": 5715
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$inspectElpSelection$2.class": {
+        "sha256": "cf8055c530143930a7103dfef2bf6acaf4f420b0f1dabb99584eb44491503abf",
+        "size": 4436
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$inspectElpToml$2.class": {
+        "sha256": "abba0e0d69f7a318e60c1da41d710b7ca39ebb83fc354a9212d14bc0830bbc39",
+        "size": 12035
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$inspectLinuxState$2$healthy$1.class": {
+        "sha256": "1a4893018ff427f796d3a04c136b0bba0d662af63a51c3767abf7d0bea3398a6",
+        "size": 3178
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$inspectLinuxState$2.class": {
+        "sha256": "bc3d966647d7b4c3756270dc61d676ba2954107d56db41bb4936d9297ffe9b48",
+        "size": 7560
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$observeElpPaths$2.class": {
+        "sha256": "403d40505a2788f85042ef7ccbd41a6a1cb3211710c17c0bff7f2204df9edd83",
+        "size": 8273
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedCMakeOwner$1.class": {
+        "sha256": "c03bfce5855aa03575c15effc223fdf6d871d4949bb3776e99086accbbd07a5f",
+        "size": 3143
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedCMakeOwner$4.class": {
+        "sha256": "f6c2eacfe59dbf28cab3a7e98feffc63ae1c607b759fc31cfced06c0a86f7581",
+        "size": 9441
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedCMakeOwner$6.class": {
+        "sha256": "afb359f2addead696c01b3958d6a999ce8f694b88029f649318b73236c4d5cfd",
+        "size": 4023
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedCSharpOwner$1.class": {
+        "sha256": "45dccbde005461650e322e5ec0150935e78444b3d3ec40ef923963b4d06c4464",
+        "size": 2279
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedCSharpOwner$2.class": {
+        "sha256": "4b221162252aa43181a226535e4fb0b15606957a059e049b2bcae856a9ce9efc",
+        "size": 3733
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedElpOwner$2$1.class": {
+        "sha256": "384118d7e2e99663f0d73ea01485b6331e0b7a72159f194e92cdb1241e061b41",
+        "size": 3999
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedElpOwner$2.class": {
+        "sha256": "601dc00df99f043a1736403ab2c633921f3831318a76323eb9cca4366965130d",
+        "size": 21987
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedGraphqlOwner$2$1.class": {
+        "sha256": "fb94f3369bf0a608346a398394980c709b185832bb24a52807f40e73fe27653a",
+        "size": 3783
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedGraphqlOwner$2.class": {
+        "sha256": "d8b530ea634203a117b7c35b66cad2608507ab15d14432d3d351321f430595c5",
+        "size": 7962
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedNimOwner$1.class": {
+        "sha256": "19285d1b97a721c49d145f837c35bc52c78fe9819d19f1eb0a764824c82804eb",
+        "size": 2261
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedNimOwner$2.class": {
+        "sha256": "555db011e30ef5f5aa181b2456f35f74babca1cc3684203f06f788f557c8972a",
+        "size": 3691
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedTomlOwner$1.class": {
+        "sha256": "6ef9b39c83979c49e642565268ebc31890d62cd0266b02b2521d4d3ecd5599c2",
+        "size": 2256
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedTomlOwner$2.class": {
+        "sha256": "99e425a30c4440137f2b74a8874cd31273703bc7c23279ca9a1293ca1f42d44c",
+        "size": 3705
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedVueOwner$1.class": {
+        "sha256": "a517c7a9fe2d62232e9f1d0f04c5b45b43f533691a2a984ffd6d4a4d45ca9c09",
+        "size": 2261
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareReviewedVueOwner$2.class": {
+        "sha256": "42a33494a9b7570e65cdaeb4619feedbefa35254f0357ab16a0e305c42eb8805",
+        "size": 3691
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$prepareUbuntuLaunchSpec$2.class": {
+        "sha256": "89b32152604293c9e2ce3469c1cd4cc8871ed229e58de482384ecd764d948405",
+        "size": 11977
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$push$1.class": {
+        "sha256": "a43fa50260d1d0250a391f28b4f1e43ef267a01d265d067d1bc2a54e6f800ec2",
+        "size": 1924
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$pushStream$2.class": {
+        "sha256": "807849b55c59ef13c2fc0421bc7b8ebf146be3e02a56819bedcd96518749261b",
+        "size": 5081
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reconcileStaleLocalProcesses$2.class": {
+        "sha256": "8976be5da5a94543a058126446587d13a9386a5b6104df610497aa33215a4bc6",
+        "size": 16627
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$revalidateElpOwner$1.class": {
+        "sha256": "ec9f1ff33ad456fe2501ce7d269f6b25f3a3f7cb46ab5342886a7ddd0b4f2afd",
+        "size": 2079
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedCMakeLaunchIdentity$2.class": {
+        "sha256": "74c89fc07ee99053b7728d039162f7e4fe51eb3b2f72e21b4140e93478ec6f26",
+        "size": 8346
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedCSharpLaunchIdentity$2.class": {
+        "sha256": "7d79d01077b4c8e3371b4ca28f143fc02648eb9d0e7cb4c59095babd3d105b72",
+        "size": 9338
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedElpLaunchIdentity$2.class": {
+        "sha256": "ad20a6427dc4628e9877d75dd2e0139ba9567b469120480a1ff6aa4463897227",
+        "size": 8113
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedGraphqlLaunchIdentity$2$1.class": {
+        "sha256": "b000430447cfd5daef8bee09d9c359c5e4aca3eaba6df77f7f1675d6446f4b69",
+        "size": 9717
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedGraphqlLaunchIdentity$2.class": {
+        "sha256": "94cd153924f580db64198ac1551653274fd8b3e00cac4697f7d7664d31792f2b",
+        "size": 4377
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedNimLaunchIdentity$2.class": {
+        "sha256": "3e79f0b32e336009796c66acb2a20f9b0d93d85f81ea8e12f4a0bd6d3dd91b98",
+        "size": 9291
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedPowerShellLaunchIdentity$2.class": {
+        "sha256": "648ebd2b4f513c38d4357b288319d2183cfb007afb3a608cb065203afd59fc9d",
+        "size": 9442
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedSqruffLaunchIdentity$2.class": {
+        "sha256": "b5871b16f14871fa1cba911fd4cd05b5d571b8c19b76433980914b42f7cc3001",
+        "size": 6236
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedSqruffLaunchIdentityLocked$1.class": {
+        "sha256": "191a867c6fefa06e27c57a86c0f5fb029028981d9736cf88bb612c70f9432992",
+        "size": 2544
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedSvelteLaunchIdentity$2.class": {
+        "sha256": "210ec722cfe7869149154cf54a3104ba476200a8eb1eeb859a60154490dc9410",
+        "size": 8365
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedTomlLaunchIdentity$2.class": {
+        "sha256": "822634f744a0548b9fed98cc19f78a97f1a535f46ece13594f7f852087af6218",
+        "size": 9300
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$reviewedVueLaunchIdentity$2.class": {
+        "sha256": "cce48c305198be32827409974ed16e99a75b55bedef57f536b8aa9cb92b604ff",
+        "size": 9281
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runCSharpStagedHealth$2$process$1.class": {
+        "sha256": "c3a1077208b39cd874d22a85002f5a33cbdfb68a161816800a142cbeaa0b320c",
+        "size": 1622
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runCSharpStagedHealth$2.class": {
+        "sha256": "31b213c8e7cbb99aece72a18eb4dfbb97e045356d5e154c82ba55a3c650df92c",
+        "size": 16076
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runElpStagedHealth$2$2.class": {
+        "sha256": "f08cfeb5f1ec5603ec6438137bd2c838be35f2f18b0a8b79f08cc07797a071f9",
+        "size": 9133
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runElpStagedHealth$2$cleanup$1.class": {
+        "sha256": "b6a2ba3ab3bf2565f2fdb1556030d028b3e1bdad36f18c0fa65c4e24e3d96e26",
+        "size": 3710
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runElpStagedHealth$2$exercise$1$1.class": {
+        "sha256": "5a9c3d8924ef8145e16d2a5a7ee18f6bfab776530393b84180b409ca5167371a",
+        "size": 4039
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runElpStagedHealth$2.class": {
+        "sha256": "a34b9982fb4a5232e68977ff4f1447c9775fe9f62f7867b2d3b6391cf0d0e35d",
+        "size": 20999
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runGraphqlStagedHealth$2.class": {
+        "sha256": "71ebd45a93418af90387a33b67c16fc8e9270096814067314d9ec734d6ad53a8",
+        "size": 16157
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runTomlStagedHealth$2$2.class": {
+        "sha256": "a34d0a0a5192fb1d598d96448f9f4f744165a37db783d79a0c157e58bc24d86e",
+        "size": 1381
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runTomlStagedHealth$2$3.class": {
+        "sha256": "a7e945395a1f338ad73f7ca8e15a2c2c23515d2c9b4cd8a53526d4869694ceb0",
+        "size": 1395
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runTomlStagedHealth$2$spec$1.class": {
+        "sha256": "b31a978292ec7b6d1f0068111e1fd053297ccb6c60c07888f03c34d1734ec805",
+        "size": 4517
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$runTomlStagedHealth$2.class": {
+        "sha256": "f43e9dcd165ad455e327e7d6bf1e80712f62e3b9412ef601a564a453e1616c01",
+        "size": 15140
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedCMakeLaunchIdentity$1.class": {
+        "sha256": "8a0aad4e1a6289af7d8f7c82cae01f8d18c256ac2e89baf1a256540104a5e4ae",
+        "size": 2475
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedCSharpLaunchIdentity$1.class": {
+        "sha256": "372718e320ac2bd23b120c6846533b76ae9aed305b74bec03614cce506bc07d0",
+        "size": 2854
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedGraphqlLaunchIdentity$2.class": {
+        "sha256": "f7f734e07010e54fe161036c40a6ed829f9c66297b6a25e43eca449d950e8942",
+        "size": 17400
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedNimLaunchIdentity$1.class": {
+        "sha256": "274d539b4b389aa0eef280b528eeaca9e9e0344186d4b1f1d6de67e8131f067f",
+        "size": 2880
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedPowerShellLaunchIdentity$1.class": {
+        "sha256": "3823b5bc1132ee3927e58ea10c16740c2cf9e55433ffe75a073d948c7730aeff",
+        "size": 2940
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedSqruffLaunchIdentity$1.class": {
+        "sha256": "ff56308d704b0487eb4dda6de12bb2bdae1745bc5f3f7939d3da5013ea6e8910",
+        "size": 2535
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedSvelteLaunchIdentity$1.class": {
+        "sha256": "7c92b431870217af0b353859adb1dc9447eede2ac36e72f01b1069c4a8c30886",
+        "size": 2644
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedTomlLaunchIdentity$1.class": {
+        "sha256": "7670f5a7f98c064bee82c1c7f3dab643e4430182c0a7a78cdc60467ab14e101f",
+        "size": 2842
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate$withReviewedVueLaunchIdentity$1.class": {
+        "sha256": "d09ee06abbceceef0c4f2d78c5c8e6e24a8e266c12d0e927352906c3e589aa71",
+        "size": 2982
+      },
+      "com/baystudio/droide/core/LocalExecutionSubstrate.class": {
+        "sha256": "e5ababf9c406529906d4ea857407d11ea958a1b033693f2a4d19d55d1dcdd36f",
+        "size": 235458
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$BootstrapPhase.class": {
+        "sha256": "9818e70b516a5fb3a42a053015eb8e1428c1d27abb1988de0558047ffe41b522",
+        "size": 2122
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Companion.class": {
+        "sha256": "46be4af080e0757f05e441b4006a798c0d2194b03827ce46f5302ca7ce5d9b9e",
+        "size": 9215
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Intent.class": {
+        "sha256": "df3988a95153f1989f65c89b1a90aead200b18250e3315f578de27d119946ebc",
+        "size": 7560
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Node$Companion.class": {
+        "sha256": "b313fe24162c9686e408acae8cefe1b69c1cdd5cab0fbe30ccde7f3235b86c4a",
+        "size": 2873
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Node.class": {
+        "sha256": "801c767909b13c39e062f100f657b0c18bccf78dfb89793b358998360f1382bd",
+        "size": 6243
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$NodeType.class": {
+        "sha256": "34f04452288f77e45f3b87dec7602c5d38f58ade36577e73397061024dd3c8bb",
+        "size": 2129
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Phase.class": {
+        "sha256": "637e8ad3ccd66510ab160331cbcccd84ec8a5d4215245c3431cd59a506261363",
+        "size": 2167
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Proposal.class": {
+        "sha256": "c406f33b048a17d5f067578f318f1d87018f8c9d671338578251b50f9d3c6e87",
+        "size": 4716
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$State.class": {
+        "sha256": "5028431346687b6e309be91a3317241e516e5cb4c3f3cb038d7dd7f27f174121",
+        "size": 6650
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$Transition.class": {
+        "sha256": "adabd15aefb2e312440f88b4911553c34c210fb7330da60191fd285ed6035cd3",
+        "size": 4281
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$WhenMappings.class": {
+        "sha256": "a5dec14305c1907af801db4c9aae3d7e705a13e09a5b07a1c086089050e7513a",
+        "size": 960
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$processCustody$1$acquire$3.class": {
+        "sha256": "be3b8414a2faf05437e17109c3d4f89a74f70da28425a71ed640d191fb61d7dd",
+        "size": 7996
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority$processCustody$1.class": {
+        "sha256": "9779b172b4245dd28a24456f10c55d5d7fe9035de372d6720698e8aeac79170d",
+        "size": 12102
+      },
+      "com/baystudio/droide/core/MirrorMetadataAuthority.class": {
+        "sha256": "cec4bdb94dd6f9d86f43a1e40b2b92f3fa1f214c872f006a12911ceb7362f455",
+        "size": 115141
+      },
+      "com/baystudio/droide/core/MirrorProcessCustodyLedger$LaunchState.class": {
+        "sha256": "c4d877386bbad6ff6f4e423887084be07c4bfa34b765e4949775be7c4d727172",
+        "size": 2259
+      },
+      "com/baystudio/droide/core/MirrorProcessCustodyLedger$Owner.class": {
+        "sha256": "04fd9ca2c399e8c978abe41486a0262d58eadd0492ed260bb0b67514d1565608",
+        "size": 4519
+      },
+      "com/baystudio/droide/core/MirrorProcessCustodyLedger$append$$inlined$sortedBy$1.class": {
+        "sha256": "a2a32b110d65bd14629031a0bd772d13dfcdd8410b5c960a4af7d35eb486079d",
+        "size": 2339
+      },
+      "com/baystudio/droide/core/MirrorProcessCustodyLedger.class": {
+        "sha256": "a9352bc02085ead92c3e56b7eded1c6e7544e632b9478a6f600308c2302bef60",
+        "size": 30672
+      },
+      "com/baystudio/droide/core/NativeFilePublication.class": {
+        "sha256": "e71ea61aa3af91626344f8b33d04d08b9f594feceda1bb6821d3d945f6199992",
+        "size": 2920
+      },
+      "com/baystudio/droide/core/WorkspaceProcessBootIdentity$Identity.class": {
+        "sha256": "4277c4a1eabd507ef027af96a02207381bed84621f073b5be14f36ed72043345",
+        "size": 3859
+      },
+      "com/baystudio/droide/core/WorkspaceProcessBootIdentity.class": {
+        "sha256": "75dfda686a7859e4003af7679737f524a025d49a0b4bce11d0395e76896811a0",
+        "size": 9007
+      }
+    },
+    "dependencyListScope": "Observed references from inspected method bodies only, not complete transitive runtime closure",
+    "externalRuntimeDependencies": [
+      "android/content/Context",
+      "android/content/res/AssetManager",
+      "android/database/Cursor",
+      "android/database/sqlite/SQLiteDatabase",
+      "android/database/sqlite/SQLiteDatabase$OpenParams$Builder",
+      "android/database/sqlite/SQLiteDatabaseCorruptException",
+      "android/os/Build",
+      "android/os/Process",
+      "android/provider/Settings$Secure",
+      "android/system/Os",
+      "android/system/OsConstants",
+      "android/system/StructStat",
+      "com/baystudio/droide/core/AgentWorkspacePathPolicy",
+      "com/baystudio/droide/core/AnchoredWorkspaceFiles",
+      "com/baystudio/droide/core/AnchoredWorkspaceFiles$Kind",
+      "com/baystudio/droide/core/AnchoredWorkspaceFiles$Observation",
+      "com/baystudio/droide/core/AnchoredWorkspaceFiles$OpenedFile",
+      "com/baystudio/droide/core/CMakeAnalysisSelections$BuildMode",
+      "com/baystudio/droide/core/CMakeAnalysisSelections$Selection",
+      "com/baystudio/droide/core/CMakeBuildOwnerLeases",
+      "com/baystudio/droide/core/CMakeBuildOwnerLeases$Companion",
+      "com/baystudio/droide/core/CMakeDirectoryIdentity",
+      "com/baystudio/droide/core/CMakeManagedAdmissionWitness",
+      "com/baystudio/droide/core/CMakeManagedLaunchAuthority",
+      "com/baystudio/droide/core/CMakeManagedLaunchIdentity",
+      "com/baystudio/droide/core/CMakeOwnerRequest",
+      "com/baystudio/droide/core/CMakePrivateState",
+      "com/baystudio/droide/core/CMakePrivateState$Companion",
+      "com/baystudio/droide/core/CMakeSelectionContext",
+      "com/baystudio/droide/core/CMakeSelectionInspector",
+      "com/baystudio/droide/core/CSharpGenerationAdmission",
+      "com/baystudio/droide/core/CSharpHealthPrivateState",
+      "com/baystudio/droide/core/CSharpManagedLaunchIdentity",
+      "com/baystudio/droide/core/CSharpOwnerRequest",
+      "com/baystudio/droide/core/CSharpSdkSelection",
+      "com/baystudio/droide/core/DroideCliClientInstaller",
+      "com/baystudio/droide/core/ElpDeadline",
+      "com/baystudio/droide/core/ElpExecutionOwner",
+      "com/baystudio/droide/core/ElpExecutionOwner$Companion",
+      "com/baystudio/droide/core/ElpFileIdentity",
+      "com/baystudio/droide/core/ElpGuestFilesystem",
+      "com/baystudio/droide/core/ElpIoAttempt",
+      "com/baystudio/droide/core/ElpManagedLaunchIdentity",
+      "com/baystudio/droide/core/ElpMetadataInspection",
+      "com/baystudio/droide/core/ElpOwnedNativeProcess",
+      "com/baystudio/droide/core/ElpOwnerRequest",
+      "com/baystudio/droide/core/ElpPathIdentity",
+      "com/baystudio/droide/core/ElpPreparedDelivery",
+      "com/baystudio/droide/core/ElpProjectAnalysisPermit",
+      "com/baystudio/droide/core/ElpRuntimeEvidence",
+      "com/baystudio/droide/core/ElpSelectedToolEntry",
+      "com/baystudio/droide/core/ElpTeardownReceipt",
+      "com/baystudio/droide/core/ElpToolPolicy",
+      "com/baystudio/droide/core/ElpToolSelection",
+      "com/baystudio/droide/core/FoundryUbuntuGuestEnvironmentManager",
+      "com/baystudio/droide/core/GraphqlDeadline",
+      "com/baystudio/droide/core/GraphqlHealthPrivateState",
+      "com/baystudio/droide/core/GraphqlManagedLaunchIdentity",
+      "com/baystudio/droide/core/LegacyAlpineRuntimeRetirement",
+      "com/baystudio/droide/core/LocalAndroidSdkComponentEnvironment",
+      "com/baystudio/droide/core/LocalAndroidSdkComponentEnvironment$Binding",
+      "com/baystudio/droide/core/LocalCMakePreparedOwner",
+      "com/baystudio/droide/core/LocalCSharpPreparedOwner",
+      "com/baystudio/droide/core/LocalCSharpPreparedOwner$Companion",
+      "com/baystudio/droide/core/LocalElpPreparedOwner",
+      "com/baystudio/droide/core/LocalGraphqlPreparedOwner",
+      "com/baystudio/droide/core/LocalLeaseCleanup",
+      "com/baystudio/droide/core/LocalLinuxPackageEnvironment",
+      "com/baystudio/droide/core/LocalLinuxUserEnvironment",
+      "com/baystudio/droide/core/LocalManagedPackageAuthority",
+      "com/baystudio/droide/core/LocalNimPreparedOwner",
+      "com/baystudio/droide/core/LocalNimPreparedOwner$Companion",
+      "com/baystudio/droide/core/LocalPackageInstallJournal",
+      "com/baystudio/droide/core/LocalProcessSupervisor",
+      "com/baystudio/droide/core/LocalTomlPreparedOwner",
+      "com/baystudio/droide/core/LocalTomlPreparedOwner$Companion",
+      "com/baystudio/droide/core/LocalUbuntuCMakeLaunchPolicy",
+      "com/baystudio/droide/core/LocalUbuntuCSharpLaunchAuthority",
+      "com/baystudio/droide/core/LocalUbuntuElpLaunchAuthority",
+      "com/baystudio/droide/core/LocalUbuntuElpPolicy",
+      "com/baystudio/droide/core/LocalUbuntuNimLaunchAuthority",
+      "com/baystudio/droide/core/LocalUbuntuPowerShellLaunchAuthority",
+      "com/baystudio/droide/core/LocalUbuntuSqruffLaunchAuthority",
+      "com/baystudio/droide/core/LocalUbuntuTomlLaunchAuthority",
+      "com/baystudio/droide/core/LocalUbuntuVueLaunchAuthority",
+      "com/baystudio/droide/core/LocalVuePreparedOwner",
+      "com/baystudio/droide/core/LocalVuePreparedOwner$Companion",
+      "com/baystudio/droide/core/LspCSharpLaunchPolicy",
+      "com/baystudio/droide/core/LspElpLaunchPolicy",
+      "com/baystudio/droide/core/LspGraphqlLaunchPolicy",
+      "com/baystudio/droide/core/LspNimLaunchPolicy",
+      "com/baystudio/droide/core/LspTomlLaunchPolicy",
+      "com/baystudio/droide/core/LspVueLaunchPolicy",
+      "com/baystudio/droide/core/ManagedPackageMutationGate",
+      "com/baystudio/droide/core/ManagedPackageRecord",
+      "com/baystudio/droide/core/ManagedPackageRegistry",
+      "com/baystudio/droide/core/MirrorMetadataProcessLock",
+      "com/baystudio/droide/core/MirrorProcessCleanupReceipts",
+      "com/baystudio/droide/core/MirrorSqliteForensicCandidate",
+      "com/baystudio/droide/core/MirrorSqliteRollbackRecovery",
+      "com/baystudio/droide/core/NimManagedLaunchIdentity",
+      "com/baystudio/droide/core/NimOwnerRequest",
+      "com/baystudio/droide/core/PackagedLinuxEngine",
+      "com/baystudio/droide/core/PackagedNativeAdmissionAttempt",
+      "com/baystudio/droide/core/PackagedNativeArtifacts",
+      "com/baystudio/droide/core/PathSecurity",
+      "com/baystudio/droide/core/PowerShellManagedLaunchIdentity",
+      "com/baystudio/droide/core/ProjectCopyJournal$Durability",
+      "com/baystudio/droide/core/ProjectCopyJournal$Durability$Companion",
+      "com/baystudio/droide/core/RemoteProcessLease",
+      "com/baystudio/droide/core/RemoteProcessLease$Companion",
+      "com/baystudio/droide/core/SqruffManagedLaunchIdentity",
+      "com/baystudio/droide/core/SubstrateState",
+      "com/baystudio/droide/core/SvelteManagedLaunchAuthority",
+      "com/baystudio/droide/core/SvelteManagedLaunchIdentity",
+      "com/baystudio/droide/core/SystemLinkerExec",
+      "com/baystudio/droide/core/TerminalLaunchSpec",
+      "com/baystudio/droide/core/TerminalPromptPresentation",
+      "com/baystudio/droide/core/TomlGenerationAdmission",
+      "com/baystudio/droide/core/TomlHealthPrivateState",
+      "com/baystudio/droide/core/TomlManagedLaunchIdentity",
+      "com/baystudio/droide/core/TomlOwnerRequest",
+      "com/baystudio/droide/core/VueGenerationAdmission",
+      "com/baystudio/droide/core/VueManagedLaunchIdentity",
+      "com/baystudio/droide/core/VueOwnerRequest",
+      "com/baystudio/droide/core/WorkspaceDirectoryIdentity",
+      "com/baystudio/droide/core/WorkspacePathMapper",
+      "com/baystudio/droide/core/WorkspaceProcessCustody",
+      "com/baystudio/droide/core/WorkspaceProcessCustody$Key",
+      "com/baystudio/droide/core/WorkspaceSyncManifest$Entry",
+      "com/baystudio/droide/core/WorkspaceToolchainPreferences",
+      "java/io/ByteArrayOutputStream",
+      "java/io/File",
+      "java/io/FileInputStream",
+      "java/io/InputStream",
+      "java/io/OutputStream",
+      "java/lang/Boolean",
+      "java/lang/CharSequence",
+      "java/lang/Character",
+      "java/lang/IllegalArgumentException",
+      "java/lang/IllegalStateException",
+      "java/lang/Integer",
+      "java/lang/Iterable",
+      "java/lang/Long",
+      "java/lang/Number",
+      "java/lang/Object",
+      "java/lang/ProcessBuilder",
+      "java/lang/ProcessBuilder$Redirect",
+      "java/lang/String",
+      "java/lang/System",
+      "java/nio/ByteBuffer",
+      "java/nio/channels/FileChannel",
+      "java/nio/file/Files",
+      "java/nio/file/LinkOption",
+      "java/nio/file/Path",
+      "java/nio/file/StandardOpenOption",
+      "java/nio/file/attribute/BasicFileAttributes",
+      "java/security/MessageDigest",
+      "java/util/ArrayList",
+      "java/util/Arrays",
+      "java/util/Collection",
+      "java/util/Iterator",
+      "java/util/LinkedHashMap",
+      "java/util/LinkedHashSet",
+      "java/util/List",
+      "java/util/Locale",
+      "java/util/Map",
+      "java/util/Map$Entry",
+      "java/util/NoSuchElementException",
+      "java/util/Set",
+      "java/util/UUID",
+      "java/util/concurrent/ConcurrentHashMap",
+      "kotlin/ExceptionsKt",
+      "kotlin/KotlinNothingValueException",
+      "kotlin/NoWhenBranchMatchedException",
+      "kotlin/Pair",
+      "kotlin/Result",
+      "kotlin/ResultKt",
+      "kotlin/Triple",
+      "kotlin/TuplesKt",
+      "kotlin/Unit",
+      "kotlin/collections/ArraysKt",
+      "kotlin/collections/CollectionsKt",
+      "kotlin/collections/IntIterator",
+      "kotlin/collections/MapsKt",
+      "kotlin/collections/SetsKt",
+      "kotlin/coroutines/Continuation",
+      "kotlin/coroutines/intrinsics/IntrinsicsKt",
+      "kotlin/coroutines/jvm/internal/Boxing",
+      "kotlin/coroutines/jvm/internal/SpillingKt",
+      "kotlin/io/CloseableKt",
+      "kotlin/io/FilesKt",
+      "kotlin/jvm/functions/Function0",
+      "kotlin/jvm/functions/Function1",
+      "kotlin/jvm/internal/Intrinsics",
+      "kotlin/jvm/internal/Ref$ObjectRef",
+      "kotlin/ranges/RangesKt",
+      "kotlin/text/Charsets",
+      "kotlin/text/Regex",
+      "kotlin/text/StringsKt",
+      "kotlinx/coroutines/BuildersKt",
+      "kotlinx/coroutines/DelayKt",
+      "kotlinx/coroutines/Dispatchers",
+      "kotlinx/coroutines/JobKt",
+      "kotlinx/coroutines/NonCancellable",
+      "kotlinx/coroutines/TimeoutKt",
+      "kotlinx/coroutines/flow/MutableStateFlow",
+      "kotlinx/coroutines/flow/StateFlowKt",
+      "kotlinx/coroutines/sync/Mutex",
+      "kotlinx/serialization/json/JsonElementKt",
+      "kotlinx/serialization/json/JsonObject",
+      "kotlinx/serialization/json/JsonObjectBuilder"
+    ],
+    "families": [
+      "com/baystudio/droide/core/LocalExecutionSubstrate",
+      "com/baystudio/droide/core/MirrorMetadataAuthority",
+      "com/baystudio/droide/core/MirrorProcessCustodyLedger",
+      "com/baystudio/droide/core/NativeFilePublication",
+      "com/baystudio/droide/core/WorkspaceProcessBootIdentity"
+    ],
+    "methods": [
+      {
+        "access": 17,
+        "class": "com/baystudio/droide/core/LocalExecutionSubstrate.class",
+        "codeAttributeSha256": "6660a6ae2ff12c4ca23b23b61970d1f838631792b19911deac56283e82f1096a",
+        "descriptor": "(Ljava/io/File;)Lcom/baystudio/droide/core/WorkspaceProcessBootIdentity$Identity;",
+        "name": "processBootIdentity$Droide_app_debug"
+      },
+      {
+        "access": 26,
+        "class": "com/baystudio/droide/core/MirrorMetadataAuthority.class",
+        "codeAttributeSha256": "e7f033d009b81f4acaaeb9327adccf0c5062c337c09f2a02fc37023a26c2c74a",
+        "descriptor": "(Ljava/io/File;)Lcom/baystudio/droide/core/WorkspaceProcessBootIdentity$Identity;",
+        "name": "_init_$lambda$1"
+      }
+    ],
+    "nativeMethods": {
+      "class": "com/baystudio/droide/core/NativeFilePublication.class",
+      "methods": [
+        {
+          "access": 281,
+          "descriptor": "([B[B)I",
+          "name": "renameNoReplace"
+        },
+        {
+          "access": 281,
+          "descriptor": "([B[B)I",
+          "name": "moveNoReplace"
+        },
+        {
+          "access": 281,
+          "descriptor": "([B)I",
+          "name": "openDirectoryRoot"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I)I",
+          "name": "duplicateDescriptor"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I)I",
+          "name": "closeDescriptor"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I)I",
+          "name": "forceDirectory"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[B)I",
+          "name": "openOrdinaryRelative"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[B)I",
+          "name": "openDirectoryRelative"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[B)J",
+          "name": "createOrdinaryRelative"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[B)J",
+          "name": "createDirectoryRelative"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[B)I",
+          "name": "kindRelative"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[BII)I",
+          "name": "readDescriptor"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[BII)I",
+          "name": "writeDescriptor"
+        },
+        {
+          "access": 281,
+          "descriptor": "(II)I",
+          "name": "forceFileDescriptor"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I)[J",
+          "name": "changedTimeDescriptor"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[BI[B)I",
+          "name": "moveNoReplaceAnchored"
+        },
+        {
+          "access": 281,
+          "descriptor": "(I[BI[B)J",
+          "name": "moveNoReplaceAnchoredDurable"
+        }
+      ]
+    },
+    "sha256": "fb1db80563a4464a120df93310ea35bc26ae8eaa7d3e90d701548f5a31111f2d",
+    "sourceBaselineSha256": "d2a43dab78afa529889d77a8bc57e795916ac72e3ead3e651372e929d64dd10e"
+  },
+  "jniMethods": [
+    {
+      "descriptor": "()I",
+      "name": "ownedProcessApiVersion"
+    },
+    {
+      "descriptor": "()J",
+      "name": "reserveOwnedProcess"
+    },
+    {
+      "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I",
+      "name": "createOwnedSubprocess"
+    },
+    {
+      "descriptor": "(JI)I",
+      "name": "requestOwnedStop"
+    },
+    {
+      "descriptor": "(J)J",
+      "name": "waitForOwnedProcess"
+    },
+    {
+      "descriptor": "(J)Z",
+      "name": "releaseOwnedProcess"
+    },
+    {
+      "descriptor": "(J[BII)J",
+      "name": "readOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(J[BII)J",
+      "name": "writeOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(JII)J",
+      "name": "pollOwnedPtyOnce"
+    },
+    {
+      "descriptor": "(JI)V",
+      "name": "cancelOwnedPtyIo"
+    },
+    {
+      "descriptor": "(JI)Z",
+      "name": "releaseOwnedPtyLane"
+    },
+    {
+      "descriptor": "(JII)Z",
+      "name": "resizeOwnedPty"
+    }
+  ],
+  "kind": "CURRENT_COMPOSITE_NATIVE_V2",
+  "schema": 2,
+  "sourceAndToolSha256": {
+    "app/libs/terminal-emulator-v0.118.0-java.aar": "4852749bb1de1d64630ee82000ce728a842521e391c55c2392d4a1b84ae74b61",
+    "app/src/main/cpp/CMakeLists.txt": "5822f744df7b90c4473ad690a8d068e82094a3e5a4be730c750e9aa80fd8982c",
+    "app/src/main/cpp/droide_cli_client.c": "f668eff99575d9a3ad1f68ce5727f6d51db4d7f8ebe811b4d800532084304830",
+    "app/src/main/cpp/droide_files.c": "303e7c7cfebd4bb36c1166386e368f7a99759ac67714c91a654bb3cfa50e1ed4",
+    "app/src/main/java/com/baystudio/droide/core/ApplicationWorkAdmission.kt": "9e2790dbe27c1c85ff17341a3e78f1c031c083672f88838330a8fd6a2c072864",
+    "app/src/main/java/com/baystudio/droide/core/CliEndpointPublication.kt": "1479cc97f212200e2c3d886b60e788b2b484eda20713beb0f70e1c4d6e40fe52",
+    "app/src/main/java/com/baystudio/droide/core/DroideCliClientInstaller.kt": "bb3f11f2803fdd6bbb235df0f2f2042b08dc7eade14cf95cefea1ff73d73eb8a",
+    "app/src/main/java/com/baystudio/droide/core/DroideCliServer.kt": "9a54c61f8fb3227e41e5c7f6bc240de27d7667881608f50df61f7d96cdca9351",
+    "app/src/main/java/com/baystudio/droide/core/DroideCliWireProtocol.kt": "1b034d9fa30dcd1054d30eee41605ff1c442e2168bdf5bdd275fdb42f2253960",
+    "app/src/main/java/com/baystudio/droide/core/LocalExecutionSubstrate.kt": "3e399c0c37763463dfe9fa31ca19ada0d9945243202bda19805fc36094c83ec3",
+    "app/src/main/java/com/baystudio/droide/core/MirrorMetadataAuthority.kt": "5a99fbd1b3d77d4be186c1738a6c6f30ae6b80f9276dbd06f8040d22034974d8",
+    "app/src/main/java/com/baystudio/droide/core/MirrorProcessCustodyLedger.kt": "167187c91f80d60885283043838cc61b5c870a444a6d1a9ea04a14921488e91b",
+    "app/src/main/java/com/baystudio/droide/core/PackagedLinuxEngine.kt": "821e8d0a226bf088278b53328297508cabebce9b1b98d4ced50aff4a2cf48ca5",
+    "app/src/main/java/com/baystudio/droide/core/ProjectFilePublication.kt": "cceb392dac56814b4702c6333a647314efa8656adba80d55215ac2eb57e338ad",
+    "app/src/main/java/com/baystudio/droide/core/WorkspaceProcessBootIdentity.kt": "bc0729994cf13b233453fad4dcf9b814819c15effc60dd9c473a43d0be8c30ac",
+    "third_party/native-engines/proot/OPENMINIS_LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "third_party/native-engines/proot/PROOT_COPYING": "0ffa6454acbe7e410ac6f0007df83b9b3161fe55484c1f4b87487c0f2d228a6d",
+    "third_party/native-engines/proot/README_DROIDE.md": "38e6df8d1baa507e8b5a4cf4d97ed06593bdd10845931435dbbd377fe6504300",
+    "third_party/native-engines/proot/THIRD_PARTY_LICENSES.md": "7998ec155c04ff96d87d4f2cd1f594f5c3bd7447c729351249c2471ccafdeae9",
+    "third_party/native-engines/proot/build_droide_proot.py": "a61f1068a0b5e36a945d92136a60aa9cd73cad6c22fbcb8ee56a3bda309fe12f",
+    "third_party/native-engines/proot/build_proot.sh": "0c42a65d6ebe1be2573880673178ae1b19abadddbe61ea52b9227afc41e7f116",
+    "third_party/native-engines/proot/patches/0001-preserve-voided-syscall-results-under-outer-seccomp.patch": "6a823fe58eee9110a69f411be3fd62ac657b299878a878cf51fd9b5df4d819f6",
+    "third_party/native-engines/proot/proot-openminis-8cf13e99-source.tar.gz": "6c77863bbdddbaa2d8043a901fee61f0e40492bb3bebdc6cb31390ac71ffca47",
+    "third_party/native-engines/proot/talloc-2.4.2-source.tar.gz": "85ecf9e465e20f98f9950a52e9a411e14320bc555fa257d87697b7e7a9b1d8a6",
+    "third_party/termux/UPSTREAM_PROVENANCE.json": "30164128e8e76b20fbac29cab4f09ec3b719136718d18d63f27e9fd9137c61db",
+    "third_party/termux/derivatives/r46/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
+    "third_party/termux/derivatives/r46/fixtures/AarFixtureRunner.java": "609896f2d5f092000f2d5c3e4960924ca5e887f35a2b72c8407244f4d5e66d7b",
+    "third_party/termux/derivatives/r46/fixtures/ReaderHealthyOutputTiming.java": "9ce8a622834b22864dc2723df75b7214a92d91a09f0d227d7f6f2bedff21d79d",
+    "third_party/termux/derivatives/r46/fixtures/TerminalOwnedProcessTest.java": "6169fa33f12fc537490ee08f1cf2302489622c79a8cb2f85c16aa0e3065df52c",
+    "third_party/termux/derivatives/r46/fixtures/TerminalPtyReadProgressTest.java": "c62c06cea093824dfd3977850350f6c2c56fa3452f5f255dbb91f8ec937be360",
+    "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java": "01c470e72e74106426d494849f61d42d9fdb456546b506b393895316148f48c4",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSession.java": "c969987f8dd20c974a9017e4c9a9e0a005cbc84dce6eb7df56be8b8813f7c998",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2",
+    "third_party/termux/native/OWNED_PROCESS_ABI.json": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+    "third_party/termux/native/REBUILD.json": "f2c9660006eefb353655994c92c6253c35533e038638e005b0aab11ab5732105",
+    "third_party/termux/native/termux.c": "e6e4e563865857af85fd6e101021fb3e247ecfc93f9261e1242d0ef637edc000",
+    "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3",
+    "third_party/termux/patches/src/com/termux/terminal/JNI.java": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java": "49565646f259eb81724696366e63a3f30a3234f7684895f293701b93b5d0ad9d",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java": "91e8b1f545374e07696245fcf2b518b5d681ba15ff79fd8a79bdec29eac8d5ca",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java": "6b397797ed186229fc6709bd1391dbe3b04277edd92ab8c53e7ddecbf0ebe72e",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java": "6131e5639ad689e51a817a640076ca69ec6995a7cf911eee7250e086b7e2145b",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae",
+    "tools/filesystem-native-v1.json": "fead60dd5d4187656c325ec510a4a7a759b7eb6a13c5fd5638fc8e7cc11a22e0",
+    "tools/filesystem-native-v1.md": "47346c8bceda3caa100e2f2b50668e5790016a0c7d909334c27f8614530195c3",
+    "tools/filesystem_native_v1.py": "3f04e15ffc56cc903702d8cd1f53d7ddbdb33e26a5c808e5b527448581130950",
+    "tools/run_current_engine_host_v1.py": "0fdf0ae3eea375afabe864f31a308600ea6ecea7e9aff00e535e7c8aa61ab080",
+    "tools/run_terminal_engine_regressions.py": "a707ec7b5b19dae30ac786074ed4132975baf08b1f3184d93852bc3aecb45335",
+    "tools/terminal-engine-v2-jdk.json": "8438db3e628cf0860d2f5e0db29a3216bba0b4d3d1ce6d1a6e8d9cf17f29f2e5",
+    "tools/terminal-engine-v2.json": "ff30e833ad865617ebc45c095e792adddc960a96dd6a93a2ffecec7fa32d172b",
+    "tools/terminal_engine_v2.py": "ceb8f580940a21af37fbfb755cb9321182c0373467bc21c9e21067f48cfbd642",
+    "tools/terminal_jdk_v2.py": "0583a3dfeb92088eca19554abd4928d93c14e1f6bf7a02abc529fb663f2f2ddd",
+    "tools/termux-native-v1.json": "eb38cd0f2a62e22d3461eccb984215e55347fe5ffc2f406162d1133bb72ec7ec",
+    "tools/termux-native-v1.md": "425d46236fcdf9b36a7eca24fa1cc509bb830e94d128d87828e8e9f23191e787",
+    "tools/termux_native_elf.py": "bdecb4d77f420c7c3eed169cc325d5a67d00ae0bdbf3cc4864ec9b0cead1f5d9",
+    "tools/termux_native_v1.py": "56cf312433ddfc8071a0447363565f2fc2510081aa26fa5df3fbdde96a6ae9a0",
+    "tools/tests/terminal-engine-fixtures/TerminalResizeFixtureRunner.java": "a1dd5b12f1e24a8848cc7e9f0ba28cce833b8c422af912c085fbf32dc2808c06",
+    "tools/tests/terminal-engine-fixtures/TerminalResizeStateContractTest.java": "546e33937e1194bec5f62228146c3a35e6814948ac68f6635b1067966f3968aa",
+    "tools/tests/test_current_droide_cli_v1.py": "13149a1886c3360574d31eca082dff7e0859841ffa8302263c58ba56ab598ab5",
+    "tools/tests/test_termux_native_v1.py": "40e9cada533eb05a43186544a76288ce23e30df0a5285194f727c9ba8c896ae4",
+    "tools/verify_current_droide_cli_v1.py": "b2f587ce19c339bf1ed027587d0d4b5da5e9ed821878e400223c864f0772ba43",
+    "tools/verify_droide_cli_client.py": "d3b636ec6a5292a3c6a43be8ce1a596622b128c09ad2ac682f704eea0e23ca28",
+    "tools/verify_owned_jni_host_contract.py": "09a461284ca2af4053e79f3b85222d10595d210f2d090b6b22bf1f155c1f0316",
+    "tools/verify_termux_pty_derivative.py": "223d0f62da43fae3490819864dbfdc213934baae2fb6dc941805c77f9506b0e7"
+  },
+  "sourceArchiveSha256": "989ce467c3daae57246377c0915cdab985ac3e6146ee4ec9809ed2045eab8504",
+  "substrate": {
+    "afterSha256": "3e399c0c37763463dfe9fa31ca19ada0d9945243202bda19805fc36094c83ec3",
+    "anchor": "    internal fun processIdentity(): String = processToken\n",
+    "beforeSha256": "10701bfd3e4608fbae6126dcf8c66d567ba3ac2d71ecedc236548d383f1e172a",
+    "historicalArchiveSha256": "f131a235aa3d883bdae29432cb85691a5da57bcd0cb47b6324822290cbf63a21",
+    "insertion": "\n    internal fun processBootIdentity(working: File): WorkspaceProcessBootIdentity.Identity? =\n        if (::appContext.isInitialized) WorkspaceProcessBootIdentity.forApplication(appContext, working) else null\n",
+    "path": "app/src/main/java/com/baystudio/droide/core/LocalExecutionSubstrate.kt"
+  },
+  "v1ContractSha256": "0f4c31e5549adfe103296473d3cb78336c58346f08be4f627de6c2ba7b599751"
+}

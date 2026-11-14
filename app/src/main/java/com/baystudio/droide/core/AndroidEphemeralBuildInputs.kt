@@ -4,6 +4,13 @@ import java.io.File
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
+
+
+
+
+
+
+
 internal class AndroidEphemeralBuildInputs private constructor(
     private val projectRoot: File,
     private val bridge: DeviceBridgeManager,
@@ -24,6 +31,7 @@ internal class AndroidEphemeralBuildInputs private constructor(
             val parent = remote.substringBeforeLast('/', remoteWorkspace)
             val mk = bridge.shell("mkdir -p ${DeviceBridgeManager.shellQuote(parent)}")
             check(mk.exitCode == 0) { mk.combined }
+            
 
             validateCurrentInput(input)
             bridge.push(input.file, remote, mode = OWNER_READ_WRITE_MODE)
@@ -82,7 +90,7 @@ internal class AndroidEphemeralBuildInputs private constructor(
     }
 
     companion object {
-        private const val OWNER_READ_WRITE_MODE = 384
+        private const val OWNER_READ_WRITE_MODE = 384 
         private const val MAX_INPUTS = 128
         private const val MAX_FILE_BYTES = 128L * 1024L * 1024L
         private const val MAX_TOTAL_BYTES = 256L * 1024L * 1024L

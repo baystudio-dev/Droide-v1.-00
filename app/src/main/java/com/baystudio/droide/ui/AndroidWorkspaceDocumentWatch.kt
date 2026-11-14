@@ -6,6 +6,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 
+/** One nonrecursive watch, with exact child filtering; unrelated build output is ignored. */
 internal class AndroidWorkspaceDocumentWatch(private val root: File) : WorkspaceDocumentWatchFactory {
     internal data class Target(val directory: File, val child: String, val watchingAncestor: Boolean)
 

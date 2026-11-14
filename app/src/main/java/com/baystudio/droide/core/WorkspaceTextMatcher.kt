@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
+ 
 internal object WorkspaceTextMatcher {
     suspend fun appendLine(
         path: String,

@@ -16,7 +16,7 @@ internal class ExternalWorkspaceReviewFeedback {
             val heading = if (interrupted) "Workspace synchronization incomplete." else
                 "Workspace changes need review: ${pending.joinToString(limit = 8)}."
             val text = listOfNotNull(heading, detail, "Pending CLI work is retained. Open Files to inspect the reason and review again after resolving it.").joinToString(" ")
-
+            // Include the complete pending set, even when its visible summary is truncated.
             val identity = listOf(state?.sourceRoot, state?.executionRoot, state?.phase, pending.sorted(), detail).toString()
             if (manual || changed.isNotEmpty() || lastPending[key] != identity) messages += text
             lastPending.remove(key)

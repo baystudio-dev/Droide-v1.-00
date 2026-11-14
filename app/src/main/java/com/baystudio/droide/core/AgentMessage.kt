@@ -7,7 +7,7 @@ data class AgentMessage(
     val role: String,
     val content: String,
     val streamPart: AgentStreamPart? = null,
-
+     
     val forkHistoryEnd: Int? = null,
     val media: List<ChatMediaRef> = emptyList(),
     val textPresentation: AgentTextPresentation = AgentTextPresentation.LEGACY,

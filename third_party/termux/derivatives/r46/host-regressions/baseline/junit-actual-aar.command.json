@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/toolchain/jdk-17.0.20.1+1/bin/java",
+    "-cp",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/fixture-classes:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/dependencies/junit-4.13.2.jar:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/dependencies/hamcrest-core-1.3.jar",
+    "com.termux.terminal.AarFixtureRunner",
+    "junit",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline/actual-aar-classes.jar"
+  ],
+  "cwd": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/host-regressions/baseline",
+  "durationNanoseconds": 176767120,
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TZ": "UTC"
+  },
+  "expectedExit": 1,
+  "returnCode": 1,
+  "startedAtUtc": "2026-10-17T07:45:29.999354+00:00"
+}

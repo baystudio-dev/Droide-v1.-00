@@ -10,8 +10,11 @@ import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.*
 
-/** A directory deletion is a namespace move, never permission to release its descendants. */
-
+/** A directory deletion is a namespace move, never permission to release its descendants.
+ * Old descriptors may keep writing indefinitely. Identity below binds custody, not content.
+ * All writes run under the repository guard and a per-operation cross-runtime metadata lease.
+ * There is deliberately no payload/record deletion, count cap, or automatic replay API.
+ */
 internal class LocalDirectoryDeleteCustody(
     private val root: File,
     private val checkpoint: (String) -> Unit = {},
@@ -38,6 +41,7 @@ internal class LocalDirectoryDeleteCustody(
         val original get() = "$directory/original"
     }
 
+    /** Called before the first suspending admission: a recreated inode needs a fresh selection. */
     fun select(source: String): Selection = AnchoredWorkspaceFiles(root).use { files ->
         require(source.isNotEmpty() && source.length <= MAX_PATH &&
             ExplorerFilePolicy.requireUnaliasedProjectPath(root, source) == source) { "Choose an ordinary project directory" }
@@ -148,8 +152,9 @@ internal class LocalDirectoryDeleteCustody(
             validateCustody(files, prepared)
         }
 
-        /** Reconfirmation appends a retained receipt only for the exact already-moved inode. It never
-         * renames an existing/recreated source, and never replays the observer. */
+        /** Reconfirmation appends a retained receipt only for the exact already-moved inode.
+         * It never renames an existing/recreated source, and never replays the observer.
+         */
         internal fun reconfirm(): Inspection {
             validate()
             val before = inspectOne(files, prepared.id, token)
@@ -163,8 +168,8 @@ internal class LocalDirectoryDeleteCustody(
                 requireMoved(files, prepared, requireOriginalParents = true)
                 publishRetained()
             } else if (before.state == State.RETAINED) {
-                // Existing receipt may have survived a lost force/return. Confirm this inode, not a different
-                // operation, and force the evidence and namespace again.
+                // Existing receipt may have survived a lost force/return. Confirm this inode,
+                // not a different operation, and force the evidence and namespace again.
                 requireRetained(files, prepared, token)
                 files.openRead("${prepared.directory}/retained.json").use { it.forceContents() }
                 files.openDirectory(prepared.directory).use { it.forceDirectory() }
@@ -181,8 +186,8 @@ internal class LocalDirectoryDeleteCustody(
     }
 
     private fun openOperation(files: AnchoredWorkspaceFiles, prepared: Prepared, guard: WorkspaceMutationGuard): Operation {
-        // Register BEFORE opening this inode. Closing a failed contender's descriptor can release
-        // another descriptor's POSIX process lock, even when FileLock remains valid.
+        // Register BEFORE opening this inode. Closing a failed contender's descriptor can
+        // release another descriptor's POSIX process lock, even when FileLock remains valid.
         val registration = LocalRecoveryMetadataLocks.claim(prepared.selection.rootKey, prepared.lockKey)
         var input: AnchoredWorkspaceFiles.OpenedFile? = null
         try {
@@ -194,8 +199,8 @@ internal class LocalDirectoryDeleteCustody(
         } catch (failure: Throwable) { try { input?.close() } finally { registration.close() }; throw failure }
     }
 
-    /** Read-only custody ownership survives release of the workspace mutex. Other owners use root ->
-     * nonblocking metadata lease order. No live mutation guard is retained. */
+    /** Read-only custody ownership survives release of the workspace mutex. Other owners
+     * use root -> nonblocking metadata lease order. No live mutation guard is retained. */
     inner class RecoveryLease internal constructor(
         private val files: AnchoredWorkspaceFiles,
         private val prepared: Prepared,
@@ -261,8 +266,9 @@ internal class LocalDirectoryDeleteCustody(
         catch (failure: Exception) { problem(operation, failure) }
     }
 
-    /** Bounded direct-folder discovery. Unknown directories/files are reported, never adopted. An
-     * operation can always be inspected directly, even beyond this listing's scan budget. */
+    /** Bounded direct-folder discovery. Unknown directories/files are reported, never adopted.
+     * An operation can always be inspected directly, even beyond this listing's scan budget.
+     */
     fun inspectDirectory(directory: String): RetainedWorkInventory {
         require(directory == HOME || directory.startsWith("$HOME/") && '/' !in directory.removePrefix("$HOME/"))
         val candidates = ArrayList<RetainedWorkCandidate>()

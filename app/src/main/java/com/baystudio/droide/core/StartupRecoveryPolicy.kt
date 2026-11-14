@@ -11,13 +11,14 @@ import android.os.Process
 /** A restart changes automatic restoration, never the project or saved recovery buffers. */
 data class StartupRecoveryPolicy internal constructor(
     val deferEditorReopen: Boolean = false,
-    // An abnormal exit is not evidence that all future PTYs are broken. Suppress automatic process
-    // startup only; explicit terminal/Run requests may retry.
+    // An abnormal exit is not evidence that all future PTYs are broken. Suppress
+    // automatic process startup only; explicit terminal/Run requests may retry.
     val allowAutomaticTerminalStart: Boolean = true,
     val allowTerminalRevive: Boolean = true,
     internal val clearTerminalRevive: Boolean = false,
-    // A Boolean alone repeats on consecutive crash restarts and can match a saved native editor/Web
-    // panel from the preceding recovery process.
+    // One immutable process decision, different for each newly observed abnormal exit.
+    // A Boolean alone repeats on consecutive crash restarts and can match a saved
+    // native editor/Web panel from the preceding recovery process.
     val recoveryGeneration: String? = null,
 ) {
     fun recoveredEditorPath(requested: String, available: List<String>): String = when {
@@ -32,19 +33,20 @@ data class StartupRecoveryPolicy internal constructor(
         private const val LAST_CONSUMED_EXIT = "last_consumed_exit"
         @Volatile private var processPolicy: StartupRecoveryPolicy? = null
 
+        /** Activity recreation, workspace changes and the terminal host share one process decision. */
         fun forProcess(context: Context): StartupRecoveryPolicy = processPolicy ?: synchronized(this) {
             processPolicy ?: run {
                 val app = context.applicationContext
                 val previousExit = readPreviousExit(app)
-                // Recovery metadata is advisory. An unreadable or old wrong-type marker must not crash before
-                // workspace initialization can show its error UI.
+                // Recovery metadata is advisory. An unreadable or old wrong-type marker
+                // must not crash before workspace initialization can show its error UI.
                 val preferences = try {
                     app.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
                 } catch (_: RuntimeException) { null }
                 val consumed = readConsumedExitIdentity(preferences)
                 val decision = decide(previousExit, consumed)
-                // Publish first. A failed preference write must only repeat conservative recovery on a later
-                // process; it cannot change the policy part way through this launch.
+                // Publish first. A failed preference write must only repeat conservative recovery
+                // on a later process; it cannot change the policy part way through this launch.
                 processPolicy = decision
                 if (previousExit != null && previousExit.identity != consumed) {
                     try { preferences?.edit()?.putString(LAST_CONSUMED_EXIT, previousExit.identity)?.apply() }

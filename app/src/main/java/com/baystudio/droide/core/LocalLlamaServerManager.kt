@@ -36,6 +36,14 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
+
+
+
+
+
+
+
+
 class LocalLlamaServerManager(
     context: Context,
     private val bridge: DeviceBridgeManager,
@@ -218,6 +226,10 @@ class LocalLlamaServerManager(
         }
     }
 
+    
+
+
+
     suspend fun certifyToolCalling(modelId: String): LocalLlamaToolCapabilityCertifier.Certificate = ownedOperation {
         check(!closedForExit) { "Local model server is stopped for Exit" }
         ApplicationWorkAdmission.requireOpen()
@@ -278,6 +290,7 @@ class LocalLlamaServerManager(
         forwardFailure?.let { throw it }
         pendingCleanup.remove(lease)
     }
+
 
     suspend fun reconcileProcessState() = operationMutex.withLock {
         if (running == null) clearPublishedRuntimeState()

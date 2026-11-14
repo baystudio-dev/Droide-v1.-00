@@ -14,6 +14,7 @@ data class LspSemanticToken(
     val activationGuard: LspHeldResultGuard? = null,
 )
 
+ 
 internal object LspSemanticTokenDecoder {
     const val MAX_TOKENS = 8_000
     const val MAX_TOKEN_LENGTH = 16_384

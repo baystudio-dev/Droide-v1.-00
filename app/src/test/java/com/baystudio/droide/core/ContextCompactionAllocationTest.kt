@@ -56,7 +56,7 @@ class ContextCompactionAllocationTest {
         val config = AgentConfig(providerId = provider, model = model)
         val body = Json.parseToJsonElement(manager.buildCompactionBody(config, "preserve this prompt")).jsonObject
         assertEquals(8192, ProviderRequestBudget.explicitOutputTokens(body))
-        assertEquals(11264, manager.compactionChunkChars(config))
+        assertEquals(11264, manager.compactionChunkChars(config)) // 4096 input - 1024 instructions - 256 safety.
         assertEquals(JsonPrimitive("preserve this prompt"), body["messages"]!!.jsonArray.single().jsonObject["content"])
     }
 

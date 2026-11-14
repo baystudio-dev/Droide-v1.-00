@@ -46,8 +46,8 @@ class LspPrismaProfileTest {
     }
 
     @Test fun everyUtf16CodeUnitMatchesTheExplicitEcmaWhitespaceRegexAtFourGrammarPositions() {
-        // An independently authored regex oracle with the ECMAScript whitespace set written out; Java's
-        // default \\s is intentionally never used.
+        // An independently authored regex oracle with the ECMAScript whitespace
+        // set written out; Java's default \\s is intentionally never used.
         val ws = "[\\x09-\\x0d\\x20\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]"
         val reference = Pattern.compile("^$ws*// *use +prisma-(?:next|8) *(?=$ws|$)")
         for (code in 0..0xffff) {

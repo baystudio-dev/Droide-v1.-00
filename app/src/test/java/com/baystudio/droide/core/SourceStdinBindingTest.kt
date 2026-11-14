@@ -46,6 +46,21 @@ class SourceStdinBindingTest {
             assertTrue(m.inspectSourceStdin(b).eofAttempted);assertTrue(m.inspectSourceStdin(b).eofAccepted);assertEquals(1,eofs.get())
         }
     }
+    @Test fun laterSourceCallCanContinueTheSamePtyAfterEof()=runBlocking {
+        val writes=mutableListOf<String>();val eofs=AtomicInteger()
+        fixture(sink={writes+=String(it);true},eof={eofs.incrementAndGet();true}){m,id,buffer->
+            val first=m.bindSourceStdin(id,owner,hash,"first",true,false)
+            m.beginSourceStdin(first,id,"first",true,false);m.sendSourceInput(first,id,"first",true)
+            assertTrue(m.inspectSourceStdin(first).eofAccepted)
+            assertFalse(buffer.isClosed);assertTrue(requireNotNull(m.snapshot(id)).stdinAvailable)
+            val next=m.bindSourceStdin(id,owner.copy(callId="next"),"b".repeat(64),"next",false,false)
+            m.beginSourceStdin(next,id,"next",false,false);m.sendSourceInput(next,id,"next",false)
+            assertEquals(listOf("first","next"),writes);assertEquals(1,eofs.get())
+            assertTrue(m.inspectSourceStdin(next).offerAccepted)
+            assertThrows(IllegalStateException::class.java){m.sendSourceInput(first,id,"first",true)}
+            assertEquals(1,eofs.get())
+        }
+    }
     @Test fun closeFailureRetainsPriorOfferAcceptanceAndEofUncertainty()=runBlocking {
         fixture(eof={false}){m,id,_->
             val b=m.bindSourceStdin(id,owner,hash,"data",true,false)

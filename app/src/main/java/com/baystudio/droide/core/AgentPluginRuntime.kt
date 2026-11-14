@@ -5,6 +5,9 @@ import android.net.Uri
 import java.io.File
 import java.security.MessageDigest
 
+// App-private store is authoritative; per-workspace projections are disposable and reverified.
+
+
 object AgentPluginRuntime : AgentPluginSource {
     private const val URI_COPY_BUFFER = 64 * 1024
     private const val PROJECTION_DIR = ".droide/.runtime-agent-plugins"

@@ -184,8 +184,8 @@ class CliConnectionLifetimeTest {
                     closePeer = { closed.incrementAndGet(); pair.shutdownServer() },
                     writeResponse = {
                         writing.countDown()
-                        // Larger than OS socket buffers, independent of production frame limits. This exercises the
-                        // helper's blocking write cancellation boundary.
+                        // Larger than OS socket buffers, independent of production frame limits.
+                        // This exercises the helper's blocking write cancellation boundary.
                         pair.server.getOutputStream().write(ByteArray(8 * 1024 * 1024))
                     },
                 ) } catch (failure: IOException) {
@@ -215,8 +215,8 @@ class CliConnectionLifetimeTest {
             assertTrue(peerReading.await(3, TimeUnit.SECONDS))
             release.complete(Unit)
             val actual = withTimeout(3_000) { server.await() }.exceptionOrNull()
-            // Coroutine stacktrace recovery may copy IOException across await(), preserving its
-            // type/message/cause rather than JVM object identity.
+            // Coroutine stacktrace recovery may copy IOException across await(),
+            // preserving its type/message/cause rather than JVM object identity.
             assertEquals(expected.javaClass, actual?.javaClass)
             assertEquals(expected.message, actual?.message)
             assertTrue(pair.server.isClosed)

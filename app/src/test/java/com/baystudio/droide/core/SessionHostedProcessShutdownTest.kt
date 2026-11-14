@@ -33,8 +33,9 @@ class SessionHostedProcessShutdownTest {
         }
         override suspend fun awaitExit(): Int {
             awaitEntered.complete(Unit)
-            // Waiting for a live fixture child must not occupy the sole IO lane used to test independent
-            // stop dispatch and receipt publication.
+            // Like production LocalHostedProcess, awaitExit exposes an asynchronous
+            // receipt. Waiting for a live fixture child must not occupy the sole IO
+            // lane used to test independent stop dispatch and receipt publication.
             while (process.isAlive) delay(5)
             val code = process.exitValue()
             receipt.await()

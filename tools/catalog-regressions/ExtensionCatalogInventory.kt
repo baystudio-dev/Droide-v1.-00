@@ -98,8 +98,8 @@ fun main(args: Array<String>) {
         }
     }
     val familyInventory = inventory.associateBy { it.getValue("familyId").jsonPrimitive.content }
-    // Enumerate every language, including editor/project-only entries. Syntax recognition and an
-    // install recipe are not execution or protocol proof.
+    // Enumerate every language, including editor/project-only entries. Syntax
+    // recognition and an install recipe are not execution or protocol proof.
     val languages = LanguageRegistry.all.map { language ->
         val runtimeFamily = UbuntuAptCatalog.languageRuntime[language.id]
         val runtime = runtimeFamily?.let(familyInventory::get)

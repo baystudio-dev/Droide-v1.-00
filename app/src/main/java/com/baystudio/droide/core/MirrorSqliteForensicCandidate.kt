@@ -6,8 +6,9 @@ import java.security.MessageDigest
 import java.util.BitSet
 import java.util.UUID
 
-/** Data-only speculative transformation, never an SQLite connection or live authority. Format
- * checks and sparse journal checksums cannot prove pair coherence or writer exclusion. */
+/** Data-only speculative transformation, never an SQLite connection or live authority.
+ * Format checks and sparse journal checksums cannot prove pair coherence or writer exclusion.
+ */
 internal object MirrorSqliteForensicCandidate {
     enum class JournalShape { SINGLE_SEGMENT, SINGLE_SEGMENT_EMPTY_HEADER }
     data class Result(val directory: File, val sha256: String, val bytes: Long, val restoredPages: Int,
@@ -125,6 +126,7 @@ internal object MirrorSqliteForensicCandidate {
         }
     }
 
+    /** Search completed outputs first across every matching capture, before consuming either cap. */
     fun buildCurrent(authorityDirectory: File, binding: String, reviews: List<MirrorSqliteRollbackRecovery.Review>,
                      requireCurrent: () -> Unit, checkpoint: (String) -> Unit, beforeReturn: () -> Unit): Result {
         for (review in reviews) reopen(authorityDirectory, binding, review, requireCurrent, checkpoint, beforeReturn)?.let { return it }

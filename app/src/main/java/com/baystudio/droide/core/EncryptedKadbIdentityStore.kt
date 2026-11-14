@@ -4,6 +4,13 @@ import android.content.Context
 import com.flyfishxu.kadb.cert.KadbPrivateKeyStore
 import java.io.File
 
+
+
+
+
+
+
+
 class EncryptedKadbIdentityStore(context: Context) : KadbPrivateKeyStore {
     private val dir = File(context.applicationContext.noBackupFilesDir, "device-bridge").apply { mkdirs() }
     private val file = File(dir, "adb-host-identity.drb")

@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 class TailByteBuffer(private val capacity: Int) {
     init { require(capacity in 1..4_000_000) { "Invalid tail buffer capacity" } }
 

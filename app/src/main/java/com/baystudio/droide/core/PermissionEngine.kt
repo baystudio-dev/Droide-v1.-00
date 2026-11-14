@@ -5,6 +5,7 @@ data class PermRule(val action: String, val resource: String, val effect: PermEf
 
 // Unified agent permission engine.
 
+
 class PermissionEngine(
     base: List<PermRule> = defaults(),
     policy: PermissionPolicyDocument = PermissionPolicyDocument.EMPTY,
@@ -23,6 +24,7 @@ class PermissionEngine(
     private val lock = Any()
 
     // Resolve one permission request for a concrete agent scope.
+
 
     fun decide(action: String, resource: String, agent: String = "build"): PermEffect = synchronized(lock) {
         val scope = PermissionPolicyDocument.normalizeAgentId(agent)
@@ -60,17 +62,21 @@ class PermissionEngine(
         configured
     }
 
+    // Explicit pattern grant for trusted/internal callers.
+
+
     fun allowForSession(action: String, resourcePattern: String, agent: String = "*") = synchronized(lock) {
         addSessionGrant(action, resourcePattern, agent, SessionMatch.PATTERN)
     }
 
+     
     fun allowExactForSession(action: String, resource: String, agent: String) = synchronized(lock) {
         require(agent != "*") { "Interactive exact grants must be bound to one agent scope" }
         val grantResource = if (action == "browser_local") {
             BrowserSessionApprovalScope.canonicalOrigin(resource) ?: return@synchronized
         } else resource
-        // Review durable rules against the actual path before reducing a local capability to its origin.
-        // Every later decide() also evaluates hard/project/agent DENY first.
+        // Review durable rules against the actual path before reducing a local capability to
+        // its origin. Every later decide() also evaluates hard/project/agent DENY first.
         if (decideWithoutSession(action, resource, PermissionPolicyDocument.normalizeAgentId(agent)) == PermEffect.DENY) return@synchronized
         addSessionGrant(action, grantResource, agent, SessionMatch.EXACT)
     }
@@ -120,8 +126,8 @@ class PermissionEngine(
             !expected.unresolvedDeny && !unresolvedBrowserOutputDeny(scope)
     }
 
-    // A contributor may be any remote or local origin. Keep potentially shadowed DENY rules
-    // unresolved; do not guess wildcard coverage or use partial snapshots.
+    // A contributor may be any remote or local origin. Keep potentially shadowed
+    // DENY rules unresolved; do not guess wildcard coverage or use partial snapshots.
     private fun unresolvedBrowserOutputDeny(scope: String): Boolean =
         (hardRules.asSequence() + baseRules.asSequence() + projectPolicy.rules.asSequence() +
             projectPolicy.rulesFor(scope).asSequence()).any { rule ->
@@ -130,26 +136,27 @@ class PermissionEngine(
 
     fun policySnapshot(): PermissionPolicyDocument = synchronized(lock) { projectPolicy }
 
-    // Child agents inherit durable policy and base guardrails, but never the parent's session
-    // grants.
+    // Child agents inherit durable policy and base guardrails, but never the parent's session grants.
     fun fork(extraHardRules: List<PermRule> = emptyList()): PermissionEngine = fork(extraHardRules, null)
 
-    // Profile tool restrictions are restrictive-only layers; nested children must satisfy every
-    // layer.
+    // Profile tool restrictions are restrictive-only layers; nested children must satisfy every layer.
     fun fork(extraHardRules: List<PermRule>, toolAllowlist: Set<String>?): PermissionEngine = synchronized(lock) {
         val nextLayers = if (toolAllowlist == null) toolRestrictionLayers else toolRestrictionLayers + listOf(toolAllowlist.toSet())
         PermissionEngine(baseRules, projectPolicy, hardRules + extraHardRules, nextLayers)
     }
 
+     
     fun toolAllowed(tool: String): Boolean = synchronized(lock) {
         val canonical = canonicalTool(tool)
         toolRestrictionLayers.all { layer -> layer.any { pattern -> wild(canonicalTool(pattern), canonical) } }
     }
 
+     
     fun snapshot(): List<PermRule> = synchronized(lock) {
         baseRules + projectPolicy.rules + sessionAllows.map { it.rule }
     }
 
+     
     fun actionVisible(action: String, agent: String): Boolean = synchronized(lock) {
         decideWithoutSession(action, "*", PermissionPolicyDocument.normalizeAgentId(agent)) != PermEffect.DENY
     }
@@ -189,6 +196,7 @@ class PermissionEngine(
 
     companion object {
         fun defaults() = mutableListOf(
+            
 
             PermRule("read", "*", PermEffect.ALLOW),
             PermRule("read", "*.env", PermEffect.ASK),
@@ -222,6 +230,7 @@ class PermissionEngine(
             PermRule("glob", "*", PermEffect.ALLOW),
             PermRule("grep", "*", PermEffect.ALLOW),
 
+
             PermRule("shell", "pwd", PermEffect.ALLOW),
             PermRule("shell", "ls", PermEffect.ALLOW),
             PermRule("bash", "pwd", PermEffect.ALLOW),
@@ -231,6 +240,7 @@ class PermissionEngine(
             PermRule("skill", "*", PermEffect.ALLOW),
             PermRule("todowrite", "*", PermEffect.ALLOW),
 
+            
             PermRule("doom_loop", "*", PermEffect.ASK),
             PermRule("diagnose", "*", PermEffect.ASK),
             PermRule("lsp", "*", PermEffect.ASK),

@@ -162,7 +162,7 @@ class EditorRecoveryDiscardTest {
         assertTrue(runCatching { preparedOpen.open() }.isFailure)
         val result = f.store.discardConflict(editor.snapshotForRecoveryDiscard(transaction, emptyList(), ""), selected, editor::revokeDiscardCheckpoints)
         assertTrue(result.ciphertextRemoved)
-
+        // Deliberately pause Main finalization: maps still contain the selected copy.
         val capturedInGap = editor.recoverySnapshot(emptyList(), "")!!
         assertTrue("a.txt" in capturedInGap.conflictPaths)
         assertTrue(runCatching { f.store.save(capturedInGap) }.isFailure)
@@ -218,8 +218,8 @@ class EditorRecoveryDiscardTest {
         val cipher = HostCipher()
         val syncedDirectories = CopyOnWriteArrayList<File>()
         var beforeSync: ((File) -> Unit)? = null
-        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host filesystem sync
-        // here; the public production constructor still uses Android Os.
+        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host
+        // filesystem sync here; the public production constructor still uses Android Os.
         val directorySync: (File) -> Unit = { directory ->
             check(Files.isDirectory(directory.toPath(), LinkOption.NOFOLLOW_LINKS))
             FileChannel.open(directory.toPath(), StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).use { it.force(true) }

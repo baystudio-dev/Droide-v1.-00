@@ -133,8 +133,8 @@ class OwnedProviderReplayWriterTest {
                 override fun write(bytes: ByteArray, offset: Int, length: Int) { actual.update(bytes, offset, length); size += length }
             }
             if (private) {
-                // The generated fixture is known independently. This is serialization testing, not a production
-                // provider schema implementation.
+                // The generated fixture is known independently. This is serialization testing,
+                // not a production provider schema implementation.
                 val source = OwnedNormalizedResponse.PrivateReplay.admit(session, stored.handle, target, ::drain)
                 OwnedProviderReplayWriter.writePrivateObject(session, source, target, sink)
             } else OwnedProviderReplayWriter.writePublicText(session, OwnedNormalizedResponse.PublicText.admit(session, stored.handle), sink)

@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Trusted scope/state tests; no renderer or runtime execution was performed for this repair. */
 class BrowserOutputConsentTest {
     private val permissions = PermissionEngine(listOf(PermRule("*", "*", PermEffect.ALLOW)))
     private val document = AgentBrowserController.DocumentIdentity(Any(), 3, "https://example.test/", "document-3")

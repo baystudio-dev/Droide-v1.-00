@@ -19,6 +19,7 @@ internal fun EditorAndroidSurface(
     onReleaseEditor: (DroideCodeEditor) -> Unit,
 ) {
     val workspacePresented = LocalWorkspacePresented.current
+    val exitVisible = LocalWorkspaceExitVisible.current
     var failure by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
     val currentRelease by rememberUpdatedState(onReleaseEditor)
@@ -49,9 +50,9 @@ internal fun EditorAndroidSurface(
                 FrameLayout(context).apply {
                     clipChildren = true
                     clipToPadding = true
-                    // Gate the holder before creating/initializing its child: a retained hidden workspace must not
-                    // acquire native input focus.
-                    presentationGate.update(this, workspacePresented)
+                    // Gate the holder before creating/initializing its child: a
+                    // retained hidden workspace must not acquire native input focus.
+                    presentationGate.update(this, workspacePresented, exitVisible)
                     var editor: DroideCodeEditor? = null
                     val initialized = runUiCatching(onError = ::reportFailure) {
                         createEditor(context).also { created ->
@@ -73,7 +74,7 @@ internal fun EditorAndroidSurface(
                 editor?.let(::release)
             },
             update = { holder ->
-                presentationGate.update(holder, workspacePresented)
+                presentationGate.update(holder, workspacePresented, exitVisible)
                 val editor = holder.getChildAt(0) as? DroideCodeEditor
                 if (editor != null && !editor.isReleased) {
                     runUiCatching(onError = ::reportFailure) { updateEditor(editor) }

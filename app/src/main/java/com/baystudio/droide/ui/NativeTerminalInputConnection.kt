@@ -7,8 +7,11 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.BaseInputConnection
 
-/** Owns the IME's temporary editable, never a copy of terminal screen/history. */
-
+/**
+ * Owns the IME's temporary editable, never a copy of terminal screen/history.
+ * The upstream commit sink retains Termux's Unicode/control/modifier conversion.
+ * Special keys go directly to the same captured terminal, not ViewRoot's current focus.
+ */
 internal class NativeTerminalInputConnection(
     target: View,
     private val lease: TerminalImeOwner.Lease,

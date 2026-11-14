@@ -22,7 +22,8 @@ internal object CliConnectionLifetime {
             if (closed.compareAndSet(false, true)) runCatching(closePeer)
         }
         // Coroutine cancellation alone cannot interrupt java/native socket I/O.
-
+        // Use a separate IO child so cancellation can also unblock a response write
+        // on this coroutine's dispatcher. UNDISPATCHED installs it before any work.
         val cancellationCloser = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
             try { awaitCancellation() } finally { close() }
         }
@@ -36,8 +37,8 @@ internal object CliConnectionLifetime {
             if (completed == null) work.cancel()
             else writeResponse(completed)
         } finally {
-            // Socket read/write ignores coroutine cancellation. Close inside this scope, including
-            // failed/canceled operations, before either structured child is joined.
+            // Socket read/write ignores coroutine cancellation. Close inside this scope,
+            // including failed/canceled operations, before either structured child is joined.
             close()
             cancellationCloser.cancel()
             peer.cancel()

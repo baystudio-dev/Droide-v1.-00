@@ -30,8 +30,7 @@ internal object LocalUbuntuSqruffLaunchAuthority {
             require(records.size <= 512 && records.count { it.familyId == record.familyId && it.version == record.version } == 1)
             require(record.familyId == LocalUbuntuSqruffPolicy.FAMILY && record.version == LocalUbuntuSqruffPolicy.VERSION)
             require(LocalLinuxPackageEnvironment.selectedRecords(records, selections, appRoot).singleOrNull { it.familyId == record.familyId } == record)
-            // An explicit unavailable selection must not gain identity through selectedRecords' active
-            // fallback.
+            // An explicit unavailable selection must not gain identity through selectedRecords' active fallback.
             require(selections[record.familyId] == null || selections[record.familyId] == record.version)
             require(record.scope == ExecutionScope.LOCAL_LINUX_ARM64.name && record.abi == "arm64-v8a" && record.checksumFile == "SHA256SUMS")
             require(record.metadata[LocalManagedPackageMetadata.PROFILE_KEY] == DeclarativeGuestProfile.UBUNTU_24_04_GLIBC_ARM64.name &&
@@ -91,8 +90,7 @@ internal object LocalUbuntuSqruffLaunchAuthority {
                 lock["treeLinksSha256"]?.jsonPrimitive?.content == checksums["TREE_LINKS.tsv"] &&
                 lock["commands"] == buildJsonObject { put("sqruff", "sqruff") } &&
                 lock["runtimeDependencies"] == JsonArray(record.dependencies.map(::JsonPrimitive)))
-            // Inspect the global projection only when it was actually discovered. Never substitute for an
-            // unreviewed path.
+            // Inspect the global projection only when it was actually discovered. Never substitute for an unreviewed path.
             var projectionSha = "version-specific"
             if (discovered == "/opt/droide/bin/sqruff") {
                 val projection = File(appRoot, "managed/ubuntu-bin/sqruff")
@@ -157,8 +155,7 @@ internal object LocalUbuntuSqruffLaunchAuthority {
         }
     }
     private fun requireSingleLink(file: File) {
-        // Android API 21 lstat exposes link count directly; do not assume a JDK-only file-attribute
-        // view.
+        // Android API 21 lstat exposes link count directly; do not assume a JDK-only file-attribute view.
         val count = android.system.Os.lstat(file.absolutePath).st_nlink
         require(count == 1L) { "Sqruff managed file is linked or link identity is unavailable" }
     }

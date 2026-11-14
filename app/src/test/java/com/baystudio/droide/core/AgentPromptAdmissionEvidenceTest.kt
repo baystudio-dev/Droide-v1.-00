@@ -23,7 +23,7 @@ class AgentPromptAdmissionEvidenceTest {
             { session.id }, { error("Already running") }, prepareImages = { entered.complete(Unit); release.await(); emptyList() },
             reportError = { check(it == null) { it.orEmpty() } })!!
         entered.await()
-        clock = 900L
+        clock = 900L // Grant/startup time changes while the already-accepted request waits.
         release.complete(Unit); submission.join()
         val batch = coordinator.promoteAtBoundary(lease, true, config, 1, 100_000)!!
         assertEquals(100L, batch.requestAdmittedAtNanos)

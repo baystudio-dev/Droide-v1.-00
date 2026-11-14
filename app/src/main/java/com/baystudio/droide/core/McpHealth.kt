@@ -50,6 +50,7 @@ data class McpHealthSnapshot(
 
 // It must never persist tokens, headers or full argv.
 
+
 object McpHealthRegistry {
     private val flows = ConcurrentHashMap<String, MutableStateFlow<List<McpHealthSnapshot>>>()
 

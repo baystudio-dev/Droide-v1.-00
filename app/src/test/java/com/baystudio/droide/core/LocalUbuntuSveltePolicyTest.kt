@@ -141,8 +141,11 @@ class LocalUbuntuSveltePolicyTest {
     }
 }
 
-/** Svelte's host fixture only reads the link count; observe that field on real host files without
- * following links. */
+/**
+ * Robolectric 4.14.1 ShadowLinux hard-codes st_nlink=0 and lstat follows stat.
+ * Svelte's host fixture only reads the link count; observe that field on real host
+ * files without following links. This is not an Android/PRoot stat implementation.
+ */
 @Implements(android.system.Os::class)
 class SvelteHostLinkCount {
     companion object {

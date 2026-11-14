@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 object ProfessionalSnippets {
     const val MAX_SNIPPET_CHARS = 8_000
     const val MAX_SNIPPET_MARKERS = 96
@@ -17,6 +18,11 @@ object ProfessionalSnippets {
     )
 
     private val templates: Map<String, List<Template>> = mapOf(
+        "goose" to listOf(
+            t("main", "main", "snippet · Goose program", "fn main() {\n    §0\n}"),
+            t("fn", "function", "snippet · Goose function", "fn §{1:name}(§{2:args}) {\n    §0\n}"),
+            t("struct", "struct", "snippet · Goose struct", "struct §{1:Name} { §{2:field}: §{3:i32} }§0"),
+        ),
         "properties" to listOf(
             t("key", "key=value", "snippet · Properties setting", "§{1:key}=§{2:value}§0"),
             t("comment", "comment", "snippet · Properties comment", "# §0"),
@@ -117,6 +123,7 @@ object ProfessionalSnippets {
             .toList()
     }
 
+     
     fun sanitizeForSora(source: String): String {
         require(source.length <= MAX_SNIPPET_CHARS) { "Snippet exceeds Droide size limit" }
         require(source.count { it == '$' } <= MAX_SNIPPET_MARKERS) { "Snippet has too many markers" }
@@ -146,15 +153,17 @@ object ProfessionalSnippets {
         }
         // Malformed snippets may contain constructs the strict patterns above cannot parse.
 
+
         text = Regex("\\$\\{[^\\n]{0,512}?}").replace(text, "")
         text = Regex("\\$(?:[A-Za-z_][A-Za-z0-9_]*|\\d+)").replace(text, "")
         text = text.replace("${'$'}{", "{")
         return text
     }
 
+
     fun planSnippetEdits(original: String, primary: TextRangeEdit, additional: List<TextRangeEdit>): SnippetEditPlan {
         require(additional.size <= 32) { "Too many additional text edits" }
-
+        
         TextEditApplier.apply(original, additional + primary.copy(newText = ""))
         val primaryStart = offset(original, primary.startLine, primary.startColumn)
         val primaryEnd = offset(original, primary.endLine, primary.endColumn)
@@ -178,7 +187,7 @@ object ProfessionalSnippets {
         require(line >= 1 && column >= 1) { "Invalid snippet range" }
         var currentLine = 1
         var lineStart = 0
-
+        // LSP lines are separated by CR, LF, or one CRLF pair; keep original bytes.
         var index = 0
         while (currentLine < line && index < text.length) {
             when (text[index++]) {

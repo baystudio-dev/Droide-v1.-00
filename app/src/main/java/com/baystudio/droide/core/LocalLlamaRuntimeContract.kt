@@ -1,5 +1,12 @@
 package com.baystudio.droide.core
 
+
+
+
+
+
+
+
 object LocalLlamaRuntimeContract {
     const val RUNTIME_ID = "llama.cpp-android-arm64"
     const val VERSION = "b10964"

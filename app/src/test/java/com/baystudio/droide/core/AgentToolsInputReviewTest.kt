@@ -104,7 +104,7 @@ class AgentToolsInputReviewTest {
     }
     @Test fun allowPathDoesNotConstructReviewOrNarrowSmallInput()=fixture {root->
         val terminal=Terminal();val c=agentWorkflowContext(root,terminal=terminal)
-
+        // Malformed Unicode would fail review construction; ALLOW path remains old behavior.
         val command="printf 'small\uD800'"
         AgentTools.execute("run_command",buildJsonObject{put("command",command)},c)
         assertEquals(listOf(command),terminal.commands.toList());assertNull(c.approvals.pending.value)

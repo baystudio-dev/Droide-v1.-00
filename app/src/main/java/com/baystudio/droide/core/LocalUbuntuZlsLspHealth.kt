@@ -5,6 +5,7 @@ internal object LocalUbuntuZlsLspHealth {
     const val FILE_NAME = "zls-lsp-health.cjs"
     const val TIMEOUT_MS = 40_000L
 
+    /** Preserve the historical helper byte-for-byte; bind new installs to their selected release. */
     fun scriptForVersion(version: String): String {
         require(version.matches(Regex("[0-9]{1,6}[.][0-9]{1,6}[.][0-9]{1,6}")))
         return script.replace("'0.16.0'", "'$version'")
@@ -72,8 +73,8 @@ internal object LocalUbuntuZlsLspHealth {
         """.trimIndent())
         result = replaceOnce(result, "phase = 'exit'; expected = null; deadline(8000);", "zlsShutdown = true; phase = 'exit'; expected = null; deadline(8000);")
         result = replaceOnce(result, "child.stdin.end();", "child.stdin.end(() => { zlsExitEnded = true; });")
-        // The inner launcher owns separately detached child groups. Give its bounded TERM/KILL/reap and
-        // private cleanup time to finish before killing the owner.
+        // The inner launcher owns separately detached child groups. Give its bounded
+        // TERM/KILL/reap and private cleanup time to finish before killing the owner.
         result = replaceOnce(result, "}, 200);", "}, child && child.exitCode === null && child.signalCode === null ? 5600 : 200);")
         result = replaceOnce(result, "child = spawn(argv[0], argv.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], detached: true });", """
             zlsPrepareCommand();

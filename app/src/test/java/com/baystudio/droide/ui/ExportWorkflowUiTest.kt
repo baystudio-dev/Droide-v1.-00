@@ -36,7 +36,7 @@ class ExportWorkflowUiTest {
     private val bridge by lazy { DeviceBridgeManager(app, scope) }
     @Before fun setup() {
         ShadowProcess.setPid(4242); ApplicationWorkAdmission.initialize(app); ApplicationWorkAdmission.reopenFromUser()
-
+        // Robolectric's MimeTypeMap starts empty, unlike Android's platform table.
         shadowOf(android.webkit.MimeTypeMap.getSingleton()).apply {
             addExtensionMimeTypeMapping("jpg", "image/jpeg")
             addExtensionMimeTypeMapping("zip", "application/zip")
@@ -58,7 +58,8 @@ class ExportWorkflowUiTest {
     }
 
     private fun selectFormat(label: String) {
-
+        // Dispatch the row's accessibility click after scrolling; modal-sheet
+        // animation can move its screen coordinates between host touch events.
         compose.onNodeWithText(label).performScrollTo()
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { it() }
     }

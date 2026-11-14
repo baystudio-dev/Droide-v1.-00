@@ -91,7 +91,7 @@ class AgentWorkspaceArtifactsTest {
         val bytes = 4L * 1024 * 1024 * 1024 + 1L
         RandomAccessFile(large, "rw").use { it.setLength(bytes) }
         assertEquals(bytes, AgentWorkspaceArtifacts.requireRegular(root, large).size())
-
+        // Actual >4 GiB transfer is covered separately by WorkspaceLargeFileTransferTest.
     }
 
     @Test fun cancelledAdmissionLeavesOutputAndExistingStagingUntouched() = fixture { root, staging ->

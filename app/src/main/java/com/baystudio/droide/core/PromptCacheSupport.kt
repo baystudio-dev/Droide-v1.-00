@@ -13,8 +13,9 @@ internal object PromptCacheSupport {
         return buildJsonObject {
             put("role", "system")
             if (explicit) {
-                // Only split an exact, owned prefix.
-
+                // Only split an exact, owned prefix. Project/profile/mode/capability text
+                // remains in its original order after it, without an extra separator.
+                // Changing that suffix must not invalidate the stable instruction prefix.
                 val prefix = if (availableBreakpoints >= 2) stablePrefix(systemText) else null
                 put("content", buildJsonArray {
                     add(buildJsonObject {
@@ -26,7 +27,7 @@ internal object PromptCacheSupport {
                         add(buildJsonObject {
                             put("type", "text")
                             put("text", systemText.substring(prefix.length))
-
+                            // Preserve the previous whole-system cache boundary too.
                             put("cache_control", buildJsonObject { put("type", "ephemeral") })
                         })
                     }
@@ -37,8 +38,11 @@ internal object PromptCacheSupport {
         }
     }
 
-    /** Count conservatively even unknown nested cache_control keys, so imported history or tool
-     * metadata cannot make this optimization exceed the request-wide budget. */
+    /** Anthropic and its documented OpenRouter route allow four request breakpoints.
+     * Count conservatively even unknown nested cache_control keys, so imported history
+     * or tool metadata cannot make this optimization exceed the request-wide budget.
+     * Iterative traversal avoids adding a recursive walk to request preparation.
+     */
     internal fun availableBreakpoints(history: List<JsonObject>, tools: JsonArray?): Int {
         val pending = java.util.ArrayDeque<JsonElement>()
         history.forEach(pending::addLast)
@@ -60,11 +64,13 @@ internal object PromptCacheSupport {
     private fun stablePrefix(text: String): String? = when {
         text.startsWith(AgentSystemPrompt.STABLE_PREFIX) -> AgentSystemPrompt.STABLE_PREFIX
         text.startsWith(AgentSystemPrompt.GREETING_TEXT) -> AgentSystemPrompt.GREETING_TEXT
-        else -> null
+        else -> null // Unknown call sites keep their existing single-block behavior.
     }
 
-    // A routed model name alone does not authorize metadata on arbitrary/custom OpenAI-compatible
-    // endpoints.
+    // Retain the existing explicit-provider allowlist. A routed model name alone
+    // does not authorize metadata on arbitrary/custom OpenAI-compatible endpoints.
+    // OpenRouter explicitly supports Anthropic cache_control on Chat Completions;
+    // native Anthropic transport is not a requirement for that known proxy route.
     internal fun supportsExplicitCacheControl(providerId: String, model: String): Boolean {
         if (providerId.equals("anthropic", ignoreCase = true)) return true
         if (!providerId.equals("openrouter", ignoreCase = true)) return false

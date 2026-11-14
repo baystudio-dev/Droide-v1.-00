@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 internal const val EXTERNAL_ACP_PERMISSION_SCOPE = "external-acp-agent"
 
+ 
 object PermissionApprovalGate {
     suspend fun approved(
         permissions: PermissionEngine,

@@ -2,8 +2,8 @@ package com.baystudio.droide.core
 
 import okhttp3.Request
 
-// A provider catalog entry chooses a protocol/auth family; the agent loop never branches on a
-// provider name.
+// A provider catalog entry chooses a protocol/auth family; the agent loop never branches on a provider name.
+
 
 data class ProviderTransportSpec(
     val protocol: ProviderWireProtocol,
@@ -31,7 +31,7 @@ internal object ProviderTransportV2 {
         ProviderWireProtocol.GOOGLE_GENERATE_CONTENT -> ProviderTransportSpec(
             protocol = provider.wireProtocol,
             authScheme = provider.authScheme,
-            chatPath = "",
+            chatPath = "", 
         )
     }
 
@@ -51,7 +51,7 @@ internal object ProviderTransportV2 {
             ProviderAuthScheme.AWS_SIGV4_BEDROCK,
             ProviderAuthScheme.GOOGLE_ADC,
             ProviderAuthScheme.AZURE_ENTRA,
-            ProviderAuthScheme.GITHUB_COPILOT -> builder
+            ProviderAuthScheme.GITHUB_COPILOT -> builder 
         }
     }
 }

@@ -90,6 +90,7 @@ internal class QemuQmpClient(private val socketPath: File) {
     }
 }
 
+
 class QemuVmManager(context: Context, private val workspaceId: String) {
     data class RunningSession internal constructor(
         val profile: QemuVmProfile,

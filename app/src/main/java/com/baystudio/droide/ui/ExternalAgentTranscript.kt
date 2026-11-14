@@ -4,7 +4,7 @@ import com.baystudio.droide.core.*
 import java.util.UUID
 import java.security.MessageDigest
 
-/** Keep ordered parts for a single run; persistence receives uncapped text deltas. */
+/** One run's ordered parts. Persistence receives uncapped text deltas. */
 internal class ExternalAgentTranscript {
     private val prefix = "external:${UUID.randomUUID()}:"
     private val parts = mutableListOf<AgentStreamPart>()
@@ -54,18 +54,20 @@ internal class ExternalAgentTranscript {
         is WorkspaceAgentEvent.Text -> text(event.text)
         is WorkspaceAgentEvent.Tool -> event.update?.let(::tool)
         is WorkspaceAgentEvent.Plan -> {
-            val output = event.entries.joinToString("\n") {
+            val tasks = event.entries.take(64).map { Todo(it.content.take(1_000),
+                it.status.takeIf { status -> status in setOf("pending", "in_progress", "completed") } ?: "pending", "medium") }
+            val output = tasks.joinToString("\n") {
                 "${when (it.status) { "completed" -> "✓"; "in_progress" -> "→"; else -> "○" }} ${it.content}"
             }.take(32_000)
-            val status = if (event.entries.isNotEmpty() && event.entries.all { it.status == "completed" }) "completed" else "in_progress"
-            tool(ExternalAgentToolUpdate("plan", "Plan", "plan", status, output = output), plan = true)
+            val status = if (tasks.isNotEmpty() && tasks.all { it.status == "completed" }) "completed" else "in_progress"
+            tool(ExternalAgentToolUpdate("plan", "Plan", "plan", status, output = output, tasks = tasks), plan = true)
         }
         else -> null
     }
 
     private fun text(value: String): ExternalTranscriptUpdate? {
         if (value.isEmpty()) return null
-
+        // UTF-16 code units make equality independent of chunk boundaries, including split surrogates.
         textDigest.updateText(value)
         textCount += value.length
         val index = textPartIndex ?: run {
@@ -100,7 +102,7 @@ internal class ExternalAgentTranscript {
         else if (!patch.isUpdate || plan || omittedParts == 0) {
             sealText(); makeRoom(); parts += part
         }
-
+        // A patch for an older, off-screen tool still merges into its original SQLite slot.
         return ExternalTranscriptUpdate(part, patch = patch, plan = plan)
     }
 
@@ -124,3 +126,7 @@ internal class ExternalAgentTranscript {
         return messages
     }
 }
+
+internal fun externalAgentTasks(state: ExternalAgentConversationState): List<Todo> =
+    state.streamParts.asReversed().firstNotNullOfOrNull { it.tasks }
+        ?: state.messages.asReversed().firstNotNullOfOrNull { it.streamPart?.tasks }.orEmpty()

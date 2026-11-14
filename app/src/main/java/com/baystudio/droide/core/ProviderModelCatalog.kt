@@ -37,8 +37,8 @@ internal object ProviderModelCatalog {
 
     private fun modelId(raw: String, provider: AiProvider): String? {
         val canonical = ProviderModelIdentity.normalizeOrNull(raw) ?: return null
-        // Only Google's catalog uses this resource prefix. Other providers may own an actual namespaced
-        // model ID such as "models/company-model".
+        // Only Google's catalog uses this resource prefix. Other providers may own
+        // an actual namespaced model ID such as "models/company-model".
         return if (provider.wireProtocol == ProviderWireProtocol.GOOGLE_GENERATE_CONTENT) {
             ProviderModelIdentity.normalizeOrNull(canonical.removePrefix("models/"))
         } else canonical

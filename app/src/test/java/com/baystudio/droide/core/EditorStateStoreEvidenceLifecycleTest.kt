@@ -419,8 +419,8 @@ class EditorStateStoreEvidenceLifecycleTest {
         f.beforeSync = { dir -> if (dir == f.root && ++roots == 2) throw java.io.IOException("after new manifest") }
         assertTrue(runCatching { f.store.save(snapshot(dirty = mapOf("a.txt" to current, "b.txt" to current))) }.isFailure)
         f.beforeSync = null
-        // 63 MiB evidence + about40 MiB current + about40 MiB retirement is valid, and must not be
-        // trapped by a smaller combined inspection budget.
+        // 63 MiB evidence + about40 MiB current + about40 MiB retirement is valid,
+        // and must not be trapped by a smaller combined inspection budget.
         assertEquals(2, f.manifest().getValue("retiring").jsonArray.size)
         val reopened = EditorStateStore(f.context, f.id, f.cipher, f.directorySync)
         reopened.save(snapshot(dirty = mapOf("a.txt" to current, "b.txt" to current)))
@@ -471,7 +471,7 @@ class EditorStateStoreEvidenceLifecycleTest {
         f.store.save(snapshot(dirty = mapOf("a.txt" to "healthy")))
         val ref = f.store.load()!!.deferredBuffers.getValue("a.txt")
         val live = File(f.blobs, ref.blobName)
-
+        // Authenticated but inconsistent manifest: preserved and live membership overlap.
         val m = f.manifest()
         val hash = java.security.MessageDigest.getInstance("SHA-256").digest(live.readBytes()).joinToString("") { "%02x".format(it.toInt() and 255) }
         f.writeManifest(JsonObject(m.toMutableMap().apply { put("preserved", buildJsonArray { add(buildJsonObject {
@@ -559,8 +559,8 @@ class EditorStateStoreEvidenceLifecycleTest {
         val cipher = HostCipher()
         val syncedDirectories = CopyOnWriteArrayList<File>()
         var beforeSync: ((File) -> Unit)? = null
-        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host filesystem sync
-        // here; the public production constructor still uses Android Os.
+        // Robolectric ShadowLinux cannot open directory descriptors. Exercise real host
+        // filesystem sync here; the public production constructor still uses Android Os.
         val directorySync: (File) -> Unit = { directory ->
             check(Files.isDirectory(directory.toPath(), LinkOption.NOFOLLOW_LINKS))
             FileChannel.open(directory.toPath(), StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS).use { it.force(true) }

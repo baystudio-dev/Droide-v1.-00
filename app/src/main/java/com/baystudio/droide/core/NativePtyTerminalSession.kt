@@ -30,7 +30,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import java.io.File
 
+ 
 interface NativePtySessionHandle : ITerminalSession, TerminalMetadataSession, TerminalWorkingDirectorySession {
+    val agentPtyActive: Boolean get() = false
     val nativePtySession: TermuxSession
     /** Display target changes within one tab; the human shell itself is never replaced or reused. */
     val displayedPtySession: StateFlow<TermuxSession>
@@ -50,12 +52,17 @@ internal object NativePtyThreadPolicy {
     }
 }
 
+
 class NativePtyTerminalSession(
     private val context: Context,
     private val workDir: File,
     private val scope: CoroutineScope,
     private val launchSpec: TerminalLaunchSpec = TerminalLaunchSpec(),
-) : NativePtySessionHandle, NativeTerminalGeometrySession, TerminalCpuProtectionSession, TerminalCommandActivitySession, TerminalAgentActivitySession, DevelopmentOperationSession, InteractivePtyCommandSession, WorkspaceCommandSession, TerminalOwnershipObservationSource {
+) : NativePtySessionHandle, NativeTerminalGeometrySession, TerminalCpuProtectionSession, TerminalCommandActivitySession, TerminalAgentActivitySession, DevelopmentOperationSession, InteractivePtyCommandSession, WorkspaceCommandSession, TerminalOwnershipObservationSource, TerminalDiagnosticsSession {
+    override val diagnosticsWorkspace: File get() = workDir
+    override val recording = TerminalOutputRecording(workDir)
+    override val recordingSupported: Boolean get() = TerminalRawOutputBridge.available
+    override val agentPtyActive: Boolean get() = activeAgentPty != null
     init {
         NativePtyThreadPolicy.requireMainThread(
             isMainThread = Looper.getMainLooper().thread === Thread.currentThread(),
@@ -79,9 +86,9 @@ class NativePtyTerminalSession(
     private val _workingDirectory = MutableStateFlow<String?>(workDir.absolutePath)
     override val workingDirectory: StateFlow<String?> = _workingDirectory.asStateFlow()
     private val outputCap = 200_000
-    private val execDelegate = TerminalSession(workDir, scope, launchSpec)
-    // Correlation is diagnostic only. The native owner alone may signal/reap its child; no generic
-    // .pid lease or environment-scanned numeric cleanup may bypass it.
+    private val execDelegate = TerminalSession(workDir, scope, launchSpec, sharedRecording = recording)
+    // Correlation is diagnostic only. The native owner alone may signal/reap its child;
+    // no generic .pid lease or environment-scanned numeric cleanup may bypass it.
     private val processToken = NativePtyToken.create()
     private val promptEnvironment = launchSpec.interactiveEnvironment +
         (if (launchSpec.prefix.isEmpty()) TerminalPromptPresentation.androidEnvironment(File(context.filesDir, "terminal-home/presentation"))
@@ -281,6 +288,7 @@ class NativePtyTerminalSession(
         finally { humanCpu.close() }
     }
 
+     
     override fun start() {
         ApplicationWorkAdmission.requireOpen()
         check(!destroyed.get()) { "Terminal is closed" }
@@ -294,7 +302,12 @@ class NativePtyTerminalSession(
             directoryIdentity?.requireCurrent()
             // Debugger-created terminals must start even before a TerminalView is attached.
             try {
-                if (humanPtySession.emulator == null) humanPtySession.updateSize(80, 24)
+                if (humanPtySession.emulator == null) {
+                    TerminalRawOutputBridge.attach(humanPtySession, recording::append)
+                    ExecutionDiagnostics.record(workDir, "Interactive terminal", workDir.absolutePath, launchSpec,
+                        overrides = TerminalPtyEnvironment.variables + launchSpec.interactiveEnvironment)
+                    humanPtySession.updateSize(80, 24)
+                }
                 humanPtySession.spawnedPid.also {
                     check(it > 0) { "Native terminal did not create a child process" }
                 }
@@ -412,9 +425,13 @@ class NativePtyTerminalSession(
                     })
                     directoryIdentity?.requireCurrent()
                     val cwd = TerminalCommandCwdPolicy.resolveHostCwd(workDir, workingDirectory.value, launchSpec.prefix.isEmpty())
-                    val spec = TerminalGuestCwdPolicy.withObservedCwd(launchSpec, workDir, workingDirectory.value)
-                    val argv = spec.shellCommand(command, correlation.environment)
+                    val refreshed = LocalExecutionSubstrate.workspaceToolchainLaunchSpec(launchSpec, cwd, workDir) ?: launchSpec
+                    val spec = TerminalGuestCwdPolicy.withObservedCwd(refreshed, workDir, workingDirectory.value)
+                    val argv = spec.shellCommand(command, TerminalPtyEnvironment.variables + correlation.environment)
                     val pty = TermuxSession(argv.first(), cwd.absolutePath, argv.toTypedArray(), buildEnvironment(correlation.environment, includePrompt = false), 2_000, agentClient)
+                    TerminalRawOutputBridge.attach(pty, recording::append)
+                    ExecutionDiagnostics.record(workDir, "Agent interactive PTY", workingDirectory.value ?: cwd.absolutePath,
+                        spec, overrides = TerminalPtyEnvironment.variables)
                     terminal = pty
                     nativeObservationVersion = Any()
                     pendingNativeExits[pty] = NativeExitOwner(pty, correlation, nativeCompletion)
@@ -426,8 +443,8 @@ class NativePtyTerminalSession(
                     ready.complete(pty)
                     input?.bindPty(relay::send) { relay.send(byteArrayOf(0x04)) }
                     AgentPtyRun(token, pty, correlation, completion, commandJob, relay).also {
-                        // Assign before crossing withContext's prompt-cancellation boundary: a cancellation after native
-                        // spawn must still stop its native owner.
+                        // Assign before crossing withContext's prompt-cancellation boundary:
+                        // a cancellation after native spawn must still stop its native owner.
                         run = it
                         nativeObservationVersion = Any()
                         activeAgentPty = it
@@ -493,6 +510,7 @@ class NativePtyTerminalSession(
         }
     }
 
+     
     override fun interrupt() {
         activeAgentPty?.let { owned ->
             owned.job.cancel(CancellationException("User stopped the visible Agent interactive command"))
@@ -505,8 +523,8 @@ class NativePtyTerminalSession(
         if (!TerminalPtyInputDelivery.mayInterrupt(
                 destroyed.get(), humanPtySession.pid, humanPtySession.isRunning,
             )) return
-        // The process may exit between the running check and write. This is a user's PTY Ctrl+C only;
-        // Agent cancellation never calls this method.
+        // The process may exit between the running check and write. This is a
+        // user's PTY Ctrl+C only; Agent cancellation never calls this method.
         try {
             humanInterruptPending.set(true)
             humanPtySession.write(byteArrayOf(0x03), 0, 1)
@@ -522,7 +540,7 @@ class NativePtyTerminalSession(
         val reset = Runnable {
             if (!destroyed.get()) {
                 if (nativePtySession.emulator != null) nativePtySession.reset()
-
+                // reset can itself notify onTextChanged; invalidate that queued snapshot too.
                 transcriptPublisher.clear()
             }
         }
@@ -531,8 +549,8 @@ class NativePtyTerminalSession(
     }
 
     override suspend fun observeTerminalOwnership(): TerminalOwnershipObservation = withContext(Dispatchers.Main.immediate) {
-        // These collections belong to Main. destroyed is separately atomic because destroy may be
-        // requested off Main. No native property, relay or cleanup method is called.
+        // These collections belong to Main. destroyed is separately atomic because destroy
+        // may be requested off Main. No native property, relay or cleanup method is called.
         val version = nativeObservationVersion
         val wasDestroyed = destroyed.get()
         NativePtyOwnershipObservation.capture(humanExit,
@@ -555,7 +573,8 @@ class NativePtyTerminalSession(
         }
         OwnedResourceCleanup.runSuspend(
             { execDelegate.stopAndAwaitForExit() },
-            { exitAgentJob?.join() },
+            { withTimeoutOrNull(8_000) { exitAgentJob?.join(); true }
+                ?: error("Agent terminal cleanup is still pending; its owner is retained") },
             {
                 val owners = listOf(NativeExitOwner(humanPtySession, processToken, humanExit)) + exitNativeOwners.orEmpty()
                 // Request every native owner before waiting for any callback.
@@ -567,7 +586,8 @@ class NativePtyTerminalSession(
                         owned.terminal.pid == 0 && owned.terminal.emulator == null
                     }
                     if (!neverStarted) {
-                        val receipt = owned.completion.await()
+                        val receipt = withTimeoutOrNull(8_000) { owned.completion.await() }
+                            ?: error("Native terminal stop acknowledgement is pending; its owner is retained")
                         check(receipt.processFailureReason in 0..1) {
                             "Native terminal cleanup is unconfirmed (reason ${receipt.processFailureReason}). Exit remains paused."
                         }
@@ -639,8 +659,8 @@ class NativePtyTerminalSession(
             }
 
             override fun onPtyWriteFailure(reason: Int) {
-                // Java publishes its sticky receipt and releases the writer lane first. This only closes input;
-                // the persistent human shell is never stopped here.
+                // Java publishes its sticky receipt and releases the writer lane first.
+                // This only closes input; the persistent human shell is never stopped here.
                 val detail = NativePtyCleanupReceipt.inputFailureNotice(reason)
                 relay.fail(detail)
                 Log.w("DroideTerminal", detail)
@@ -649,7 +669,8 @@ class NativePtyTerminalSession(
     }
 
     private fun cleanupReceipt(terminal: TermuxSession, relay: TerminalInputRelay<TermuxSession>): NativePtyCleanupReceipt {
-
+        // Close admission and freeze queued/in-flight/prior-failure state before
+        // publishing completion. No join, UI wait, observer dependency or replay.
         val relayFailure = relay.finishInput()
         return NativePtyCleanupReceipt(
             terminal.exitStatus, terminal.processExitFailureReason, terminal.inputWriteFailureReason,
@@ -703,11 +724,9 @@ class NativePtyTerminalSession(
             "PATH=$path",
             "HOME=${home.absolutePath}",
             "TMPDIR=${context.cacheDir.absolutePath}",
-            "TERM=xterm-256color",
-            "COLORTERM=truecolor",
             "LANG=en_US.UTF-8",
             "SHELL=/system/bin/sh",
-        )
+        ) + TerminalPtyEnvironment.variables.map { (key, value) -> "$key=$value" }
         val prompts = if (includePrompt) promptEnvironment else emptyMap()
         val overridden = launchSpec.environment.keys + prompts.keys + correlationEnvironment.keys
         return base.filterNot { it.substringBefore('=') in overridden }.toTypedArray() +

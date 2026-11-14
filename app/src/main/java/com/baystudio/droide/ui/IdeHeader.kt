@@ -95,6 +95,11 @@ class DroideIdeHeaderActions(
     val onNotificationSettings: () -> Unit = {},
 )
 
+
+
+
+
+
 @Composable
 fun DroideIdeHeader(
     state: DroideIdeHeaderState,

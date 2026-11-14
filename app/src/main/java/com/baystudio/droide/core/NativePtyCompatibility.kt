@@ -4,14 +4,26 @@ import android.os.Build
 
 internal class NativePtyUnavailableException(cause: Throwable) :
     IllegalStateException("Native PTY is unavailable: ${cause.message ?: cause.javaClass.simpleName}", cause) {
-    // The existing launch log retains the exception. The UI needs a bounded classification, not raw
-    // messages that may contain paths or command text.
+    // The existing launch log retains the exception. The UI needs a bounded
+    // classification, not raw messages that may contain paths or command text.
     val commandModeReason: String = "Interactive terminal could not start (${cause.javaClass.simpleName.take(64).ifEmpty { "StartupError" }}). " +
         "Open a new Ubuntu tab to try again; this tab remains in command mode."
 }
 
-internal object NativePtyCompatibility {
-    // This is an API check, not a promise that opening the PTY will succeed.
 
+
+
+
+
+
+
+
+
+
+
+internal object NativePtyCompatibility {
+    // The patched Termux bridge uses public ParcelFileDescriptor APIs (API 13+).
+    // This is an API check, not a promise that opening the PTY will succeed. Transient
+    // launch failures are handled per session instead of disabling PTYs process-wide.
     fun prepare(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2
 }

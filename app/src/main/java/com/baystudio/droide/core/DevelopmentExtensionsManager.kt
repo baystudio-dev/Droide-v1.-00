@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
+ 
 data class DevelopmentExtensionsSnapshot(
     val catalogRevision: String = "source-v1.00",
     val workspace: WorkspaceEnvironmentSnapshot,
@@ -43,6 +44,7 @@ internal class DevelopmentExtensionRefreshAdmission(private val admit: (() -> Un
         return published
     }
 }
+
 
 internal const val TEMPORARY_COMPONENTS_UNAVAILABLE =
     "Installed extensions, language servers and automatic tool setup are temporarily unavailable in built-in startup recovery."
@@ -219,8 +221,8 @@ class DevelopmentExtensionsManager internal constructor(
             return checkNotNull(snapshot)
         }
         beforeInstalledRefresh()
-        // Admit before IO dispatch: A -> B -> A contains three distinct requests, never one key. A
-        // skipped UI refresh must not invalidate an installer's own nested catalog read.
+        // Admit before IO dispatch: A -> B -> A contains three distinct requests, never one key.
+        // A skipped UI refresh must not invalidate an installer's own nested catalog read.
         val ownsOperation = installer.ownsCurrentOperation()
         val request = refreshAdmission.begin { !installer.state.value.running || ownsOperation }
             ?: return _snapshot.value
@@ -242,14 +244,16 @@ class DevelopmentExtensionsManager internal constructor(
                     ?.filter { it.abi in Build.SUPPORTED_ABIS }
                     .orEmpty()
                 val managedPackages = managedPackageEntries.map { it.familyId to it.version }.toSet()
-
+    
                 // Existing filesystem reconciliation retains its own mutation/cleanup contract.
-
+                // Final admission below fences preferences, capabilities and the catalog snapshot;
+                // it is not a new filesystem transaction or a rollback of reconciliation on close.
                 val localRecovery = runSuspendCatching { installer.reconcileLocalPackages() }
                 val localRecoveryProblem = localRecovery.exceptionOrNull()
                     ?.let { "Local package recovery failed: ${it.message ?: it.javaClass.simpleName}" }
                 val legacyCleanupWarning = localRecovery.getOrNull()
-
+            
+    
                 val externalExecutableMap = detectExternalLocalLinuxExecutables()
                 val localRuntime = LocalExecutionSubstrate.inspectLinuxState()
                 val externalCommands = externalExecutableMap.keys
@@ -260,13 +264,14 @@ class DevelopmentExtensionsManager internal constructor(
                 )
                 val verifiedKeys = recordViews.catalogRecords.map { it.familyId to it.version }.toSet()
                 val visibleRecords = recordViews.catalogRecords
-
+    
+    
                 val localIdeRecords = recordViews.localCapabilityRecords
                 val localDebugAdapters = PackageProtocolCapabilityEngine.debugAdapters(sourceCatalog.manifests, localIdeRecords)
                 // A disconnected bridge is not evidence that a durable remote package disappeared.
 
-                // The current request and open owner admit all three side effects together. Projection is
-                // synchronous; no suspend point or IO dispatch holds this monitor.
+                // The current request and open owner admit all three side effects together.
+                // Projection is synchronous; no suspend point or IO dispatch holds this monitor.
                 refreshAdmission.publish(request) {
                     if (localRecoveryProblem == null) workspaceToolchains.prune(records.map { it.familyId to it.version }.toSet())
                     val workspaceSelections = workspaceToolchains.selections()
@@ -319,6 +324,7 @@ class DevelopmentExtensionsManager internal constructor(
             }
         }
     }
+
 
     private fun projectedVersions(
         family: ExtensionFamily,
@@ -716,6 +722,8 @@ class DevelopmentExtensionsManager internal constructor(
         )
     }
 
+
+
     private suspend fun detectExternalLocalLinuxExecutables(): Map<String, String> {
         // A known absent environment has no tools. A broken/blocked launcher is not absence.
         if (!LocalExecutionSubstrate.inspectLinuxState().ubuntuAvailable) return emptyMap()
@@ -727,8 +735,8 @@ class DevelopmentExtensionsManager internal constructor(
             .filter { it.matches(Regex("[A-Za-z0-9._+-]{1,64}")) }
             .distinct()
             .toList()
-        // Shells belong to the guest environment, not a separate managed package. Resolve the full
-        // catalog in one builtin batch; no tool is omitted by list ordering.
+        // Shells belong to the guest environment, not a separate managed package.
+        // Resolve the full catalog in one builtin batch; no tool is omitted by list ordering.
         val commands = (catalogCommands + listOf("sh", "bash")).distinct()
         if (commands.isEmpty()) return emptyMap()
 

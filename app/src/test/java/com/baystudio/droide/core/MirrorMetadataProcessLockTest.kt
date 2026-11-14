@@ -20,7 +20,8 @@ class MirrorMetadataProcessLockTest {
         "-Djava.library.path=${System.getProperty("java.library.path")}", "-cp", (System.getProperty("droide.custody.test.classpath") ?: System.getProperty("java.class.path")),
         MirrorMetadataProcessLockFixture::class.java.name, mode, root.path,
     ).redirectErrorStream(true).apply {
-
+        // Keep the exact child protocol free of JVM environment-option banners.
+        // The parent temp directory is passed explicitly above.
         environment().remove("JAVA_TOOL_OPTIONS")
     }.start()
     private fun attempt(root: File): String {

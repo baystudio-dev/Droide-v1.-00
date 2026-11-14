@@ -76,10 +76,10 @@ internal object ProjectMetadataPublication {
             confirm { durability.forceFile(channel) }
         }
         confirm { durability.forceDirectory(parent) }
-        // A rejected prepublication condition is known not to have replaced the target. Keep it outside
-        // confirm/unconfirmed wrapping and retain the staged proposal.
+        // A rejected prepublication condition is known not to have replaced the target.
+        // Keep it outside confirm/unconfirmed wrapping and retain the staged proposal.
         beforeReplace()
-
+        // A failed replacement may have committed; retain any staging entry for outcome resolution.
         var failedMove: Throwable? = null
         val options = if (replaceExisting) arrayOf<CopyOption>(StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
             else arrayOf<CopyOption>(StandardCopyOption.ATOMIC_MOVE)

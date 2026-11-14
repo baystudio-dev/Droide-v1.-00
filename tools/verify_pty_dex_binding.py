@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Fail-closed, register-exact PTY class binding. Never executes APK/PTY code."""
+"""Fail-closed, register-exact PTY class binding. Never executes APK/PTY code.
+
+Canonicalization resolves pool indices and file offsets only. Instruction opcodes,
+registers, literals, code-unit addresses, branch encodings, payloads, exception
+ranges/handlers, all members, access flags, constants and annotations are retained.
+Source-file and debug_info are the ONLY ignored class metadata. This is deliberately
+not a semantic optimizer: a different valid compiler layout fails rather than being
+accepted as equivalent. Unsupported instructions/DEX containers fail closed.
+
+Format references: https://source.android.com/docs/core/runtime/dex-format and
+https://source.android.com/docs/core/runtime/dalvik-bytecode .
+"""
 from __future__ import annotations
 
 import hashlib
@@ -575,3 +586,57 @@ def compare_dex_entries(actual, reference):
     encoded = json.dumps(cls, ensure_ascii=True, separators=(',', ':')).encode()
     return {'targetDescriptor': TARGET, 'dexEntry': name,
             'canonicalClassSha256': digest(encoded), 'registerExactFullCodeMatch': True}
+
+
+def verify_apk_binding(root: Path, apk_path: Path, *, d8_jar_path: Path,
+                       android_jar_path: Path, java_home: Path):
+    """Mandatory candidate admission, then a genuinely fresh compiler invocation.
+
+    No candidate path, reference DEX, expected digest or receipt is accepted from
+    the caller. Candidate admission chooses the fixed derivative AAR. The gate is
+    rechecked after comparison so an input replacement cannot evade admission.
+    """
+    from build_pty_dex_reference import build_fresh_reference, regular_bytes
+    from verify_termux_pty_derivative import verify_derivative_inputs
+    root = Path(root)
+    admitted = verify_derivative_inputs(root)
+    expected_path = 'third_party/termux/derivatives/r46/build/terminal-emulator-r46-private.aar'
+    require(admitted['output']['path'] == expected_path, 'unexpected admitted AAR path')
+    candidate_aar_path = root / expected_path
+    apk_before = regular_bytes(Path(apk_path))
+    with build_fresh_reference(candidate_aar_path, Path(d8_jar_path),
+                               Path(android_jar_path), Path(java_home)) as reference:
+        provenance = reference['provenance']
+        require(provenance['candidateAarSha256'] == admitted['output']['sha256'] and
+                provenance['classesJarSha256'] == admitted['aarInspection']['classesJarSha256'] and
+                provenance['ptyClassSha256'] == admitted['aarInspection']['ptyClassSha256'],
+                'fresh D8 inputs differ from independently admitted derivative')
+        result = compare_dex_entries(checked_archive(apk_before), reference['dexEntries'])
+        require(verify_derivative_inputs(root) == admitted, 'derivative admission changed during binding')
+        report = {**result, 'apkSha256': digest(apk_before),
+                  'referenceProvenance': provenance,
+                  'releaseCompatible': False, 'deviceValidated': False, 'runtimeEvidence': None}
+    # This runs AFTER the context manager's final tool/input checks, not before.
+    require(regular_bytes(Path(apk_path)) == apk_before, 'APK changed during binding')
+    return report
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument('--apk', type=Path, required=True)
+    parser.add_argument('--r8-jar', type=Path, required=True)
+    parser.add_argument('--android-jar', type=Path, required=True)
+    parser.add_argument('--java-home', type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        result = verify_apk_binding(args.root, args.apk, d8_jar_path=args.r8_jar,
+                                   android_jar_path=args.android_jar, java_home=args.java_home)
+    except (BindingError, OSError, KeyError, ValueError) as exc:
+        raise SystemExit('PTY_DEX_BINDING_FAILED: ' + str(exc)) from exc
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

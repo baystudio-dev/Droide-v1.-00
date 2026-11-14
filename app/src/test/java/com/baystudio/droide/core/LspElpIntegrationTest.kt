@@ -10,6 +10,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** App-authored byte stream peer. No original ELP, runtime, compiler, project or socket runs. */
 internal class ElpAuthoredHost(val root: File, val guestRoot: String = root.path): StdioProcessHost {
     override val executionScope = ProcessExecutionScope.LOCAL_LINUX_ARM64
     var starts = 0; var prepares = 0; var generic = 0; var metadataRuns = 0; var cleanupUnknown = false

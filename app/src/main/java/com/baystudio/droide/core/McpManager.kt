@@ -39,6 +39,9 @@ data class McpServer(
     val enabled: Boolean = true,
 )
 
+// Keep this path fail-closed at the trust boundary.
+
+
 class McpManager(
     private val workDir: File,
     private val plugins: AgentPluginSource = AgentPluginSource.EMPTY,
@@ -97,6 +100,7 @@ class McpManager(
             if (rawName != localName || !SERVER_NAME.matches(localName)) return@mapNotNull null
             val name = plugin?.let { namespacedServerName(it, localName) } ?: localName
             val obj = value as? JsonObject ?: return@mapNotNull null
+            
 
             if (obj.containsKey("url") || obj.containsKey("httpUrl") || (obj["transport"] != null && obj["transport"] != JsonPrimitive("stdio")) ||
                 (obj["type"] != null && obj["type"] != JsonPrimitive("stdio"))) {
@@ -194,6 +198,7 @@ class McpManager(
         }
     }
 
+     
     suspend fun discoverTools(serverName: String): List<JsonObject> = discoverTools(serverName, null)
 
     internal suspend fun discoverTools(selection: ServerSelection): List<JsonObject> = discoverTools(selection.server.name, selection)
@@ -237,6 +242,7 @@ class McpManager(
         }
     }
 
+     
     suspend fun tool(serverName: String, input: String): String = tool(serverName, input, null)
 
     internal suspend fun tool(selection: ServerSelection, input: String): String = tool(selection.server.name, input, selection)
@@ -388,6 +394,7 @@ class McpManager(
         return ProtocolResolution(resolved, modernAlreadyProbed = modern)
     }
 
+
     private suspend fun probeModernSibling(argv: List<String>, validate: () -> Unit): Boolean {
         val host = processHost ?: error("MCP execution host is not bound")
         check(host.executionScope in setOf(ProcessExecutionScope.LOCAL_LINUX_ARM64, ProcessExecutionScope.DEVICE_ADB)) {
@@ -419,6 +426,7 @@ class McpManager(
 
     private fun fingerprint(argv: List<String>, protocol: McpProtocolPreference): String =
         sha256(listOf(protocol.name) + argv)
+
 
     private fun localArgumentProvenance(argv: List<String>): List<String> = argv.drop(1).mapNotNull { arg ->
         val candidate = runCatching {
@@ -690,6 +698,7 @@ class McpManager(
             }
         }
 
+         
         private suspend fun handleServerRequest(message: JsonObject, deadline: Long) {
             val method = message["method"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val id = message["id"] ?: return
@@ -718,8 +727,8 @@ class McpManager(
                 currentCoroutineContext().ensureActive()
                 checkDeadline(deadline)
                 while (stdout.available() > 0) {
-                    // Keep enforcing the caller's budget even while a peer continuously emits bytes. Concrete hosted
-                    // streams must honor available()/read() contracts.
+                    // Keep enforcing the caller's budget even while a peer continuously emits
+                    // bytes. Concrete hosted streams must honor available()/read() contracts.
                     if ((output.size() and 1023) == 0) {
                         currentCoroutineContext().ensureActive()
                         checkDeadline(deadline)
@@ -829,6 +838,7 @@ class McpManager(
             }
         }
 
+         
         internal suspend fun awaitIoIdleForExit() {
             while (MCP_IO_POOL.activeSessions != 0) kotlinx.coroutines.delay(25)
         }

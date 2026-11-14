@@ -1,0 +1,10 @@
+// F114 boot reconciliation, identity parsing, and F111-F113 lifecycle controls.
+// Reuses the explicitly supplied host JNI fixture; never compiles native code.
+apply from: new File(gradle.startParameter.currentDir, 'tools/process-custody-tests.init.gradle')
+gradle.projectsEvaluated {
+    gradle.rootProject.project(':app').tasks.named('compileDebugUnitTestKotlin').configure {
+        source(project.fileTree('src/test/java/com/baystudio/droide/core') {
+            include('MirrorProcessBootReconciliationTest.kt', 'WorkspaceProcessBootIdentityTest.kt')
+        })
+    }
+}

@@ -52,6 +52,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 
+/** Real WebView lifecycle with deliberately delayed renderer callbacks; no live network or Chromium proof. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -91,7 +92,7 @@ class BrowserOperationLifetimeTest {
             return HistoryEntry()
         }
         override fun draw(canvas: Canvas) { drawnCanvas = canvas; canvas.drawColor(Color.BLUE) }
-
+        // Override the hidden runtime frame hook through the real Android View contract.
         fun setFrame(left: Int, top: Int, right: Int, bottom: Int): Boolean =
             org.robolectric.shadow.api.Shadow.directlyOn(this, View::class.java, "setFrame",
                 org.robolectric.util.ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, left),
@@ -99,8 +100,8 @@ class BrowserOperationLifetimeTest {
                 org.robolectric.util.ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, right),
                 org.robolectric.util.ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, bottom))
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            // Robolectric does not run Chromium's provider measurement. Measure this controlled renderer
-            // fixture through the real View measurement contract.
+            // Robolectric does not run Chromium's provider measurement. Measure this
+            // controlled renderer fixture through the real View measurement contract.
             setMeasuredDimension(View.MeasureSpec.getSize(widthMeasureSpec), View.MeasureSpec.getSize(heightMeasureSpec))
         }
         override fun destroy() { destroyed++; super.destroy() }
@@ -257,8 +258,9 @@ class BrowserOperationLifetimeTest {
         view.measure(View.MeasureSpec.makeMeasureSpec(100, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(80, View.MeasureSpec.EXACTLY))
         view.layout(0, 0, 100, 80)
-        // ShadowWebView's provider does not perform Chromium layout, and its setLayoutParams shadow
-        // skips requestLayout.
+        // ShadowWebView's provider does not perform Chromium layout, and its
+        // setLayoutParams shadow skips requestLayout. Give the controlled renderer
+        // real View bounds through public frame setters rather than faking getWidth.
         view.left = 0
         view.top = 0
         view.right = 100
@@ -275,8 +277,8 @@ class BrowserOperationLifetimeTest {
         assertTrue("Capture fixture must have completed layout", view.isLaidOut && !view.isLayoutRequested)
         val output = com.baystudio.droide.core.ChatMediaStoragePaths.directory(directory).resolve("scratch/browser")
         var cancelledAfterFile = false
-        // The final URL check runs only after compression finished. Cancel at that boundary, while a
-        // real image exists and the operation has not committed.
+        // The final URL check runs only after compression finished. Cancel at that
+        // boundary, while a real image exists and the operation has not committed.
         view.onUrlRead = {
             if (!cancelledAfterFile && output.walkTopDown().any { it.isFile && it.extension == "png" && it.length() > 0 }) {
                 cancelledAfterFile = true
@@ -357,8 +359,8 @@ class BrowserOperationLifetimeTest {
     @Test fun publicHistoryCannotRestoreImplicitLoopbackAccessEvenIfOldUiOperationAllowedLocalNavigation() {
         val old = surface().apply { page = "https://public.example.test/app"; saveHistory = true }
         val binding = controller.attach(old)
-        // The human browser UI passes allowLoopback=true. A public-page operation is not a grant to
-        // carry localhost access into its saved history.
+        // The human browser UI passes allowLoopback=true. A public-page operation is
+        // not a grant to carry localhost access into its saved history.
         completed(caller.async { controller.execute("status", allowLoopback = true) })
         controller.detach(binding, old, preserveState = true)
         val replacement = surface()
@@ -437,8 +439,8 @@ class BrowserOperationLifetimeTest {
     }
 
     @Test fun restoredSurfaceCallbacksAreCurrentAndFailedRestoreDoesNotLeaveAnActiveLease() {
-        // A saved-history bundle is enough to exercise callbacks synchronously fired by restoreState
-        // without asking Robolectric to emulate Chromium's history renderer.
+        // A saved-history bundle is enough to exercise callbacks synchronously fired by
+        // restoreState without asking Robolectric to emulate Chromium's history renderer.
         val state = controller.javaClass.getDeclaredField("navigationState").apply { isAccessible = true }
         state.set(controller, Bundle())
         val restored = surface()

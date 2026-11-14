@@ -66,7 +66,7 @@ def main():
                         *["com.baystudio.droide.core." + name for name in names]], cwd=ROOT / "app", check=True)
         subprocess.run(["java", "-cp", runtime, "com.baystudio.droide.core.RootfsConversionHarnessKt", str(ASSETS), str(temp)], check=True)
 
-
+        # Simulate Android's hard-link prohibition while running a real tar extractor.
         deny_source = temp / "deny_links.c"
         deny_source.write_text("#include <errno.h>\n#include <unistd.h>\n"
             "int link(const char *old, const char *new) { errno=EPERM; return -1; }\n"

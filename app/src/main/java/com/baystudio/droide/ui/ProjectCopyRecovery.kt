@@ -27,6 +27,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
+/** One ephemeral capability, bound to one live Agent/session or import controller. */
 internal interface ProjectCopyRecoveryAccess : AutoCloseable {
     suspend fun list(): ProjectCopyJournal.Recovery
     suspend fun inspect(transactionId: String): ProjectCopyJournal.Inspection
@@ -261,6 +262,7 @@ internal class ProjectCopyRecoveryController(
     }
 }
 
+/** No journal scan or filesystem observation occurs while merely remembering/rendering this host. */
 @Composable
 internal fun rememberProjectCopyRecoveryController(
     instance: Any,

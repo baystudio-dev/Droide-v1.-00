@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-// This wrapper checks installed executable availability; it does not install tools. Confirmed
-// absence is briefly backed off; failed observations remain retryable and visible.
+// This wrapper checks installed executable availability; it does not install tools.
+// Confirmed absence is briefly backed off; failed observations remain retryable and visible.
+
 
 class ProvisioningLspManager(
     private val delegate: LspManager,
@@ -71,7 +72,8 @@ class ProvisioningLspManager(
     }
 
     private suspend fun <T> provisioned(path: String, currentText: String? = null, request: suspend () -> T): T {
-
+        // Built-in Prisma admission belongs to the delegate: it classifies an
+        // immutable editor/file snapshot before any executable discovery.
         val support = delegate.documentSupportStatus(path, currentText)
         if (support?.phase == LspDocumentSupportPhase.UNSUPPORTED_NEXT_OR_8)
             throw LspDocumentSupportUnavailableException(support)
@@ -86,8 +88,8 @@ class ProvisioningLspManager(
                 else "Project analysis failed. Check project tools/configuration, then Retry.",
             )
         }
-        // Reviewed typed delegates perform health-free exact package admission themselves. Generic
-        // installed-presence probes can execute health and cannot establish that authority.
+        // Reviewed typed delegates perform health-free exact package admission themselves.
+        // Generic installed-presence probes can execute health and cannot establish that authority.
         val typedManagedRoute = LanguageServerRegistry.forPath(path).any {
             LspServerProfiles.isNim(it) || LspServerProfiles.isVue(it) || LspServerProfiles.isToml(it) || LspServerProfiles.isGraphql(it) || LspServerProfiles.isElp(it)
         }

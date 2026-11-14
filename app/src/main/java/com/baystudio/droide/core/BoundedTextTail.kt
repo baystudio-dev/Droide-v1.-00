@@ -15,7 +15,8 @@ internal fun appendBoundedTextTail(target: StringBuilder, text: String, maxChars
         var remove = (target.length.toLong() + text.length - maxChars).coerceAtLeast(0L).toInt()
         if (remove > 0 && remove < target.length &&
             target[remove].isLowSurrogate() && target[remove - 1].isHighSurrogate()) remove++
-
+        // The cut can fall exactly between a high surrogate in the previous
+        // chunk and a low surrogate at the start of this one.
         if (remove == target.length && remove > 0 && target[remove - 1].isHighSurrogate() &&
             text[0].isLowSurrogate()) {
             target.setLength(0)

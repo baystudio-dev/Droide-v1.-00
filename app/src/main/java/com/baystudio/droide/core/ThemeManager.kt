@@ -11,15 +11,17 @@ import kotlinx.serialization.json.Json
 
 // Keep serialized names stable for backward compatibility.
 
+
 @Serializable
 data class DroideTheme(
     val name: String,
     @SerialName("dark") val background: String = "#0D1117",
     @SerialName("light") val foreground: String = "#E6EDF3",
-
+     
     val colors: Map<String, String> = emptyMap(),
 )
 
+ 
 data class DroideUiPalette(
     val background: Color,
     val surface: Color,
@@ -72,6 +74,7 @@ class ThemeManager(private val workDir: File) {
                 "panel.border" to "#30363D",
                 "descriptionForeground" to "#8B949E",
                 "focusBorder" to "#58A6FF",
+                
 
                 "editor.background" to "#17181D",
                 "editor.foreground" to "#E6EDF3",
@@ -122,6 +125,7 @@ class ThemeManager(private val workDir: File) {
         current = selected
     }
 
+     
     fun snapshot(): DroideThemeSnapshot = buildSnapshot(current())
 
     // Compatibility shim for old callers.
@@ -137,6 +141,7 @@ class ThemeManager(private val workDir: File) {
 
     private fun buildSnapshot(theme: DroideTheme): DroideThemeSnapshot {
         val math = ThemeContrastPolicy
+        
 
         val background = math.opaque(parseColor(theme.background))
         val requestedForeground = math.opaque(parseColor(theme.foreground))

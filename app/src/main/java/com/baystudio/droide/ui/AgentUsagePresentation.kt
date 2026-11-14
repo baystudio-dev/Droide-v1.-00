@@ -83,6 +83,7 @@ private fun formatUsageMoney(amount: Double): String = when {
     else -> "$" + String.format(Locale.US, "%.2f", if (amount == 0.0) 0.0 else amount)
 }
 
+// Rounding a lower bound upward would overstate what the recorded subtotal proves.
 private fun formatUsageTokenLowerBound(tokens: Int): String = when {
     tokens >= 1_000_000 -> String.format(Locale.US, "%.1fM", (tokens / 100_000) / 10.0)
     tokens >= 1_000 -> String.format(Locale.US, "%.1fk", (tokens / 100) / 10.0)

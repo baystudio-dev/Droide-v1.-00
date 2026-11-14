@@ -3,8 +3,10 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
-/** Bounded compatibility execution, not a file-backed/unlimited patch engine. */
-
+/** Bounded compatibility execution, not a file-backed/unlimited patch engine.
+ * Original JSON is retained privately; only decoded <=2M patchText reaches the existing executor.
+ * An invocation receipt means the executor returned, never that every patch mutation succeeded.
+ */
 internal class SourcePatchCall(
     private val input: PreparedToolInput.SourcePatch,
     private val journal: ToolCallHistoryJournal,
@@ -48,8 +50,8 @@ internal class SourcePatchCall(
             execution=started // retain even if dispatcher cancellation discards the result
             journal.invokePatch(started,input.prepared,c,::current) { completion=it }.output
         }
-        // A blocked pre-hook never entered the tool. A completed invocation's exact receipt, not a
-        // post-hook rewrite, is authoritative for replay and duplicate prevention.
+        // A blocked pre-hook never entered the tool. A completed invocation's exact receipt,
+        // not a post-hook rewrite, is authoritative for replay and duplicate prevention.
         if(execution==null) return deny(output)
         val result=withContext(NonCancellable+Dispatchers.IO) {
             journal.checkpointPatchCompletion(checkNotNull(execution),checkNotNull(completion)).also {settledResult=it}

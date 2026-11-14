@@ -46,11 +46,11 @@ The vLLM provider deliberately uses Droide's neutral generic provider glyph. The
 
 Other selected marks retain their documented upstream source and brand-use conditions in `legal/BRAND_ASSET_TERMS.md`. Full license texts are available through **Settings → About & Legal → Open Source Licenses**.
 
-## PDF and Word file-type artwork
+## File-type artwork
 
 Material Icon Theme file-type artwork, Copyright (c) 2025 Material Extensions, is distributed under its upstream MIT License, retained in `legal/licenses/Material-Icon-Theme-MIT.txt`. Source: https://github.com/material-extensions/vscode-material-icon-theme at commit `13025adc5ad10a5cc649528a2c1edec93069f1b9`; exact SVGs, upstream license/README and source hashes are retained in `third_party/material-document-icons/`.
 
-Droide converts the PDF and Word SVG containers to Android VectorDrawable without changing paths or viewport. PDF color is unchanged; Word blue is adjusted from #01579b to #1e88e5 for dark/light visibility. These are upstream file-type representations, not official Adobe or Microsoft assets. Adobe/Acrobat/PDF and Microsoft/Word marks remain with their respective owners. Copyright licensing does not grant trademark rights, sponsorship, endorsement, affiliation or public-release clearance. The icons identify PDF and DOCX files; they do not add viewer support for other formats.
+Droide converts the selected language, configuration, document, media, archive, font, and security file-type SVGs to Android VectorDrawable, preserving path data, circle geometry, translations, viewports, and fill colors. Word blue is adjusted from #01579b to #1e88e5 for dark/light visibility. These are upstream file-type representations, not official Adobe or Microsoft assets. All product, project, and language marks remain with their respective owners. Copyright licensing does not grant trademark rights, sponsorship, endorsement, affiliation or public-release clearance. The icons identify file types; they do not add viewer or execution capabilities.
 
 ## Reviewed Sqruff source notice
 
@@ -72,7 +72,7 @@ The source package declares MIT. The pinned repository LICENSE grants the MIT te
 
 The CMake native-completion adapter includes a finite word-classification table derived from CPython 3.12.3's Unicode 15.0.0 source data (748 inclusive intervals, 137,936 code points). This is data used to match Python's regular-expression word-prefix behavior; it does not embed or execute CPython. The upstream CPython license is retained in `licenses/CPython-3.12.3-LICENSE.txt`. Upstream: https://github.com/python/cpython/tree/v3.12.3 . This notice covers the derived table only; managed Python/CMake language-server wheel and runtime license verification is separate.
 
-## Nim fixed-toolchain analysis
+## Nim fixed-toolchain analysis (R97)
 
 - nimlangserver 1.16.0, source 58168102d92d5742c39ab692aeb7bdbd7cf8df9a: MIT; retained in licenses/nimlangserver-1.16.0-LICENSE.txt.
 - Nim/nimsuggest 2.2.12, source 8e8fbf60693418dc95bb0d762fd660231d08a583: retained original copying.txt in licenses/Nim-2.2.12-copying.txt.
@@ -82,7 +82,7 @@ The CMake native-completion adapter includes a finite word-classification table 
 All original archive trees and their notices are preserved at authorized installation. These retained source notices are not a fabricated binary SBOM or a claim that uninspected compiled dependency notices are complete. Exact original archive/layout/config/ELF/library admission and target-native acceptance remain separate. The fixed analysis route leaves interactive terminal Nim and Node selections unchanged.
 
 
-## Vue fixed paired analysis source integration
+## Vue fixed paired analysis source integration (R98)
 
 One configuration conditionally uses original Vue language-tools 3.3.13 (MIT), Volar language-server 2.4.28 (MIT), TypeScript 6.0.3 (Apache-2.0), and typescript-language-server 6.0.2 (Apache-2.0 with MIT Microsoft VS Code copied portions). Exact source license texts are retained beside these notices. The independent runtime.vue-helper 22.23.3 uses the same accepted original Node distribution under its own receipt/tree; Node and every shipped third-party notice are retained verbatim. No npm/lifecycle scripts are run during archive projection.
 
@@ -90,7 +90,7 @@ Sources: https://github.com/vuejs/language-tools/tree/v3.3.13 ; https://github.c
 
 The exact npm data contract contains 89 authenticated archive identities in 90 physical placements, preserving all original license, notice, README, source-map and comment data. Original package artifacts have not been opened or executed in this source checkpoint. The published TS-LSP artifact is bundled: absence of declared npm runtime dependencies does not establish absence of embedded third-party code. Its exact source/build-lock review identifies 28 bounded candidate components, not a complete bundle SBOM or complete published-bundle license closure. Actual staged map/source identities and supplementary exact notices remain a redistribution/release gate. This source checkpoint does not claim that unresolved attribution is complete.
 
-## C# original-artifact profile
+## C# original-artifact profile (R99 source policy)
 
 The optional C# profile specifies csharp-ls 0.28.0 (source commit
 72671fc7fa810c158864e72485db68e8b9b25c3d), .NET SDK 10.0.402 with runtime
@@ -123,23 +123,27 @@ ELP 2026-10-14 (source b36ba37346a8e6122fd309420cb67886ccc5871c) is available un
 
 Source: https://github.com/WhatsApp/erlang-language-platform/tree/b36ba37346a8e6122fd309420cb67886ccc5871c
 
-## Built-in Batch TextMate grammar
+## Built-in Batch TextMate grammar (R106)
 
 `droide/grammars/batchfile.tmLanguage.json` is the unchanged VS Code Batch grammar,
 revision c44c5332b31c31eca0519ff6e7c5ebb9da0711e6, derived from Michael Mims
 `language-batchfile` revision 6154ae25a24e01ac9329e7bcf958e093cd8733a9.
 MIT license notices: `licenses/Batchfile-grammar-MIT.txt` and
 `licenses/VSCode-language-data-MIT.txt`. Only grammar data is included, not VS Code
-or a Windows runtime. Source and checksums: `third_party/provenance/language-services.json`.
+or a Windows runtime. Source and checksums: `docs/verification/r106-batch/research.json`.
 
-## Built-in INI TextMate grammar
+## Built-in INI TextMate grammar (R107)
 
 `droide/grammars/ini.tmLanguage.json` is unchanged VS Code language data at revision
 c44c5332b31c31eca0519ff6e7c5ebb9da0711e6, derived from TextMate ini.tmbundle at
 2af0cbb0704940f967152616f2f1ff0aae6287a6. Notices:
 `licenses/TextMate-INI-grammar-LICENSE.txt` and `licenses/VSCode-language-data-MIT.txt`.
-Source/checksums: `third_party/provenance/ini-language-service.json`. No INI tool is bundled.
+Source/checksums: `docs/verification/r107-ini/research.json`. No INI tool is bundled.
 
-## Explorer TAR export
+## Explorer TAR export (R120)
 
-Apache Commons Compress 1.28.0 is used for streaming TAR/PAX encoding. Required runtime dependencies are Apache Commons Codec 1.19.0, Commons IO 2.20.0 and Commons Lang 3.18.0. Each upstream JAR's complete LICENSE and NOTICE are packaged under `legal/licenses/Apache-Commons-{Compress,Codec,IO,Lang}-{LICENSE,NOTICE}.txt`. All are Apache-2.0; the Compress LICENSE also preserves included third-party attributions. Optional compression/native dependencies are not selected. Exact artifact origins and registry checksum comparisons are recorded in `third_party/provenance/archive-dependencies.json`.
+Apache Commons Compress 1.28.0 is used for streaming TAR/PAX encoding. Required runtime dependencies are Apache Commons Codec 1.19.0, Commons IO 2.20.0 and Commons Lang 3.18.0. Each upstream JAR's complete LICENSE and NOTICE are packaged under `legal/licenses/Apache-Commons-{Compress,Codec,IO,Lang}-{LICENSE,NOTICE}.txt`. All are Apache-2.0; the Compress LICENSE also preserves included third-party attributions. Optional compression/native dependencies are not selected. Exact artifact origins and registry checksum comparisons are recorded in `docs/verification/r120-explorer-export/dependency-provenance.json`.
+
+## Goose editor data
+
+The Goose TextMate grammar, language configuration and file icon are from aardappel/goose v2026.4, commit `6c1fbc788f6eb1f17db4cab998353d7540ed825d`, under Apache License 2.0. The original license is in `legal/licenses/Goose-Apache-2.0.txt`; sources and hashes are in `third_party/goose-editor-data/`. Icon paths are preserved and centered in an Android vector, with theme-aware monochrome color. No compiler or runtime is distributed with these editor assets.

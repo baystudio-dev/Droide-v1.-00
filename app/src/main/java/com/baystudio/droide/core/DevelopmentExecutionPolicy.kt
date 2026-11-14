@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 object DevelopmentExecutionPolicy {
     enum class Workload {
         BUILD,
@@ -16,13 +17,16 @@ object DevelopmentExecutionPolicy {
     }
 
     enum class Mode {
-
+        
         SPECIAL_USE_FOREGROUND,
 
+        
         USER_INITIATED_DATA_TRANSFER,
 
+        
         VISIBLE_TRANSFER,
 
+        
         RETAINED_PROCESS,
     }
 

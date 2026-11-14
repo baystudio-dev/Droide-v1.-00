@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 internal object TerminalTitlePolicy {
     fun display(raw: String?): String? = raw
         ?.asSequence()

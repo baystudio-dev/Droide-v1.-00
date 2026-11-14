@@ -3,8 +3,10 @@ package com.baystudio.droide.core
 import java.util.Locale
 import kotlinx.serialization.json.*
 
-/** Run-owned, bounded tool discovery. */
-
+/** Run-owned, bounded tool discovery. Catalogs are already filtered by capability and permission.
+ * Loading metadata never executes a tool or grants permission. The next request's schemas, and
+ * the normal execution-time checks, remain authoritative. No filesystem/network discovery here.
+ */
 internal class AgentToolSelection {
     private var catalog = linkedMapOf<String, JsonObject>()
     private val loaded = linkedSetOf<String>()
@@ -29,7 +31,7 @@ internal class AgentToolSelection {
         }
         loaded.retainAll(catalog.keys)
         trimLoaded()
-
+        // Stable core prefix benefits provider caching as extra tools are loaded/evicted.
         return JsonArray(catalog.filterKeys { it in CORE }.values + DEFINITION +
             catalog.filterKeys { it !in CORE && it in loaded }.values)
     }
@@ -102,8 +104,8 @@ internal class AgentToolSelection {
     companion object {
         private const val MAX_LOADED_TOOLS = 12
         private const val MAX_LOADED_BYTES = 65_536
-        // At most one fifth of the available input allowance (using bytes/4), with an independent
-        // absolute bound for unknown/large models. Never invent a model limit.
+        // At most one fifth of the available input allowance (using bytes/4), with an
+        // independent absolute bound for unknown/large models. Never invent a model limit.
         fun extraBudget(availableInputTokens: Int?): Int = availableInputTokens?.let {
             (it.coerceAtLeast(0).toLong() * 4 / 5).coerceAtMost(MAX_LOADED_BYTES.toLong()).toInt()
         } ?: MAX_LOADED_BYTES

@@ -71,7 +71,7 @@ class RemoteProcessLeaseTest {
             .apply { environment()["DROIDE_PROCESS_LEASE"] = token }.start()
         try {
             val pid = hostProcessId(process)
-
+            // Deterministic procfs fixture; some CI hosts deny even child-environ reads.
             val proc = File(root, "proc").apply { mkdir() }
             File(proc, "$pid/environ").apply { parentFile.mkdirs(); writeBytes("DROIDE_PROCESS_LEASE=$token\u0000".toByteArray()) }
             // Synthetic procfs reports that the owned PID is a session/group leader.
@@ -84,7 +84,7 @@ class RemoteProcessLeaseTest {
     }
 
     @Test fun sigkillIsSkippedWhenLeaseOwnerChangesAfterSigterm() = fixture { root ->
-
+        // The shell fixture records signals instead of delivering them to a PID.
         val pid = "987654"
         val owner = token()
         val proc = File(root, "proc").apply { mkdir() }
@@ -125,7 +125,7 @@ class RemoteProcessLeaseTest {
     }
 
     private fun shell() = if (File("/system/bin/sh").isFile) "/system/bin/sh" else "/bin/sh"
-
+    // These are host JVM tests, but Gradle type-checks them against Android's Process API.
     private fun hostProcessId(process: Process): Long =
         (Process::class.java.getMethod("pid").invoke(process) as Number).toLong()
     private fun token() = UUID.randomUUID().toString().replace("-", "").take(20)

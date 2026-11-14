@@ -65,8 +65,8 @@ class WorkspaceStartupPolicyTest {
         assertTrue(failure is TimeoutCancellationException)
         assertEquals(observed!!::class.java, failure!!::class.java)
         assertEquals(observed!!.message, failure.message)
-        // Debug stack-trace recovery may copy cancellation at a suspension boundary; its causal root
-        // must still be the original deadline.
+        // Debug stack-trace recovery may copy cancellation at a suspension
+        // boundary; its causal root must still be the original deadline.
         assertSame(causalRoot(observed!!), causalRoot(failure))
     }
 
@@ -100,6 +100,7 @@ class WorkspaceStartupPolicyTest {
         assertNull(WorkspaceStartupPolicy.bounded<String?>(WorkspaceStartupPhase.ACTIVE_RUNTIME, 1_000) { calls++; null })
         assertEquals(1, calls)
     }
+
 
     private fun causalRoot(failure: Throwable): Throwable =
         generateSequence(failure) { it.cause }.take(32).last()

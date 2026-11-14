@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+
 class AndroidToolchainCertificationManager(
     context: Context,
     private val development: AndroidDevelopmentManager,
@@ -240,6 +241,7 @@ class AndroidToolchainCertificationManager(
             if (failure == null) failure = error
             null
         }
+
 
         if (failure == null && identity == null) {
             failure = IllegalStateException("Connected device identity evidence is unavailable")

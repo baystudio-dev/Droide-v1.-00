@@ -103,7 +103,8 @@ class AgentProviderConnectionStatusTest {
 
     private fun awaitUiCondition(predicate: () -> Boolean) {
         // runOnIdle waits before its action, not for the resulting snapshot/frame work.
-
+        // Drain that work while waiting for IO/SideEffect flags; the blocked storage reads
+        // remain off Main and must still be explicitly released by each test.
         compose.waitUntil(5_000) {
             compose.waitForIdle()
             predicate()

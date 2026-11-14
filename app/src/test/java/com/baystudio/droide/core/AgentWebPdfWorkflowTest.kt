@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exercises native-tool orchestration with a host PDF fixture; device renderer QA is separate. */
 class AgentWebPdfWorkflowTest {
     @get:org.junit.Rule val applicationAdmission: org.junit.rules.TestRule = ApplicationWorkAdmissionFixture()
 

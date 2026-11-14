@@ -99,6 +99,22 @@ class ProcessInputBufferTest {
         assertTrue(runCatching { input.offer("old") }.isFailure)
     }
 
+    @Test fun terminalEofBeforeBindingKeepsOrderAndAllowsLaterInput() {
+        val input = ProcessInputBuffer()
+        val writes = mutableListOf<String>()
+        input.offer("before")
+        input.signalTerminalEof()
+        input.offer("after")
+        assertFalse(input.isClosed)
+        input.bindPty({ writes += String(it); true }, { writes += "\u0004"; true })
+        input.signalTerminalEof()
+        input.offer("still open")
+        assertEquals(listOf("before", "\u0004", "after", "\u0004", "still open"), writes)
+        input.abort()
+        assertTrue(input.isClosed)
+        assertThrows(IllegalStateException::class.java) { input.signalTerminalEof() }
+    }
+
     @Test fun closedBeforeBindingDeliversQueuedInputThenEofAndFailedBindingNeverReplays() {
         val input = ProcessInputBuffer()
         val writes = mutableListOf<String>()

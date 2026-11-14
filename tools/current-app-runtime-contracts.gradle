@@ -1,0 +1,307 @@
+// Separate additional actual-engine contract cohort; not a replacement for the full suite.
+if (gradle.startParameter.projectProperties['DROIDE_CURRENT_APP_RUNTIME_CONTRACTS'] != 'true') {
+    throw new GradleException('Explicit current app runtime contract opt-in required')
+}
+apply from: rootProject.file('tools/current-debug-candidate.gradle')
+
+def fixtures = [
+    'com/baystudio/droide/core/TerminalResizeAuthorityTest.kt',
+    'com/baystudio/droide/ui/TerminalResizeRetryTest.kt',
+    'com/baystudio/droide/ui/TerminalImeOwnerR61Test.kt',
+    'com/baystudio/droide/ui/NativeTerminalGeometryR63Test.kt',
+    'com/termux/terminal/TerminalMemoryBudgetTestRule.kt',
+    'CurrentAppRuntimeIdentity.java',
+    'CurrentTerminalResizeBridgeContractTest.kt'
+] as Set
+// Fixed cached framework inputs; Gradle --offline alone does not disable Robolectric's resolver.
+def frameworkPins = [
+    'android-all-instrumented-10-robolectric-5803371-i7.jar':'700fb3bb88ff346969b955241b86d2f55d395488bf5df1e8eddfbd003980c78a',
+    'android-all-instrumented-15-robolectric-12650502-i7.jar':'33c2d7cc4186d4605269d5d411fa1818972c5b30a9f70bfbbd3d430b076af52f'
+]
+def frameworkPath = gradle.startParameter.projectProperties['DROIDE_CURRENT_ROBOLECTRIC_DIR']
+if (!frameworkPath || !new File(frameworkPath).isAbsolute()) throw new GradleException('Explicit absolute offline Robolectric fixture directory required')
+def frameworkDir = new File(frameworkPath)
+def frameworkFiles = frameworkPins.keySet().collect { new File(frameworkDir, it) }
+def fixtureRoots = [file('src/test/java'), rootProject.file('tools/tests/current-app-runtime')]
+android.sourceSets.getByName('test').java.setSrcDirs(fixtureRoots)
+android.sourceSets.getByName('test').java.setIncludes(fixtures)
+kotlin.sourceSets.getByName('test').kotlin.setSrcDirs(fixtureRoots)
+kotlin.sourceSets.getByName('test').kotlin.setIncludes(fixtures)
+
+def expectedCounts = [
+    'com.baystudio.droide.core.TerminalResizeAuthorityTest': 2,
+    'com.baystudio.droide.ui.TerminalResizeRetryTest': 19,
+    'com.baystudio.droide.ui.TerminalImeOwnerR61Test': 22,
+    'com.baystudio.droide.ui.NativeTerminalGeometryR63Test': 16,
+    'com.baystudio.droide.core.CurrentTerminalResizeBridgeContractTest': 12
+]
+def observedClasses = [
+    'com.baystudio.droide.core.TerminalResizeClientBridge',
+    'com.baystudio.droide.core.NativePtyTerminalSession',
+    'com.baystudio.droide.core.TerminalGeometrySnapshot',
+    'com.baystudio.droide.core.TerminalResizeReceipt',
+    'com.baystudio.droide.core.TerminalViewportGeometry',
+    'com.baystudio.droide.ui.TerminalResizeRetry',
+    'com.baystudio.droide.ui.TerminalImeOwner',
+    'com.baystudio.droide.ui.DroideNativeTerminalView',
+    'com.termux.terminal.TerminalSession',
+    'com.termux.terminal.TerminalSessionClient',
+    'com.termux.terminal.TerminalResizeState',
+    'com.termux.terminal.TerminalEmulator',
+    'com.termux.terminal.TerminalMemoryBudget'
+]
+def sha = { byte[] bytes -> java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString() }
+def regularBytes = { File input ->
+    def path = input.toPath().toAbsolutePath().normalize()
+    for (def item = path; item != null; item = item.parent) {
+        if (java.nio.file.Files.isSymbolicLink(item)) throw new GradleException('Linked contract input: ' + path)
+    }
+    if (!input.isFile()) throw new GradleException('Missing contract input: ' + input)
+    input.bytes
+}
+def measureTree = { Collection<File> roots ->
+    def result = new TreeMap<String, String>()
+    roots.each { origin ->
+        if (origin.isFile()) result[origin.absolutePath] = sha(regularBytes(origin))
+        else if (origin.isDirectory()) origin.eachFileRecurse(groovy.io.FileType.FILES) { child ->
+            result[child.absolutePath] = sha(regularBytes(child))
+        }
+    }
+    result
+}
+def writeJson = { File target, Object value ->
+    target.parentFile.mkdirs()
+    if (target.exists()) throw new GradleException('Refusing to overwrite contract evidence: ' + target)
+    target.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(value)) + '\n'
+}
+def evidenceDir = layout.buildDirectory.dir('current-app-runtime-contracts')
+def fixtureFiles = fixtures.collect { relative ->
+    def matches = fixtureRoots.collect { new File(it, relative) }.findAll { it.isFile() }
+    if (matches.size() != 1) throw new GradleException('Missing/ambiguous selected fixture: ' + relative)
+    matches[0]
+}
+
+
+// Kotlin's Android variant can merge test roots independently of SourceDirectorySet
+// includes. Restrict the actual compiler inputs only in this opted-in contract lane.
+// The ordinary full-host profile still compiles every test source.
+def kotlinFixtureFiles = fixtureFiles.findAll { it.name.endsWith('.kt') }
+def javaFixtureFiles = fixtureFiles.findAll { it.name.endsWith('.java') }
+if (kotlinFixtureFiles.size() != 6 || javaFixtureFiles.size() != 1) {
+    throw new GradleException('Current runtime fixture language membership changed')
+}
+def fixtureDigests = fixtureFiles.collectEntries { input -> [(input.absolutePath):sha(regularBytes(input))] }
+def measureCompilerInputs = { Collection<File> inputs ->
+    def result = new TreeMap<String, String>()
+    inputs.each { input ->
+        def name = input.absolutePath
+        if (result.containsKey(name)) throw new GradleException('Duplicate runtime compiler fixture: ' + name)
+        result[name] = sha(regularBytes(input))
+    }
+    result
+}
+def expectedKotlinInputs = kotlinFixtureFiles.collectEntries { [(it.absolutePath):fixtureDigests[it.absolutePath]] }
+def expectedJavaInputs = javaFixtureFiles.collectEntries { [(it.absolutePath):fixtureDigests[it.absolutePath]] }
+def verifyCompilerInputs = { task ->
+    def kotlinTask = task.name == 'compileDebugUnitTestKotlin'
+    def actual = measureCompilerInputs(kotlinTask ? task.sources.files : task.source.files)
+    def expected = kotlinTask ? expectedKotlinInputs : expectedJavaInputs
+    if (actual != expected) throw new GradleException('Current runtime compiler source membership/bytes differ: ' + task.path)
+    def javaInputs = kotlinTask ? measureCompilerInputs(task.javaSources.files) : actual
+    if (javaInputs != expectedJavaInputs) throw new GradleException('Current runtime Kotlin Java inputs differ: ' + task.path)
+    [task:task.path, sources:actual, javaSources:javaInputs, scope:'EXACT_CURRENT_RUNTIME_71_CASE_COHORT_ONLY']
+}
+gradle.projectsEvaluated {
+    def kotlinCompiler = tasks.named('compileDebugUnitTestKotlin').get()
+    def javaCompiler = tasks.named('compileDebugUnitTestJavaWithJavac').get()
+    kotlinCompiler.setSource(kotlinFixtureFiles)
+    kotlinCompiler.javaSources.setFrom(javaFixtureFiles)
+    javaCompiler.setSource(javaFixtureFiles)
+    [kotlinCompiler, javaCompiler].each { compiler ->
+        verifyCompilerInputs(compiler)
+        compiler.doFirst {
+            def observed = verifyCompilerInputs(compiler)
+            writeJson(layout.buildDirectory.file('current-runtime-compiler-inputs/' + compiler.name + '.json').get().asFile, observed)
+        }
+    }
+}
+gradle.taskGraph.whenReady { graph ->
+    graph.allTasks.findAll { it.project == project && it.name in ['compileDebugUnitTestKotlin', 'compileDebugUnitTestJavaWithJavac'] }.each {
+        verifyCompilerInputs(it)
+    }
+}
+
+afterEvaluate {
+    def testTask = tasks.named('testDebugUnitTest', org.gradle.api.tasks.testing.Test)
+    testTask.configure {
+        mustRunAfter(tasks.named('assembleCurrentDebugCandidate'))
+        maxParallelForks = 1
+        ignoreFailures = false
+        failFast = false
+        filter.setIncludePatterns(expectedCounts.keySet() as String[])
+        filter.failOnNoMatchingTests = true
+        outputs.upToDateWhen { false }
+        systemProperty 'robolectric.offline', 'true'
+        systemProperty 'robolectric.dependency.dir', frameworkDir.absolutePath
+        jvmArgs '--add-exports=java.base/jdk.internal.access=ALL-UNNAMED'
+        doFirst {
+            def evidence = evidenceDir.get().asFile
+            if (evidence.exists()) throw new GradleException('Contract output already exists; use a fresh isolated build')
+            evidence.mkdirs()
+            String[] frameworkNames = frameworkDir.list()
+            if (!frameworkDir.isDirectory() || frameworkNames == null ||
+                new java.util.TreeSet(java.util.Arrays.asList(frameworkNames)) != frameworkPins.keySet()) {
+                throw new GradleException('Offline framework directory must contain exactly the two selected SDK jars')
+            }
+            frameworkFiles.each { input ->
+                if (sha(regularBytes(input)) != frameworkPins[input.name]) throw new GradleException('Offline framework digest mismatch: ' + input.name)
+            }
+            writeJson(new File(evidence, 'framework-before.json'), measureTree(frameworkFiles))
+            def frameworkIdentity = new Properties()
+            frameworkFiles.each { input -> frameworkIdentity.setProperty(input.absolutePath, frameworkPins[input.name]) }
+            def frameworkIdentityFile = new File(evidence, 'framework-identities.properties')
+            frameworkIdentityFile.withOutputStream { frameworkIdentity.store(it, 'Pinned offline instrumented SDK inputs') }
+            systemProperty 'droide.current.contract.frameworks', frameworkIdentityFile.absolutePath
+            def appRoots = tasks.named('compileDebugKotlin').get().outputs.files.files +
+                tasks.named('compileDebugJavaWithJavac').get().outputs.files.files
+            def apk = layout.buildDirectory.file('outputs/apk/debug/app-debug.apk').get().asFile
+            regularBytes(apk)
+            def productionClasses = measureTree(appRoots)
+            if (!productionClasses.keySet().any { it.endsWith('/NativePtyTerminalSession.class') } ||
+                !productionClasses.keySet().any { it.endsWith('/TerminalResizeClientBridge.class') }) {
+                throw new GradleException('Actual APK-producing Kotlin/Java terminal classes are missing')
+            }
+            def protectedInputs = measureTree(appRoots + [apk])
+            writeJson(new File(evidence, 'production-before.json'), protectedInputs)
+            writeJson(new File(evidence, 'fixture-inputs.json'), measureTree(fixtureFiles))
+            writeJson(new File(evidence, 'classpath-before.json'), measureTree(classpath.files))
+
+            def providers = [:]
+            def classpathEvidence = []
+            def configs = []
+            classpath.files.each { entry ->
+                if (entry.name.contains('TEST-ONLY')) throw new GradleException('Host-test-only engine is forbidden')
+                def contents = [:]
+                if (entry.isDirectory()) {
+                    entry.eachFileRecurse(groovy.io.FileType.FILES) { child ->
+                        def name = entry.toPath().relativize(child.toPath()).toString().replace(File.separatorChar, '/' as char)
+                        if (name.endsWith('.class') || name == 'com/android/tools/test_config.properties') contents[name] = regularBytes(child)
+                    }
+                    classpathEvidence += [path:entry.absolutePath, kind:'directory', files:measureTree([entry])]
+                } else if (entry.isFile()) {
+                    def bytes = regularBytes(entry)
+                    classpathEvidence += [path:entry.absolutePath, kind:'file', sha256:sha(bytes)]
+                    if (entry.name.endsWith('.jar')) {
+                        new java.util.zip.ZipFile(entry).withCloseable { archive ->
+                            def seen = [] as Set
+                            archive.entries().each { member ->
+                                if (!seen.add(member.name)) throw new GradleException('Duplicate classpath ZIP entry')
+                                if (member.name.contains('DROIDE') && member.name.contains('TEST-ONLY')) throw new GradleException('Test-only engine marker forbidden')
+                                if (!member.directory && (member.name.endsWith('.class') || member.name == 'com/android/tools/test_config.properties')) {
+                                    contents[member.name] = archive.getInputStream(member).withCloseable { it.bytes }
+                                }
+                            }
+                        }
+                    }
+                } else throw new GradleException('Missing runtime classpath entry: ' + entry)
+                contents.each { name, bytes ->
+                    if (name == 'com/android/tools/test_config.properties') configs += [origin:entry.absolutePath, bytes:bytes]
+                    if (name.startsWith('com/termux/') || observedClasses.contains(name.replace('/', '.').replaceAll(/\.class$/, ''))) {
+                        if (providers.containsKey(name)) throw new GradleException('Duplicate observed runtime provider: ' + name)
+                        providers[name] = [origin:entry.absolutePath, sha256:sha(bytes)]
+                    }
+                }
+            }
+            def composite = new File(gradle.startParameter.projectProperties['DROIDE_CURRENT_COMPOSITE'])
+            def aar = new File(composite, 'engine/terminal-engine.aar')
+            byte[] engineJar
+            new java.util.zip.ZipFile(aar).withCloseable { archive ->
+                engineJar = archive.getInputStream(archive.getEntry('classes.jar')).withCloseable { it.bytes }
+            }
+            def expectedEngineClasses = [:]
+            def selectedEngineJar = new File(evidence, 'selected-engine.jar')
+            selectedEngineJar.bytes = engineJar
+            new java.util.zip.ZipFile(selectedEngineJar).withCloseable { archive ->
+                archive.entries().each { member ->
+                    if (!member.directory && member.name.endsWith('.class')) {
+                        expectedEngineClasses[member.name] = archive.getInputStream(member).withCloseable { sha(it.bytes) }
+                    }
+                }
+            }
+            expectedEngineClasses.each { name, digest ->
+                if (providers[name]?.sha256 != digest) throw new GradleException('Actual engine class differs: ' + name)
+            }
+            if (configs.size() != 1) throw new GradleException('Expected exactly one real AGP unit-test configuration')
+            def config = new Properties(); config.load(new ByteArrayInputStream(configs[0].bytes))
+            if (!config.getProperty('android_merged_manifest') || !config.getProperty('android_resource_apk')) {
+                throw new GradleException('Real AGP manifest/resource APK configuration missing')
+            }
+            def resourceInputs = [:]
+            ['android_merged_manifest','android_resource_apk'].each { name ->
+                def path = new File(config.getProperty(name))
+                resourceInputs[name] = [path:path.absolutePath, sha256:sha(regularBytes(path))]
+            }
+            writeJson(new File(evidence, 'runtime-inputs.json'), [classpath:classpathEvidence, providers:providers,
+                robolectricConfig:[origin:configs[0].origin, properties:config], resources:resourceInputs,
+                engineAarSha256:sha(regularBytes(aar)), compositeReceiptSha256:sha(regularBytes(new File(composite, 'receipt.json'))),
+                scope:'Original class-resource identity; Robolectric instrumented execution bytes are not claimed identical'])
+            def identities = new Properties()
+            observedClasses.each { name ->
+                def provider = providers[name.replace('.', '/') + '.class']
+                if (provider == null) throw new GradleException('Missing observed app/engine input: ' + name)
+                identities.setProperty(name, provider.sha256)
+            }
+            def identityFile = new File(evidence, 'identities.properties')
+            identityFile.withOutputStream { identities.store(it, 'Actual APK class inputs; not transformed bytecode') }
+            systemProperty 'droide.current.contract.identities', identityFile.absolutePath
+        }
+    }
+    tasks.register('verifyCurrentAppRuntimeContracts') {
+        group = 'verification'
+        description = 'Additional exact actual-engine app contracts; not full-suite or Android device admission'
+        dependsOn(tasks.named('assembleCurrentDebugCandidate'), testTask)
+        doLast {
+            def evidence = evidenceDir.get().asFile
+            def appRoots = tasks.named('compileDebugKotlin').get().outputs.files.files +
+                tasks.named('compileDebugJavaWithJavac').get().outputs.files.files
+            def apk = layout.buildDirectory.file('outputs/apk/debug/app-debug.apk').get().asFile
+            def after = measureTree(appRoots + [apk])
+            def before = new groovy.json.JsonSlurper().parse(new File(evidence, 'production-before.json'))
+            if (after != before) throw new GradleException('APK-producing outputs changed during contracts')
+            if (measureTree(testTask.get().classpath.files) != new groovy.json.JsonSlurper().parse(new File(evidence, 'classpath-before.json'))) {
+                throw new GradleException('Runtime classpath changed during contracts')
+            }
+            if (measureTree(fixtureFiles) != new groovy.json.JsonSlurper().parse(new File(evidence, 'fixture-inputs.json'))) {
+                throw new GradleException('Selected fixture source changed')
+            }
+            if (measureTree(frameworkFiles) != new groovy.json.JsonSlurper().parse(new File(evidence, 'framework-before.json'))) {
+                throw new GradleException('Offline instrumented framework inputs changed during contracts')
+            }
+            def loadedFrameworks = [] as Set
+            def counts = [:]
+            def xmlEvidence = [:]
+            testTask.get().reports.junitXml.outputLocation.get().asFile.eachFileMatch(~/TEST-.*\.xml/) { xml ->
+                def suite = new XmlSlurper().parse(xml)
+                def name = suite.@name.text()
+                if (!expectedCounts.containsKey(name) || counts.containsKey(name)) throw new GradleException('Unexpected/duplicate test suite: ' + name)
+                if (suite.@failures.toInteger() || suite.@errors.toInteger() || suite.@skipped.toInteger() || suite.testcase.skipped.size()) {
+                    throw new GradleException('Contract failures/errors/skips are not admitted: ' + name)
+                }
+                def logged = suite.'system-out'.text()
+                frameworkPins.each { filename, digest ->
+                    if (logged.contains('CURRENT_APP_LOADED_FRAMEWORK file=' + filename + ' sha256=' + digest)) loadedFrameworks.add(filename)
+                }
+                counts[name] = suite.@tests.toInteger()
+                xmlEvidence[xml.absolutePath] = sha(regularBytes(xml))
+            }
+            if (loadedFrameworks != frameworkPins.keySet()) throw new GradleException('Both selected instrumented SDK inputs must be observed inside the sandbox')
+            if (counts != expectedCounts) throw new GradleException('Exact actual-engine cohort count mismatch: ' + counts)
+            writeJson(new File(evidence, 'production-after.json'), after)
+            writeJson(new File(evidence, 'receipt.json'), [schemaVersion:1, kind:'CURRENT_APP_ENGINE_RUNTIME_CONTRACTS',
+                status:'PASS', additionalCohort:true, fullSuiteReplacement:false, deviceValidated:false,
+                kernelResizeValidated:false, offlineFrameworks:frameworkPins, loadedFrameworks:loadedFrameworks.sort(), tests:71, expectedCounts:expectedCounts, actualCounts:counts,
+                xml:xmlEvidence, productionInputsUnchanged:true, productionBeforeSha256:sha(regularBytes(new File(evidence,'production-before.json'))),
+                runtimeInputsSha256:sha(regularBytes(new File(evidence,'runtime-inputs.json')))])
+        }
+    }
+}

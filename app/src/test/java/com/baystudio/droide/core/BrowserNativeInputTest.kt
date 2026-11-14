@@ -37,8 +37,7 @@ class BrowserNativeInputTest {
             activity.setContentView(this); setPadding(10, 20, 10, 20)
             measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY))
             layout(0, 0, 400, 800)
-            // ShadowWebView does not run Chromium layout. Set the real View bounds for this input transport
-            // fixture.
+            // ShadowWebView does not run Chromium layout. Set the real View bounds for this input transport fixture.
             left = 0; top = 0; right = 400; bottom = 800
             assertEquals(400, width); assertEquals(800, height)
         }

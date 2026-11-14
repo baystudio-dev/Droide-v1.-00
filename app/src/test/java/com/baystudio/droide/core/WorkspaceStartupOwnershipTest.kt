@@ -53,8 +53,8 @@ class WorkspaceStartupOwnershipTest {
         }.exceptionOrNull()
         assertEquals(expected::class.java, failure!!::class.java)
         assertEquals(expected.message, failure.message)
-        // Keep original constructor error and cleanup evidence even when coroutine debug recovery copies
-        // an exception across withContext.
+        // Keep original constructor error and cleanup evidence even when
+        // coroutine debug recovery copies an exception across withContext.
         val causeChain = generateSequence(failure) { it.cause }.take(32).toList()
         assertSame(expected, causeChain.last())
         assertEquals(listOf("third", "second", "first"), released)

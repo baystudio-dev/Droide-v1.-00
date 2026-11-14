@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+
 internal data class RunnerExecutionResult(
     val output: String,
     val exitCode: Int? = null,

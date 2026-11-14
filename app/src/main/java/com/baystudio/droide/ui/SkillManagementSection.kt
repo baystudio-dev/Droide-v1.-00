@@ -26,6 +26,7 @@ import com.baystudio.droide.core.SkillSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/** Uses the existing Settings scope and on-demand loading; no work at application startup. */
 @Composable
 internal fun SkillManagementSection(management: SkillManagement, storageScope: String) {
     val context = LocalContext.current

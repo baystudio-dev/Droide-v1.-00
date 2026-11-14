@@ -48,8 +48,8 @@ internal class ExitHostedProcessOwners(
         fun validate() = validateState()
     }
 
-    /** Application-wide retained receipts, not live OS process or root/descriptor proof. No process
-     * property, callback, PID or toString is evaluated under this monitor. */
+    /** Application-wide retained receipts, not live OS process or root/descriptor proof.
+     * No process property, callback, PID or toString is evaluated under this monitor. */
     fun observe(): Observation = synchronized(lock) {
         val version = observationVersion
         Observation(owned.size, owned.values.count { it.attempt != null && it.attempt?.outcome == null },
@@ -58,8 +58,8 @@ internal class ExitHostedProcessOwners(
             synchronized(lock) { check(observationVersion === version) { "Retained process ownership changed during review" } }
         }
     }
-    // Observation cancellation must not abandon cleanup, and a suspended receipt must not retain the
-    // native thread used to isolate a synchronous blocking close.
+    // Observation cancellation must not abandon cleanup, and a suspended receipt must
+    // not retain the native thread used to isolate a synchronous blocking close.
     private val observer = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Cleanup ownership must be published before a cancellable process-return handoff. */
@@ -83,8 +83,8 @@ internal class ExitHostedProcessOwners(
                     if (owned[process] === record && record.observation === observation) {
                         observationVersion = Any()
                         record.completedObservation = observation
-                        // Natural completion cannot certify that a pending/failed close returned. Preserve its exact
-                        // attempt for Exit and retry.
+                        // Natural completion cannot certify that a pending/failed close
+                        // returned. Preserve its exact attempt for Exit and retry.
                         if (record.attempt == null || record.attempt?.outcome?.isSuccess == true) owned.remove(process)
                     }
                 }
@@ -99,19 +99,19 @@ internal class ExitHostedProcessOwners(
         val retained = retainObservation(process)
         if (!isCurrentOpen(epoch)) {
             val attempt = synchronized(lock) {
-                // Keep a completed attempt if this exact record already retired while admission was checking its
-                // epoch; do not replay that successful stop.
+                // Keep a completed attempt if this exact record already retired while
+                // admission was checking its epoch; do not replay that successful stop.
                 val record = owned[process] ?: retained.record
                 record.attempt ?: run {
                     owned[process] = record
-                    // A newer retain may have arrived while the epoch predicate ran. This rejected handoff cannot
-                    // retire that newer observation.
+                    // A newer retain may have arrived while the epoch predicate ran.
+                    // This rejected handoff cannot retire that newer observation.
                     registerStopLocked(process, record, retained.observation)
                 }
             }
             startStop(attempt)
-            // The rejected handoff must still await cleanup when its caller is cancelled. It shares Exit's
-            // attempt instead of invoking a second inline close.
+            // The rejected handoff must still await cleanup when its caller is cancelled.
+            // It shares Exit's attempt instead of invoking a second inline close.
             withContext(NonCancellable) { attempt.completion.await().getOrThrow() }
             throw CancellationException("Process admission closed for Droide Exit")
         }
@@ -191,14 +191,14 @@ internal class ExitHostedProcessOwners(
         val attempts = synchronized(lock) {
             owned.entries.map { (process, record) ->
                 val previous = record.attempt
-                // Only an explicit new invocation retries a settled failure. Pending work stays single-flight
-                // after an observer timeout or cancellation.
+                // Only an explicit new invocation retries a settled failure. Pending
+                // work stays single-flight after an observer timeout or cancellation.
                 if (previous == null || previous.outcome?.isFailure == true) registerStopLocked(process, record)
                 else previous
             }
         }
-        // Dispatch EVERY exact close independently before waiting for any close/exit receipt. A held
-        // synchronous capture cancellation cannot starve its siblings.
+        // Dispatch EVERY exact close independently before waiting for any close/exit
+        // receipt. A held synchronous capture cancellation cannot starve its siblings.
         attempts.forEach(::startStop)
         OwnedResourceCleanup.runSuspend(*attempts.map { attempt -> suspend {
             attempt.completion.await().getOrThrow()

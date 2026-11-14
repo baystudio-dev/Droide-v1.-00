@@ -18,6 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Widens the existing predicate-return/grant-insert gap; no production seam or process backend. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AgentApprovalOwnerTransactionBaselineTest {
@@ -42,7 +43,8 @@ class AgentApprovalOwnerTransactionBaselineTest {
         val terminal = LiteralTerminal()
         try {
             root.resolve(".droide").mkdirs()
-
+            // Constant commands deliberately keep the exact session-grant key stable.
+            // A unique {event_file} path would conceal actual later grant reuse.
             root.resolve(".droide/hooks.json").writeText("""{"enabled":true,"events":{"SessionStart":[{"command":"approval-owner-start"}],"UserPromptSubmit":[{"command":"approval-owner-prompt"}]}}""")
             withProviderStreamFixture(ProviderWireProtocol.OPENAI_CHAT_COMPLETIONS, authRequired = false) { provider ->
                 provider.response = { _, _, _ -> throw AssertionError("No provider request is permitted") }

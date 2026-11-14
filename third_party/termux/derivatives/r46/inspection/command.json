@@ -1,0 +1,37 @@
+{
+  "argv": [
+    "/workspace/scratch/dc5f25abc237/r44-recovery-20261017/toolchain/jdk-17.0.20.1+1/bin/javac",
+    "--release",
+    "8",
+    "-encoding",
+    "UTF-8",
+    "-g:none",
+    "-proc:none",
+    "-implicit:none",
+    "-sourcepath",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/inspection/empty-sourcepath",
+    "-classpath",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/toolchain/android-sdk/platforms/android-36/android.jar:/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/inspection/original-classes.jar",
+    "-d",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/inspection/compiled",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/TerminalSession.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/TerminalRow.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/ByteQueue.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/JNI.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java",
+    "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java"
+  ],
+  "cwd": "/workspace/scratch/dc5f25abc237/r46-private-pty-derivative-20261017/source-candidate/third_party/termux/derivatives/r46/inspection",
+  "durationNanoseconds": 895966255,
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TZ": "UTC"
+  },
+  "purpose": "PRELIMINARY_CLASS_INSPECTION_NOT_ADMISSION",
+  "returnCode": 0
+}

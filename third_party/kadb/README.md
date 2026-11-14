@@ -1,9 +1,12 @@
-# Android device bridge
+# Kadb 2.1.4 integration
 
-Droide uses the Android source derivative of Kadb 2.1.4 for wireless debugging, pairing, shell, synchronization, APK installation, log access and forwarding. The application compiles `droide-source/src/main/kotlin` directly. The retained original runtime JAR is provenance material; it is not an additional application implementation dependency.
+Droide 4.6.2 uses Kadb for direct Android Wireless Debugging communication: mDNS discovery, pairing, shell, sync, APK install, launch/logcat support and forwarding.
 
-The mDNS compatibility component remains a pinned local Maven dependency. Supporting dependency versions and verification metadata are declared in the application build and lockfile. `tools/verify_third_party_integrity.py` checks the retained component files.
+The official `kadb-android` and `kadb-mdns-android` AAR metadata declares `minCompileSdk=37`, while Droide intentionally remains on the API-36 baseline supported by AGP 8.13.2. Droide therefore embeds the **exact unmodified `classes.jar` bytecode payloads** under local compatibility Maven coordinates; it does not consume the incompatible AAR manifest metadata. Original source archives and upstream metadata are retained for audit/compliance.
 
-The derivative preserves cancellation, TLS enforcement and authenticated pairing identity. ADB host identity is stored through Droide's encrypted credential storage. See [the derivative documentation](droide-source/README.md) for source mapping and build boundaries.
+Runtime supporting artifacts are pinned under `third_party/maven`: Okio 3.17.0, Droide SPAKE2 BoringSSL compatibility 1.0.0, AndroidX DocumentFile 1.1.0, HiddenApiBypass 6.1, Kotlin coroutines 1.11.0, and Bouncy Castle bcprov/bcpkix/bcutil 1.84 where required by the compatibility POM.  `EMBEDDED_SHA256SUMS.txt` is checked by `tools/verify_static.sh`. ADB host identity is persisted using Droide's Android-Keystore encrypted store rather than Kadb's in-memory default.
 
-Kadb retains Apache-2.0. The separate SPAKE2 compatibility component retains BSD-3-Clause and its own source, notices and test vectors. Preserve all upstream attribution and corresponding source when redistributing.
+Kadb is Apache-2.0 licensed. The Droide SPAKE2 compatibility component is separately BSD-3-Clause and retains complete source, license, deterministic vectors, and provenance references. Preserve all upstream/component notices and source references when redistributing.
+
+---
+Integration metadata synchronized with the reviewed Kadb compatibility baseline.

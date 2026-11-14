@@ -18,6 +18,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowProcess
 
+/** Exercise actual runtime preparation after a root changes outside the registry. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class WorkspaceProjectRootOwnershipTest {
@@ -52,8 +53,8 @@ class WorkspaceProjectRootOwnershipTest {
             override fun getApplicationContext(): Context = this
             override fun getFilesDir() = appRoot
         }
-        // A plain Robolectric Application does not run DroideApplication.onCreate. Model a user-opened
-        // app session before exercising real workspace startup.
+        // A plain Robolectric Application does not run DroideApplication.onCreate.
+        // Model a user-opened app session before exercising real workspace startup.
         ApplicationWorkAdmission.initialize(context)
         ApplicationWorkAdmission.reopenFromUser()
         val currentRoot = File(appRoot, "projects/default").apply { mkdirs() }

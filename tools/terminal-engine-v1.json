@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "kind": "CURRENT_TERMINAL_ENGINE_OVERLAY_V1",
+  "baseAar": "app/libs/terminal-emulator-v0.118.0-java.aar",
+  "binaryBaseRetained": true,
+  "fullSourceRebuild": false,
+  "androidJarSha256": "d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a",
+  "jdkManifest": "third_party/termux/derivatives/r46/JDK17.json",
+  "sourceSha256": {
+    "app/libs/terminal-emulator-v0.118.0-java.aar": "4852749bb1de1d64630ee82000ce728a842521e391c55c2392d4a1b84ae74b61",
+    "third_party/termux/UPSTREAM_PROVENANCE.json": "30164128e8e76b20fbac29cab4f09ec3b719136718d18d63f27e9fd9137c61db",
+    "third_party/termux/derivatives/r46/JDK17.json": "262fc3ceaeecc4e9ef8efaefc74af78bb304957bad8bb448138ef8930e4cdc44",
+    "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java": "01c470e72e74106426d494849f61d42d9fdb456546b506b393895316148f48c4",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSession.java": "c969987f8dd20c974a9017e4c9a9e0a005cbc84dce6eb7df56be8b8813f7c998",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2",
+    "third_party/termux/native/OWNED_PROCESS_ABI.json": "0d04d08422bae6c2cf88fec18cb77465b7e3234c69c294607a2f388397b9fe63",
+    "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java": "afe079dbd26d066b8468caef8c2d8375038a0a967ddc6d845400d17e8907b4c3",
+    "third_party/termux/patches/src/com/termux/terminal/JNI.java": "7042e26081a991522110a730d1a7a1f59089dcd0388e91d93005755af5bd4ba3",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java": "49565646f259eb81724696366e63a3f30a3234f7684895f293701b93b5d0ad9d",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java": "91e8b1f545374e07696245fcf2b518b5d681ba15ff79fd8a79bdec29eac8d5ca",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java": "6b397797ed186229fc6709bd1391dbe3b04277edd92ab8c53e7ddecbf0ebe72e",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java": "4e5a167bcace5756466206de329afda0a7264205c124784a44f26ac38eba607f",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java": "6131e5639ad689e51a817a640076ca69ec6995a7cf911eee7250e086b7e2145b",
+    "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java": "01a2b9337005301c8ceeb47dfa8a004ba7a1a6a222149a9b0fe20955b1e5e9ae",
+    "tools/verify_termux_pty_derivative.py": "223d0f62da43fae3490819864dbfdc213934baae2fb6dc941805c77f9506b0e7"
+  },
+  "stages": [
+    {
+      "name": "owned-pty",
+      "sources": {
+        "TerminalSession": "third_party/termux/patches/src/com/termux/terminal/TerminalSession.java",
+        "TerminalRow": "third_party/termux/patches/src/com/termux/terminal/TerminalRow.java",
+        "TerminalEmulator": "third_party/termux/patches/src/com/termux/terminal/TerminalEmulator.java",
+        "TerminalBuffer": "third_party/termux/patches/src/com/termux/terminal/TerminalBuffer.java",
+        "ByteQueue": "third_party/termux/patches/src/com/termux/terminal/ByteQueue.java",
+        "TerminalMemoryBudget": "third_party/termux/patches/src/com/termux/terminal/TerminalMemoryBudget.java",
+        "JNI": "third_party/termux/patches/src/com/termux/terminal/JNI.java",
+        "TerminalProcessOwner": "third_party/termux/patches/src/com/termux/terminal/TerminalProcessOwner.java",
+        "TerminalPtyIo": "third_party/termux/derivatives/r46/src/com/termux/terminal/TerminalPtyIo.java"
+      },
+      "compiledClasses": [
+        "com/termux/terminal/ByteQueue$StopCondition.class",
+        "com/termux/terminal/ByteQueue.class",
+        "com/termux/terminal/JNI.class",
+        "com/termux/terminal/TerminalBuffer.class",
+        "com/termux/terminal/TerminalEmulator$SavedScreenState.class",
+        "com/termux/terminal/TerminalEmulator.class",
+        "com/termux/terminal/TerminalMemoryBudget.class",
+        "com/termux/terminal/TerminalProcessOwner$Backend.class",
+        "com/termux/terminal/TerminalProcessOwner$Worker.class",
+        "com/termux/terminal/TerminalProcessOwner.class",
+        "com/termux/terminal/TerminalPtyIo$Backend.class",
+        "com/termux/terminal/TerminalPtyIo$ReadReceipt.class",
+        "com/termux/terminal/TerminalPtyIo$ReaderBackend.class",
+        "com/termux/terminal/TerminalPtyIo$WriteReceipt.class",
+        "com/termux/terminal/TerminalPtyIo.class",
+        "com/termux/terminal/TerminalRow.class",
+        "com/termux/terminal/TerminalSession$1.class",
+        "com/termux/terminal/TerminalSession$2.class",
+        "com/termux/terminal/TerminalSession$3.class",
+        "com/termux/terminal/TerminalSession$InputHandler.class",
+        "com/termux/terminal/TerminalSession$MainThreadHandler.class",
+        "com/termux/terminal/TerminalSession$NativeBackend.class",
+        "com/termux/terminal/TerminalSession$ReaderBackend.class",
+        "com/termux/terminal/TerminalSession$ReaderStopCondition.class",
+        "com/termux/terminal/TerminalSession$WriterBackend.class",
+        "com/termux/terminal/TerminalSession.class"
+      ],
+      "expectedCompiledSha256": {
+        "com/termux/terminal/ByteQueue$StopCondition.class": "7b46fbed43f5ece6a1f9ba4608eb5f36f8dc4b781b03c8f328812d6a1dfb10d9",
+        "com/termux/terminal/ByteQueue.class": "c22461260c011074e50c5e22759a247b24464456b24815bf96c8250143515d33",
+        "com/termux/terminal/JNI.class": "0f46033d6a7753e9bf7fa4784811c430a04b897462759b7df281553a6608782a",
+        "com/termux/terminal/TerminalBuffer.class": "c2fd2cb6b8196ad6ea51b03922c82fb9e594c53b0efd2cb01acda76525424551",
+        "com/termux/terminal/TerminalEmulator$SavedScreenState.class": "e975b317d7e8f41bb20e4da0bfc221db8bf4bc35144bcced159e59f90289ae08",
+        "com/termux/terminal/TerminalEmulator.class": "b5a0526374a8d6f222b7ee0c4c7ea7f0757ff14518f610e72e3091db234341ef",
+        "com/termux/terminal/TerminalMemoryBudget.class": "e04b6f26ea547f34d926ed52b5dfc3e14681198acc83e3c027b0f1918b835745",
+        "com/termux/terminal/TerminalProcessOwner$Backend.class": "45ff98a0ca290dfe672845634995dc4490ba6ebef6df6c05d89b1779ce5fb291",
+        "com/termux/terminal/TerminalProcessOwner$Worker.class": "3d9e5efdd6e268a33eab94879aec92f1134663997de6e6f51798f9fbb89d5737",
+        "com/termux/terminal/TerminalProcessOwner.class": "1b47aaa37b381ddc239436cee2e61d90cd9bcf7197e002f9c2ee5ac7a08b52d0",
+        "com/termux/terminal/TerminalPtyIo$Backend.class": "3e6e1add3adf5b17cb33d510fc429c85384b769cc78006f706db11917c9b7dd1",
+        "com/termux/terminal/TerminalPtyIo$ReadReceipt.class": "4b4a37396de770c34ebf0581be659ae4fe22515edb03d8d67cdb16245e7240a8",
+        "com/termux/terminal/TerminalPtyIo$ReaderBackend.class": "ef0e38ba8dcca01bc4787c280b8c244d5350814b2bf895f9e12f23441e884580",
+        "com/termux/terminal/TerminalPtyIo$WriteReceipt.class": "95a65337e5b757e79eb04c45064d7728b819d78c336121a890044909b9ea905e",
+        "com/termux/terminal/TerminalPtyIo.class": "a862712e743f276925bfdc480e00dabd9e31a4cc54c68aae0af38eb0e84a3e1f",
+        "com/termux/terminal/TerminalRow.class": "39996b9f40c07f43b8fc752742267fbacca90f2b6395749cfa9341601cf5d134",
+        "com/termux/terminal/TerminalSession$1.class": "3c00016a943245c133c94fc2fad615b895fb31eb6a59006c18a515c4b1c8655b",
+        "com/termux/terminal/TerminalSession$2.class": "9869e07bb695b78842fb2833cb2f4f87fe4924ac892835fe054143d14980e043",
+        "com/termux/terminal/TerminalSession$3.class": "c7bc2dec3736a97958f0a24b85d0550905faf697e136345522e2ea6fc4e4984b",
+        "com/termux/terminal/TerminalSession$InputHandler.class": "2dda6dce690ea99ac9285342c6ce07a968fc925b2db507230b9fe39c19de2f64",
+        "com/termux/terminal/TerminalSession$MainThreadHandler.class": "f6cf415b4a9472ebf53f1be0bcab8d897c7a105be148f2ae9e45fb2c57ab974b",
+        "com/termux/terminal/TerminalSession$NativeBackend.class": "2c406e760667d44c67fd7762a025578b2af3f3f1d22f9fccbb97df2d0dedf49f",
+        "com/termux/terminal/TerminalSession$ReaderBackend.class": "02b9c5b42d5b78b0ff6a4774d4083356cfd498dfae1617d010315b03a8453451",
+        "com/termux/terminal/TerminalSession$ReaderStopCondition.class": "ea32e0d6a223b5c3b1910d08f7c91915bc7750780fbf496e1f29e0b5d3ebcdcd",
+        "com/termux/terminal/TerminalSession$WriterBackend.class": "22863256b177a21e892347f6ac5f5dea8e26bee238f24a5b80fd814857629f0d",
+        "com/termux/terminal/TerminalSession.class": "365f515dc00b5c62c19fbff53928515deedd01ffa3f08eb2daf43120286d7ca5"
+      }
+    },
+    {
+      "name": "resize",
+      "sources": {
+        "TerminalSession": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSession.java",
+        "TerminalSessionClient": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java",
+        "TerminalResizeState": "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java"
+      },
+      "compiledClasses": [
+        "com/termux/terminal/TerminalResizeState$Backend.class",
+        "com/termux/terminal/TerminalResizeState$Listener.class",
+        "com/termux/terminal/TerminalResizeState$Receipt.class",
+        "com/termux/terminal/TerminalResizeState.class",
+        "com/termux/terminal/TerminalSession$1.class",
+        "com/termux/terminal/TerminalSession$2.class",
+        "com/termux/terminal/TerminalSession$3.class",
+        "com/termux/terminal/TerminalSession$InputHandler.class",
+        "com/termux/terminal/TerminalSession$MainThreadHandler.class",
+        "com/termux/terminal/TerminalSession$NativeBackend.class",
+        "com/termux/terminal/TerminalSession$ReaderBackend.class",
+        "com/termux/terminal/TerminalSession$ReaderStopCondition.class",
+        "com/termux/terminal/TerminalSession$ResizeBackend.class",
+        "com/termux/terminal/TerminalSession$ResizeListener.class",
+        "com/termux/terminal/TerminalSession$WriterBackend.class",
+        "com/termux/terminal/TerminalSession.class",
+        "com/termux/terminal/TerminalSessionClient.class"
+      ],
+      "expectedCompiledSha256": {
+        "com/termux/terminal/TerminalResizeState$Backend.class": "faba70d79fa15ef625cd49f963b7a4109f1f055a63e3a1d2a928c73871512576",
+        "com/termux/terminal/TerminalResizeState$Listener.class": "48e1e2d5ecdad03a5b50722ba8c4158c2948598e91bce60ba786c30f681dd8ef",
+        "com/termux/terminal/TerminalResizeState$Receipt.class": "dfe914088ab67afbf53c9e00357c49373a42afb9ab7fe15576947572d415b3ca",
+        "com/termux/terminal/TerminalResizeState.class": "f6295ad76f611516d004af435af169b51527149ec1af78fbad66a017224cd65f",
+        "com/termux/terminal/TerminalSession$1.class": "468f71fb739a4107fbc1dbcc24671fc75e2a4bdc5248a158ae267822432dba53",
+        "com/termux/terminal/TerminalSession$2.class": "cdde8a2ecc189c27d0eb5597e7b70aa364b0305b2560ff141ec2b417953bd621",
+        "com/termux/terminal/TerminalSession$3.class": "cacfa390e843d365acd174df9b0ee5376f4254cae3947c759baddb37cad5050a",
+        "com/termux/terminal/TerminalSession$InputHandler.class": "2dda6dce690ea99ac9285342c6ce07a968fc925b2db507230b9fe39c19de2f64",
+        "com/termux/terminal/TerminalSession$MainThreadHandler.class": "8bf50811be48bff779a610e8d632ac78c5f947710587ac983f9b13f4833b6aa6",
+        "com/termux/terminal/TerminalSession$NativeBackend.class": "6cf16f6df31863459943cd97d5b8c48393359be3896f5ee9e26c75b241d307e9",
+        "com/termux/terminal/TerminalSession$ReaderBackend.class": "02b9c5b42d5b78b0ff6a4774d4083356cfd498dfae1617d010315b03a8453451",
+        "com/termux/terminal/TerminalSession$ReaderStopCondition.class": "57a9eb13cf2f6c761c6d965d913694ed0047d9ae46344fb373b3c8fea807a19a",
+        "com/termux/terminal/TerminalSession$ResizeBackend.class": "16e53d2b6b17992c26a223bc99977c90a28d2fa3a8889c3588320a49ccbff7b5",
+        "com/termux/terminal/TerminalSession$ResizeListener.class": "95ba2d411d62ab68c02c03798d36aa363f3ed611e071b4ad2b7162757be715c2",
+        "com/termux/terminal/TerminalSession$WriterBackend.class": "1f14c8982f681d5d8f900047eba22ecaefee428e20f031db00330d2595ef9810",
+        "com/termux/terminal/TerminalSession.class": "8069fe95029cf693a1749f36e8e81f4247ca46afc4dd9250cff88880ed755da9",
+        "com/termux/terminal/TerminalSessionClient.class": "f7a887b02643f0d69ed649620634b9b131a9fa82f949bcd9923a31b9e5be7f91"
+      }
+    }
+  ],
+  "jniReplacement": {
+    "class": "com/termux/terminal/JNI",
+    "apiVersion": 2,
+    "reason": "Existing owner-token ABI deliberately replaces legacy numeric PID/fd interface; not legacy JNI compatibility.",
+    "methods": [
+      {
+        "name": "ownedProcessApiVersion",
+        "descriptor": "()I"
+      },
+      {
+        "name": "reserveOwnedProcess",
+        "descriptor": "()J"
+      },
+      {
+        "name": "createOwnedSubprocess",
+        "descriptor": "(JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;II)I"
+      },
+      {
+        "name": "requestOwnedStop",
+        "descriptor": "(JI)I"
+      },
+      {
+        "name": "waitForOwnedProcess",
+        "descriptor": "(J)J"
+      },
+      {
+        "name": "releaseOwnedProcess",
+        "descriptor": "(J)Z"
+      },
+      {
+        "name": "readOwnedPtyOnce",
+        "descriptor": "(J[BII)J"
+      },
+      {
+        "name": "writeOwnedPtyOnce",
+        "descriptor": "(J[BII)J"
+      },
+      {
+        "name": "pollOwnedPtyOnce",
+        "descriptor": "(JII)J"
+      },
+      {
+        "name": "cancelOwnedPtyIo",
+        "descriptor": "(JI)V"
+      },
+      {
+        "name": "releaseOwnedPtyLane",
+        "descriptor": "(JI)Z"
+      },
+      {
+        "name": "resizeOwnedPty",
+        "descriptor": "(JII)Z"
+      }
+    ]
+  },
+  "expectedOutputIdentityBasis": "Exact existing selected-source compiler-output identities are fixed expectations, not inherited gate success; every new build must actually reproduce them."
+}

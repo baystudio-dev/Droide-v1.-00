@@ -21,6 +21,7 @@ import com.baystudio.droide.core.ProviderWireProtocol
 import com.baystudio.droide.core.UserProviderDefinition
 import com.baystudio.droide.core.label
 
+/** Replaces the provider list while editing, preserving room for the keyboard on small devices. */
 @Composable
 internal fun CustomProviderForm(
     backend: ProviderConnectionBackend,

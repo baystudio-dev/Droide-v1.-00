@@ -3,7 +3,7 @@ package com.baystudio.droide.core
 /** Buf-only lifecycle/cache isolation. Original helper bytes and other families remain unchanged. */
 internal object LocalUbuntuBufLspHealth {
     const val FILE_NAME = "buf-lsp-health.cjs"
-
+    /** Preserve the historical helper byte-for-byte; bind new installs to their selected release. */
     fun scriptForVersion(version: String): String {
         require(version.matches(Regex("[A-Za-z0-9][A-Za-z0-9._+-]{0,79}")))
         return script.replace("'1.74.0'", "'$version'")

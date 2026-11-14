@@ -12,8 +12,8 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Also replayed with a test-only Android-style coarse NIO attribute adapter. Filesystem content,
- * inode identity and ExportFileStamp stay real and precise. */
+/** Also replayed with a test-only Android-style coarse NIO attribute adapter.
+ * Filesystem content, inode identity and ExportFileStamp stay real and precise. */
 class ExportTimestampDomainTest {
     private val home = Files.createTempDirectory("export-timestamp-").toFile()
     private val root = File(home, "project").apply { mkdir() }

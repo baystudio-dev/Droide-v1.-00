@@ -23,6 +23,7 @@ import com.baystudio.droide.core.AgentCompactionActivity
 import com.baystudio.droide.core.WorkspaceAgentUsageSnapshot
 import java.util.Locale
 
+ 
 @Composable
 internal fun AgentUsageHeaderButton(context: AgentContextUsage?, paneWidth: Dp, onClick: () -> Unit,
     compaction: AgentCompactionActivity? = null) {

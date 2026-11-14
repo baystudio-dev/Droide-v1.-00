@@ -10,8 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-// Explicit integration; supplied staging callbacks retain ownership of their files and recovery
-// decisions.
+// Explicit integration; supplied staging callbacks retain ownership of their files and recovery decisions.
 internal class JournaledProjectStore(
     private val selection: ProjectCatalogAdmission.UpdateSelection,
     private val retention: CanonicalJournalRetention.Policy,
@@ -100,6 +99,7 @@ internal class JournaledProjectStore(
         }
     }
 
+    // Explicit opt-in format migration, serialized with this store and the shared updater authority.
     internal suspend fun enableMembershipCommands(): Unit = writing(catalog) {
         check(stageProposal == null) { "Membership commands require journal-owned proposal staging" }
         val updater = selection.guardedUpdate(retention, context, checkpoint)

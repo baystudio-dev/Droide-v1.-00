@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.BufferedReader
 import java.io.IOException
 
+/** Enforce a protocol frame cap while reading, before readLine can allocate an unbounded String. */
 internal class BoundedProtocolLineReader(
     private val reader: BufferedReader,
     private val maxChars: Int,

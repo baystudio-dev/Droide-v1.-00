@@ -10,6 +10,7 @@ enum class AgentTextPresentation { LEGACY, RESPONSE, UPDATE, ANSWER }
 @Serializable
 enum class ProviderPublicTextPhase { UNSPECIFIED, COMMENTARY, FINAL_ANSWER }
 
+/** UTF-16 offsets into the exact public text; no duplicated text or private payload. */
 @Serializable
 data class AgentPublicTextSpan(val start: Int, val endExclusive: Int, val phase: ProviderPublicTextPhase)
 
@@ -62,7 +63,7 @@ internal object AgentPublicTextPresentation {
         }
         val result = if (old.lastOrNull()?.phase == phase) old.dropLast(1) + old.last().copy(endExclusive = end)
             else old + AgentPublicTextSpan(text.length, end, phase)
-
+        // A split surrogate is neutral until complete; no code point is split in rendering.
         return result.takeIf { mergedText.length == end && valid(mergedText, it) }.orEmpty()
     }
 

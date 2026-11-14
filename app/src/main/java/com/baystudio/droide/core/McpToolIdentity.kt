@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import java.security.MessageDigest
 
+ 
 object McpToolIdentity {
     const val PREFIX = "mcp__"
     private const val MAX_FUNCTION_NAME_CHARS = 64

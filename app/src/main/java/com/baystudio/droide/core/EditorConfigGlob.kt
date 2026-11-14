@@ -73,7 +73,8 @@ internal object EditorConfigGlob {
             var end = -1
             val choices = ArrayList<String>()
             var scan = 0
-
+            // Non-choice braces are literal. Keep looking inside/after them for
+            // real alternatives, as EditorConfig's brace expansion does.
             while (scan < current.length) {
                 if (current[scan] == '\\') { scan += 2; continue }
                 if (current[scan] != '{') { scan++; continue }

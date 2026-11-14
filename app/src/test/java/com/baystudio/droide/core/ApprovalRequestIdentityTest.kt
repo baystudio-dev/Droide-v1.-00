@@ -118,8 +118,8 @@ class ApprovalRequestIdentityTest {
         val manager = ApprovalManager()
         val request = request(manager)
         val pending = requireNotNull(manager.pending.value)
-        // Hold the manager lock to expose the window where continuation cancellation has happened but
-        // its cleanup has not yet removed the displayed request.
+        // Hold the manager lock to expose the window where continuation cancellation has
+        // happened but its cleanup has not yet removed the displayed request.
         val lock = ApprovalManager::class.java.getDeclaredField("stateLock").apply { isAccessible = true }.get(manager)
         @Suppress("UNCHECKED_CAST")
         val continuations = ApprovalManager::class.java.getDeclaredField("conts").apply { isAccessible = true }

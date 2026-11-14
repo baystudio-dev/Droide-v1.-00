@@ -30,8 +30,9 @@ internal object ToolVersionRequests {
         val native = LocalUbuntuVendorCatalog.find(familyId)
         val npm = UbuntuNpmCatalog.find(familyId)
 
-        // New integrations are exact reviewed contracts, not an implicit request for a different
-        // version. Existing npm families retain publisher selection.
+
+        // New integrations are exact reviewed contracts, not an implicit request for
+        // a different version. Existing npm families retain publisher selection.
         if (npm?.reviewedVersion != null && !npm.allowsPublisherUpdates) {
             val offered = items.firstOrNull { it.version.version == npm.reviewedVersion }
             if (version == npm.reviewedVersion) return offered

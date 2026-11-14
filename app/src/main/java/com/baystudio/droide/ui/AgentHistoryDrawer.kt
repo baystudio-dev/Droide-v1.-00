@@ -17,6 +17,7 @@ import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
 
+/** One workspace history entry point; the builtin protocol archive stays separate from CLI transcripts. */
 @Composable
 fun AgentHistoryDrawer(
     manager: SessionManager,

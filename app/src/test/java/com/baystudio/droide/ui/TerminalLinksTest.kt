@@ -1,6 +1,8 @@
 package com.baystudio.droide.ui
 
 import android.app.Application
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import com.baystudio.droide.core.TerminalLinks
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalOutput
@@ -83,9 +85,96 @@ class TerminalLinksTest {
         assertEquals(oauth, TerminalLinks.atCell(emulator, 0, 0))
     }
 
+    @Test fun explicitlyWrappedUnderlinedLoginUrlRemainsOneExactDestination() {
+        val emulator = emulator(40, 20)
+        append(emulator, "\u001b[4;34m" + oauth.chunked(40).joinToString("\r\n") + "\u001b[0m\r\nEnter code:")
+        assertFalse(emulator.screen.getLineWrap(0))
+        for (row in oauth.indices step 40) {
+            assertEquals(oauth, TerminalLinks.atCell(emulator, 0, row / 40))
+        }
+    }
+
+    @Test fun osc8LabelUsesItsDestinationRatherThanItsDisplayedText() {
+        val emulator = emulator(40, 6)
+        append(emulator, "\u001b]8;;$oauth\u001b\\Click here to authenticate\u001b]8;;\u001b\\")
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 6, 0))
+        assertNull(TerminalLinks.atCell(emulator, 30, 0))
+    }
+
+    @Test fun hyperlinkSurvivesReflowAndScrollbackWithoutChangingEncodedTarget() {
+        val emulator = emulator(40, 4)
+        append(emulator, "\u001b]8;id=login;$oauth\u0007" + "Authenticate".repeat(8) + "\u001b]8;;\u0007\r\ncode:")
+        emulator.resize(20, 4)
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 0, -emulator.screen.activeTranscriptRows))
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 4, 0))
+    }
+
+    @Test fun erasedAndOverwrittenCellsDoNotKeepStaleHyperlinks() {
+        val emulator = emulator(40, 6)
+        append(emulator, "\u001b]8;;$oauth\u001b\\界e\u0301 login\u001b]8;;\u001b\\")
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 1, 0))
+        append(emulator, "\u001b[1;2HX")
+        assertNull(TerminalLinks.atCell(emulator, 0, 0))
+        assertNull(TerminalLinks.atCell(emulator, 1, 0))
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 2, 0))
+        append(emulator, "\u001b[2K")
+        assertNull(TerminalLinks.atCell(emulator, 6, 0))
+    }
+
+    @Test fun insertAndDeleteShiftLinkMetadataWithTheText() {
+        val emulator = emulator(40, 6)
+        append(emulator, "\u001b]8;;$oauth\u0007login\u001b]8;;\u0007\u001b[1;1H\u001b[2@")
+        assertNull(TerminalLinks.atCell(emulator, 0, 0))
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 2, 0))
+        append(emulator, "\u001b[2P")
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 0, 0))
+        assertNull(TerminalLinks.atCell(emulator, 5, 0))
+    }
+
+    @Test fun linkEvictionAndResetCannotRedirectOldCellsToNewTargets() {
+        val emulator = emulator(40, 6)
+        append(emulator, "\u001b]8;;$oauth\u0007old\u001b]8;;\u0007\r\n")
+        repeat(140) { append(emulator, "\u001b]8;;https://example.test/$it\u0007\u001b]8;;\u0007") }
+        assertNull(TerminalLinks.atCell(emulator, 0, 0))
+        append(emulator, "\u001b]8;;https://example.test/new\u0007new\u001b]8;;\u0007")
+        assertEquals("https://example.test/new", TerminalLinks.atCell(emulator, 0, 1))
+        emulator.reset()
+        append(emulator, "\u001b[3;1H\u001b]8;;https://example.test/after-reset\u0007new\u001b]8;;\u0007")
+        assertNull(TerminalLinks.atCell(emulator, 0, 1))
+        assertEquals("https://example.test/after-reset", TerminalLinks.atCell(emulator, 0, 2))
+    }
+
+    @Test fun linkCellsRespectTheExistingBufferMemoryBudget() {
+        val emulator = emulator(40, 6)
+        val before = emulator.screen.retainedBytes
+        append(emulator, "\u001b]8;;$oauth\u0007login\u001b]8;;\u0007")
+        assertTrue(emulator.screen.retainedBytes > before)
+        append(emulator, "\u001b[2J")
+        assertTrue(emulator.screen.retainedBytes <= before + 6 * (16 + 4 * 40))
+    }
+
+    @Test fun unsafeHyperlinksAreRejectedAndMouseOwnedTuiStillReceivesTaps() {
+        val emulator = emulator(40, 6)
+        append(emulator, "\u001b]8;;javascript:alert(1)\u0007login\u001b]8;;\u0007\r\n")
+        assertNull(TerminalLinks.atCell(emulator, 0, 0))
+        append(emulator, "\u001b]8;;$oauth\u0007login\u001b]8;;\u0007\u001b[?1000h")
+        assertNull(TerminalLinks.atCell(emulator, 0, 1))
+        assertEquals(oauth, TerminalLinks.atCell(emulator, 0, 1, explicitSelection = true))
+    }
+
+    @Test fun hardWrappedLinkDoesNotAbsorbAdjacentLinksOrUnstyledOutput() {
+        val first = "https://example.test/first"
+        val next = "https://example.test/other"
+        val emulator = emulator(first.length, 6)
+        append(emulator, "\u001b[4;34m$first\r\n$next\u001b[0m\r\nNot-part-of-link")
+        assertEquals(first, TerminalLinks.atCell(emulator, 0, 0))
+        assertEquals(next, TerminalLinks.atCell(emulator, 0, 1))
+        assertNull(TerminalLinks.atCell(emulator, 0, 2))
+    }
+
     @Test fun mapsUnicodeWideAndCombiningPrefixesToScreenCells() {
         val emulator = emulator(100, 4)
-
+        // 界 and the emoji use two columns each. The combining accent uses none.
         append(emulator, "界 😀 e\u0301 " + "https://example.test/a")
         assertEquals("https://example.test/a", TerminalLinks.atCell(emulator, 8, 0))
         assertEquals("https://example.test/a", TerminalLinks.atCell(emulator, 29, 0))

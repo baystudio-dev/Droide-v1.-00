@@ -27,8 +27,8 @@ class WorkspaceSyncCheckReuseTest {
             onHashRead = { _, count -> optimizedBytes += count }))
         mirror.refresh()
         File(copy, ".droide-sync-manifest.tsv").writeText(WorkspaceSyncManifest.serialize(mirror.baseline()))
-        // Test setup only: let actual ctime move out of the conservative recent-write window. Production
-        // never sleeps/waits for this; it simply hashes recent files.
+        // Test setup only: let actual ctime move out of the conservative recent-write window.
+        // Production never sleeps/waits for this; it simply hashes recent files.
         delay(3_100)
         mirror.refresh()
         val expected = mirror.inventory()
@@ -44,7 +44,7 @@ class WorkspaceSyncCheckReuseTest {
         val optimizedNanos = measureNanoTime {
             repeat(3) { mirror.refresh(); assertEquals(expected, mirror.inventory()) }
         }
-        assertEquals(9 * asset.length(), controlBytes)
+        assertEquals(9 * asset.length(), controlBytes) // 2 trees + CLI inventory, three times.
         assertEquals(0L, optimizedBytes)
         indexes.forEachIndexed { i, file ->
             val current = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
@@ -68,7 +68,7 @@ class WorkspaceSyncCheckReuseTest {
         val oldBase = mirror.baseline()
         val changed = File(copy, "one.bin")
         val modified = Files.getLastModifiedTime(changed.toPath())
-        changed.writeText("agent-one!")
+        changed.writeText("agent-one!") // Same size, deliberately restored mtime.
         Files.setLastModifiedTime(changed.toPath(), modified)
         readPaths.clear()
         val inventory = mirror.inventory()

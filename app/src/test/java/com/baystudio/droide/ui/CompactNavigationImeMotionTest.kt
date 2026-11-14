@@ -53,6 +53,7 @@ class CompactNavigationImeMotionTest {
         compose.onNodeWithText("Terminal").assertIsEnabled()
     }
 
+
     @Test fun keyboardClosingRevealsNavigationBeforeHiddenEndpointWithoutTimer() {
         val fraction = mutableStateOf(0f)
         val enabled = mutableStateOf(false)

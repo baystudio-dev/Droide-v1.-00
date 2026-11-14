@@ -229,7 +229,7 @@ class LiveAgentUndoChainTest {
     }
 
     @Test fun nearerDiskFrontierPreventsRetargetingAnOlderCoincidentLiveVersion() = fixture {
-        edit("original")
+        edit("original") // A real no-op live edit keeps the original editor token.
         val disk = history.prepareBatch("disk frontier", mapOf("a.txt" to "original"))
         files.writeText("a.txt", "original")
         history.commitBatch(disk, diskAfter = mapOf("a.txt" to "original"))
@@ -263,7 +263,7 @@ class LiveAgentUndoChainTest {
         assertEquals(2, history.depth())
         val restoredVersion = requireNotNull(authority.snapshot("a.txt")).version
         lsp.notify = { _, _ -> }
-        root.resolve("disk.txt").writeText("second-D")
+        root.resolve("disk.txt").writeText("second-D") // Explicit fixture restoration of the reviewed disk token.
         assertTrue(history.undo().startsWith("Undone:"))
         assertEquals(restoredVersion, requireNotNull(authority.snapshot("a.txt")).version)
         assertEquals("first-D", root.resolve("disk.txt").readText())

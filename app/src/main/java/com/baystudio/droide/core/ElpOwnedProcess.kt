@@ -130,6 +130,7 @@ internal class ElpAsyncInput(private val input: InputStream, private val maximum
     override fun close() = synchronized(lock) { ended = true; queue.clear(); current = null; queued = 0; lock.notifyAll() }
 }
 
+/** One process group and one private tree, retained until every blocking operation settles. */
 internal class ElpExecutionOwner private constructor(val localRoot: File, val guestRoot: String, val token: String,
     val purpose: String, private val current: () -> Boolean, private val operationDeadline: ElpDeadline,
     private val admissionCurrent: () -> Boolean, private val release: (ElpTeardownReceipt) -> Unit) {
@@ -255,8 +256,7 @@ internal class ElpExecutionOwner private constructor(val localRoot: File, val gu
             acquireActivity: (() -> ElpPackageActivityHold)?): ElpExecutionOwner {
             deadline.check(); check(current())
             val activity = acquireActivity?.invoke()
-            // A throwing allocation may already own a private directory. Only its exact receipt releases
-            // this lease.
+            // A throwing allocation may already own a private directory. Only its exact receipt releases this lease.
             return allocate(appRoot, purpose, current, deadline, release = { activity?.release(it) })
         }
         fun allocate(appRoot: File, purpose: String, current: () -> Boolean, deadline: ElpDeadline,
@@ -463,6 +463,7 @@ internal object ElpOwnerCustody {
         }
     }
 }
+
 
 /** Bounded kernel metadata sampling; unrelated processes are never signalled or treated as owned. */
 internal object ElpProcfs {

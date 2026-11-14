@@ -24,15 +24,15 @@ internal object DroideMotion {
     const val ContentMillis = 180
     const val PaneMillis = 220
     val ContentTravel = 8.dp
-    // Critical damping keeps code/text legible without overshoot. The normalized threshold settles
-    // an 8 dp trajectory within 0.008 dp; spring time is not a fixed duration.
+    // Critical damping keeps code/text legible without overshoot. The normalized threshold
+    // settles an 8 dp trajectory within 0.008 dp; spring time is not a fixed duration.
     val ContentSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = 2500f,
         visibilityThreshold = 0.001f,
     )
-    // Smaller activity entrances and disclosure glyphs may settle within 1% of their normalized
-    // range; keep critical damping so text and alpha never bounce.
+    // Smaller activity entrances and disclosure glyphs may settle within 1% of their
+    // normalized range; keep critical damping so text and alpha never bounce.
     val ActivitySpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMedium,
@@ -44,6 +44,7 @@ internal object DroideMotion {
 internal fun rememberDroideMotionEnabled(): Boolean =
     (rememberCoroutineScope().coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
 
+/** One decorative trajectory per mounted surface, independent of its current content. */
 internal class DroideKeyedMotion(
     private val scope: CoroutineScope,
     initiallyEnabled: Boolean,
@@ -75,8 +76,12 @@ internal class DroideKeyedMotion(
     }
 }
 
-/** Animate the current surface only. */
-
+/**
+ * Animate the current surface only. Crossfade/AnimatedContent would retain a second Sora editor,
+ * terminal, WebView, or Agent and could duplicate listeners while navigating. A new key reuses
+ * an in-flight trajectory, never the content's work. Read animation state in the draw phase.
+ * Insets and streamed text aren't keys: typing/output must not replay entrance animations.
+ */
 @Composable
 internal fun Modifier.droideContentMotion(transitionKey: Any?, enabled: Boolean = true): Modifier {
     val motionEnabled = enabled && rememberDroideMotionEnabled()
@@ -86,7 +91,7 @@ internal fun Modifier.droideContentMotion(transitionKey: Any?, enabled: Boolean 
     SideEffect { motion.update(transitionKey, motionEnabled) }
     return graphicsLayer {
         val fraction = if (motionEnabled) motion.progress.value else 1f
-
+        // Keep content readable and interactive even on the first frame.
         alpha = .94f + .06f * fraction
         translationY = travelPx * (1f - fraction)
     }

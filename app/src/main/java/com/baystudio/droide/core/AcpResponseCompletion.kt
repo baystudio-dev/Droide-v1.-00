@@ -25,8 +25,8 @@ internal object AcpResponseCompletion {
                     ?: error("ACP response error requires a string message")
                 throw IllegalStateException(boundedDiagnosticText(message, 2_000))
             }
-            // ACP methods handled here return objects. Never turn null, a scalar, or an array into a
-            // successful empty mode response.
+            // ACP methods handled here return objects. Never turn null,
+            // a scalar, or an array into a successful empty mode response.
             val result = msg["result"] as? JsonObject
                 ?: error("ACP response result must be an object")
             if (call.method == "session/new" || call.method == "session/load") retainStartupConfiguration(call.method, call.requestedSessionId, result)

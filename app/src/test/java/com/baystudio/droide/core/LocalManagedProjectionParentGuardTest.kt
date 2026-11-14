@@ -19,8 +19,8 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class LocalManagedProjectionParentGuardTest {
     companion object {
-        // The substrate is process-owned and correctly rejects a different application root. All methods
-        // in this isolated suite therefore use one real app root.
+        // The substrate is process-owned and correctly rejects a different application
+        // root. All methods in this isolated suite therefore use one real app root.
         private val applicationRoot = Files.createTempDirectory("projection-parent-application-").toFile().canonicalFile
     }
 

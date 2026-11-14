@@ -35,7 +35,7 @@ class AgentServiceMediaRecoveryTest {
             }
         assertEquals(123L, captured())
         assertNull(captured(origin = AgentInputOrigin.SUBAGENT))
-        assertNull(captured(depth = 1))
+        assertNull(captured(depth = 1)) // Child chat defaults to USER; depth still removes authority.
         assertNull(captured(overlay = "automated system task"))
         assertNull(captured(kind = AgentRequesterKind.SUBAGENT))
         assertEquals(1, calls)

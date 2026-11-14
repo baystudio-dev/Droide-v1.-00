@@ -15,8 +15,8 @@ internal object BrowserInteractionAuthority {
         require(url.none { it.code < 32 || it.code == 127 } && target.none { it.code < 32 || it.code == 127 }) {
             "Browser URL and target must not contain control characters"
         }
-        // Keep existing full-resource policy rules meaningful without allowing the URL to impersonate
-        // the URL/action/target separator. Never silently rewrite it.
+        // Keep existing full-resource policy rules meaningful without allowing the
+        // URL to impersonate the URL/action/target separator. Never silently rewrite it.
         require(operations.none { "#$it:" in url }) {
             "Browser interaction URL contains a reserved action separator; remove that fragment and request fresh approval"
         }
@@ -25,8 +25,8 @@ internal object BrowserInteractionAuthority {
 
     fun sessionResource(document: String, url: String, operation: String, target: String,
         text: String?, submit: Boolean, dialogText: String?): String {
-        // JSON framing avoids delimiter collisions. Include every argument that changes the effect,
-        // without copying entered text into approval UI or grant storage.
+        // JSON framing avoids delimiter collisions. Include every argument that changes
+        // the effect, without copying entered text into approval UI or grant storage.
         val identity = JsonArray(listOf(document, url, operation, target, text, submit.toString(), dialogText)
             .map { JsonPrimitive(it) }).toString()
         val digest = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))

@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import java.io.File
 import java.security.MessageDigest
 
+ 
 enum class AgentProfileSource { BUILTIN, PROJECT, PLUGIN }
 
 data class AgentProfile(
@@ -11,7 +12,7 @@ data class AgentProfile(
     val mode: AgentMode,
     val systemInstructions: String,
     val modelPreference: String? = null,
-
+     
     val tools: Set<String>? = null,
     val mainAgent: Boolean = false,
     val subagent: Boolean = true,
@@ -35,6 +36,7 @@ data class AgentProfileSummary(
 )
 
 // PermissionEngine remains authoritative and profile tool sets are restrictive-only.
+
 
 class AgentProfileManager(private val workDir: File, private val plugins: AgentPluginSource = AgentPluginSource.EMPTY) {
     fun discover(): List<AgentProfile> {
@@ -70,6 +72,7 @@ class AgentProfileManager(private val workDir: File, private val plugins: AgentP
             ?.toList()
             .orEmpty()
     }
+
 
     private fun discoverPlugins(): List<AgentProfile> = AgentPluginContributions.agentFiles(plugins, workDir)
         .mapNotNull { (plugin, file) -> parsePluginProfile(plugin, file) }

@@ -31,6 +31,7 @@ data class ApkAnalysis(
     val largestEntries: List<ApkEntryInfo>,
 )
 
+
 object ApkAnalyzer {
     suspend fun analyze(file: File): ApkAnalysis = withContext(Dispatchers.IO) {
         require(file.isFile && file.extension.equals("apk", ignoreCase = true)) { "Select a local APK artifact" }

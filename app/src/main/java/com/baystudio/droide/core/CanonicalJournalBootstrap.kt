@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+// Dormant explicit enrollment; no runtime caller and no shared-UID isolation guarantee.
 internal class CanonicalJournalBootstrap(
     private val slot: File,
     private val maxBytes: Long,
@@ -287,8 +288,7 @@ internal class CanonicalJournalBootstrap(
             Inspection(enrollment, history)
         }
 
-    // Immutable receipts and filesystem binding only; the transaction owner validates database
-    // contents.
+    // Immutable receipts and filesystem binding only; the transaction owner validates database contents.
     fun readBindingWithMembership(root: File, projectId: String, membership: File,
                                   context: CoroutineContext): CanonicalFileOperationJournal.Enrollment =
         withExistingMembership(root, projectId, membership, context) { witness, verify ->

@@ -6,6 +6,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
+ 
 data class WorkspaceAgentUsageSnapshot(
     val used: Long,
     val size: Long,

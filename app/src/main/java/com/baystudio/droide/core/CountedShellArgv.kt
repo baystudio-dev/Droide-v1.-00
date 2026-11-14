@@ -7,8 +7,8 @@ import java.security.MessageDigest
 internal object CountedShellArgv {
     enum class Encoding { UTF8, JNI_MODIFIED_UTF8 }
     data class Limits(val pageSize: Long, val argMax: Long, val pointerBytes: Int)
-    /** Must describe actual native envp bytes including '=' but excluding terminating NUL. Reencoding
-     * ProcessBuilder.environment() does NOT attest inherited raw bytes. */
+    /** Must describe actual native envp bytes including '=' but excluding terminating NUL.
+     * Reencoding ProcessBuilder.environment() does NOT attest inherited raw bytes. */
     sealed class Environment {
         object Unknown : Environment()
         class NativeLengths(lengths: List<Long>) : Environment() { val lengths = lengths.toList() }
@@ -21,8 +21,8 @@ internal object CountedShellArgv {
         internal fun write(sink: (Char) -> Unit) = emit(sink)
         companion object {
             fun literal(value: String): Node = source { value.reader() }
-            /** Reader factory must reopen the same verified owned source; digest guards replacement. Scan is
-             * O(n), bounded memory, including chunk-split surrogate validation. */
+            /** Reader factory must reopen the same verified owned source; digest guards replacement.
+             * Scan is O(n), bounded memory, including chunk-split surrogate validation. */
             fun source(checkCancelled: () -> Unit = {}, open: () -> Reader): Node {
                 val first = scan(open, checkCancelled) {}
                 return Node(first.first) { sink ->
@@ -53,8 +53,8 @@ internal object CountedShellArgv {
         data class Rejected(val reason: String): Admission()
         class Admitted internal constructor(private val argv: List<Node>, private val encoding: Encoding,
                                             val countedBytes: Long) : Admission() {
-            /** No intermediate quoted Strings; total allocation bounded by counted final argv. Failure
-             * returns no argv; not permission, launch, retry or descendant admission. */
+            /** No intermediate quoted Strings; total allocation bounded by counted final argv.
+             * Failure returns no argv; not permission, launch, retry or descendant admission. */
             fun render(): List<String> = argv.map { node ->
                 require(node.stats.chars <= Int.MAX_VALUE) { "JVM string capacity" }
                 val out = StringBuilder(node.stats.chars.toInt())
@@ -67,8 +67,9 @@ internal object CountedShellArgv {
             }
         }
     }
-    /** Limits/provenance supplied by trusted backend; unknown transport/encoding/env must not opt
-     * into expansion. exec path extra bytes are separate kernel stack use, not argv pointer count. */
+    /** Linux-style injected necessary bounds. Limits/provenance supplied by trusted backend;
+     * unknown transport/encoding/env must not opt into expansion. exec path extra bytes are
+     * separate kernel stack use, not argv pointer count. Dynamic inner exec remains unknown. */
     fun admit(argv: List<Node>, environment: Environment, limits: Limits?, encoding: Encoding?,
               executablePathBytes: Long?): Admission {
         if (limits == null || encoding == null || executablePathBytes == null || environment !is Environment.NativeLengths)

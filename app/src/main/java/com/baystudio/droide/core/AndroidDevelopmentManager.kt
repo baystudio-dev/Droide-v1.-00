@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+
 class AndroidDevelopmentManager(
     private val context: Context,
     private val projectRoot: File,
@@ -36,7 +37,7 @@ class AndroidDevelopmentManager(
     private val gradleWrapperProbe = GradleWrapperRuntimeProbe(bridge)
     private val gradleReadOnlyCacheResolver = GradleReadOnlyDependencyCacheResolver(bridge)
     private val gradleDependencyProbe = GradleDependencyRuntimeProbe(bridge)
-
+     
     private val workstationMutationMutex = Mutex()
     enum class Readiness { READY, BRIDGE_REQUIRED, TOOLCHAIN_REQUIRED, UNSUPPORTED, CHECK_FAILED }
     enum class BuildBackend(val label: String) { LOCAL_UBUNTU("Local Ubuntu"), DEVICE_WORKSTATION("Device Workstation") }
@@ -274,8 +275,8 @@ class AndroidDevelopmentManager(
             return@withContext Status(androidProject = false, readiness = Readiness.UNSUPPORTED, message = "Not an Android Gradle project.")
                 .also { _status.value = it }
         }
-        // Recognition is independent of wrapper completeness. Do not label an imported source/module
-        // folder READY until its executable build inputs pass preflight.
+        // Recognition is independent of wrapper completeness. Do not label an imported
+        // source/module folder READY until its executable build inputs pass preflight.
         val wrapperProblem = try {
             GradleWrapperInspector.inspect(projectRoot)
             null
@@ -325,6 +326,7 @@ class AndroidDevelopmentManager(
         _status.value = next
         next
     }
+
 
     suspend fun provision(pack: File, expectedSha256: String): String = workstationMutationMutex.withLock {
         _operation.value = OperationState(OperationPhase.VERIFYING_PACK, "Verifying Android toolchain pack…")
@@ -575,6 +577,7 @@ class AndroidDevelopmentManager(
         }
     }
 
+
     suspend fun workstationInfo(): WorkstationInfo? = withContext(Dispatchers.IO) {
         if (bridge.state.value.connected == null) return@withContext null
         val resolved = projectToolchainAuthority.resolve().resolved ?: return@withContext null
@@ -623,6 +626,7 @@ class AndroidDevelopmentManager(
         )
     }
 
+
     suspend fun installedToolchainReceipt(): ToolchainInstallReceipt? = withContext(Dispatchers.IO) {
         check(bridge.state.value.connected != null) { "Device bridge is not connected" }
         val path = DeviceBridgeManager.remoteRoot() + "/toolchains/current/.droide-install.json"
@@ -658,6 +662,7 @@ class AndroidDevelopmentManager(
         val prepareWorkspace = bridge.shell("mkdir -p ${DeviceBridgeManager.shellQuote(remoteWorkspace)}")
         check(prepareWorkspace.exitCode == 0) { prepareWorkspace.combined }
 
+        
         val pathEntries = userBins.toMutableList()
         val environment = linkedMapOf(
             "HOME" to home,
@@ -668,6 +673,7 @@ class AndroidDevelopmentManager(
             "COLORTERM" to "truecolor",
             "LANG" to "en_US.UTF-8",
         )
+
 
         val packageRegistry = ManagedPackageRegistry(context)
         runSuspendCatching { ManagedPackageInstaller(context, bridge, packageRegistry).reconcile() }
@@ -721,6 +727,7 @@ class AndroidDevelopmentManager(
             }
             pathEntries += manifest.javaHome.trimEnd('/') + "/bin"
             if (compatibility) {
+                
 
                 pathEntries += AndroidToolchainRuntime.additionalInteractivePathEntries(manifest.runtime)
             } else {
@@ -728,6 +735,7 @@ class AndroidDevelopmentManager(
                 pathEntries += manifest.sdkRoot.trimEnd('/') + "/platform-tools"
                 pathEntries += extraExecutableDirs
             }
+
 
             environment.putIfAbsent("JAVA_HOME", manifest.javaHome)
             environment.putIfAbsent("ANDROID_HOME", manifest.sdkRoot)
@@ -921,6 +929,7 @@ class AndroidDevelopmentManager(
     }
 
     private suspend fun terminateBuildLease(lease: RemoteProcessLease) = withContext(kotlinx.coroutines.NonCancellable) {
+        
 
         runSuspendCatching { bridge.ensureHealthyConnection() }
         if (bridge.state.value.connected != null) {
@@ -936,6 +945,7 @@ class AndroidDevelopmentManager(
         check(bridge.state.value.connected != null) { "Pair and connect Device Workstation before Android install/run/debug" }
     }
 
+     
     suspend fun installAndLaunchForDebug(
         apk: File,
         packageName: String? = null,

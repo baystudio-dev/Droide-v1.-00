@@ -1,0 +1,47 @@
+{
+  "baselineAarSha256": "e78fd1508f55a43d7e0a8de6a8b5fa4ce165b34c053d2c442b19d72d4c07463d",
+  "changedClassPaths": [
+    "com/termux/terminal/TerminalSession$1.class",
+    "com/termux/terminal/TerminalSession$2.class",
+    "com/termux/terminal/TerminalSession$3.class",
+    "com/termux/terminal/TerminalSession$MainThreadHandler.class",
+    "com/termux/terminal/TerminalSession$NativeBackend.class",
+    "com/termux/terminal/TerminalSession$ReaderStopCondition.class",
+    "com/termux/terminal/TerminalSession$WriterBackend.class",
+    "com/termux/terminal/TerminalSession.class",
+    "com/termux/terminal/TerminalSessionClient.class"
+  ],
+  "compiledSha256ByPath": {
+    "com/termux/terminal/TerminalResizeState$Backend.class": "faba70d79fa15ef625cd49f963b7a4109f1f055a63e3a1d2a928c73871512576",
+    "com/termux/terminal/TerminalResizeState$Listener.class": "48e1e2d5ecdad03a5b50722ba8c4158c2948598e91bce60ba786c30f681dd8ef",
+    "com/termux/terminal/TerminalResizeState$Receipt.class": "dfe914088ab67afbf53c9e00357c49373a42afb9ab7fe15576947572d415b3ca",
+    "com/termux/terminal/TerminalResizeState.class": "f6295ad76f611516d004af435af169b51527149ec1af78fbad66a017224cd65f",
+    "com/termux/terminal/TerminalSession$1.class": "468f71fb739a4107fbc1dbcc24671fc75e2a4bdc5248a158ae267822432dba53",
+    "com/termux/terminal/TerminalSession$2.class": "cdde8a2ecc189c27d0eb5597e7b70aa364b0305b2560ff141ec2b417953bd621",
+    "com/termux/terminal/TerminalSession$3.class": "cacfa390e843d365acd174df9b0ee5376f4254cae3947c759baddb37cad5050a",
+    "com/termux/terminal/TerminalSession$InputHandler.class": "2dda6dce690ea99ac9285342c6ce07a968fc925b2db507230b9fe39c19de2f64",
+    "com/termux/terminal/TerminalSession$MainThreadHandler.class": "8bf50811be48bff779a610e8d632ac78c5f947710587ac983f9b13f4833b6aa6",
+    "com/termux/terminal/TerminalSession$NativeBackend.class": "6cf16f6df31863459943cd97d5b8c48393359be3896f5ee9e26c75b241d307e9",
+    "com/termux/terminal/TerminalSession$ReaderBackend.class": "02b9c5b42d5b78b0ff6a4774d4083356cfd498dfae1617d010315b03a8453451",
+    "com/termux/terminal/TerminalSession$ReaderStopCondition.class": "57a9eb13cf2f6c761c6d965d913694ed0047d9ae46344fb373b3c8fea807a19a",
+    "com/termux/terminal/TerminalSession$ResizeBackend.class": "16e53d2b6b17992c26a223bc99977c90a28d2fa3a8889c3588320a49ccbff7b5",
+    "com/termux/terminal/TerminalSession$ResizeListener.class": "95ba2d411d62ab68c02c03798d36aa363f3ed611e071b4ad2b7162757be715c2",
+    "com/termux/terminal/TerminalSession$WriterBackend.class": "1f14c8982f681d5d8f900047eba22ecaefee428e20f031db00330d2595ef9810",
+    "com/termux/terminal/TerminalSession.class": "8069fe95029cf693a1749f36e8e81f4247ca46afc4dd9250cff88880ed755da9",
+    "com/termux/terminal/TerminalSessionClient.class": "f7a887b02643f0d69ed649620634b9b131a9fa82f949bcd9923a31b9e5be7f91"
+  },
+  "newClassPaths": [
+    "com/termux/terminal/TerminalResizeState$Backend.class",
+    "com/termux/terminal/TerminalResizeState$Listener.class",
+    "com/termux/terminal/TerminalResizeState$Receipt.class",
+    "com/termux/terminal/TerminalResizeState.class",
+    "com/termux/terminal/TerminalSession$ResizeBackend.class",
+    "com/termux/terminal/TerminalSession$ResizeListener.class"
+  ],
+  "schemaVersion": 1,
+  "sourceSha256ByPath": {
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalResizeState.java": "3640d6d29b4885a516e6389a1b9465bcb70617940ea4431470f3621f9f4251e3",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSession.java": "c969987f8dd20c974a9017e4c9a9e0a005cbc84dce6eb7df56be8b8813f7c998",
+    "third_party/termux/derivatives/r63/src/com/termux/terminal/TerminalSessionClient.java": "6ce8dd0394281f28c939f9f0217930491aea79b577e1021b94f702dc195685d2"
+  }
+}

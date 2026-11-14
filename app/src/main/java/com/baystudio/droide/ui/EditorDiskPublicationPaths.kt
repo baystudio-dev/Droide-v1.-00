@@ -7,8 +7,10 @@ import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.NoSuchFileException
 import java.nio.file.attribute.BasicFileAttributes
 
-/** Metadata-only NOFOLLOW admission. */
-
+/** Metadata-only NOFOLLOW admission. Never follows a live editor alias to guess authority.
+ * Cooperating editor mutations are fenced by the state monitor; this is not filesystem CAS
+ * against an arbitrary same-UID writer retargeting a path between metadata check and rename.
+ */
 internal object EditorDiskPublicationPaths {
     fun normalized(relative: String): String {
         if (relative.startsWith('/') || '\\' in relative || '\u0000' in relative)

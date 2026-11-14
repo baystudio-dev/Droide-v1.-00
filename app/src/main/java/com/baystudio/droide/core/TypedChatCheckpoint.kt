@@ -83,8 +83,8 @@ internal class TypedChatHistory(private val registry:CanonicalChatTurnRegistry,p
         targetRegistry:CanonicalChatTurnRegistry,end:Int?=null):TypedChatCheckpoint {
         verify(checkpoint,sourceSession)
         val selected=if(end==null)checkpoint.exact else takeBoundary(checkpoint.exact,end)
-        // A selectable fork is a resumable conversation, not an unresolved recovery backup. Check every
-        // selected group before publishing any target-owned copies.
+        // A selectable fork is a resumable conversation, not an unresolved recovery backup.
+        // Check every selected group before publishing any target-owned copies.
         selected.filterIsInstance<TypedChatEntry.OwnedTurn>().forEach { entry ->
             val turn = resolve(entry,sourceSession,checkpoint.target.runtime())
             turn.calls.forEach { call -> turn.journal.completedArguments(call);turn.journal.verifyResult(call) }

@@ -3,6 +3,7 @@ package com.baystudio.droide.core
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/** Same doom-loop policy as ordinary tools, with an exact readable source instead of fake rawArgs. */
 internal object AgentStreamedApprovalSupport {
     suspend fun doomLoopDenied(prepared: StreamedFileArgumentExtractor.Prepared,
         sourceSession: OwnedResponseContentStore.Session, c: AgentTools.Ctx,

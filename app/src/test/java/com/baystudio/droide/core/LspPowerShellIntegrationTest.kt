@@ -14,6 +14,8 @@ import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
+
+/** Actual manager/transport with authored peers. No native PowerShell, pipes or project execution. */
 class LspPowerShellIntegrationTest {
     @Test(timeout=10000) fun passiveAndColdHintNeverDiscoverAndCustomDoesNotInherit()=runBlocking<Unit>{Fixture().use{f->
         f.file("a.ps1");f.manager.didOpen("a.ps1","${'$'}x")

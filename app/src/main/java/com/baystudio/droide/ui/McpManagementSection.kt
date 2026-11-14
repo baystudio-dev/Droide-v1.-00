@@ -182,6 +182,7 @@ private fun McpProtocolPreference.label(): String = when (this) {
     McpProtocolPreference.MODERN_2026 -> "2026"
 }
 
+
 @Composable
 private fun McpManagementHeader(
     canAdd: Boolean, busy: Boolean, onAdd: () -> Unit, onReload: () -> Unit,

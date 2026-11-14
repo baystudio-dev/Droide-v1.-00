@@ -75,7 +75,7 @@ internal class WorkspaceVisibilityReconciler(
         val admitted = ++generation
         job?.cancel()
         job = scope.launch {
-
+            // Pane/focus/resume events in the same UI turn share the latest request.
             yield()
             reconcileLane.withLock {
                 fun ownsRequest() = !closed && generation == admitted
@@ -85,8 +85,8 @@ internal class WorkspaceVisibilityReconciler(
                     captureEditor()
                     coroutineContext.ensureActive()
                     if (path.isNotBlank() && ownsRequest()) {
-                        // Direct authority reconciliation observes disk only; FileRepository's outbound SAF mutation
-                        // callback must not run for a visibility refresh.
+                        // Direct authority reconciliation observes disk only; FileRepository's
+                        // outbound SAF mutation callback must not run for a visibility refresh.
                         documents.persistedMutation(FileRepository.Mutation.Sync(path))
                     }
                 } catch (cancelled: CancellationException) {

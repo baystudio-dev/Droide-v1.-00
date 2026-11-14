@@ -7,6 +7,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
+ 
 internal class WorkspaceSyncFingerprintCache {
     data class FileIdentity(val sizeBytes: Long, val executable: Boolean, val sha256: String)
 

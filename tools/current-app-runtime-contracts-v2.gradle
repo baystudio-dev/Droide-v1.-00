@@ -1,0 +1,78 @@
+// Explicit two-component V2 adapter. V1 unique-provider/post-test guards stay unchanged.
+import org.gradle.api.GradleException
+import org.gradle.api.attributes.Attribute
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+if (gradle.startParameter.projectProperties['DROIDE_CURRENT_COMPOSITE_V2']!='true') throw new GradleException('Explicit V2 runtime lane required')
+apply from: rootProject.file('tools/current-app-runtime-contracts-v2-base.gradle')
+def policy=evaluate(rootProject.file('tools/current_engine_classpath_policy_v2.groovy'))
+afterEvaluate {
+    tasks.named('testDebugUnitTest', org.gradle.api.tasks.testing.Test).configure { task ->
+        // Registered after V1: doFirst runs before its strict provider inventory.
+        doFirst {
+            def selectedComponents=[
+                [name:'engine',file:new File(gradle.startParameter.projectProperties['DROIDE_CURRENT_COMPOSITE'],'engine/terminal-engine.aar'),shape:[count:40,prefix:'com/termux/terminal/']],
+                [name:'view',file:file('libs/terminal-view-v0.118.0.aar'),shape:[count:19,prefix:'com/termux/view/']]
+            ]
+            def configuration=configurations.getByName('debugUnitTestRuntimeClasspath')
+            def rawArtifacts=configuration.incoming.artifacts.artifacts
+            def beforeFile=layout.buildDirectory.file('current-resolved-inputs-before.json').get().asFile
+            def resolved=new JsonSlurper().parseText(new String(policy.regular(beforeFile),'UTF-8'))
+            def original=task.classpath.files.collect {it.absolutePath}
+            def proofs=[];def allNames=[] as Set;def removed=[] as Set;def allPaths=[] as Set
+            selectedComponents.each { spec ->
+                def selected=spec.file
+                def raw=rawArtifacts.findAll {it.file.canonicalFile==selected.canonicalFile}
+                if(raw.size()!=1) throw new GradleException('Selected Termux AAR component is missing or ambiguous: '+spec.name)
+                def component=raw.first().id.componentIdentifier
+                def selectedEvidence=policy.selectedEvidence(selected)
+                def admitted=resolved.debugRuntimeClasspath.findAll {new File(it.filePath).canonicalFile==selected.canonicalFile}
+                if(admitted.size()!=1 || admitted.first().sha256!=selectedEvidence.aarSha256) throw new GradleException('Selected Termux AAR differs from prior resolved input: '+spec.name)
+                def expected=selectedEvidence.members
+                if(!Collections.disjoint(allNames,expected.keySet())) throw new GradleException('Selected Termux components overlap')
+                allNames.addAll(expected.keySet())
+                def view={ String type ->
+                    def artifacts=configuration.incoming.artifactView {
+                        componentFilter { id -> id==component }
+                        attributes { attribute(Attribute.of('artifactType',String),type) }
+                    }.artifacts.artifacts
+                    if(artifacts.size()!=1) throw new GradleException('Selected Termux view is ambiguous: '+type)
+                    def artifact=artifacts.first()
+                    [path:artifact.file.absolutePath,component:artifact.id.componentIdentifier,members:policy.entries(policy.regular(artifact.file)),variant:artifact.variant.attributes.keySet().collectEntries {[(it.name):artifact.variant.attributes.getAttribute(it).toString()]}]
+                }
+                def classes=view('android-classes-jar');def resources=view('android-java-res')
+                if(!allPaths.add(classes.path) || !allPaths.add(resources.path)) throw new GradleException('Termux artifact paths overlap')
+                def otherProviders=[]
+                original.findAll {it!=classes.path && it!=resources.path}.each { path ->
+                    def input=new File(path);boolean overlaps=false
+                    if(input.isDirectory()) overlaps=expected.keySet().any {new File(input,it).exists()}
+                    else if(input.name.endsWith('.jar')) new java.util.zip.ZipFile(input).withCloseable { jar -> overlaps=expected.keySet().any {jar.getEntry(it)!=null} }
+                    if(overlaps) otherProviders+=path
+                }
+                def plan=policy.select(expected,original,classes,resources,component,otherProviders,spec.shape)
+                removed.add(plan.removed)
+                proofs+=[name:spec.name,selectedAar:selected.absolutePath,selectedEvidence:selectedEvidence,component:component.displayName,classes:classes+[component:component.displayName],resources:resources+[component:component.displayName]]
+            }
+            if(removed.size()!=2) throw new GradleException('Expected exactly two proven redundant resource artifacts')
+            def build=layout.buildDirectory.get().asFile
+            def generatedR=new File(build,'intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar')
+            def runtimeJar=new File(build,'intermediates/runtime_app_classes_jar/debug/bundleDebugClassesToRuntimeJar/classes.jar')
+            def rOwners=tasks.named('processDebugResources').get().outputs.files.files as List
+            def runtimeOwners=tasks.named('bundleDebugClassesToRuntimeJar').get().outputs.files.files as List
+            def rProof=policy.rSubset(build,generatedR,runtimeJar,original,rOwners,runtimeOwners)
+            original.findAll {it!=generatedR.absolutePath && it!=runtimeJar.absolutePath && !removed.contains(it)}.each {path ->
+                def input=new File(path);boolean overlaps=false
+                if(input.isDirectory()) overlaps=rProof.rMembers.keySet().any {new File(input,it).exists()}
+                else if(input.name.endsWith('.jar')) new java.util.zip.ZipFile(input).withCloseable {jar ->overlaps=rProof.rMembers.keySet().any {jar.getEntry(it)!=null}}
+                if(overlaps) throw new GradleException('Third generated R provider is forbidden: '+path)
+            }
+            removed.add(rProof.removed)
+            def effective=original.findAll {!removed.contains(it)}
+            def report=layout.buildDirectory.file('current-runtime-engine-classpath-v2.json').get().asFile
+            if(report.exists()) throw new GradleException('Termux normalization report already exists')
+            report.parentFile.mkdirs()
+            report.text=JsonOutput.prettyPrint(JsonOutput.toJson([components:proofs,generatedR:rProof,original:original,effective:effective,removed:removed]))+'\n'
+            task.classpath=files(effective)
+        }
+    }
+}

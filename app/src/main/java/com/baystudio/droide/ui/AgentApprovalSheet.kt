@@ -38,8 +38,8 @@ internal fun AgentApprovalSheet(request: ApprovalRequest, onDismiss: () -> Unit,
         containerColor = DroideColors.Surface,
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth().navigationBarsPadding()) {
-            // Expanded is the measured content height. Only large previews use the viewport cap; a short
-            // permission must not fill the screen.
+            // Expanded is the measured content height. Only large previews use
+            // the viewport cap; a short permission must not fill the screen.
             AgentApprovalContent(request, maxHeight * .92f, onResolve)
         }
     }
@@ -70,8 +70,16 @@ internal fun AgentApprovalContent(request: ApprovalRequest, maxHeight: Dp,
                     browser.outputDisclosure?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
                 if (request.action.isNotBlank() || request.resource.isNotBlank()) {
-                    Text("${request.action.ifBlank { request.kind }} · ${request.resource}".take(1_000),
-                        style = MaterialTheme.typography.labelSmall, color = DroideColors.Muted, fontFamily = FontFamily.Monospace)
+                    val label = "${request.action.ifBlank { request.kind }} · ${request.resource}".take(1_000)
+                    val singleFile = request.kind in setOf("write_file", "edit_file", "agent_plugin_read", "agent_plugin_write") ||
+                        (request.kind == "agent_plugin_tool" && request.action == "write_file")
+                    if (singleFile && request.resource.isNotBlank()) {
+                        FileIdentityLabel(request.resource, label, iconSize = 14.dp, maxLines = Int.MAX_VALUE,
+                            monospaced = true, style = MaterialTheme.typography.labelSmall, color = DroideColors.Muted)
+                    } else {
+                        Text(label, style = MaterialTheme.typography.labelSmall, color = DroideColors.Muted,
+                            fontFamily = FontFamily.Monospace)
+                    }
                 }
                 request.proposedContent?.let { AgentProposedContentReview(it) }
                 request.inputReview?.let { AgentInputReview(it) }

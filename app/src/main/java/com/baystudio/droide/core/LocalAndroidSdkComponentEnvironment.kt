@@ -26,8 +26,8 @@ internal object LocalAndroidSdkComponentEnvironment {
             Binding(host.canonicalPath, "$GUEST_SDK_ROOT/$target")
         }.take(64)
         if (components.isEmpty()) return components
-        // Bind the owned directory even before acceptance. Existing terminals then see the receipt after
-        // consent; an empty directory grants no license and revocation removes it.
+        // Bind the owned directory even before acceptance. Existing terminals then see the
+        // receipt after consent; an empty directory grants no license and revocation removes it.
         return components + Binding(AndroidSdkLicenseProjection.directory(File(appRoot)).canonicalPath, "$GUEST_SDK_ROOT/licenses")
     }
 

@@ -25,7 +25,7 @@ internal class LspSvelteFilePoller(
         val maxEntries: Int = 12_000,
         val maxDepth: Int = 96,
         val maxFileBytes: Long = 4L * 1024 * 1024,
-
+        // Both verification reads count toward this budget.
         val maxReadBytes: Long = 96L * 1024 * 1024,
         val maxScanMillis: Long = 15_000,
     ) {
@@ -58,6 +58,7 @@ internal class LspSvelteFilePoller(
     private val approvedRoot = root.absoluteFile.toPath().normalize()
     val canonicalRoot: String = approvedRoot.toString()
 
+    /** First difference calls back before the rest of the pass. No partial result is ever returned. */
     suspend fun scan(previous: Snapshot? = null, onDifference: (Difference) -> Unit = {}): Snapshot =
         withContext(Dispatchers.IO) {
             val started = clockNanos()
@@ -146,8 +147,8 @@ internal class LspSvelteFilePoller(
                 val watched = matchesGlob(relative)
                 val critical = isCritical(relative)
                 if (before.isSymbolicLink) {
-                    // npm's .bin links are common. Prove a contained, non-symlink regular target without opening it;
-                    // every other link is ambiguous coverage and fails closed.
+                    // npm's .bin links are common. Prove a contained, non-symlink regular target
+                    // without opening it; every other link is ambiguous coverage and fails closed.
                     if (watched || !isBinLink(relative)) throw CoverageException("Svelte observation refuses symlink coverage")
                     val link = Files.readSymbolicLink(path)
                     val target = (if (link.isAbsolute) link else path.parent.resolve(link)).normalize()

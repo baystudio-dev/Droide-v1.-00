@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 
 // The UI consumes ordered parts, never provider-specific SSE/JSON.
 
+
 @Serializable
 enum class AgentStreamPartKind { STEP, INPUT, TEXT, TOOL, COMPACTION, RETRY, STATUS }
 
@@ -45,6 +46,8 @@ data class AgentStreamPart(
     val textPresentation: AgentTextPresentation = AgentTextPresentation.LEGACY,
     val presentationId: String = "",
     val publicTextSpans: List<AgentPublicTextSpan> = emptyList(),
+    val producedFiles: List<String> = emptyList(),
+    val tasks: List<Todo>? = null,
 ) {
     val durationMs: Long
         get() = ((endedAtMs ?: System.currentTimeMillis()) - startedAtMs).coerceAtLeast(0L)
@@ -56,6 +59,7 @@ enum class AgentStreamTransport { UNKNOWN, NATIVE, BUFFERED }
 @Serializable
 enum class AgentModelActivity { WORKING, THINKING, RESPONDING, PREPARING_TOOL }
 
+ 
 @Serializable
 data class AgentStreamState(
     val runId: Long = 0L,

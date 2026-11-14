@@ -468,8 +468,7 @@ internal class ProjectCatalogAdmission(
                 .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
         }
 
-        // Cooperating callers only; external writers still require native no-replace and
-        // retained-conflict checks.
+        // Cooperating callers only; external writers still require native no-replace and retained-conflict checks.
         private val publicationLocks = mutableMapOf<String, WeakReference<Mutex>>()
         private fun publicationMutex(key: String): Mutex = synchronized(publicationLocks) {
             publicationLocks.entries.removeAll { it.value.get() == null }

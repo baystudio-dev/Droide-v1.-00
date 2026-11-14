@@ -27,7 +27,8 @@ class AgentPromptPromotionTransactionTest {
         val scope = CoroutineScope(SupervisorJob() + dispatcher)
         try {
             val running = scope.async { agent.chat("Continue the conversation", http.config, maxTurns = 2) }
-
+            // Drive production setup until retain(session) completed and its IO return is
+            // waiting. No model request or history delivery has happened at this point.
             while (true) {
                 val continuation = dispatcher.next()
                 if (store.ownerRefs(sessionId).any { it.id == input.media.single().id }) {
@@ -54,8 +55,8 @@ class AgentPromptPromotionTransactionTest {
 
     @Test(timeout = 30_000) fun failedActualMediaRetentionKeepsAcceptedQueueInTheSuccessfulFinalCheckpoint() = fixture { agent, http, root -> runBlocking {
         val (sessionId, input, store) = seedMediaQueue(agent, http, root)
-        // The pending owner still holds a valid blob. Only the future session-owner retain fails, so
-        // chat.finally can still save the original pending input.
+        // The pending owner still holds a valid blob. Only the future session-owner
+        // retain fails, so chat.finally can still save the original pending input.
         store.releaseOwner(sessionId)
         agent.chat("Continue the conversation", http.config, maxTurns = 2)
         assertFalse(agent.busy.value)

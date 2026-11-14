@@ -20,6 +20,13 @@ data class PhysicalDeviceCertificationStep(
     val detail: String,
 )
 
+
+
+
+
+
+
+
 @Serializable
 data class PhysicalDeviceCertificationReport(
     val schema: Int = 1,
@@ -260,6 +267,7 @@ internal object PhysicalDeviceCertificationRules {
         .joinToString("") { "%02x".format(it) }
 }
 
+ 
 class PhysicalDeviceCertificationEvidenceStore private constructor(
     private val root: File,
     @Suppress("UNUSED_PARAMETER") directRoot: Boolean,
@@ -332,6 +340,10 @@ class PhysicalDeviceCertificationEvidenceStore private constructor(
     }
 }
 
+
+
+
+
 class PhysicalDeviceCertificationManager(
     context: Context,
     private val projectId: String,
@@ -390,7 +402,7 @@ class PhysicalDeviceCertificationManager(
             identity to "$health · ${identity.manufacturer} ${identity.model} · API ${identity.api} · ${identity.abis.joinToString()}"
         }
         val preflightDevice = preflight.first
-
+        
         steps[steps.lastIndex] = steps.last().copy(detail = preflight.second.take(PhysicalDeviceCertificationReport.MAX_DETAIL_CHARS))
 
         step("debug-provider-preflight") {
@@ -428,6 +440,7 @@ class PhysicalDeviceCertificationManager(
             }
         }
         val apkCandidates = repeatedBuild.localArtifacts.filter { it.isFile && it.extension.equals("apk", ignoreCase = true) }
+        
 
         val debugNamed = apkCandidates.filter { it.name.contains("debug", ignoreCase = true) }
         val debugApk = when {

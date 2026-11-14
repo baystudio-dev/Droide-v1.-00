@@ -11,6 +11,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 
+ 
 internal class DroideTerminalViewClient(
     private val context: Context,
     private val viewProvider: () -> TerminalView?,
@@ -21,8 +22,8 @@ internal class DroideTerminalViewClient(
     private val onGeometryChanged: () -> Unit = {},
 ) : TerminalViewClient {
     private var textSizeSp = initialTextSizeSp
-    // Confirmed single taps can arrive after a view has been replaced. A mutable Compose reference
-    // must never redirect an old gesture to the new terminal.
+    // Confirmed single taps can arrive after a view has been replaced. A mutable
+    // Compose reference must never redirect an old gesture to the new terminal.
     private val originatingView = requireNotNull(viewProvider()) { "Terminal view must exist before its client" }
     private fun currentView(): TerminalView? = viewProvider()?.takeIf { it === originatingView }
 
@@ -48,7 +49,9 @@ internal class DroideTerminalViewClient(
             val renderer = terminal.mRenderer
             if (emulator != null && renderer != null) {
                 val cell = terminal.getColumnAndRow(e, true)
-
+                // Upstream truncates negative fractions toward zero, so the
+                // blank top inset otherwise looks like row zero. Use its public
+                // coordinate API one full row lower to distinguish real cells.
                 val oneRowBelow = MotionEvent.obtain(e)
                 val insideRow = try {
                     oneRowBelow.offsetLocation(0f, renderer.fontLineSpacing.toFloat())
@@ -70,14 +73,13 @@ internal class DroideTerminalViewClient(
     }
 
     override fun shouldBackButtonBeMappedToEscape(): Boolean = false
-
+    // DroideNativeTerminalView applies the user's valid IME profile after connection creation.
     override fun shouldEnforceCharBasedInput(): Boolean = false
     override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
     override fun isTerminalViewSelected(): Boolean = true
     override fun copyModeChanged(copyMode: Boolean) {
         if (!copyMode && currentView() != null) {
-            // Termux ends selection before its tap callback; restore the IME owner without stealing external
-            // focus.
+            // Termux ends selection before its tap callback; restore the IME owner without stealing external focus.
             inputViewProvider()?.takeIf { it.hasFocus() }?.requestFocus()
         }
     }

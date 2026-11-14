@@ -49,6 +49,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** Real pane measurement, emulator resize, URL touch and IME input; no child process or device. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "w360dp-h640dp-port")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -117,8 +118,8 @@ class TerminalBottomClearanceTest {
         }
         compose.waitForIdle()
         if (session is PtySession) {
-            // An injected inset does not create a focused IME client. Request the actual attached Android
-            // view, as a human terminal tap does.
+            // An injected inset does not create a focused IME client. Request
+            // the actual attached Android view, as a human terminal tap does.
             compose.runOnIdle { assertTrue(surfaces().single().requestFocus()) }
             compose.waitForIdle()
             compose.runOnIdle {
@@ -245,7 +246,8 @@ class TerminalBottomClearanceTest {
                     surfaceLocation[1] - rootLocation[1] + y - hostBounds.top)
                 priorInput = session.input.joinToString("")
             }
-
+            // Dispatch through the actual Compose host: a direct View tap would
+            // incorrectly bypass an accessory handle overlaying the last cells.
             compose.onNodeWithTag("terminal-host").performTouchInput { click(tapInHost) }
             compose.runOnIdle {
                 val surface = surfaces().single()

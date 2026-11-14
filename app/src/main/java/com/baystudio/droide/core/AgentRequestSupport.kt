@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+ 
 internal object AgentRequestSupport {
     /** Shared with preflight/compaction so High reasoning does not reserve a smaller window there. */
     fun outputTokens(config: AgentConfig): Int = ProviderRequestBudget.outputTokens(
@@ -86,8 +87,8 @@ internal object AgentRequestSupport {
             onUsage = { tokens.addSample(config.model, it) })
         ensureCurrent()
         if (!result.changed) return false
-        // The session-file commit and this later live-list replacement need separate admissions:
-        // shutdown/load may revoke ownership after the provider returns.
+        // The session-file commit and this later live-list replacement need separate
+        // admissions: shutdown/load may revoke ownership after the provider returns.
         commitAdmission {
             apiHistory.clear()
             apiHistory.addAll(result.session.apiHistory)

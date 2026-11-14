@@ -62,11 +62,11 @@ class AgentMediaOriginalSendAdmissionTest {
                             http.event("""{"choices":[{"index":0,"delta":{"tool_calls":[${call}]},"finish_reason":"tool_calls"}]}""") + "data: [DONE]\n\n"
                         } else http.event("""{"choices":[{"index":0,"delta":{"content":"Finished"},"finish_reason":"stop"}]}""") + "data: [DONE]\n\n"
                     }
-
+                    // This is the original Send acceptance, before asynchronous configuration work.
                     val originalSendAdmission = if (unknownAdmission) null else System.nanoTime()
                     delayedSend = async {
                         preflightEntered.complete(Unit)
-                        releasePreflight.await()
+                        releasePreflight.await() // Controlled local-model/config resolution boundary.
                         submitAndJoin(agent, http.config, originalSendAdmission)
                     }
                     preflightEntered.await()
@@ -102,8 +102,7 @@ class AgentMediaOriginalSendAdmissionTest {
         val submitted = checkNotNull(agent.submitAsync(this, "Save the original media as asset.bin", config, maxTurns = 2,
             requestAdmittedAtNanos = acceptedAt))
         submitted.join()
-        // submitAsync returns its admission job; the owned direct run is installed before that job
-        // completes.
+        // submitAsync returns its admission job; the owned direct run is installed before that job completes.
         val run = AgentService::class.java.getDeclaredField("job").apply { isAccessible = true }.get(agent) as? Job
         checkNotNull(run) { "Expected the admitted direct run" }.join()
         assertNull(agent.persistenceError.value)

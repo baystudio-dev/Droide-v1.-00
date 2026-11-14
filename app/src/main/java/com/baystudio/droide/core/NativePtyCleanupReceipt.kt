@@ -20,6 +20,7 @@ internal data class NativePtyCleanupReceipt(
     val exitCode: Int
         get() = if (processFailureReason == 0 && inputFailureReason == 0) observedExitStatus else -1
 
+    /** Combine the relay barrier before publishing any completion/ExecResult. */
     fun withRelayInputFailure(reason: Int): NativePtyCleanupReceipt =
         if (inputFailureReason == 0 && reason != 0) copy(inputFailureReason = reason) else this
 

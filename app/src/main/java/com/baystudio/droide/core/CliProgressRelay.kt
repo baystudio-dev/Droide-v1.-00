@@ -20,7 +20,7 @@ internal object CliProgressRelay {
                 val chunk = text.render(snapshot)
                 if (chunk.isNotEmpty()) {
                     writeProgress(chunk)
-                    delay(100)
+                    delay(100) // At most ten frames/second, including a continuously noisy child.
                 }
             }
         }
@@ -51,8 +51,8 @@ internal object CliProgressRelay {
                     val delta = when {
                         currentLog.startsWith(previousLog) -> currentLog.removePrefix(previousLog)
                         else -> {
-                            // A rolling log or a redaction may revise a previous prefix. Only use an unambiguous substantial
-                            // overlap; otherwise label the recent tail.
+                            // A rolling log or a redaction may revise a previous prefix. Only use
+                            // an unambiguous substantial overlap; otherwise label the recent tail.
                             val anchor = previousLog.takeLast(512)
                             val offset = if (anchor.length >= 128) currentLog.indexOf(anchor) else -1
                             if (offset >= 0 && currentLog.indexOf(anchor, offset + 1) < 0) {

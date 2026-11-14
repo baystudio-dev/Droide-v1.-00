@@ -81,6 +81,8 @@ internal class WorkspaceGlobMatcher(pattern: String) {
         private const val DIRECTORIES = 4
         private val STAR_KINDS = setOf(SEGMENT_STAR, DOT_STAR, DIRECTORIES)
 
+        // Fixed, one-character platform probes preserve Android ICU vs host-JVM behavior.
+        // No user pattern is ever compiled as a regular expression.
         private val dotAllowsVt = Regex(".").matches("\u000b")
         private val dotAllowsFf = Regex(".").matches("\u000c")
         private val quotedSurrogatesJoin = Regex(

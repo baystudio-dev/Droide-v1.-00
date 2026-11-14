@@ -23,6 +23,7 @@ internal class SourceArtifactCall(
     private var receipt: SourceArtifactPublisher.Receipt? = null
     private var publicationOwner: OwnedResponseContentStore.Owner? = null
     private val operationId = UUID.randomUUID().toString()
+    val producedPath: String? get() = observation?.path?.takeIf { receipt != null && settledResult != null }
 
     suspend fun execute(c: AgentTools.Ctx, hooks: AgentHookLifecycleBridge, owner: HookInvocationAuthority,
         responseOwner: OwnedResponseContentStore.Owner, repeatOrdinal: Int, requireCurrent: () -> Unit): SourceCallLifecycle.Outcome {
@@ -80,8 +81,8 @@ internal class SourceArtifactCall(
                 }
                 admitted()
                 withContext(Dispatchers.IO) {
-                    // Reserve the operation identity before any workspace staging. Prompt cancellation may lose a
-                    // return value but never these captured lifecycle references.
+                    // Reserve the operation identity before any workspace staging. Prompt cancellation
+                    // may lose a return value but never these captured lifecycle references.
                     journal.reserveArtifactOperation(pending,operationId,prepared.originalType)
                     val backend=SourceArtifactPublisher(c.workDir,journal.artifactStorage(),input.session.scratchResources().second)
                     publisher=backend
@@ -129,7 +130,7 @@ internal class SourceArtifactCall(
             val verified=receipt ?: when(val recovery=publisher?.inspect(operationId,checkNotNull(publicationOwner),input.original.sha256)) {
                 is SourceArtifactPublisher.Recovery.Published -> recovery.receipt
                 is SourceArtifactPublisher.Recovery.Historical -> recovery.receipt
-                else -> return@withContext null
+                else -> return@withContext null // no inferred execution outcome, no auto publication
             }
             journal.checkpointArtifactCommitted(started,verified)
         }

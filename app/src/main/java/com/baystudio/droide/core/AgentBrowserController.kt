@@ -164,6 +164,7 @@ class AgentBrowserController internal constructor(
     private var nativeReleaseFailure: Throwable? = null
     private val nativeReleaseRevision = MutableStateFlow(0L)
 
+    /** Exact native destruction receipt, separate from logical detach/history capture. */
     fun reportNativeSurfaceReleased(view: WebView, failure: Throwable?) = synchronized(lock) {
         checkMainThread()
         if (!ownedExitViews.contains(view)) return@synchronized
@@ -269,8 +270,8 @@ class AgentBrowserController internal constructor(
             if (busy && !cancelActive) return@synchronized false
             keepActive = false
             if (busy) {
-                // Advance before invalidating ownership: queued operations must never acquire a new lease and
-                // replay after the user chose Stop.
+                // Advance before invalidating ownership: queued operations must never
+                // acquire a new lease and replay after the user chose Stop.
                 operationEpoch++
                 stopping = true
                 stopTransitionInProgress = true
@@ -311,8 +312,8 @@ class AgentBrowserController internal constructor(
     private fun finishStoppingLocked() {
         if (!stopping || stopTransitionInProgress || activeOperations != 0 || toolWork.any { it.started }) return
         stopping = false
-        // Every old operation, including capture restoration, has left its finally. A paused view gets
-        // its next lease only through the normal resume path.
+        // Every old operation, including capture restoration, has left its finally.
+        // A paused view gets its next lease only through the normal resume path.
         webView?.takeIf { !nativePaused && applicationVisible && surfaceStarted }?.let {
             viewLease = ViewLease(viewGeneration, it)
         }
@@ -411,8 +412,8 @@ class AgentBrowserController internal constructor(
         if (nativePaused == pause && appliedNativePause == pause) return
         if (pause && !nativePaused) {
             operationEpoch++
-            // Invalidate only operation ownership: keep document identity, forms, native pending dialogs,
-            // local approval and cookies across HOME/login-app switches.
+            // Invalidate only operation ownership: keep document identity, forms, native
+            // pending dialogs, local approval and cookies across HOME/login-app switches.
             viewLease?.invalidated?.complete("Browser paused while Droide is not visible; return to Droide before retrying")
         }
         if (pause) nativePaused = true
@@ -435,11 +436,12 @@ class AgentBrowserController internal constructor(
             viewLease?.invalidated?.complete("Browser lifecycle failed; retry reopening the browser")
             status = status.copy(lastError = "Browser lifecycle failed: ${failure.javaClass.simpleName}")
         }
-        // Native onPause is best effort. Global JavaScript timers are managed separately by the process
-        // owner only when every Activity is hidden.
+        // Native onPause is best effort. Global JavaScript timers are managed separately
+        // by the process owner only when every Activity is hidden.
         publishRetentionLocked()
     }
 
+    /** Supplemental on Android 14+: old low-memory callbacks are no longer reliable. */
     fun onMemoryPressure(level: Int) {
         checkMainThread()
         synchronized(lock) {
@@ -479,8 +481,9 @@ class AgentBrowserController internal constructor(
         checkMainThread()
         check(!exitRequested) { "Browser is stopped for Exit" }
         if (webView != null && webView !== view) operationEpoch++
-        // Capture the still-live history here: stale detach must not touch the new lease later, and
-        // cannot be relied on to save the previous surface's history.
+        // Responsive placement may attach its new AndroidView before releasing the old
+        // one. Capture the still-live history here: stale detach must not touch the new
+        // lease later, and cannot be relied on to save the previous surface's history.
         webView?.takeIf { it !== view && isCurrentViewLocked(it) }?.let { previous ->
             navigationState = null
             navigationLoopbackOrigin = null
@@ -492,10 +495,10 @@ class AgentBrowserController internal constructor(
                     navigationLoopbackOrigin = localOrigin
                 }
             } catch (_: Exception) {
-                // History is best effort. A broken old renderer must not block the new browser surface or leave
-                // a stale navigation bundle to restore.
+                // History is best effort. A broken old renderer must not block the new
+                // browser surface or leave a stale navigation bundle to restore.
             } catch (_: LinkageError) {
-
+                // Android System WebView can fail independently of the new instance.
             }
         }
         invalidateViewLocked("Browser surface was replaced; retry on the active page")
@@ -511,13 +514,14 @@ class AgentBrowserController internal constructor(
             if (stopping) it.invalidated.complete("Browser work is stopping; wait for cleanup before retrying")
         }
         status = status.copy(attached = true, loading = false, url = "", title = "", lastError = null)
-
+        // Publish the new lease before restoreState: synchronous restoration callbacks belong
+        // to this surface, while callbacks from the replaced surface are already stale.
         var attached = false
         try {
             navigationState?.let { saved ->
                 val localOrigin = navigationLoopbackOrigin
-                // Reuse only the already-approved origin belonging to this saved workspace history. Restore
-                // callbacks cannot gain other local origins.
+                // Reuse only the already-approved origin belonging to this saved
+                // workspace history. Restore callbacks cannot gain other local origins.
                 loopbackRequestOrigin = localOrigin
                 allowLoopbackRequests = localOrigin != null
                 if (view.restoreState(saved) != null) {
@@ -605,7 +609,8 @@ class AgentBrowserController internal constructor(
             if (android.os.Build.VERSION.SDK_INT >= 26) safeBrowsingEnabled = true
         }
         CookieManager.getInstance().setAcceptCookie(true)
-
+        // Preserve the visible browser at the app's priority; let Android reclaim a
+        // hidden renderer instead of protecting it as IMPORTANT indefinitely.
         view.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true)
         if (android.os.Build.VERSION.SDK_INT >= 21) CookieManager.getInstance().setAcceptThirdPartyCookies(view, false)
         view.webChromeClient = object : WebChromeClient() {
@@ -632,7 +637,7 @@ class AgentBrowserController internal constructor(
                 callback?.invoke(origin, false, false)
             }
             override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-
+                // Bound before concatenation: hostile pages may log multi-megabyte strings.
                 recordConsole(configuredView, "${message.messageLevel()}: ${message.message().take(960)} @${message.lineNumber()}", message.sourceId())
                 return true
             }
@@ -672,8 +677,7 @@ class AgentBrowserController internal constructor(
                     return WebResourceResponse(resource.mime, resource.encoding, resource.status,
                         resource.reason, resource.headers, resource.body)
                 }
-                // POST/XHR/fetch must not become a private-network escape hatch just because only GET was
-                // preflighted.
+                // POST/XHR/fetch must not become a private-network escape hatch just because only GET was preflighted.
 
                 return if (networkRequestAllowed(url, allowLoopbackRequests, request.isForMainFrame)) {
                     null
@@ -691,8 +695,8 @@ class AgentBrowserController internal constructor(
                     consoleLines.clear()
                     status = status.copy(console = emptyList())
                     if (loopbackRequestOrigin != null && loopbackRequestOrigin != loopbackOrigin(url.orEmpty())) {
-                        // A restored local page's trust does not follow navigation to another origin, including a public
-                        // page.
+                        // A restored local page's trust does not follow navigation to
+                        // another origin, including a public page.
                         allowLoopbackRequests = false
                         loopbackRequestOrigin = null
                     }
@@ -704,8 +708,8 @@ class AgentBrowserController internal constructor(
             override fun onPageFinished(view: WebView, url: String?) {
                 synchronized(lock) {
                     if (view !== configuredView || !ownsNativeRendererLocked(view)) return
-                    // A delayed finish from a superseded navigation must not pair the current renderer title with an
-                    // old cached source URL.
+                    // A delayed finish from a superseded navigation must not pair the
+                    // current renderer title with an old cached source URL.
                     if (view.url.orEmpty() != url.orEmpty()) return
                     status = status.copy(loading = false, url = url.orEmpty(), title = view.title.orEmpty())
                     publishRetentionLocked()
@@ -771,7 +775,8 @@ class AgentBrowserController internal constructor(
         try { view.destroy() }
         catch (error: Exception) { failure = error; recordCleanupError(generation, error) }
         catch (error: LinkageError) { failure = error; recordCleanupError(generation, error) }
-
+        // A renderer gone/low-memory callback can clear the pane's view before disposal.
+        // Record its actual destruction here, otherwise Exit waits forever for that pane.
         reportNativeSurfaceReleased(view, failure)
     }
 
@@ -784,8 +789,9 @@ class AgentBrowserController internal constructor(
     private fun blockedRequest() = WebResourceResponse("text/plain", "utf-8", 403, "Blocked by Droide",
         emptyMap(), java.io.ByteArrayInputStream(ByteArray(0)))
 
-    // Native document callbacks must track same-URL reloads even while Stop is canceling an
-    // operation.
+    // Native document callbacks must track same-URL reloads even while Stop is
+    // canceling an operation. Otherwise capture cleanup could scroll a new page.
+    // This is identity only: it never admits actions, network requests or dialogs.
     private fun ownsNativeRendererLocked(view: WebView): Boolean = webView === view &&
         viewLease?.let { it.view === view && it.generation == viewGeneration } == true
 
@@ -838,6 +844,7 @@ class AgentBrowserController internal constructor(
             false
         }
 
+    /** The visible human dialog is independent of Agent approval and its execution mutex. */
     fun respondHumanDialog(id: String, accept: Boolean, promptText: String? = null): Boolean {
         check(Looper.myLooper() == Looper.getMainLooper()) { "Human browser dialog responses require the UI thread" }
         return synchronized(lock) {
@@ -900,7 +907,8 @@ class AgentBrowserController internal constructor(
             val view = webView
             val actual = view?.url.orEmpty().ifBlank { status.url }
             // History API / same-document URL changes need not emit onPageStarted.
-
+            // Reconcile on the UI thread so their stale cached URL cannot permanently
+            // reject fresh tools, or relabel old diagnostics as belonging to a new route.
             if (view != null && actual != status.url) {
                 pageGeneration++
                 dialogs.dismiss()
@@ -1036,8 +1044,8 @@ class AgentBrowserController internal constructor(
                 }
             }
         } catch (changed: BrowserSurfaceInvalidatedCancellation) {
-            // Closing a browser tab must not cancel the Agent turn. External cancellation still propagates;
-            // only our surface-scoped cancellation becomes a tool error.
+            // Closing a browser tab must not cancel the Agent turn. External cancellation
+            // still propagates; only our surface-scoped cancellation becomes a tool error.
             currentCoroutineContext().ensureActive()
             throw BrowserSurfaceChangedException(changed.message ?: "Browser surface changed; retry on the active page")
         }
@@ -1103,8 +1111,8 @@ class AgentBrowserController internal constructor(
                 outputConsent = outputConsent, frozenConsole = frozenConsole)
         }
         currentCoroutineContext()[DispatchAuthority]?.check?.invoke()
-        // Status is a cached observation: it must not mount a renderer, wait behind a capture, start a
-        // page, or mutate localhost grants merely to inspect readiness.
+        // Status is a cached observation: it must not mount a renderer, wait behind a
+        // capture, start a page, or mutate localhost grants merely to inspect readiness.
         if (operation == "status") return synchronized(lock) {
             expectedDocument?.let(::requireReviewIdentity)
             if (expectedCurrentUrl != null) require(status.url == expectedCurrentUrl) {
@@ -1123,8 +1131,8 @@ class AgentBrowserController internal constructor(
             operationEpoch
         }
         try {
-            // Dialog response must remain available while a renderer action is paused by JS; it must never
-            // wait for that action's executeMutex to be released.
+            // Dialog response must remain available while a renderer action is paused by
+            // JS; it must never wait for that action's executeMutex to be released.
             if (operation in setOf("dialog", "dialog_respond")) {
                 return executeDialogControl(operation, target, text, dialogText, expectedCurrentUrl, allowLoopback, reviewedLoopbackOrigin, admissionEpoch, expectedDocument, expectedDialog)
             }
@@ -1179,8 +1187,9 @@ class AgentBrowserController internal constructor(
                             "Reviewed localhost origin does not match the browser target"
                         }
                         allowLoopbackRequests = allowLoopback && !workspacePreview.owns(targetPage)
-                        // Human operations keep the original loopback behavior. Agent calls can bind their reviewed
-                        // origin without breaking cross-port API resources from the approved frontend page.
+                        // Human operations keep the original loopback behavior. Agent calls
+                        // can bind their reviewed origin without breaking cross-port API
+                        // resources from the approved frontend page.
                         loopbackRequestOrigin = if (allowLoopbackRequests) reviewed else null
                     }
                     var approvedCurrentPage: String? = null
@@ -1275,8 +1284,8 @@ class AgentBrowserController internal constructor(
                 val lease = viewLease?.takeUnless { it.invalidated.isCompleted || nativePaused }
                 requestedLease = lease
                 val current = lease?.view
-                // Keep a browser that is already visible in its present region. Requesting the sidebar again
-                // would move its owner and invalidate this operation.
+                // Keep a browser that is already visible in its present region. Requesting
+                // the sidebar again would move its owner and invalidate this operation.
                 if (current != null && isCurrentViewLocked(current) &&
                     current.isAttachedToWindow && current.windowVisibility == android.view.View.VISIBLE &&
                     ((surfacePresented && (!requirePresented || surfaceCaptureReady) && current.isShown) ||
@@ -1415,7 +1424,9 @@ class AgentBrowserController internal constructor(
             }
         }
         fun requireRestoreIdentity() = synchronized(lock) {
-
+            // Backgrounding cancels operation ownership while retaining this
+            // document. Restore its scroll without reactivating work; never touch
+            // a replacement view, same-URL reload, or destroyed surface.
             if (webView !== view || viewGeneration != lease.generation || pageGeneration != source.pageGeneration) {
                 throw BrowserCaptureException("Browser document changed before capture cleanup")
             }
@@ -1423,8 +1434,8 @@ class AgentBrowserController internal constructor(
         validateTopLevel(sourceUrl, allowLoopbackRequests)
         var capturedFile: File? = null
         var managed: ChatMediaRef? = null
-        // Agent captures cannot belong to the conversation before their captured source passes read
-        // policy. Human/UI calls retain their existing ownership.
+        // Agent captures cannot belong to the conversation before their captured
+        // source passes read policy. Human/UI calls retain their existing ownership.
         val owner = mediaOwnerId?.takeIf { !stageForReview && it.isNotBlank() }
             ?: "browser-capture-${java.util.UUID.randomUUID()}"
         val captureJob = currentCoroutineContext().job
@@ -1470,15 +1481,15 @@ class AgentBrowserController internal constructor(
             }
             requireCaptureIdentity()
             currentCoroutineContext().ensureActive()
-
+            // Capture releases its bitmap/restores the viewport before disk import and index publication.
             val store = ChatMediaStore(projectRoot)
             managed = requireNotNull(capturedFile).inputStream().use { store.import(owner, "browser-screenshot.png", "image/png", it) }
             requireCaptureIdentity()
             currentCoroutineContext().ensureActive()
             val published = JsonObject(Json.parseToJsonElement(result).jsonObject +
                 ("path" to JsonPrimitive(requireNotNull(managed).path)))
-            // Top-level identity is not exhaustive frame provenance. Only this exact Agent output can carry
-            // the special one-call uncertainty consent.
+            // Top-level identity is not exhaustive frame provenance. Only this exact
+            // Agent output can carry the special one-call uncertainty consent.
             val observation = Observation(published.toString(), listOf(ObservationSource(sourceUrl, source)), managed, owner,
                 hasUnknownSource = true)
             val reviewed = outputConsent?.complete(observation) ?: observation
@@ -1554,7 +1565,7 @@ class AgentBrowserController internal constructor(
             require(uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) { "Loopback browser requires HTTP(S)" }
             return
         }
-
+        
         val preflight = URI(uri.scheme, uri.userInfo, uri.host, uri.port, uri.path, uri.query, null).toString()
         withContext(Dispatchers.IO) { NetworkSecurity.validatePublicHttpsTarget(preflight) }
     }
@@ -1608,8 +1619,8 @@ class AgentBrowserController internal constructor(
             sourceId.takeIf { (uri.scheme.equals("https", true) || uri.scheme.equals("http", true)) &&
                 uri.host != null && uri.rawUserInfo == null && uri.port in -1..65535 }
         }.getOrNull()
-        // Native sourceId is diagnostic provenance, not a frame/document token. Unknown or relative IDs
-        // never inherit the top page's read permission.
+        // Native sourceId is diagnostic provenance, not a frame/document token.
+        // Unknown or relative IDs never inherit the top page's read permission.
         consoleLines.addLast(ConsoleEntry(line.take(1_000), source))
         while (consoleLines.size > 40) consoleLines.removeFirst()
     }

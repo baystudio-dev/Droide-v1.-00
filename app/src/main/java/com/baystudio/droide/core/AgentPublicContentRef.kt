@@ -2,8 +2,9 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.Serializable
 
-/** Small private-session manifest entry. It is not an execution or cross-session capability. The
- * caller supplies the authorized session separately; never derive session authority here. */
+/** Small private-session manifest entry. It is not an execution or cross-session capability.
+ * The caller supplies the authorized session separately; never derive session authority here.
+ */
 @Serializable
 data class AgentPublicContentRef(
     val version: Int = 1,
@@ -35,6 +36,7 @@ data class ArchivedPublicAnswer(
     val textPreviewAvailable: Boolean = true,
 )
 
+
 /** Outcome describes what was checkpointed, not an assertion that all attempted input survived. */
 @Serializable
 enum class PublicAnswerAbortTailStatus {
@@ -44,7 +46,8 @@ enum class PublicAnswerAbortTailStatus {
 }
 
 /** Persist these flags together with the reference. Dropping them would hide a failed input
- * prefix or unrepresentable Unicode tail. No preview is read while cancellation is active. */
+ * prefix or unrepresentable Unicode tail. No preview is read while cancellation is active.
+ */
 @Serializable
 data class PublicAnswerAbortCheckpoint(
     val reference: AgentPublicContentRef,

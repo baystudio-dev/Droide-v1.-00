@@ -96,11 +96,11 @@ internal class MirrorInterruptedRecovery(private val source: File, private val w
                     MirrorMetadataAuthority.NodeType.DIRECTORY -> directories.add(operation.path)
                     MirrorMetadataAuthority.NodeType.ABSENT -> Unit
                 }
-
+                // A late writer remains a conflict even when the publication itself completed.
                 if (current[2].node != operation.before) conflicts.add(operation.path)
             } else conflicts.add(operation.path)
             authority.finishBatchWithHistory(state.revision, transitions, baseline, conflicts, directories)
-
+            // No file removal, rename, overwrite, or automatic conflict acknowledgement.
         }
     }
 

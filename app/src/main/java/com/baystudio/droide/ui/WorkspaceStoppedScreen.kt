@@ -104,8 +104,8 @@ internal fun WorkspaceStoppedScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
             ) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    // Reserve the same space on both sides: the title stays centered even with an end arrow, and
-                    // enlarged text can wrap without touching it.
+                    // Reserve the same space on both sides: the title stays centered even
+                    // with an end arrow, and enlarged text can wrap without touching it.
                     Text(
                         "Open Droide",
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp),

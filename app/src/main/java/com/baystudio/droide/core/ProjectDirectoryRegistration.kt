@@ -15,8 +15,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-// Directory ownership evidence only; catalog and application startup integration remain
-// separate.
+// Directory ownership evidence only; catalog and application startup integration remain separate.
 internal class ProjectDirectoryRegistration(
     private val slot: File,
     private val checkpoint: (String) -> Unit = {},

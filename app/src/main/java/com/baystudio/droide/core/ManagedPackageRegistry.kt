@@ -25,40 +25,48 @@ data class ManagedPackageRecord(
     val metadata: Map<String, String> = emptyMap(),
 )
 
+
 internal object ManagedPackageMutationGate {
     val mutex = Mutex()
 }
 
 /** Vue-only final admission. No action here may acquire a lifecycle/preference/registry lock.
- * Writers enter after their existing mutation lock and retain this monitor through publication. */
+ * Writers enter after their existing mutation lock and retain this monitor through publication.
+ */
 internal object VueGenerationAdmission {
     private val monitor = Any()
     fun <T> withAdmission(action: () -> T): T = synchronized(monitor) { action() }
 }
 
-/** C# admission monitor is entered after existing mutation/registry locks and Vue admission. Its
- * callbacks must not acquire registry, preference, lifecycle or Vue admission locks. */
+/** C# admission monitor is entered after existing mutation/registry locks and Vue admission.
+ * Its callbacks must not acquire registry, preference, lifecycle or Vue admission locks. */
 internal object CSharpGenerationAdmission {
     private val monitor = Any()
     fun <T> withAdmission(action: () -> T): T = synchronized(monitor) { action() }
 }
 
+/** TOML final admission is innermost after existing mutation, preference/registry and older-family gates.
+ * Actions must not acquire any of those outer locks or call lifecycle/user callbacks. */
 internal object TomlGenerationAdmission {
     private val monitor = Any()
     fun <T> withAdmission(action: () -> T): T = synchronized(monitor) { action() }
 }
 
+/** GraphQL final creation gate, innermost after all existing mutation/registry/preference gates.
+ * Callbacks may not acquire outer locks or invoke lifecycle/teardown callbacks. Fencing is atomic. */
 internal object GraphqlGenerationAdmission {
     private val monitor = Any()
     fun <T> withAdmission(action: () -> T): T = synchronized(monitor) { action() }
 }
 
+/** ELP is innermost after all older-family publication gates. No IO, probes or lifecycle callbacks. */
 internal object ElpGenerationAdmission {
     private val monitor = Any()
     fun <T> withAdmission(action: () -> T): T = synchronized(monitor) { action() }
 }
 
 // Persisted state remains the source of truth.
+
 
 class ManagedPackageRegistry(context: Context) {
     private val elpAppRoot = context.applicationContext.filesDir.canonicalPath
@@ -158,15 +166,15 @@ class ManagedPackageRegistry(context: Context) {
     }
     private fun publishVueAware(records: List<ManagedPackageRecord>, publish: () -> Unit) = VueGenerationAdmission.withAdmission {
         fun relevant(values: List<ManagedPackageRecord>) = values.filter { it.familyId in setOf("lsp.vue", "runtime.vue-helper") }.sortedWith(compareBy({ it.familyId }, { it.version }))
-        // Read this instance's storage directly: this method already owns its registry monitor. Do not
-        // acquire another registry monitor from the Vue admission monitor.
+        // Read this instance's storage directly: this method already owns its registry monitor.
+        // Do not acquire another registry monitor from the Vue admission monitor.
         val raw = prefs.getString(KEY_RECORDS, null)
         val current = if (raw == null) emptyList() else json.decodeFromString<List<ManagedPackageRecord>>(raw)
         val changed = relevant(current) != relevant(records)
         if (changed) vueGeneration.set(Any())
         try { publish() } finally {
-            // A cross-instance proof can see the pre-publication token with old storage. Revoke that token
-            // as well, including on failed/uncertain persistence.
+            // A cross-instance proof can see the pre-publication token with old storage.
+            // Revoke that token as well, including on failed/uncertain persistence.
             if (changed) vueGeneration.set(Any())
         }
     }

@@ -15,8 +15,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-/** Private durable history, not restored approval. Construct only with app-private storage. No
- * method executes a tool. Runtime permits cannot be reconstructed from persisted records. */
+/** Private durable history, not restored approval. Construct only with app-private storage.
+ * No method executes a tool. Runtime permits cannot be reconstructed from persisted records.
+ */
 internal class ToolCallHistoryJournal(
     private val root: File,
     private val owned: OwnedResponseContentStore,
@@ -61,7 +62,7 @@ internal class ToolCallHistoryJournal(
                 require(context.sessionId==pending.locator.sessionId)
                 val invocation=journal.admitStdinInvocation(pending,prepared,context,current,runtimeCurrent)
                 val args=checkNotNull(invocation.arguments).also { invocation.arguments=null }
-                started(invocation.execution)
+                started(invocation.execution) // synchronous capture before any executor effect/suspension
                 check(context.sourceStdin==null)
                 context.sourceStdin=invocation.binding
                 try {
@@ -212,8 +213,8 @@ internal class ToolCallHistoryJournal(
                 StdinInvocation(Execution(this,pending.locator),args,manager,binding).also {stdinInvocations[pending.locator.id]=it}
             }
         } finally {
-            // A preparation failure consumes this gateway attempt too. Pending-only cleanup may settle no
-            // execution, but another caller cannot retry binding this Pending capability.
+            // A preparation failure consumes this gateway attempt too. Pending-only cleanup may
+            // settle no execution, but another caller cannot retry binding this Pending capability.
         }
     }
     suspend fun invokeStdin(pending: Pending, prepared: StreamedStdinArgumentExtractor.Prepared,
@@ -244,8 +245,8 @@ internal class ToolCallHistoryJournal(
         val withEvidence=stdinEvidence(execution,r)
         val result=buildJsonObject {put("role","tool");put("tool_call_id",r.call);put("content",receipt.output)}
         val saved=saveResult(execution.locator,result)
-        // A typed internal rejection proves this offer never entered the pipe queue. PTY false/throw has
-        // no such proof; independent EOF/interrupt attempts remain conservative.
+        // A typed internal rejection proves this offer never entered the pipe queue.
+        // PTY false/throw has no such proof; independent EOF/interrupt attempts remain conservative.
         val potentiallyEffectiveOffer=withEvidence.stdinOfferAttempted==true && withEvidence.stdinOfferKnownRejected!=true
         val attempted=potentiallyEffectiveOffer || withEvidence.stdinEofAttempted==true || withEvidence.stdinInterruptAttempted==true
         val unknown=(potentiallyEffectiveOffer && withEvidence.stdinOfferAccepted!=true) ||
@@ -453,8 +454,9 @@ internal class ToolCallHistoryJournal(
         val receipt = saveResult(execution.locator,result)
         save(execution.locator, r.copy(state = State.SETTLED.name, resultBytes = receipt.first, resultHash = receipt.second))
     }
-    /** Finite journal cleanup only. */
-
+    /** Finite journal cleanup only. Does not reopen owned arguments, grant approval, or touch workspace.
+     * Acknowledged attributable proof, not a caller result String, is required to claim local commit.
+     */
     fun checkpointCommitted(execution: Execution, proof: AgentStreamedTextEditCall.PublicationProof): JsonObject = synchronized(lock) {
         require(execution.journal === this)
         val observation=requireNotNull(execution.observation)
@@ -512,8 +514,9 @@ internal class ToolCallHistoryJournal(
         val receipt = saveResult(pending.locator,result)
         save(pending.locator, r.copy(state = State.SETTLED.name, resultBytes = receipt.first, resultHash = receipt.second)); active.remove(pending.locator.id); pendingCapabilities.remove(pending.locator.id);stdinPreparing.remove(pending.locator.id);commandPreparing.remove(pending.locator.id); observations.remove(pending.locator.id); liveObservations.remove(pending.locator.id); artifactObservations.remove(pending.locator.id); artifactPublishers.remove(pending.locator.id)
     }
-    /** Finite Stop cleanup for a runtime call that has never entered execution. No cancelled store
-     * reads, restored permits, arbitrary caller results, or workspace operations. */
+    /** Finite Stop cleanup for a runtime call that has never entered execution.
+     * No cancelled store reads, restored permits, arbitrary caller results, or workspace operations.
+     */
     fun checkpointNoExecution(pending: Pending): JsonObject = synchronized(lock) {
         require(pending.journal === this && pending.locator.id in active)
         val admitted = requireNotNull(pendingCapabilities[pending.locator.id])
@@ -613,8 +616,8 @@ internal class ToolCallHistoryJournal(
     class CommandBinding internal constructor(private val journal:ToolCallHistoryJournal,internal val execution:Execution,
         private val current:()->Unit,private val runtimeCurrent:()->Unit) {
         internal var startRequested=false;private set
-        // Set only by the closed manager's actual pre-activation persistence callback. startSource
-        // cannot invoke Job.start before this callback; no error text is evidence.
+        // Set only by the closed manager's actual pre-activation persistence callback.
+        // startSource cannot invoke Job.start before this callback; no error text is evidence.
         internal var persistenceCallbackObserved=false;private set
         internal var receipt:BackgroundCommandManager.SourceLaunchReceipt?=null;private set
         private var normalReturnHash:String?=null
@@ -689,9 +692,11 @@ internal class ToolCallHistoryJournal(
         val args=StreamedCommandArgumentExtractor.materialize(session(pending.locator),prepared,current)
         val exec=prepared.toolName=="exec_command"
         fun primitive(key:String)=args[key] as? kotlinx.serialization.json.JsonPrimitive
+        val tty=primitive("requires_tty")?.content=="true"
+        val keep=AgentTtyPolicy.keepStdinOpen(tty, if(exec) primitive("keep_stdin_open")?.content?.toBooleanStrict() else null)
         val options=CommandOptions(requireNotNull(primitive(if(exec)"cmd" else "command")).content,
-            primitive("timeout_ms")?.content?.toLongOrNull(),exec && primitive("keep_stdin_open")?.content=="true",
-            exec || primitive("background")?.content!="true",primitive("requires_tty")?.content=="true")
+            primitive("timeout_ms")?.content?.toLongOrNull(),keep,
+            exec || primitive("background")?.content!="true",tty)
         return synchronized(lock){
             require(pendingCapabilities[pending.locator.id]?.first===pending && pending.locator.id in active)
             val r=read(pending.locator);require(r.state==State.RECORDED.name && r.name==prepared.toolName)

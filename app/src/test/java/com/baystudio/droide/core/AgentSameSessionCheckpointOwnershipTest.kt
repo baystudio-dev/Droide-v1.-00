@@ -12,6 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** Real empty-queue IDLE admission while the preceding run's final checkpoint is suspended. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AgentSameSessionCheckpointOwnershipTest {

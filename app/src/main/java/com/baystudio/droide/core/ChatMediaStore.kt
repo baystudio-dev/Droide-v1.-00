@@ -224,8 +224,11 @@ class ChatMediaStore(
         ownedOriginalLocked(ownerId, path, readIndex())
     }
 
-    /** Check ownership and open the original under the same short store lock as cleanup. */
-
+    /**
+     * Check ownership and open the original under the same short store lock as cleanup.
+     * The descriptor remains readable if cleanup later unlinks its chat copy. No temporary
+     * owner, TTL extension or store lock is held while the project copy is being streamed.
+     */
     internal suspend fun openOwnedOriginal(ownerId: String, ref: ChatMediaRef): IntegrityCheckedOriginal {
         val context = currentCoroutineContext()
         val opened = synchronized(state) {
@@ -245,8 +248,9 @@ class ChatMediaStore(
         }
         try {
             val digest = opened.digest ?: run {
-                // Upgrade old manifests without invalidating existing conversations.
-
+                // Upgrade old manifests without invalidating existing conversations. This establishes
+                // the stable CURRENT bytes only, never historical upload authenticity. No store lock
+                // is held during either bounded pass; cleanup/replacement must fail revalidation.
                 val first = hashOriginal(opened.channel, ref.bytes) { context.ensureActive() }
                 val second = hashOriginal(opened.channel, ref.bytes) { context.ensureActive() }
                 require(first == second && opened.stamp == originalStamp(opened.file)) {
@@ -503,7 +507,7 @@ class ChatMediaStore(
                 try { Files.deleteIfExists(leaf) } catch (_: java.io.IOException) { return false }
             }
         }
-        return directory.delete()
+        return directory.delete() // A nonempty directory is deliberately preserved and retried later.
     }
 
     /** Only Droide's known partial names, not arbitrary files, can be removed after a worker disappears. */

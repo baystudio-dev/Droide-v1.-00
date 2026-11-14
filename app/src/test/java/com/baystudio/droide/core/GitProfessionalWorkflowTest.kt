@@ -126,7 +126,7 @@ class GitProfessionalWorkflowTest {
         val root = Files.createTempDirectory("git-folder-private-").toFile()
         try {
             val git = GitManager(root); git.init()
-
+            // This fixture exercises an unignored private descendant, independently of user Git ignores.
             Git.open(root).use { repository ->
                 val excludes = root.resolve(".git/info/workflow-test-excludes").apply { writeText("") }
                 repository.repository.config.apply {

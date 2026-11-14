@@ -4,8 +4,10 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
 
-/** Explicit, bounded forensic review. */
-
+/** Explicit, bounded forensic review. Never opens or replaces the authoritative database.
+ * An observed stable pair is NOT proof that legacy or external writers have stopped.
+ * Consequently this result cannot authorize activation, cleanup or history release.
+ */
 internal object MirrorSqliteRollbackRecovery {
     data class Review(val evidenceDirectory: File, val databaseSha256: String, val journalSha256: String,
                       internal val evidenceIdentity: String,
@@ -14,6 +16,7 @@ internal object MirrorSqliteRollbackRecovery {
     private const val JOURNAL = "state.sqlite-journal"
     private const val MAX_BYTES = 64L * 1024 * 1024
 
+    /** Injectable IO boundary for failure-contract tests; production uses platform below. */
     internal interface ReceiptIo {
         fun write(file: AnchoredWorkspaceFiles.OpenedFile, bytes: ByteArray)
         fun force(file: AnchoredWorkspaceFiles.OpenedFile)
@@ -81,8 +84,9 @@ internal object MirrorSqliteRollbackRecovery {
                         requirePair(authority)
                     }
                     requireCapture()
-                    // Write/force privately, then publish without replacement.
-
+                    // Write/force privately, then publish without replacement. Receipt presence
+                    // alone is never success: rename may complete before directory force fails.
+                    // Only successful IO returns Review, and Review never authorizes replay.
                     val receipt = "DROIDE-SQLITE-EVIDENCE-1\n$binding\n${authority.directoryKey()}\n$dbHash\n$journalHash\n" +
                         "OBSERVED_STABLE_ONLY; WRITER_EXCLUSION_UNPROVEN; REPLAY_AND_ACTIVATION_DENIED\n"
                     checkpoint("sqlite-review-before-receipt")
@@ -95,8 +99,8 @@ internal object MirrorSqliteRollbackRecovery {
                     }
                     requireReceiptBytes(output, stagedReceipt, receiptBytes, stagedVersion)
                     checkpoint("sqlite-review-before-receipt-publication")
-                    // Receipt IO/callbacks are not evidence of a stable capture. Renew both pinned source and copied
-                    // identities immediately before publication.
+                    // Receipt IO/callbacks are not evidence of a stable capture. Renew both
+                    // pinned source and copied identities immediately before publication.
                     requireCapture()
                     requireReceiptBytes(output, stagedReceipt, receiptBytes, stagedVersion)
                     check(receiptIo.publish(output, stagedReceipt).durable) {
@@ -106,8 +110,8 @@ internal object MirrorSqliteRollbackRecovery {
                     val committedVersion = requireReceiptBytes(output, "receipt", receiptBytes,
                         stagedVersion, publishedRename = true)
                     checkpoint("sqlite-review-after-receipt")
-                    // Publication can succeed before a later integrity failure. Retain every byte, but never return
-                    // success for a pair changed at that boundary.
+                    // Publication can succeed before a later integrity failure. Retain every
+                    // byte, but never return success for a pair changed at that boundary.
                     requireCapture()
                     requireReceiptBytes(output, "receipt", receiptBytes, committedVersion)
                     requireCurrent()

@@ -10,14 +10,16 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** A process is a writer for its whole owned lifetime, not just while it is being spawned. */
-
+/** A process is a writer for its whole owned lifetime, not just while it is being spawned.
+ * The existing writer fence also rejects launches during export/recovery. This accounts
+ * for participating hosts only; it does not inventory arbitrary OS writers/descriptors.
+ */
 internal object WorkspaceProcessWriteAdmission {
     private data class Ticket(val root: String, val receipt: AutoCloseable)
     private val tickets = IdentityHashMap<HostedStdioProcess, Ticket>()
-    private var ticketVersion: Any = Any()
+    private var ticketVersion: Any = Any() // guarded by tickets
     private val unconfirmedFactories = mutableSetOf<String>()
-    private var factoryVersion: Any = Any()
+    private var factoryVersion: Any = Any() // guarded by unconfirmedFactories
     class Observation internal constructor(val registeredHandles: Int, unknownFactoryRoots: List<String>,
                                           private val validateState: () -> Unit) {
         val unknownFactoryRoots: List<String> = java.util.Collections.unmodifiableList(unknownFactoryRoots.toList())
@@ -48,8 +50,9 @@ internal object WorkspaceProcessWriteAdmission {
         }
     }
 
-    /** beforeFactory is validation-only: it MUST NOT start a process or call a process-capable
-     * callback. Only factory may create native child resources. */
+    /** beforeFactory is validation-only: it MUST NOT start a process or call a
+     * process-capable callback. Only factory may create native child resources.
+     */
     fun <T : HostedStdioProcess> create(
         root: File,
         custody: WorkspaceProcessCustody? = null,
@@ -77,8 +80,8 @@ internal object WorkspaceProcessWriteAdmission {
         var factoryInvoked = false
         try {
             val invokeFactory = {
-                // Linearize permission to enter the factory against unknown-owner registration, after the
-                // durable entry barrier and revalidation.
+                // Linearize permission to enter the factory against unknown-owner
+                // registration, after the durable entry barrier and revalidation.
                 synchronized(unconfirmedFactories) {
                     requireFactoryCustody(rootKey)
                     factoryInvoked = true
@@ -93,19 +96,21 @@ internal object WorkspaceProcessWriteAdmission {
                 tickets[process] = Ticket(rootKey, ticket)
                 published = true
             }
-
+            // The Exit ledger keeps a failed completion (and its ticket) alive after the
+            // caller disappears. Its completion observer releases the ticket on success.
             ExitHostedProcessRegistry.retain(process)
             return process
         } catch (failure: Throwable) {
             if (!published) {
                 if (factoryInvoked) {
-                    // The callback may have created a process before failing. Keep both fences and report unknown
-                    // custody at Exit; do not generate a durable exact-cleanup proof from this exception.
+                    // The callback may have created a process before failing. Keep
+                    // both fences and report unknown custody at Exit; do not generate
+                    // a durable exact-cleanup proof from this exception.
                     synchronized(unconfirmedFactories) { factoryVersion = Any(); unconfirmedFactories.add(rootKey) }
                     ExitHostedProcessRegistry.retain(UnconfirmedProcessCreation(ticket, failure))
                 } else try { ticket.close() } catch (cleanup: Throwable) {
-                    // The process-capable callback was never entered. Its exact no-start receipt may retry
-                    // durability without inventing cleanup.
+                    // The process-capable callback was never entered. Its exact
+                    // no-start receipt may retry durability without inventing cleanup.
                     ExitHostedProcessRegistry.retain(UnstartedProcessCleanup(ticket))
                     if (failure !== cleanup) failure.addSuppressed(cleanup)
                 }
@@ -122,8 +127,9 @@ internal object WorkspaceProcessWriteAdmission {
         synchronized(tickets) { if (tickets[process] === ticket) { ticketVersion = Any(); tickets.remove(process) } }
     }
 
-    /** Retains the ticket even when there is no trustworthy process handle to reap. No retry can turn
-     * this uncertainty into successful cleanup by itself. */
+    /** Retains the ticket even when there is no trustworthy process handle to reap.
+     * No retry can turn this uncertainty into successful cleanup by itself.
+     */
     private class UnconfirmedProcessCreation(
         @Suppress("unused") private val receipt: AutoCloseable,
         private val failure: Throwable,
@@ -150,7 +156,8 @@ internal object WorkspaceProcessWriteAdmission {
 }
 
 /** A bounded capture's receipt includes its pipe workers and lease cleanup, not just waitFor.
- * Stop cancels the capture child; its existing NonCancellable finally owns reaping and IO. */
+ * Stop cancels the capture child; its existing NonCancellable finally owns reaping and IO.
+ */
 internal class CapturedWorkspaceProcess(
     val process: Process,
     private val capture: Job,

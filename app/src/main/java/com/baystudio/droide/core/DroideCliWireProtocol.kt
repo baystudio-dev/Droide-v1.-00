@@ -7,6 +7,7 @@ import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 
+
 data class DroideCliExecutionResult(
     val exitCode: Int,
     val stdout: String = "",
@@ -87,12 +88,13 @@ object DroideCliWireProtocol {
         val data = DataOutputStream(output)
         data.write(PROGRESS_MAGIC)
         data.writeInt(0)
-        data.writeInt(0)
+        data.writeInt(0) // Progress stays off stdout so CLI results remain scriptable.
         data.writeInt(bytes.size)
         data.write(bytes)
         data.flush()
     }
 
+    // Test/support helpers keep protocol behavior independently verifiable on the host.
     fun writeRequest(output: OutputStream, args: List<String>, streamProgress: Boolean = false) {
         require(args.size in 1..MAX_ARGUMENTS)
         val encoded = args.map {
@@ -139,7 +141,7 @@ object DroideCliWireProtocol {
     private fun boundedUtf8(value: String, limit: Int): ByteArray {
         val bytes = value.toByteArray(Charsets.UTF_8)
         if (bytes.size <= limit) return bytes
-
+        // Keep valid UTF-8 while preserving the tail marker that the native client can print verbatim.
         val marker = "\n[output truncated]\n".toByteArray(Charsets.UTF_8)
         val budget = (limit - marker.size).coerceAtLeast(0)
         var end = budget.coerceAtMost(bytes.size)

@@ -39,6 +39,7 @@ internal class StreamedLiveEditObservation(
             undo.backup.toPath(), "unix:ctime", java.nio.file.LinkOption.NOFOLLOW_LINKS).toString()
     }
 
+    /** Constant-size metadata admission after queue/native prepare; unsupported ctime fails closed. */
     fun requireBackupFence() {
         requireRootCurrent()
         require(readBackupFence() == backupFence) { "Reviewed undo backup changed before native mutation" }

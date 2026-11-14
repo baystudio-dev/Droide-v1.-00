@@ -6,9 +6,18 @@ import java.nio.file.LinkOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
 
+
+
+
+
+
+
+
+
+
 internal object WorkspaceExecutablePolicy {
-    const val REGULAR_MODE = 420
-    const val EXECUTABLE_MODE = 493
+    const val REGULAR_MODE = 420 
+    const val EXECUTABLE_MODE = 493 
 
     fun projectedMode(projectRoot: File, file: File): Int {
         requireSafeRegular(projectRoot, file)
@@ -16,6 +25,7 @@ internal object WorkspaceExecutablePolicy {
         return if (hasPortableExecutableHeader(file)) EXECUTABLE_MODE else REGULAR_MODE
     }
 
+     
     fun preserveExplicitExecutableBit(projectRoot: File, source: File, stagingRoot: File, staged: File) {
         requireSafeRegular(projectRoot, source)
         if (!source.canExecute()) return

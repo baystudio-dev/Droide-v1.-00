@@ -45,8 +45,10 @@ internal data class ExplorerRefreshLimits(
     init { require(watches in 1..64 && inbox in 1..64 && demands in 1..64 && candidates in 1..4) }
 }
 
-/** UI attachments own visibility, never the worker or repository. */
-
+/**
+ * One host-retained tree read lane. UI attachments own visibility, never the worker or repository.
+ * All non-callback methods run on the host/Main dispatcher. The callback touches only gate/inbox.
+ */
 class ExplorerRefreshController internal constructor(
     private val state: ExplorerWorkspaceState,
     private val scope: CoroutineScope,
@@ -162,7 +164,7 @@ class ExplorerRefreshController internal constructor(
 
     internal fun requestAppearance(attachment: UiLease) {
         if (!current(attachment) || !visible) return
-
+        // Visibility's first appearance has already queued this pass.
         if (pass == null && nextPass == null) queuePass(manual = false, token = null)
         signal()
     }
@@ -258,7 +260,7 @@ class ExplorerRefreshController internal constructor(
 
     private fun stopWatches() {
         val handles = synchronized(gate) {
-            activation++
+            activation++ // Fence before stop; FileObserver may call back after stopWatching.
             val old = watches.values.mapNotNull { it.handle }
             watches.clear(); inbox.clear(); inboxSaturated = false
             old
@@ -303,7 +305,8 @@ class ExplorerRefreshController internal constructor(
         events.forEach { (path, event) ->
             if (eligible(path)) {
                 val old = state.pageFreshness[path] ?: ExplorerPageFreshness()
-
+                // All page invalidations share the page's revision, including repository changes.
+                // A separate callback counter can collide with that revision during an append.
                 state.pageFreshness[path] = old.copy(dirtyVersion = old.dirtyVersion + 1, dirtySince = old.dirtySince ?: event.firstAt)
                 if (event.selfChanged) { rebindAfterRead += path; watchScopeChanged = true }
             }
@@ -535,8 +538,8 @@ class ExplorerRefreshController internal constructor(
         admitted = task
         try { task.await() }
         finally {
-            // Joining belongs to the worker, never Main's caller. Non-cancellable IO cleanup keeps this lane
-            // locked; a recreated UI or replacement owner must wait for the same Mutex.
+            // Joining belongs to the worker, never Main's caller. Non-cancellable IO cleanup keeps
+            // this lane locked; a recreated UI or replacement owner must wait for the same Mutex.
             task.cancelAndJoin()
             if (admitted === task) admitted = null
         }

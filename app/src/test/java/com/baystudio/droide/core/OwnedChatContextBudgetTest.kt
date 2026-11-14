@@ -31,7 +31,7 @@ class OwnedChatContextBudgetTest {
         ModelContextRegistry.remember(provider.id, "model", 12_000)
         val message = buildJsonObject { put("role", "user"); put("content", "漢".repeat(9_000)) }
         val options = buildJsonObject { put("model", "model"); put("max_tokens", 2_048) }
-
+        // ~6.8k estimated input tokens; double charging UTF-8 expansion would wrongly reject it.
         assertTrue(OwnedChatRequestBody.admit(options, listOf(SourceAwareChatHistoryWriter.Item.Legacy(message)), target, provider) {}.contentLength() > 27_000)
         val huge = buildJsonObject { put("role", "user"); put("content", "漢".repeat(20_000)) }
         assertThrows(ProviderContextOverflowException::class.java) {

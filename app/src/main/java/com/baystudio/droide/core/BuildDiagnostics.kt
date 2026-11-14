@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 data class BuildDiagnostic(
     val path: String,
     val line: Int,
@@ -8,6 +9,11 @@ data class BuildDiagnostic(
     val message: String,
     val source: String = "Gradle",
 )
+
+
+
+
+
 
 object GradleProblemParser {
     private val kotlinUri = Regex("^(e|w):\\s+file://(.+?):(\\d+):(\\d+):\\s*(.+)$")
@@ -48,7 +54,7 @@ object GradleProblemParser {
             val level = m.groupValues[4].lowercase()
             val severity = if (level == "warning") 2 else 1
             val message = m.groupValues[5].trim()
-
+            
             if (level.isBlank() && !message.contains("error", ignoreCase = true) && !message.contains("warning", ignoreCase = true)) return null
             return BuildDiagnostic(
                 path = path,

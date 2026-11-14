@@ -11,6 +11,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
+/** Explicit promotion from expiring chat storage into an independent, ordinary project file. */
 internal object ChatMediaProjectAssets {
     fun destination(root: File, path: String): String {
         require(path.isNotBlank() && path.length <= 500 && !File(path).isAbsolute && '\\' !in path) {
@@ -40,8 +41,8 @@ internal object ChatMediaProjectAssets {
         onProgress: (suspend (StreamWriteProgress) -> Unit)? = null,
     ): Long = withContext(Dispatchers.IO) {
         destination(files.root, path)
-        // An opened original survives concurrent session cleanup; publication never retains a link to
-        // this original, and cleanup is never given the project destination.
+        // An opened original survives concurrent session cleanup; publication never retains a
+        // link to this original, and cleanup is never given the project destination.
         val original = store.openOwnedOriginal(ownerId, ref)
         CloseOnceInput(ExactOriginalInput(original, ref.bytes)).use { ownedInput ->
             onIntegrityReady?.invoke(original.integrityOrigin)
@@ -56,7 +57,8 @@ internal object ChatMediaProjectAssets {
                 }
             }
             // A committed new file is never rolled back on later sync/cleanup failure.
-
+            // Both frames close through one owner. Cancellation may reject writeStream before
+            // its dispatcher enters input.use, so caller cleanup must remain responsible too.
             files.writeStream(path, ownedInput, expectedBytes = ref.bytes,
                 requireAbsent = true, requireExistingParent = true, onProgress = onProgress,
                 publicationObserver = publicationObserver, beforePublication = beforePublication)

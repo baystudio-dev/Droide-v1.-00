@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
+/** Exercises the actual lifecycle/save snapshot builder; no Android Keystore or native editor is simulated. */
 class AbnormalStartupEditorRecoveryTest {
     @Test fun abnormalRestoreAndRepeatedCheckpointCapturePreserveEveryDeferredDirtyBlobWithoutReadingIt() = runBlocking {
         val root = Files.createTempDirectory("droide-abnormal-recovery-").toFile()

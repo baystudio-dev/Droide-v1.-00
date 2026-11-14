@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+ 
 enum class WorkspaceAgentMode { PLAN, EDIT }
 
 internal class WorkspaceAgentAccessPolicy {

@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** Strict native UTF-16 results. No URI mapping failure is silently reported as successful navigation. */
 internal object LspCSharpResultAuthority {
     fun validText(text: String): Boolean {
         var index = 0

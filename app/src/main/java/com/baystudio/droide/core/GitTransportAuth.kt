@@ -5,10 +5,18 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import org.eclipse.jgit.transport.CredentialItem
 import org.eclipse.jgit.transport.URIish
 
+ 
 data class GitHubTransportCredential(
     val username: String,
     val accessToken: String,
 )
+
+
+
+
+
+
+
 
 object GitTransportAuth {
     fun fetchRemote(repository: Repository): String = "origin"

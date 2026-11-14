@@ -1,7 +1,9 @@
 package com.baystudio.droide.core
 
-/** Publication seam for already admitted PUBLIC completion text, never private reasoning. */
-
+/** Publication seam for already admitted PUBLIC completion text, never private reasoning.
+ * Large content is durably referenced before its bounded display projection is published.
+ * Does not change the provider input budget or authorize/extract tool arguments.
+ */
 internal object AgentPublicAnswerPublication {
     data class Result(val display: String, val reference: AgentPublicContentRef?)
     fun complete(

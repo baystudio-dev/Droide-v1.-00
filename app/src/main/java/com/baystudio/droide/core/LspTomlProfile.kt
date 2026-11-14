@@ -69,8 +69,7 @@ internal object LspTomlProfile {
     fun capabilities(result: JsonElement): LspNegotiatedCapabilities {
         val raw = (result as? JsonObject)?.get("capabilities") as? JsonObject ?: error("TOML capabilities missing")
         require(raw["positionEncoding"] == null || raw["positionEncoding"] == JsonPrimitive("utf-16")) { "TOML requires legacy or explicit UTF-16" }
-        // The pinned source advertises the numeric FULL form; reject reinterpretation of incremental
-        // sync.
+        // The pinned source advertises the numeric FULL form; reject reinterpretation of incremental sync.
         require(raw["textDocumentSync"] == JsonPrimitive(1)) { "Taplo requires its native numeric FULL synchronization" }
         val caps = LspNegotiatedCapabilities.fromInitialize(result)
         require(caps.sync.openClose && caps.sync.change == LspTextSyncPolicy.ChangeKind.FULL)

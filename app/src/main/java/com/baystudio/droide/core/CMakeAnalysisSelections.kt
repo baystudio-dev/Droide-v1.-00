@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.util.IdentityHashMap
 
+/** Workspace-lifetime explicit choices. No launch, configuration, discovery of builds, or disk writes. */
 class CMakeAnalysisSelections(
     workspace: File,
     val workspaceIdentity: String,
@@ -80,8 +81,8 @@ class CMakeAnalysisSelections(
         val candidate = provisional.copy(cacheSourceAssociation = association)
         synchronized(this) {
             check(!closed) { "CMake workspace is closed" }
-            // Staged choices are transient validation results, never authority; newest validation replaces
-            // discarded UI staging without evicting any committed source selection.
+            // Staged choices are transient validation results, never authority; newest validation
+            // replaces discarded UI staging without evicting any committed source selection.
             if (staged.size >= MAX_SELECTIONS) staged.clear()
             staged[candidate] = Unit
         }
@@ -130,6 +131,7 @@ class CMakeAnalysisSelections(
     @Synchronized fun isCurrent(selection: Selection): Boolean = !closed &&
         selections[selection.sourceLocalCanonical] === selection && selection.sourceLocalCanonical !in unavailable
 
+    /** Observations fail closed and preserve the inert record. No automatic source/build fallback. */
     fun revalidate(selection: Selection): Boolean {
         if (!isCurrent(selection)) return false
         val valid = runCatching {
@@ -156,7 +158,7 @@ class CMakeAnalysisSelections(
         val requested = if (File(raw).isAbsolute) File(raw) else File(root, raw)
         val lexical = requested.toPath().toAbsolutePath().normalize().toFile()
         require(contains(root.path, lexical.path) && lexical.path.length <= MAX_PATH_CHARS) { "Select source and build inside the opened workspace; open their common parent for sibling builds" }
-
+        // Inspector rejects all symlink components; canonical equality is an additional bound.
         inspector.directoryIdentity(lexical, environmentIdentity)
         require(lexical.canonicalFile == lexical) { "CMake selection uses a symlink or noncanonical path; review its exact pairing" }
         return lexical

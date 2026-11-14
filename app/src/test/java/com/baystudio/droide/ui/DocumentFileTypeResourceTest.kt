@@ -21,14 +21,17 @@ class DocumentFileTypeResourceTest {
         assertNotEquals(fileTypeResource("a.pdf"), fileTypeResource("a.docx"))
     }
 
-    @Test fun unsupportedWordFormatsRetainFallback() {
-        listOf("a.doc", "a.DOCM", "a.dot", "a.DOTX", "a.dotm").forEach { assertNull(it, fileTypeResource(it)) }
+    @Test fun legacyWordFormatsUseWordArtwork() {
+        listOf("a.doc", "a.DOCM", "a.dot", "a.DOTX", "a.dotm").forEach {
+            assertEquals(it, R.drawable.filetype_word, fileTypeResource(it))
+        }
     }
 
     @Test fun suffixAndUnknownPathsRetainFallback() {
-        listOf("a.pdf.tmp", "a.docx.zip", "a.docxx", "docx", "pdf", "", "/foo.pdf/bar").forEach {
+        listOf("a.pdf.tmp", "a.docxx", "docx", "pdf", "", "/foo.pdf/bar").forEach {
             assertNull(it, fileTypeResource(it))
         }
+        assertEquals(R.drawable.filetype_zip, fileTypeResource("a.docx.zip"))
     }
 
     @Test fun existingBrandResourcesRemainUnchanged() {

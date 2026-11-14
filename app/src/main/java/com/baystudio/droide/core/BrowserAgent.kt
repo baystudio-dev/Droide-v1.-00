@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+ 
 class BrowserAgent {
     /** Legacy standalone reader. Native Agent calls use the permission-aware AgentWebResearch session. */
     suspend fun fetch(url: String): String {

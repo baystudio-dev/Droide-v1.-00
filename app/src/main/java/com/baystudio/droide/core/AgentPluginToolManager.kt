@@ -45,8 +45,9 @@ class AgentPluginToolManager(
         } else "exit=${result.exitCode}\n${outputPreview(result)}"
     }
 
-    // Capture completeness and process exit are independent. Never present a bounded preview (or
-    // incomplete backend capture) as the complete output.
+
+    // Capture completeness and process exit are independent. Never present a
+    // bounded preview (or incomplete backend capture) as the complete output.
     private fun outputPreview(result: ExecResult): String {
         val output = result.output
         if (!result.outputIncomplete && output.length <= MAX_OUTPUT_CHARS) return output
@@ -68,8 +69,8 @@ class AgentPluginToolManager(
         val local = rawName.replace(Regex("[^a-z0-9_-]+"), "_").trim('_').take(40)
         if (!local.matches(Regex("[a-z0-9][a-z0-9_-]{0,39}"))) return null
         val pluginKey = plugin.id.replace(Regex("[^a-z0-9]+"), "_").trim('_')
-        // Truncated display components must not become the identity: distinct admitted tools can share
-        // the same prefix within one plugin revision.
+        // Truncated display components must not become the identity: distinct
+        // admitted tools can share the same prefix within one plugin revision.
         val function = if (pluginKey.length > 20 || local.length > 26) {
             val identity = sha256(listOf(plugin.id, plugin.contentSha256, local)).take(12)
             "plugin_${pluginKey.take(20)}_${local.take(22)}_$identity"

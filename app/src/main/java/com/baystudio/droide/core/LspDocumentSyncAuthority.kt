@@ -7,6 +7,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
+
 internal class LspDocumentSyncAuthority(
     private val rpc: JsonRpcProcess,
     private val policy: LspTextSyncPolicy,
@@ -35,8 +36,8 @@ internal class LspDocumentSyncAuthority(
     suspend fun saveSnapshot(uri: String, languageId: String, savedText: String, currentText: String) = mutex.withLock {
         synchronizeLocked(uri, languageId, currentText)
         withContext(NonCancellable) {
-            // didSave includes the actual persisted snapshot. The server's incremental baseline remains the
-            // newer live buffer delivered by synchronizeLocked.
+            // didSave includes the actual persisted snapshot. The server's incremental
+            // baseline remains the newer live buffer delivered by synchronizeLocked.
             LspProtocolContract.save(rpc, policy, uri, languageId, savedText, versions, openUris)
         }
     }
@@ -53,8 +54,9 @@ internal class LspDocumentSyncAuthority(
         if (uri !in openUris) {
             withContext(NonCancellable) {
                 if (forceInitialFullChange) {
-                    // A real same-text full reload is required even after didOpen; no fabricated edit.
-
+                    // PSES may already cache a disk-backed ScriptFile. A real same-text
+                    // full reload is required even after didOpen; no fabricated edit.
+                    // Do not publish any tracked ledger until BOTH writes committed.
                     rpc.notify("textDocument/didOpen", buildJsonObject {
                         put("textDocument", buildJsonObject {
                             put("uri", uri); put("languageId", languageId)

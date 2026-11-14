@@ -6,6 +6,7 @@ import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.CancellationException
 
+ 
 data class ProjectTemplate(
     val id: String,
     val name: String,
@@ -137,7 +138,7 @@ internal class AnchoredTemplateDirectory(private val files: AnchoredWorkspaceFil
         return object : TemplateOutput {
             override fun key(): Any = checkNotNull(output.observe().attributes.fileKey())
             override fun write(bytes: ByteArray) = output.write(bytes)
-            override fun force() = output.force(384)
+            override fun force() = output.force(384) // 0600; includes the staged parent namespace.
             override fun close() = output.close()
         }
     }
@@ -149,7 +150,7 @@ internal class AnchoredTemplateDirectory(private val files: AnchoredWorkspaceFil
 }
 
 object ProjectTemplateWriter {
-
+    /** Registration precedes this call. Failure retains partial output and private staging evidence. */
     fun write(root: File, template: ProjectTemplate) = write(root, template) {
         AnchoredTemplateDirectory(AnchoredWorkspaceFiles(it))
     }
@@ -169,7 +170,8 @@ object ProjectTemplateWriter {
                 } catch (failure: CancellationException) {
                     throw failure
                 } catch (failure: ExistingTemplateTarget) {
-
+                    // Keep the historical collision surface, including null cause/no suppressed
+                    // on an ordinary collision. Close failures, if any, remain attached.
                     throw IllegalArgumentException(failure.message).also { error ->
                         failure.suppressed.forEach(error::addSuppressed)
                     }

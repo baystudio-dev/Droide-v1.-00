@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+/** Explicit membership receipts and opt-in schema-4 compact historical links. No file release. */
 internal object CatalogMembershipCommands {
     const val RECIPIENT = "manager-membership-service-v1"
     private const val MAX_COMPACT = 4096
@@ -223,7 +224,7 @@ internal object CatalogMembershipCommands {
         }
         val remaining = state.receipts.filterNot { it.token == token }
         check(db.delete("membership_commands", "id=?", arrayOf(token)) == 1)
-
+        // No operation classification, canonical retention entry, or custody byte is removed/credited.
         db.execSQL("UPDATE membership_state SET command_count=?,digest=? WHERE id=1",
             arrayOf<Any>(remaining.size, stateDigest(db, remaining, state.operations, state.compacted)))
         return Expiry.EXPIRED

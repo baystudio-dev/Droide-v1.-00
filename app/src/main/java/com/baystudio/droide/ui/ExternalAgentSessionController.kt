@@ -91,6 +91,7 @@ internal data class ExternalAgentPendingPrompt(
     val mediaOwnerId: String? = null,
 )
 
+ 
 internal class ExternalAgentSessionController(
     private val scope: CoroutineScope,
     context: Context? = null,
@@ -115,7 +116,7 @@ internal class ExternalAgentSessionController(
     private fun releaseMediaOwner(owner: String?) {
         if (owner == null) return
         val cleanup = scope.launch(start = CoroutineStart.LAZY) { withContext(NonCancellable + Dispatchers.IO) {
-            try { mediaStore?.releaseOwner(owner) } catch (_: Exception) {   }
+            try { mediaStore?.releaseOwner(owner) } catch (_: Exception) { /* Preserve an unreadable store for later repair. */ }
         } }
         mediaCleanupJobs += cleanup
         cleanup.invokeOnCompletion { mediaCleanupJobs -= cleanup }
@@ -158,8 +159,8 @@ internal class ExternalAgentSessionController(
     private var lifecycleId: Long? = null
     private var historyJob: Job? = null
     private val restoredAgents = mutableSetOf<String>()
-    // Failed or cancelled initial reads are not evidence of an empty archive. In particular, a null
-    // native ID must not fall through to a backend's existing live session.
+    // Failed or cancelled initial reads are not evidence of an empty archive. In particular,
+    // a null native ID must not fall through to a backend's existing live session.
     private val unverifiedInitialHistoryReads = mutableSetOf<String>()
     private val deletedNativeSessions = mutableMapOf<String, String>()
 
@@ -264,7 +265,7 @@ internal class ExternalAgentSessionController(
         if (closed) return@withLock
         check(exiting && exitCheckpointSucceeded && pendingFinish == null) { "Checkpoint plugin history before closing it" }
         (listOfNotNull(runJob, lifecycleJob, historyJob, checkpointJob, livePreviewJob, steerRequestJob, stopJob) + auxiliaryJobs + mediaCleanupJobs).distinct().joinAll()
-        history?.close()
+        history?.close() // A failed close remains visible and retryable; no detached cleanup job.
         closed = true
         pendingPrompts = emptyList(); uncheckpointedPrompt = null
         activeBackend = null; activeRun = null
@@ -308,8 +309,8 @@ internal class ExternalAgentSessionController(
         val current = this[agentId]
         val readOnly = window.readOnlyReason != null
         states[agentId] = current.copy(
-            // A foreign live/unverified identity is retained in the archive, but must never become authority
-            // to reconnect its CLI or change its configuration.
+            // A foreign live/unverified identity is retained in the archive, but must never
+            // become authority to reconnect its CLI or change its configuration.
             sessionId = if (readOnly) null else window.summary.nativeSessionId,
             usage = if (!readOnly && current.sessionId == window.summary.nativeSessionId) current.usage else null,
             configuration = if (readOnly) null else current.configuration,
@@ -339,8 +340,8 @@ internal class ExternalAgentSessionController(
                     restoredAgents += spec.id
                     publishWindow(spec.id, saved, restored = true)
                 } else if (spec.id in unverifiedInitialHistoryReads) {
-                    // An empty retry does not prove the backend has no old live context. Only a verified selection
-                    // or explicit New Session clears this gate.
+                    // An empty retry does not prove the backend has no old live context.
+                    // Only a verified selection or explicit New Session clears this gate.
                     states[spec.id] = this@ExternalAgentSessionController[spec.id].copy(persistenceError = null)
                     rejectUnverifiedInitialHistory(spec.id)
                 } else {
@@ -368,6 +369,7 @@ internal class ExternalAgentSessionController(
         return true
     }
 
+    /** Reserve controller admission before any disk restore can change the active conversation. */
     suspend fun openSaved(id: String, agentId: String): PluginHistoryWindow {
         val store = checkNotNull(history) { "Plugin history is unavailable" }
         check(!busy && pendingPrompts.isEmpty() && admissionOpen() && pendingFinish == null && scope.isActive) { "Finish the active task and remove pending inputs before opening another conversation." }
@@ -459,7 +461,7 @@ internal class ExternalAgentSessionController(
 
     private suspend fun finishHistory(runId: Long, agentId: String, id: String, reply: String?, notices: List<String>, status: PluginHistoryStatus): Boolean {
         val store = history ?: return true
-
+        // Keep exactly this finalization payload until its actual storage receipt succeeds.
         val finish = pendingFinish?.also {
             check(it.runId == runId && it.historyId == id) { "A prior plugin checkpoint still needs retry" }
         } ?: PendingFinish(runId, agentId, id, reply, notices.toList(), status, this[agentId].liveMedia.toList(),
@@ -502,8 +504,16 @@ internal class ExternalAgentSessionController(
         }
     }
 
-    /** An explicit Send or New Session can retry local storage, but never the requested backend
-     * action. */
+    /**
+     * An explicit Send or New Session can retry local storage, but never the requested
+     * backend action. In particular, Send must return false so its caller keeps the
+     * new draft and media. A separate action after the receipt admits new work.
+     *
+     * Reserve the existing lifecycle slot for the original checkpoint owner, even
+     * when another plugin triggered recovery. This makes repeated attempts single
+     * flight and lets Stop, Exit and close cancel/join the exact owned job. Once a
+     * write starts, finishHistory protects its receipt; failure keeps PendingFinish.
+     */
     private fun retryPendingFinish(): Boolean {
         val finish = pendingFinish ?: return false
         if (busy || !admissionOpen() || !scope.isActive) return true
@@ -583,8 +593,8 @@ internal class ExternalAgentSessionController(
                 discardDeleted(host, agentId)
                 currentCoroutineContext().ensureActive()
                 if (history != null) {
-                    // Only admission and its receipt are protected. Returning from the store's IO dispatcher must
-                    // not discard an already committed conversation when Stop wins.
+                    // Only admission and its receipt are protected. Returning from the store's IO
+                    // dispatcher must not discard an already committed conversation when Stop wins.
                     val window = withContext(NonCancellable) {
                         val admitted = if (history is PluginHistoryCheckpointStore) {
                             val receipt = history.beginCheckpointTurn(initial.historyId, agentId, prompt, mode, initial.sessionId, media)
@@ -623,8 +633,8 @@ internal class ExternalAgentSessionController(
                         }
                         throw cancelled
                     } catch (_: Exception) {
-                        // This is an independent supervisor child. An ordinary delivery failure must stop its exact run,
-                        // not escape as an Android crash.
+                        // This is an independent supervisor child. An ordinary delivery
+                        // failure must stop its exact run, not escape as an Android crash.
                         eventDeliveryFailure.set(true)
                         ownedRun?.cancel(CancellationException("Agent update delivery failed"))
                     }
@@ -648,8 +658,8 @@ internal class ExternalAgentSessionController(
                     events.close()
                     withContext(NonCancellable) { eventRelay.join() }
                 }
-                // Draining accepted updates must not turn cancellation into a normal completion when a backend
-                // returns without suspending.
+                // Draining accepted updates must not turn cancellation into a
+                // normal completion when a backend returns without suspending.
                 currentCoroutineContext().ensureActive()
                 if (activeRun?.runId != runId) return@launch
                 flushLivePreview(runId, agentId)
@@ -876,8 +886,8 @@ internal class ExternalAgentSessionController(
                     key = "${spec.id}:${current.sessionId}", changed = result.changedFiles,
                     pending = result.pendingFiles, state = host.workspaceSyncState?.value, manual = true,
                 )
-                // Transient review feedback, not a model turn or a fabricated history completion. Current
-                // persisted workspace state remains available through Files after reopening.
+                // Transient review feedback, not a model turn or a fabricated history completion.
+                // Current persisted workspace state remains available through Files after reopening.
                 states[spec.id] = current.copy(messages = current.messages + feedback.map { AgentMessage("assistant", it) })
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -922,8 +932,9 @@ internal class ExternalAgentSessionController(
         stoppingAgentId = agentId
         states[agentId] = this[agentId].let { it.copy(configuration = null, progress = it.progress.finish(AgentActivityKind.STOPPED)) }
         if (run == null) lifecycleId = null
-        // Cancelling the owned operation also reaches a bootstrap that has not published a session id
-        // yet, including a job not yet dispatched.
+        // Cancelling the owned operation also reaches a bootstrap that has not
+        // published a session id yet, including a job not yet dispatched.
+        // Keep new submissions blocked until the old operation is cleaned up.
         job?.cancel()
         stopJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
@@ -1014,7 +1025,8 @@ internal class ExternalAgentSessionController(
         val limit = if (thought) 16_000 else 256_000
         val wasEmpty = buffer.isEmpty()
         appendBoundedTextTail(buffer, text, limit)
-
+        // Publish the first chunk immediately. Batch later UI updates for at most 32ms;
+        // disk checkpoints remain independent and lossless.
         if (wasEmpty) publishLivePreview(runId, agentId)
         if (livePreviewJob == null) {
             lateinit var preview: Job

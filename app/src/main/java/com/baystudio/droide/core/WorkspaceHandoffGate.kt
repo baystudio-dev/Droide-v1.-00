@@ -20,6 +20,7 @@ interface WorkspaceHandoffRetention {
     suspend fun retryPreservation()
 }
 
+/** Shared by the coordinator, including transitions with no currently bound editor. */
 class WorkspaceHandoffGate {
     private var retained: WorkspaceHandoffRetention? = null
     private var publishedOwner: Any? = null

@@ -25,7 +25,7 @@ internal class LspVueFilePoller(
         val maxEntries: Int = 12_000,
         val maxDepth: Int = 96,
         val maxFileBytes: Long = 4L * 1024 * 1024,
-
+        // Both verification reads count toward this budget.
         val maxReadBytes: Long = 96L * 1024 * 1024,
         val maxScanMillis: Long = 15_000,
     ) {
@@ -58,6 +58,7 @@ internal class LspVueFilePoller(
     private val approvedRoot = root.absoluteFile.toPath().normalize()
     val canonicalRoot: String = approvedRoot.toString()
 
+    /** First difference calls back before the rest of the pass. No partial result is ever returned. */
     suspend fun scan(previous: Snapshot? = null, onDifference: (Difference) -> Unit = {}): Snapshot =
         withContext(Dispatchers.IO) {
             val started = clockNanos()
@@ -238,6 +239,7 @@ internal class LspVueFilePoller(
     }
 }
 
+/** A successful identical pass renews the same token. No result is retagged to a changed scan. */
 internal class LspVueWatchAuthority(
     private val root: File,
     private val scope: CoroutineScope,

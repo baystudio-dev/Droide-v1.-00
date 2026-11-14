@@ -2,6 +2,13 @@ package com.baystudio.droide.core
 
 import android.content.Context
 
+
+
+
+
+
+
+
 class ReviewedArtifactBackendRouter(
     context: Context,
     private val bridge: DeviceBridgeManager,
@@ -68,6 +75,11 @@ class ReviewedArtifactBackendRouter(
         }
     }
 
+    
+
+
+
+
     private suspend fun reconcileLegacyUbuntuOwnershipIfNeeded() {
         val contracts = sourceCatalog.manifests.mapNotNull { manifest ->
             val contract = when (manifest.provider) {
@@ -133,6 +145,11 @@ class ReviewedArtifactBackendRouter(
         }
         ubuntuEnvironment.finalizeLegacyPhysicalCompaction(transaction)
     }
+
+    
+
+
+
 
     suspend fun cleanupOrphanDependencies(
         contract: DeclarativeRuntimeCompatibility,

@@ -13,8 +13,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
-/** Launched only by MirrorProcessCustodyRestartTest in a disposable child JVM. No CLI child is
- * started here; production launch/cleanup is covered separately. */
+/** Launched only by MirrorProcessCustodyRestartTest in a disposable child JVM.
+ * No CLI child is started here; production launch/cleanup is covered separately.
+ */
 object MirrorProcessCustodyRestartFixture {
     @JvmStatic fun main(args: Array<String>) = JUnitCore.main(Worker::class.java.name)
 
@@ -29,8 +30,8 @@ object MirrorProcessCustodyRestartFixture {
             val mode = checkNotNull(System.getProperty("droide.custody.fixture.mode"))
             val source = root.resolve("source"); val working = root.resolve("working")
             val directory = root.resolve(".working-sync-authority")
-            // The JVM termination is real; only the trusted boot observations are simulated. This fixture
-            // neither reboots nor certifies an Android device.
+            // The JVM termination is real; only the trusted boot observations are
+            // simulated. This fixture neither reboots nor certifies an Android device.
             val bootScenario = boundary.startsWith("writer-boot-")
             val oldBoot = WorkspaceProcessBootIdentity.Identity("a".repeat(64), "1b2bbbcf-a5f6-4221-96fb-521edc129d77")
             val currentBoot = oldBoot.copy(boot = "794dc4f3-97d3-43b9-a7d0-a4e667a864e2")
@@ -49,7 +50,7 @@ object MirrorProcessCustodyRestartFixture {
                 val authority = MirrorMetadataAuthority(directory, source, working, processCheckpoint = { point ->
                     if (point == boundary) {
                         root.resolve("ready").writeText(point)
-                        CountDownLatch(1).await()
+                        CountDownLatch(1).await() // Parent force-kills this exact JVM handle.
                     }
                 }, processBootIdentity = { if (bootScenario) currentBoot else null })
                 if (bootScenario) authority.requireNoPendingProcessOwners()
@@ -63,8 +64,8 @@ object MirrorProcessCustodyRestartFixture {
                 when (boundary) {
                     "writer-admission-after-commit" -> {
                         assertEquals(1, authority.pendingProcessOwners().size)
-                        // The owner died before receiving its new one-shot launch capability. Durable revocation is safe
-                        // even with unknown boot.
+                        // The owner died before receiving its new one-shot launch
+                        // capability. Durable revocation is safe even with unknown boot.
                         authority.requireNoPendingProcessOwners()
                         assertTrue(authority.pendingProcessOwners().isEmpty())
                     }
@@ -76,8 +77,8 @@ object MirrorProcessCustodyRestartFixture {
                         assertTrue(authority.pendingProcessOwners().isEmpty())
                     }
                     "writer-cleanup-receipt-after-force" -> {
-                        // Cleanup was confirmed through the exact receipt before the owner JVM died. No boot change or
-                        // process scan is needed.
+                        // Cleanup was confirmed through the exact receipt before the
+                        // owner JVM died. No boot change or process scan is needed.
                         assertEquals(1, authority.pendingProcessOwners().size)
                         val proofs = directory.resolve("process-cleanup-receipts").listFiles()!!.associate { it.name to it.readBytes().toList() }
                         assertEquals(1, proofs.size)
@@ -87,8 +88,8 @@ object MirrorProcessCustodyRestartFixture {
                         authority.processCustody().acquire(working).close()
                     }
                     "writer-completion-before-commit", "writer-boot-reconciliation-before-commit" -> {
-                        // The interrupted SQLite transaction has a rollback sidecar. The production open path preserves
-                        // that evidence instead of replaying it.
+                        // The interrupted SQLite transaction has a rollback sidecar. The
+                        // production open path preserves that evidence instead of replaying it.
                         val database = directory.resolve("state.sqlite")
                         val bytes = database.readBytes(); val journal = File(database.path + "-journal")
                         assertTrue(journal.isFile); val journalBytes = journal.readBytes()

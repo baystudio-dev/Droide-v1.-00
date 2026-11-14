@@ -1,0 +1,47 @@
+Categories:
+  - Development
+License: LGPL-3.0-only
+AuthorName: BayStudio
+WebSite: https://droide.rekacipta.biz.id
+SourceCode: https://github.com/baystudio-dev/Droide-v1.-00
+IssueTracker: https://github.com/baystudio-dev/Droide-v1.-00/issues
+Changelog: https://github.com/baystudio-dev/Droide-v1.-00/blob/fdroid/release-1.01/fastlane/metadata/android/en-US/changelogs/45.txt
+
+AutoName: Droide
+Summary: Code editor, Linux terminal and development workspace
+Description: |-
+    Edit projects, use Git and an interactive Linux terminal, run development tools,
+    and configure optional AI agents on Android. The Ubuntu environment is installed
+    on demand after consent and reused. Editing is available without installation.
+    Ubuntu requires ARM64. Optional tools and providers retain their own terms.
+
+AntiFeatures:
+  NonFreeNet:
+    en-US: Optional integrations connect to proprietary AI and hosted services configured by the user.
+  NonFreeAdd:
+    en-US: The extensions catalog offers optional proprietary coding agents alongside free software tools.
+  NonFreeAssets:
+    en-US: Third-party service and product marks are retained for identification under their respective brand terms.
+
+RepoType: git
+Repo: https://github.com/baystudio-dev/Droide-v1.-00.git
+
+Builds:
+  - versionName: '1.01'
+    versionCode: 45
+    commit: v1.01-fdroid
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-17-jdk-headless make patch
+    output: app/build-source-release-fdroid-candidate/outputs/apk/release/app-release-unsigned.apk
+    prebuild:
+      - sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'cmake;3.22.1'
+    build:
+      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - python3 -B tools/build_fdroid_candidate.py --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME" --gradle "$(command -v gradle)" --dependencies "$PWD/.fdroid-source-products"
+    ndk: 28.2.13676358
+
+AutoUpdateMode: Version v%v-fdroid
+UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+-fdroid$
+CurrentVersion: '1.01'
+CurrentVersionCode: 45

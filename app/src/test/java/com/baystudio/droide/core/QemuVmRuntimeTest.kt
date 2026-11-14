@@ -58,6 +58,7 @@ class QemuVmRuntimeTest {
         }
     }
 
+
     @Test fun commandBuilderRejectsOverlongQmpFilesystemSocketPath() {
         val root = Files.createTempDirectory("droide-vm-socket-root").toFile()
         try {

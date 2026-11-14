@@ -70,7 +70,7 @@ class BrowserRetentionOperationTest {
         override fun onPause() { pauses++; super.onPause() }
         override fun draw(canvas: Canvas) { draws++; super.draw(canvas) }
         override fun destroy() { destroyed++; super.destroy() }
-
+        // Override the hidden runtime frame hook through the real Android View contract.
         fun setFrame(left: Int, top: Int, right: Int, bottom: Int): Boolean =
             org.robolectric.shadow.api.Shadow.directlyOn(this, View::class.java, "setFrame",
                 org.robolectric.util.ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, left),
@@ -337,8 +337,8 @@ class BrowserRetentionOperationTest {
             view.onUrlRead = {
                 urlReads++
                 if (urlReads == 2) {
-                    // Enqueue document replacement after the pre-validation identity snapshot and before the
-                    // eventual main-thread mutation callback.
+                    // Enqueue document replacement after the pre-validation identity
+                    // snapshot and before the eventual main-thread mutation callback.
                     Handler(Looper.getMainLooper()).post {
                         view.webViewClient.onPageStarted(view, view.page, null)
                     }

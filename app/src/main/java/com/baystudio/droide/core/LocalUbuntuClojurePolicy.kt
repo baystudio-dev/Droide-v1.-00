@@ -90,6 +90,7 @@ internal object LocalUbuntuClojurePolicy {
             ARTIFACT_BYTES, PROVENANCE_URL).also { it.validate() }
     }
 
+    /** Deterministic supplemental provenance, explicitly separate from original publisher ZIP inventory. */
     fun originText(memberSha256: String, memberBytes: Long): String = originBytes(memberSha256, memberBytes).toString(Charsets.UTF_8)
 
     fun originBytes(memberSha256: String, memberBytes: Long): ByteArray {
@@ -97,6 +98,7 @@ internal object LocalUbuntuClojurePolicy {
         return ("""{"schema":1,"familyId":"$FAMILY","release":"$VERSION","releaseId":$RELEASE_ID,"sourceCommit":"$SOURCE_COMMIT","sourceTree":"$SOURCE_TREE","artifactName":"$ASSET","artifactUrl":"$ASSET_URL","artifactSha256":"$SHA256","artifactBytes":$ARTIFACT_BYTES,"memberPath":"$COMMAND","memberSha256":"$memberSha256","memberBytes":$memberBytes,"noticePath":"$NOTICE_PATH","noticeSourceUrl":"$LICENSE_URL","noticeSha256":"$LICENSE_SHA256","noticeBytes":$LICENSE_BYTES,"noticeSuppliedSeparately":true,"completeArtifactLicenseInventory":false}""" + "\n").toByteArray(Charsets.UTF_8)
     }
 
+    /** Tree and notice revalidation relies on the installer's independent sealed-tree authority. */
     fun requireTree(entry: File) {
         val root = requireNotNull(entry.parentFile)
         require(entry.name == COMMAND) { "Invalid Clojure LSP tree entry" }
@@ -158,8 +160,8 @@ internal object LocalUbuntuClojurePolicy {
         }
     }
 
-    // Java exposes no portable FileChannel inode; this remains within app-owned package trust, not
-    // an atomic same-UID defense.
+    // Held-channel bounds plus path snapshots detect ordinary replacement/drift. Java exposes no portable
+    // FileChannel inode; this remains within app-owned package trust, not an atomic same-UID defense.
     internal fun measure(file: File, limit: Long, active: () -> Unit = {}): Pair<Long, String> {
         val before = snapshot(file)
         require(before.size() in 1..limit) { "Clojure LSP file exceeds its byte bound" }

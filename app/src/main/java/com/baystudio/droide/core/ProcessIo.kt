@@ -4,6 +4,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
+ 
 object ProcessIo {
     fun readTextBounded(input: InputStream, maxChars: Int): String {
         require(maxChars in 1..1_000_000) { "Invalid output cap" }
@@ -19,7 +20,7 @@ object ProcessIo {
         }
         return out.toString()
     }
-
+     
     fun terminate(process: Process?, graceMs: Long = 350L) {
         val p = process ?: return
         if (!p.isAlive) return

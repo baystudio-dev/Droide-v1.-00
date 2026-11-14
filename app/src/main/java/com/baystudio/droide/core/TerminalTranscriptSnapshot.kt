@@ -4,6 +4,7 @@ import com.termux.terminal.TerminalBuffer
 import com.termux.terminal.TerminalEmulator
 import java.util.ArrayDeque
 
+/** Copy the requested tail directly instead of allocating the entire scrollback first. */
 internal object TerminalTranscriptSnapshot {
     fun capture(emulator: TerminalEmulator, limit: Int): String {
         require(limit in 1..1_000_000)
@@ -26,7 +27,7 @@ internal object TerminalTranscriptSnapshot {
             val line = screen.getSelectedText(0, row, columns, row)
             val separator = if (row < lastRow && !screen.getLineWrap(row)) "\n" else ""
             var text = line + separator
-
+            // Match TerminalBuffer.getTranscriptText()'s Java String.trim() semantics.
             if (trimEnd) {
                 text = text.trimEnd { it <= ' ' }
                 trimEnd = text.isEmpty()
@@ -35,8 +36,8 @@ internal object TerminalTranscriptSnapshot {
                 val acceptedStart = terminalTextTailStart(text, limit - length)
                 if (acceptedStart > 0) {
                     omittedContent = (0 until acceptedStart).any { text[it] > ' ' }
-                    // A pair-safe cut may leave one spare unit. Do not fill it with an earlier row: the result must
-                    // remain a contiguous tail.
+                    // A pair-safe cut may leave one spare unit. Do not fill it with
+                    // an earlier row: the result must remain a contiguous tail.
                     tailCut = true
                 }
                 val accepted = text.substring(acceptedStart)
@@ -47,8 +48,9 @@ internal object TerminalTranscriptSnapshot {
         }
         val value = parts.joinToString("")
         if (value.firstOrNull()?.let { it > ' ' } == true) return value
-        // Determine whether it is document padding or an interior space without copying the discarded
-        // prefix into another whole-transcript String.
+        // A capped tail may begin inside leading document whitespace. Determine
+        // whether it is document padding or an interior space without copying
+        // the discarded prefix into another whole-transcript String.
         while (!omittedContent && row >= firstRow) {
             omittedContent = screen.getSelectedText(0, row, columns, row).any { it > ' ' }
             row--

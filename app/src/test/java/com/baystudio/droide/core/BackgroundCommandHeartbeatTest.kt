@@ -33,7 +33,8 @@ class BackgroundCommandHeartbeatTest {
         val manager = BackgroundCommandManager(terminal, heartbeatIntervalMs = 25)
         try {
             val job = manager.start("quiet fixture")
-
+            // A scheduler may delay the worker beyond the short heartbeat interval.
+            // Exercise a quiet *running* command instead of assuming its launch took <25 ms.
             withTimeout(2_000) { started.await() }
             val activity = CompletableDeferred<String>()
             val chunks = StringBuilder()

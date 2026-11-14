@@ -2,6 +2,7 @@ package com.baystudio.droide.core
 
 import kotlinx.serialization.json.*
 
+/** The current language-server adapter needs tsserver, which TypeScript 7 no longer publishes. */
 internal object LocalUbuntuTypeScriptServerPolicy {
     const val VERSION = "6.0.3"
     const val INTEGRITY = "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="

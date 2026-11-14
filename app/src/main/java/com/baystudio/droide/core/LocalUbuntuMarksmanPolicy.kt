@@ -1,5 +1,6 @@
 package com.baystudio.droide.core
 
+/** Exact publisher release metadata and source reviewed; device/runtime acceptance is separate. */
 internal object LocalUbuntuMarksmanPolicy {
     const val FAMILY = "lsp.marksman"
     const val VERSION = "2026-02-08"

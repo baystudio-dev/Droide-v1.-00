@@ -85,8 +85,8 @@ class WorkspaceImportController internal constructor(
     private var closed = false
 
     init {
-        // A parent cancellation also needs to close a provider read that does not observe coroutine
-        // cancellation. This watcher retains only the runtime controller.
+        // A parent cancellation also needs to close a provider read that does not observe
+        // coroutine cancellation. This watcher retains only the runtime controller.
         parentScope.launch(start = CoroutineStart.UNDISPATCHED) {
             try { lifetime.join() }
             finally { if (!currentCoroutineContext().isActive) close() }
@@ -117,7 +117,7 @@ class WorkspaceImportController internal constructor(
             return@synchronized WorkspaceImportAdmission.STALE
         ++pickerGeneration
         val id = ++operationSequence
-
+        // Strings/Uri are immutable; no resolver cursor, view, callback or source stream is retained by the ticket.
         val selected = uri
         val destination = ticket.destination
         mutableState.value = mutableState.value.copy(active = WorkspaceImportProgress(
@@ -184,8 +184,8 @@ class WorkspaceImportController internal constructor(
                             target, displayName, committedBytes, "Imported $displayName", admittedCopy.intent.id, true,
                             requireNotNull(admittedCopy.committedReceipt).preparation.sha256)
                     } catch (saved: ProjectFileSyncException) {
-                        // FileRepository emits this only for its still-owned canonical publication. Require this
-                        // operation's exact path and byte receipt, not a similar message.
+                        // FileRepository emits this only for its still-owned canonical publication.
+                        // Require this operation's exact path and byte receipt, not a similar message.
                         val progress = synchronized(lock) { mutableState.value.active?.takeIf { it.id == id }?.progress }
                         val receipt = admittedCopy.committedReceipt
                         if (saved.relativePath != target || progress?.phase != StreamWritePhase.SYNCHRONIZING ||
@@ -196,8 +196,8 @@ class WorkspaceImportController internal constructor(
                             "Imported locally at $target; synchronization pending. Refresh; do not import again.")
                     }
                 } finally {
-                    // Detach and capture cleanup atomically: a later Cancel cannot create a close job after the
-                    // worker has selected which cleanup it must join.
+                    // Detach and capture cleanup atomically: a later Cancel cannot create a
+                    // close job after the worker has selected which cleanup it must join.
                     val closing = synchronized(lock) {
                         if (activeInput === input) activeInput = null
                         closeInputJob
@@ -261,7 +261,7 @@ class WorkspaceImportController internal constructor(
                 mutableState.value = WorkspaceImportState(result = result, closed = closed)
             }
         } }
-
+        // async contains worker failures rather than reporting them as uncaught Android exceptions.
         operation.start()
         WorkspaceImportAdmission.ACCEPTED
     }
@@ -324,8 +324,9 @@ class WorkspaceImportController internal constructor(
         val active = mutableState.value.active ?: return false
         if (active.cancelling) return false
         mutableState.value = mutableState.value.copy(active = active.copy(cancelling = true))
-        // Close on IO even when the parent has already been cancelled.
-
+        // Close on IO even when the parent has already been cancelled. The cancelled worker
+        // joins this explicit cleanup job before releasing admission, so shutdown also waits
+        // for it. Providers that ignore close are not forcibly interruptible/resumable.
         activeInput?.let { input -> closeInputJob = scope.async(NonCancellable + Dispatchers.IO) { input.close() } }
         operation.cancel(CancellationException(reason))
         return true
@@ -357,8 +358,8 @@ class WorkspaceImportController internal constructor(
                 closeCompleted.completeExceptionally(cancelled)
                 throw cancelled
             } catch (failure: Exception) {
-                // FileRepository closes its input inside writeStream. A close IOException must not erase the
-                // canonical commit receipt before that method returns.
+                // FileRepository closes its input inside writeStream. A close IOException
+                // must not erase the canonical commit receipt before that method returns.
                 closeCompleted.complete(failure)
             } catch (fatal: Throwable) {
                 closeCompleted.completeExceptionally(fatal)
@@ -366,6 +367,7 @@ class WorkspaceImportController internal constructor(
             }
         }
 
+        /** All closers join the actual provider close, even if another closer won the CAS. */
         suspend fun finishClose(): Exception? { close(); return closeCompleted.await() }
     }
 

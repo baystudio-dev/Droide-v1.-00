@@ -10,6 +10,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 
+ 
 data class LspInlayHint(
     val line: Int,
     val column: Int,
@@ -78,6 +79,8 @@ internal object LspInlayHintProtocol {
         return substring(0, end)
     }
 
+    // LSP positions use UTF-16 code units and CR, LF, or CRLF line breaks.
+    // Treat CRLF as one break, including when the document ends with a break.
     private fun documentEnd(text: String): Pair<Int, Int> {
         var line = 0
         var lineStart = 0

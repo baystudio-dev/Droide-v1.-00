@@ -1,11 +1,14 @@
 package com.baystudio.droide.core
 
+import com.baystudio.droide.BuildConfig
+
 import android.content.Context
 import android.os.Build
 import java.io.File
 import java.io.RandomAccessFile
 import java.security.MessageDigest
 
+// Keep executable payloads in APK-native storage to preserve W^X.
 object DroideCliClientInstaller {
     const val NATIVE_FILE_NAME = "libdroide_cli.so"
     const val SHA256 = "913b313398b30115416acd20959b1c449eab0563c15c83230862b03e44e7cfee"
@@ -18,13 +21,15 @@ object DroideCliClientInstaller {
     private const val EM_AARCH64 = 183
     private const val MIN_LOAD_ALIGNMENT = 16L * 1024L
 
+    
     fun ensureInstalled(context: Context): File = ensureInstalled(context, {})
 
     internal fun ensureInstalled(context: Context, checkCancelled: () -> Unit): File {
         val binary = nativeFile(context, checkCancelled)
         require(binary.isFile && !PathSecurity.isSymbolicLink(binary)) { "Bundled Droide CLI native payload is missing" }
         require(binary.length() in 1..MAX_BYTES) { "Bundled Droide CLI client exceeds its reviewed size" }
-        require(sha256(binary, checkCancelled) == SHA256) { "Bundled Droide CLI client failed integrity verification" }
+        val expected = if (BuildConfig.FDROID_NATIVE_SOURCE) BuildConfig.SOURCE_CLI_SHA256 else SHA256
+        require(sha256(binary, checkCancelled) == expected) { "Bundled Droide CLI client failed integrity verification" }
         requireStaticArm64Elf(binary, checkCancelled)
         check(binary.canExecute()) { "Bundled Droide CLI payload is not executable" }
         checkCancelled()

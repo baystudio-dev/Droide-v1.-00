@@ -15,6 +15,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.eclipse.jgit.api.Git
 
+ 
 internal object PhysicalDeviceIdeChecks {
     fun verifyEditorRecovery(context: Context, nonceSha256: String): String = runBlocking {
         val store = EditorStateStore(context, "editor-state-${nonceSha256.take(12)}")

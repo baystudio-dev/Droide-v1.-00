@@ -1,5 +1,13 @@
 package com.baystudio.droide.ui
 
+
+
+
+
+
+
+
+
 internal data class DroideImePresentation(
     val landscape: Boolean,
     val imeVisible: Boolean,
@@ -16,7 +24,7 @@ internal fun droideImePresentation(
     agentVisible: Boolean,
 ): DroideImePresentation {
     val landscapeImeActive = landscape && imeVisible
-    val collapseCompanionPanes = landscapeImeActive && focusMode
+    val collapseCompanionPanes = landscape && focusMode
     return DroideImePresentation(
         landscape = landscape,
         imeVisible = imeVisible,

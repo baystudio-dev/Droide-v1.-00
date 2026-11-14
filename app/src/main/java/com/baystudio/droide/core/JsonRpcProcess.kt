@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
+ 
 class JsonRpcProcess(
     private val scope: CoroutineScope,
     private val workDir: File,
@@ -27,8 +28,8 @@ class JsonRpcProcess(
     data class Notification(val method: String, val params: JsonElement?)
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = false }
-    // A failed protocol child must report to its request owner, not cancel an IDE scope that happens
-    // to use a regular Job. Parent cancellation still owns us.
+    // A failed protocol child must report to its request owner, not cancel an IDE
+    // scope that happens to use a regular Job. Parent cancellation still owns us.
     private val transportJob: CompletableJob
     private val transportScope: CoroutineScope
     private val writeMutex = Mutex()
@@ -70,8 +71,8 @@ class JsonRpcProcess(
     }
 
     suspend fun start() {
-        // Only the caller admitted to launch this transport may clean up startup. A canceled waiter or
-        // idempotent start does not own another caller's process.
+        // Only the caller admitted to launch this transport may clean up startup.
+        // A canceled waiter or idempotent start does not own another caller's process.
         var startupAdmitted = false
         try {
             withContext(Dispatchers.IO) {
@@ -175,8 +176,9 @@ class JsonRpcProcess(
                 deferred.await()
             }
         } catch (cancel: CancellationException) {
-            // Cancellation can win while awaiting a completed writer.
-
+            // Cancellation can win while awaiting a completed writer. Track admission to
+            // the serialized write, rather than the awaiter's return, so a live transport
+            // still receives cancellation for a frame that may already have been sent.
             if (writeStarted && isRunning && cancellationNotificationMethod != null) {
                 sendCancellationNotification(cancellationNotificationMethod, idElement)
             }
@@ -186,6 +188,7 @@ class JsonRpcProcess(
             if (!deferred.isCompleted) deferred.cancel()
         }
     }
+
 
     private suspend fun sendCancellationNotification(method: String, id: JsonPrimitive) {
         withContext(NonCancellable) {
@@ -217,7 +220,8 @@ class JsonRpcProcess(
             val out = active.stdin
             onWriteStarted?.invoke()
             val writer = transportScope.async(Dispatchers.IO) {
-
+                // Recheck after both writeMutex and dispatcher suspension. The caller
+                // may revoke a project session while this frame is queued.
                 sessionAdmission(obj)
                 ContentLengthProtocol.writeMessage(out, encoded, maxMessageBytes)
             }
@@ -229,8 +233,10 @@ class JsonRpcProcess(
                 failTransport(active, failure)
                 throw failure
             } finally {
-                // Give an admitted write a bounded chance to finish after caller cancellation, so request() can
-                // send $/cancelRequest on the same healthy transport.
+                // A peer can observe the frame before flush/the writer coroutine has returned.
+                // Give an admitted write a bounded chance to finish after caller cancellation,
+                // so request() can send $/cancelRequest on the same healthy transport. A write
+                // that remains blocked, or fails, still closes the transport to avoid half frames.
                 if (!writer.isCompleted) {
                     withContext(NonCancellable) { withTimeoutOrNull(250L) { writer.join() } }
                 }
@@ -331,8 +337,8 @@ class JsonRpcProcess(
         if (won) _notifications.finish()
     }
 
-    // Must hold this process's monitor. Complete independent request deferreds before canceling
-    // children, so failures stay visible to their actual owners.
+    // Must hold this process's monitor. Complete independent request deferreds
+    // before canceling children, so failures stay visible to their actual owners.
     private fun shutDown(failure: Throwable): Boolean {
         if (closed) return false
         closed = true

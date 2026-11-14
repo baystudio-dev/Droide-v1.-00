@@ -27,7 +27,7 @@ internal object LocalCommandProjectionSnapshot {
         if (bytes.size > 65_536 || !before.isRegularFile || before.isSymbolicLink ||
             before.size() != bytes.size.toLong() || !file.canExecute()) false
         else {
-
+            // Bound reads even if another writer grows/replaces the file during refresh.
             val actual = file.inputStream().use { input ->
                 val buffer = ByteArray(bytes.size + 1)
                 var count = 0

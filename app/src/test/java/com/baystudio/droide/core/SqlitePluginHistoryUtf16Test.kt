@@ -14,6 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.SQLiteMode
 
+/** Exercises the production store through framework/native SQLite, including recreation and faults. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], manifest = Config.NONE)
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
@@ -43,14 +44,14 @@ class SqlitePluginHistoryUtf16Test {
             action()
             fail("Malformed persisted payload must be rejected")
         } catch (_: IllegalArgumentException) {
-
+            // The production decoder rejects the payload before any transaction can commit.
         }
     }
 
     @After
     fun cleanup() = runBlocking {
         val failures = mutableListOf<Throwable>()
-
+        // Attempt every close and removal even if a preceding cleanup operation fails.
         stores.asReversed().forEach { store ->
             runCatching { store.close() }.exceptionOrNull()?.let(failures::add)
         }

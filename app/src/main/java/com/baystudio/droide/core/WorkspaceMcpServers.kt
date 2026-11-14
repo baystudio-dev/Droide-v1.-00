@@ -7,6 +7,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** Projects enabled workspace servers into a newly started external agent session. */
 internal object WorkspaceMcpServers {
     suspend fun project(
         projectRoot: File,
