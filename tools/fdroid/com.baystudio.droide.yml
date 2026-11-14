@@ -5,7 +5,7 @@ AuthorName: BayStudio
 WebSite: https://droide.rekacipta.biz.id
 SourceCode: https://github.com/baystudio-dev/Droide-v1.-00
 IssueTracker: https://github.com/baystudio-dev/Droide-v1.-00/issues
-Changelog: https://github.com/baystudio-dev/Droide-v1.-00/blob/fdroid/release-1.01/fastlane/metadata/android/en-US/changelogs/45.txt
+Changelog: https://github.com/baystudio-dev/Droide-v1.-00/releases
 
 AutoName: Droide
 Summary: Code editor, Linux terminal and development workspace
