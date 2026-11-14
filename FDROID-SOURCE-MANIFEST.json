@@ -6234,7 +6234,7 @@
     "tools/export_fdroid_source.py": "0158679e0cc6803d5b006461a1ae8885cb4daf550410af7591e44900b82667e7",
     "tools/fdroid/README.md": "727139cacd0ad6d563d1d7910d4264bbcc8edc1d3576b51a069023ec5e9d2111",
     "tools/fdroid/android-ci.yml": "50bea870886cfe31488bcedc4fe4124411e1a0c3c95805dac5b144198b7a0ff1",
-    "tools/fdroid/com.baystudio.droide.yml": "7c50364d95dcebc69a2851ba0ff79cec16eb303f4d8d8d800d130f0365b2c9b6",
+    "tools/fdroid/com.baystudio.droide.yml": "12a4cc5ebd7966248f93df53fddbd84e72b2988b436fcd3e358626165a61c372",
     "tools/fdroid/settings.gradle.kts": "839a03a4a246435bc3211deb69d880ba70afcf308585a1a9c01173eaa223a31e",
     "tools/filesystem-native-v1.json": "2c50fd3b7ba33f15b2d20a6033db9cf8c97f4dd3815d2380ff3ae5dde65769cf",
     "tools/filesystem-native-v1.md": "47346c8bceda3caa100e2f2b50668e5790016a0c7d909334c27f8614530195c3",
