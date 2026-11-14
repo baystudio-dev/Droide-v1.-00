@@ -65,6 +65,7 @@ jobs:
           path: |
             app/build-source-release-fdroid-candidate/outputs/apk/release/*.apk
             app/build-source-release-fdroid-candidate/outputs/source-release-verification.json
+            app/build-source-release-fdroid-candidate/outputs/native-reproducibility.json
             app/build-source-release-fdroid-candidate/reports/lint-results-release.*
             fdroid-build.log
             fdroid-apk-sha256.txt

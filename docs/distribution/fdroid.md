@@ -56,6 +56,12 @@ Receipts bind sources, compiler inputs and products. This proves those measured 
 not cross-machine APK reproducibility or Android device behavior. Runtime native hash/ELF
 admission remains enabled, using generated identities tied to the freshly compiled products.
 
+F-Droid JNI builds normalize source/SDK paths and the debug compilation directory. Debug
+information and build IDs remain available without embedding machine-specific paths. The
+release wrapper independently recompiles all eight JNI libraries in two different checkout
+paths and compares complete bytes with the actual release libraries. This adds no application
+startup work and does not change the regular distribution's compiler flags.
+
 The F-Droid lane uses R8 9.1.31 from Google Maven. Compared with the regular lane's 9.1.29,
 upstream changes are `Fix exclude_api_database on Windows` and `Fix KeepForApi import`.
 The regular lane remains on its original optimizer and dependency lock. The candidate has

@@ -35,6 +35,13 @@ def main():
         "-PDROIDE_FDROID_TERMINAL_DIR=" + str(products / "terminal"),
         "-PDROIDE_FDROID_JGIT_DIR=" + str(products / "jgit"), ":app:assembleSource" + variant]
     subprocess.run(command, cwd=root, env=environment, check=True)
+    if not args.debug:
+        build = root / "app/build-source-release-fdroid-candidate"
+        subprocess.run(["python3", "-B", root / "tools/verify_fdroid_native_reproducibility.py",
+                        "--root", root, "--sdk", sdk,
+                        "--native", build / "intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib",
+                        "--report", build / "outputs/native-reproducibility.json"],
+                       cwd=root, env=environment, check=True)
 
 
 if __name__ == "__main__":

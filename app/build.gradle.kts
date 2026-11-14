@@ -284,6 +284,13 @@ android {
         targetSdk = 36
         versionCode = 45
         versionName = "1.01"
+        if (fdroidDistribution && !hostJvmOnly) {
+            externalNativeBuild.cmake.cFlags += listOf(
+                "-ffile-prefix-map=${rootProject.projectDir}=.",
+                "-ffile-prefix-map=${android.sdkDirectory}=/android-sdk",
+                "-fdebug-compilation-dir=.",
+            )
+        }
         testApplicationId = "com.baystudio.droide.test"
         testInstrumentationRunner = if (frontendDeviceTests) "androidx.test.runner.AndroidJUnitRunner"
             else "com.baystudio.droide.PhysicalDeviceSmokeInstrumentation"
